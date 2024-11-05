@@ -11,6 +11,10 @@ use crate::key::XKey;
 use crate::node::XNode;
 use crate::signal::depth::Depth;
 
+/// A template represents an [Element] managed by the Terrazzo framework.
+///
+/// It holds a reference to the old [XElement] which ensures Javacript event callbacks
+/// aren't dropped as long as the template is live.
 #[derive(Clone)]
 pub struct XTemplate(Rc<XTemplateInner>);
 

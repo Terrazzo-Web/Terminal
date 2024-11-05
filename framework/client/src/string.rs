@@ -3,6 +3,7 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::Arc;
 
+/// Represents a string that is cheap to copy.
 #[derive(Debug, Clone)]
 pub enum XString {
     Str(&'static str),
