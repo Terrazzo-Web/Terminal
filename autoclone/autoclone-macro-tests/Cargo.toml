@@ -1,0 +1,15 @@
+[package]
+name = "autoclone-macro-tests"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+autoclone-macro = { workspace = true }
+
+[lib]
+
+[lints]
+workspace = true

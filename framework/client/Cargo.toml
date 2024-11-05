@@ -1,0 +1,32 @@
+[package]
+name = "terrazzo-client"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+
+[lib]
+
+[dependencies]
+autoclone-macro = { workspace = true }
+named = { workspace = true }
+scopeguard = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-subscriber-wasm = { workspace = true }
+wasm-bindgen = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Attr",
+    "Document",
+    "Element",
+    "EventTarget",
+    "NodeList",
+    "Text",
+    "Window",
+] }
+
+[features]
+concise_traces = []
+
+[lints]
+workspace = true

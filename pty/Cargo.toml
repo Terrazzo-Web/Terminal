@@ -1,0 +1,27 @@
+[package]
+name = "terrazzo-pty"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+
+[lib]
+
+[dependencies]
+futures = { workspace = true }
+libc = { workspace = true }
+named = { workspace = true }
+pin-project = { workspace = true }
+rustix = { workspace = true, features = ["fs", "process", "pty"] }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = [
+    "macros",
+    "net",
+    "process",
+    "rt",
+    "time",
+] }
+tokio-util = { workspace = true, features = ["io"] }
+tracing = { workspace = true }
+
+[lints]
+workspace = true
