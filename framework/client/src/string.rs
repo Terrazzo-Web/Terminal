@@ -97,6 +97,12 @@ impl From<Arc<str>> for XString {
     }
 }
 
+impl From<bool> for XString {
+    fn from(t: bool) -> Self {
+        Self::Str(if t { "true" } else { "false" })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;

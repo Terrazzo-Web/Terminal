@@ -59,6 +59,7 @@ pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: Terminal
                     items_class: Some(style::items.into()),
                     item_class: Some(style::item.into()),
                     selected_class: Some(style::selected.into()),
+                    ..TabsOptions::default()
                 }),
             )
         }),

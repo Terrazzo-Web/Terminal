@@ -173,7 +173,7 @@ impl XElement {
         let old_tag = element.tag_name().to_lowercase();
         let new_tag = self.tag_name.as_str();
         if old_tag.as_str() == new_tag {
-            return None;
+            return Some(());
         }
 
         info!(old_tag, new_tag, "Changing element tag");

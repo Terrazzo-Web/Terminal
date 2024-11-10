@@ -12,7 +12,6 @@
         list-style: none;
         margin: 0;
         padding: 0;
-
     }
 }
 
@@ -45,4 +44,44 @@ li.title {
             }
         }
     }
+}
+
+.show-separator {
+    display: block;
+    visibility: visible;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+
+    position: relative;
+
+    &::before {
+        content: "";
+        width: 10px;
+        height: 100%;
+        left: -10px;
+        position: absolute;
+        background-color: rgba(255, 0, 0, 0.5);
+    }
+
+    &:first-child::before {
+        left: 0px;
+    }
+
+    &:hover {
+        background-color: rgba(255, 0, 0, 1.0);
+    }
+
+    &.hover-separator::before {
+        width: 30px;
+        left: 0px;
+        position: relative;
+        background-color: rgba(0, 255, 0, 0.5);
+    }
+}
+
+.hide-separator {
+    display: none;
+    visibility: hidden;
 }

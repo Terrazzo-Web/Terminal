@@ -83,10 +83,9 @@ fn reindex_nodes(new: &mut XElement) {
             continue;
         };
         reindex_nodes(child);
-        let XKey::Index(index) = &mut child.key else {
-            continue;
-        };
-        *index = next;
+        if let XKey::Index(index) = &mut child.key {
+            *index = next;
+        }
         next += 1;
     }
 }
