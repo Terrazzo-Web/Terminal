@@ -41,10 +41,10 @@ fn push_lease(terminal_id: TerminalId, lease: ProcessOutputLease) -> Result<(), 
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum RegisterStreamError {
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     GetOrCreateProcessError(#[from] processes::stream::GetOrCreateProcessError),
 
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     PushLeaseError(#[from] PushLeaseError),
 }
 

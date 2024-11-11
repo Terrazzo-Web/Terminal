@@ -37,10 +37,10 @@ impl<S> FromRequestParts<S> for CorrelationId {
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum CorrelationIdError {
-    #[error("[{}] Missing header '{CORRELATION_ID}'", self.name() )]
+    #[error("[{n}] Missing header '{CORRELATION_ID}'", n = self.name() )]
     MissingCorrelationId,
 
-    #[error("[{}] Invalid string: {0}", self.name())]
+    #[error("[{n}] Invalid string: {0}", n = self.name())]
     InvalidString(ToStrError),
 }
 

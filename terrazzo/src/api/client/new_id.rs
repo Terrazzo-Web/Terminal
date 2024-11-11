@@ -25,15 +25,15 @@ pub async fn new_id() -> Result<String, NewIdError> {
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum NewIdError {
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 
-    #[error("[{}] Missing response body", self.name())]
+    #[error("[{n}] Missing response body", n = self.name())]
     MissingResponseBody,
 
-    #[error("[{}] Failed to download the response body", self.name())]
+    #[error("[{n}] Failed to download the response body", n = self.name())]
     FailedResponseBody,
 
-    #[error("[{}] The returned ID is not a valid UTF-8 string", self.name())]
+    #[error("[{n}] The returned ID is not a valid UTF-8 string", n = self.name())]
     InvalidUtf8Id,
 }

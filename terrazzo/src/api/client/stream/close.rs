@@ -45,7 +45,7 @@ pub async fn close(terminal_id: &TerminalId) -> Result<(), CloseError> {
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum CloseError {
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 }
 

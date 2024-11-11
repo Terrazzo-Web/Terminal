@@ -23,6 +23,6 @@ pub async fn set_title(terminal_id: &TerminalId, title: String) -> Result<(), Se
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum SetTitleError {
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 }

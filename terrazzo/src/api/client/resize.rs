@@ -33,9 +33,9 @@ pub async fn resize(terminal_id: &TerminalId, size: Size) -> Result<(), ResizeEr
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum ResizeError {
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     InvalidJson(#[from] serde_json::Error),
 }

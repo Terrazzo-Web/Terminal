@@ -46,18 +46,18 @@ pub async fn list() -> Result<Vec<TerminalDef>, ListError> {
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum ListError {
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 
-    #[error("[{}] Missing response body", self.name())]
+    #[error("[{n}] Missing response body", n = self.name())]
     MissingResponseBody,
 
-    #[error("[{}] Stream failed: {0:?}", self.name())]
+    #[error("[{n}] Stream failed: {0:?}", n = self.name())]
     ReadError(JsValue),
 
-    #[error("[{}] Chunk is not a byte array: {0:?}", self.name())]
+    #[error("[{n}] Chunk is not a byte array: {0:?}", n = self.name())]
     InvalidChunk(JsValue),
 
-    #[error("[{}] Invalid JSON result: {0:?}", self.name())]
+    #[error("[{n}] Invalid JSON result: {0:?}", n = self.name())]
     InvalidJson(serde_json::Error),
 }
