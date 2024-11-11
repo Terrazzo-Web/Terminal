@@ -3,9 +3,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
   schedule:
     - cron: '0 0 * * 6'
 jobs:
@@ -17,36 +14,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-            terrazzo/target/wasm
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
-      - name: Install stylance
-        run: cargo install stylance-cli
-      - name: Run stylance
-        run: cd terrazzo && stylance .
-      - name: Tests
-        run: cargo test
-      - name: Build
-        run: |
-          cargo build --bin terrazzo-server --features server,max_level_debug
-          cargo build --bin terrazzo-server --features server,max_level_info --release
-      - name: Clippy
-        run: |
-          cargo clippy
-          cargo clippy --bin terrazzo-server --features server,max_level_debug
-          cargo clippy --bin terrazzo-server --features server,max_level_info
-          cargo clippy --features client,max_level_debug
-          cargo clippy --features client,max_level_info
-      - name: Rustfmt
-        run: cargo fmt
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/check
+      - uses: ./.github/actions/test
+      - uses: ./.github/actions/build

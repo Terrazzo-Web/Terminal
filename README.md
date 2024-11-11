@@ -29,3 +29,9 @@
 
 # Icons
 - https://icons.getbootstrap.com/
+
+# ACT
+- https://nektosact.com/
+- `brew install act`
+- `act push --matrix os:macos-latest -P macos-latest=-self-hosted`
+- TODO: Cache. See https://github.com/NoahHsu/github-act-cache-server/blob/main/src/index.js
