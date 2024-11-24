@@ -13,6 +13,7 @@ pub fn do_or_log<T, R: Default, E: std::fmt::Display>(
     }
 }
 
+#[must_use]
 pub trait ToLogMessage {
     fn warn(self) -> LogMessage<Self>;
     fn error(self) -> LogMessage<Self>;

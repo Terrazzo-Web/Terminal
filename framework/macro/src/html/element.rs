@@ -66,6 +66,33 @@ impl XElement {
         }
     }
 
+    pub fn process_dynamic_attribute(&mut self, name: &syn::Ident, value: &syn::Expr) {
+        if process_event(name, value).is_some() {
+            self.events.push(quote! { compile_error!() });
+            return;
+        };
+        let name = name.to_string();
+        let name = name.strip_prefix("r#").unwrap_or(&name);
+        let name = name.strip_suffix("_").unwrap_or(name);
+        let name = name.replace("_", "-");
+        match name.as_str() {
+            "tag-name" => self.tag_name = quote! { compile_error },
+            "key" => self.key = quote! { compile_error!() },
+            "before-render" => self.before_render = Some(quote! { compile_error!() }),
+            "after-render" => self.after_render = Some(quote! { compile_error!() }),
+            _ => {
+                self.attributes.push(quote! {
+                    gen_attributes.push(XAttribute {
+                        name: #name.into(),
+                        value: XAttributeValue::Dynamic(
+                            (#value).into(),
+                        ),
+                    });
+                });
+            }
+        }
+    }
+
     pub fn process_dynamic(&mut self, dynamic: &syn::Expr) {
         self.dynamic = Some(quote! {
             value: XElementValue::Dynamic((#dynamic).into())
@@ -105,11 +132,7 @@ impl XElement {
                 lit: syn::Lit::Str(string),
                 ..
             }) => quote! { XNode::from(XText(format!(#string).into())) },
-            _ => {
-                html_element_visitor.success =
-                    Err(syn::Error::new(child.span(), "Invalid child node"));
-                return;
-            }
+            child => quote! { #child },
         };
         self.children.push(quote! {
             gen_children.push(#child);

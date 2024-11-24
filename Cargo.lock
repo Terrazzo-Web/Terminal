@@ -1801,6 +1801,7 @@ dependencies = [
  "autoclone-macro",
  "named",
  "scopeguard",
+ "terrazzo-macro",
  "thiserror 2.0.3",
  "tracing",
  "tracing-subscriber",

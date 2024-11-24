@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use named::named;
+use named::NamedType as _;
 use scopeguard::defer;
 use tracing::debug;
 use tracing::debug_span;
@@ -15,10 +16,11 @@ use wasm_bindgen::JsCast as _;
 use web_sys::js_sys::Function;
 use web_sys::Element;
 
+use self::template::XTemplate;
+use crate::attribute::XAttribute;
 use crate::key::XKey;
 use crate::key::KEY_ATTRIBUTE;
 use crate::node::XNode;
-use crate::prelude::XTemplate;
 use crate::signal::depth::Depth;
 use crate::signal::reactive_closure::reactive_closure_builder::Consumers;
 use crate::string::XString;
@@ -27,6 +29,7 @@ mod debug;
 mod merge_attributes;
 mod merge_children;
 mod merge_events;
+pub mod template;
 
 #[named]
 pub struct XElement {
@@ -56,11 +59,6 @@ impl<F: Fn(XTemplate) -> Consumers + 'static> From<F> for XDynamicElement {
     fn from(value: F) -> Self {
         Self(Box::new(value))
     }
-}
-
-pub struct XAttribute {
-    pub name: XString,
-    pub value: XString,
 }
 
 pub struct XEvent {
@@ -107,7 +105,7 @@ impl XElement {
                     events: old_events,
                     children: old_children,
                 } => {
-                    merge_attributes::merge(new_attributes, old_attributes, &element);
+                    merge_attributes::merge(depth, new_attributes, old_attributes, &element);
                     merge_events::merge(new_events, old_events, &element);
                     merge_children::merge(depth, new_children, old_children, &element);
                 }
@@ -119,7 +117,7 @@ impl XElement {
                         children: vec![],
                     };
                     debug!("A node changed from Dynamic/Generated to Static");
-                    merge_attributes::merge(new_attributes, &[], &element);
+                    merge_attributes::merge(depth, new_attributes, &mut [], &element);
                     merge_events::merge(new_events, &[], &element);
                     merge_children::merge(depth, new_children, &mut [], &element);
                 }
@@ -145,7 +143,7 @@ impl XElement {
                 };
             }
             XElementValue::Generated { .. } => {
-                warn!("Illegal XElement state");
+                warn!("Illegal {} state", XElement::type_name());
                 debug_assert!(false);
             }
         }

@@ -27,17 +27,37 @@ mod tests;
 mod version;
 mod weak;
 
+use self::inner::XSignalInner;
+
 /// A mutable value that callbacks can subscribe to.
 ///
 /// - Derived signals
 /// - ReactiveClosures re-compute and update HTML nodes when signals change
 pub struct XSignal<T>(Arc<XSignalInner<T>>);
 
-struct XSignalInner<T> {
-    current_value: Mutex<XSignalValue<T>>,
-    producer: Producer<ProducedSignal>,
-    immutable_value: Arc<Mutex<Option<T>>>,
-    on_drop: Mutex<Vec<Box<dyn FnOnce()>>>,
+mod inner {
+    use std::ops::Deref;
+    use std::sync::Arc;
+    use std::sync::Mutex;
+
+    use super::producers::producer::Producer;
+    use super::ProducedSignal;
+    use super::XSignal;
+    use super::XSignalValue;
+
+    pub struct XSignalInner<T> {
+        pub(super) current_value: Mutex<XSignalValue<T>>,
+        pub(super) producer: Producer<ProducedSignal>,
+        pub(super) immutable_value: Arc<Mutex<Option<T>>>,
+        pub(super) on_drop: Mutex<Vec<Box<dyn FnOnce()>>>,
+    }
+
+    impl<T> Deref for XSignal<T> {
+        type Target = XSignalInner<T>;
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
 }
 
 pub struct ProducedSignal;
@@ -98,7 +118,7 @@ impl<T> XSignal<T> {
                 debug!(last_version, version, "Skip");
             }
         };
-        Consumers(vec![self.0.producer.register(
+        Consumers(vec![self.producer.register(
             DebugCorrelationId::new(|| "[closure]".into()),
             Depth::zero(),
             closure,
@@ -109,7 +129,7 @@ impl<T> XSignal<T> {
     where
         T: Clone,
     {
-        self.0.current_value.lock().unwrap().value().clone()
+        self.current_value.lock().unwrap().value().clone()
     }
 }
 
@@ -124,18 +144,18 @@ impl<T: std::fmt::Debug + 'static> XSignal<T> {
     where
         T: Eq,
     {
-        let _span = debug_span!("Set", signal = %self.0.producer.name()).entered();
+        let _span = debug_span!("Set", signal = %self.producer.name()).entered();
         self.update_impl(|_| Some(new_value.into()));
     }
 
     pub fn update(&self, compute: impl FnOnce(&T) -> Option<T>) {
-        let _span = debug_span!("Update", signal = %self.0.producer.name()).entered();
+        let _span = debug_span!("Update", signal = %self.producer.name()).entered();
         self.update_impl(compute);
     }
 
     fn update_impl(&self, compute: impl FnOnce(&T) -> Option<T>) {
         let version = {
-            let mut current = self.0.current_value.lock().expect("current");
+            let mut current = self.current_value.lock().expect("current");
             let current_value = current.value();
             let current_version = current.version.number();
             let Some(new_value) = compute(current_value) else {
@@ -158,10 +178,10 @@ impl<T: std::fmt::Debug + 'static> XSignal<T> {
     }
 
     pub fn force(&self, new_value: impl Into<T>) {
-        let _span = debug_span!("Force", signal = %self.0.producer.name()).entered();
+        let _span = debug_span!("Force", signal = %self.producer.name()).entered();
         let new_value = new_value.into();
         let version = {
-            let mut current = self.0.current_value.lock().expect("current");
+            let mut current = self.current_value.lock().expect("current");
             current.value = Some(new_value);
             current.version = Version::next();
             debug! { "Signal value was forced to version:{} value:{:?}", current.version.number(), current.value() };
@@ -183,7 +203,7 @@ impl<T: std::fmt::Debug + 'static> XSignal<T> {
     }
 
     fn process(&self, version: Version) {
-        self.0.producer.process(version);
+        self.producer.process(version);
     }
 }
 

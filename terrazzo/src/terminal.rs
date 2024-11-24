@@ -42,7 +42,7 @@ pub fn terminals(template: XTemplate) {
 
 #[template]
 #[html]
-pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: TerminalTabs) {
+pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: TerminalTabs) -> XElement {
     info!("Render terminals: {terminal_tabs:?}");
     div(
         class = style::terminals,

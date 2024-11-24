@@ -1,7 +1,8 @@
 # TODO
-- `#·52`. Drag n Drop to create tiles
-- `#·57`. Dynamic attributes
+- `#·60`. Embed assets in binary
+- `#·59`. Move widgets to separate project
 - `#·58`. Shortcut for style attributes
+- `#·52`. Drag n Drop to create tiles
 - `#·55`. Better way to do APIs. `server_fn`?
 - `#·32`. Open source terrazzo client.
 - `#·32`. Open source named.
@@ -18,7 +19,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#·59`.
+Next: `#·61`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -67,3 +68,4 @@ Next: `#·59`.
 - `#·35`. Fix bug in rendering when element keys are not defined
 - `#·46`. What happens if processes run in the background with no tab attached?: Process hangs as it can't continue writing to stdout.
 - `#·56`. Improve documentation
+- `#·57`. Dynamic attributes

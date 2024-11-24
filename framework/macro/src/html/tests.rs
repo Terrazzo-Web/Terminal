@@ -176,14 +176,41 @@ fn sample() -> XElement {
 }
 
 #[test]
-fn invalid_child() {
+fn invalid_child() -> syn::Result<()> {
     let sample = quote! {
         fn sample() -> XElement {
-            div(key = "root", "Text", 123)
+            let someNode = someNode()..;
+            div(key = "root", "Text", someNode)
         }
     };
-    let error = html(quote! {}, sample).unwrap_err();
-    assert_eq!("Invalid child node", error.to_string())
+    let expected = r#"
+fn sample() -> XElement {
+    let someNode = someNode()..;
+    {
+        let mut gen_attributes = vec![];
+        let mut gen_children = vec![];
+        gen_children.push(XNode::from(XText(format!("Text").into())));
+        gen_children.push(someNode);
+        XElement {
+            tag_name: "div".into(),
+            key: XKey::Named("root".into()),
+            value: XElementValue::Static {
+                attributes: gen_attributes,
+                children: gen_children,
+                events: vec![],
+            },
+            before_render: None,
+            after_render: None,
+        }
+    }
+}"#;
+    let actual = html(quote! {}, sample)?;
+    let actual = item_to_string(&syn::parse2(actual)?);
+    if expected.trim() != actual.trim() {
+        println!("{}", actual);
+        assert!(false);
+    }
+    Ok(())
 }
 
 #[test]

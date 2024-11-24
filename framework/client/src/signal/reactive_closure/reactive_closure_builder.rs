@@ -16,7 +16,7 @@ use crate::signal::version::Version;
 use crate::signal::ProducedSignal;
 use crate::signal::XSignal;
 use crate::string::XString;
-use crate::template::XTemplate;
+use crate::template::IsTemplate;
 
 /// A builder for [ReactiveClosure].
 /// The closure initially takes multiple parameters that must be bound to signals until we are left with a Fn().
@@ -84,7 +84,7 @@ impl<F: Fn() + 'static> ReactiveClosureBuilder<F> {
     /// Subscribes the reactive closure to all its signals.
     /// There is no way to call it manually. The only way to get the closure to run is the change the signals.
     #[autoclone]
-    pub fn register(self, template: XTemplate) -> Consumers {
+    pub fn register(self, template: impl IsTemplate) -> Consumers {
         let _span = debug_span!("Register", closure = %self.name).entered();
         let Self {
             name,
@@ -105,7 +105,7 @@ impl<F: Fn() + 'static> ReactiveClosureBuilder<F> {
         let consumer_name: XString = template.debug_id().to_string().into();
         for producer in producers {
             consumers.push(producer.register(
-                DebugCorrelationId::new(|| consumer_name.to_string().into()),
+                DebugCorrelationId::new(|| consumer_name.clone()),
                 template.depth(),
                 move |version| {
                     autoclone!(reactive_closure);

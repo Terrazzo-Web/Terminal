@@ -55,10 +55,15 @@ pub fn template(
     prelude.reverse();
     copies.reverse();
     bind_signals.reverse();
+    let template_type = if let syn::ReturnType::Type(_, template_type) = &item_fn.sig.output {
+        quote! { <#template_type as IsTemplated>::Template }
+    } else {
+        quote! { () }
+    };
 
     let element: syn::FnArg = {
         let span = item_fn.sig.ident.span();
-        syn::parse2(quote_spanned! {span=> generated_template: XTemplate})?
+        syn::parse2(quote_spanned! {span=> generated_template: #template_type})?
     };
     item_fn.sig.inputs.insert(0, element);
 

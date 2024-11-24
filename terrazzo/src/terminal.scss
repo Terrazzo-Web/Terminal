@@ -34,6 +34,7 @@
         height: 30px;
 
         overflow-x: scroll;
+        overflow-y: hidden;
         @include no-scroll-bar;
     }
 
