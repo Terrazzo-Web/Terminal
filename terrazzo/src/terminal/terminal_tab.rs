@@ -123,7 +123,7 @@ impl TabDescriptor for TerminalTab {
         let close_button = img(
             key = "close-icon",
             class = super::style::close_icon,
-            src = "/assets/icons/x-lg.svg",
+            src = "/static/icons/x-lg.svg",
             click = move |ev: web_sys::MouseEvent| {
                 autoclone!(id);
                 ev.stop_propagation();

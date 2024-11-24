@@ -3,14 +3,14 @@
 
 use std::env::set_current_dir;
 use std::iter::once;
-use std::path::PathBuf;
 
+use axum::extract::Path;
+use axum::routing::get;
 use axum::Router;
 use http::header::AUTHORIZATION;
 use terrazzo as _;
+use terrazzo_common::static_assets;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
-use tower_http::services::ServeDir;
-use tower_http::services::ServeFile;
 use tower_http::trace::TraceLayer;
 use tracing::enabled;
 use tracing::Level;
@@ -18,6 +18,7 @@ use tracing::Level;
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
 mod api;
+mod assets;
 mod processes;
 mod terminal_id;
 
@@ -33,22 +34,13 @@ async fn main() {
         .with_target(false)
         .init();
 
-    let target_asset_dir = {
-        let cargo_manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let debug_or_release = if cfg!(debug_assertions) {
-            "debug"
-        } else {
-            "release"
-        };
-        cargo_manifest_dir
-            .join("target")
-            .join(debug_or_release)
-            .join("assets")
-    };
-
+    self::assets::install_assets();
     let router = Router::new()
-        .nest_service("/", ServeFile::new(target_asset_dir.join("index.html")))
-        .nest_service("/assets", ServeDir::new(target_asset_dir))
+        .route("/", get(|| static_assets::get("index.html")))
+        .route(
+            "/static/*file",
+            get(|Path(path): Path<String>| static_assets::get(&path)),
+        )
         .nest_service("/api", api::server::route());
     let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
     let router = if enabled!(Level::TRACE) {

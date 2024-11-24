@@ -1,5 +1,7 @@
 # TODO
-- `#·60`. Embed assets in binary
+- `#·60`. Support embedding assets in binary
+- `#·61`. Templates can supply the tag name in the #[template(tag = div)] attribute.
+- `#·62`. Attributes auto-convert to optional or dynamic
 - `#·59`. Move widgets to separate project
 - `#·58`. Shortcut for style attributes
 - `#·52`. Drag n Drop to create tiles
@@ -19,7 +21,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#·61`.
+Next: `#·63`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`

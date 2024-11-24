@@ -3,7 +3,7 @@ use terrazzo_macro::html;
 use terrazzo_macro::template;
 use web_sys::MouseEvent;
 
-stylance::import_crate_style!(style, "src/widgets/link.scss");
+stylance::import_crate_style!(style, "src/client/widgets/link.scss");
 
 #[html]
 #[template]

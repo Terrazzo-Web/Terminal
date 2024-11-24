@@ -10,7 +10,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 mod api;
 mod terminal;
 mod terminal_id;
-mod widgets;
+use terrazzo_common::widgets;
 
 #[wasm_bindgen]
 pub fn start() {

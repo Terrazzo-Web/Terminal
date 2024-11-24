@@ -169,3 +169,25 @@ enum BuildErrorInner {
     #[error("[{n}] Failed to copy to the target assets folder", n = self.name())]
     CpTargetAssetsError,
 }
+
+pub fn build_css(css: &str) {
+    let dir: PathBuf = std::env::var("CARGO_MANIFEST_DIR").unwrap().into();
+    let status = std::process::Command::new("stylance")
+        .current_dir(&dir)
+        .arg(".")
+        .status();
+    assert!(status.unwrap().success());
+
+    let status = std::process::Command::new("npm")
+        .current_dir(&dir)
+        .args([
+            "exec",
+            "sass",
+            "--",
+            "--no-source-map",
+            &format!("target/css/{css}.scss"),
+            &format!("assets/css/{css}.css"),
+        ])
+        .status();
+    assert!(status.unwrap().success());
+}

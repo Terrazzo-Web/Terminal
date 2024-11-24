@@ -25,15 +25,17 @@ axum = { workspace = true, optional = true, features = [
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
 http = { workspace = true, optional = true }
+include_directory = { workspace = true, optional = true }
+mime = { workspace = true, optional = true }
 named = { workspace = true }
 pin-project = { workspace = true }
-reqwest-wasm = { workspace = true, optional = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 stylance = { workspace = true, optional = true }
 thiserror = { workspace = true }
 terrazzo-client = { workspace = true, optional = true }
+terrazzo-common = { workspace = true }
 terrazzo-macro = { workspace = true, optional = true }
 terrazzo-pty = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
@@ -84,16 +86,20 @@ client = [
     "dep:wasm-bindgen-futures",
     "dep:wasm-streams",
     "dep:web-sys",
+    "terrazzo-common/client",
 ]
 server = [
     "dep:axum",
     "dep:dashmap",
     "dep:http",
+    "dep:include_directory",
+    "dep:mime",
     "dep:terrazzo-pty",
     "dep:tokio",
     "dep:tower-http",
     "dep:tracing-futures",
     "dep:tracing-subscriber",
+    "terrazzo-common/server",
 ]
 max_level_debug = ["tracing/max_level_debug", "tracing/release_max_level_debug"]
 max_level_info = [
@@ -103,7 +109,7 @@ max_level_info = [
 ]
 
 [package.metadata.stylance]
-output_file = "./target/css/generated.scss"
+output_file = "./target/css/terrazzo.scss"
 folders = ["./src/"]
 extensions = [".scss", ".css"]
 
