@@ -70,7 +70,7 @@ pub struct TabsOptions<T = Option<XString>> {
 ///     </items>
 /// </tabs>
 /// ```
-#[template]
+#[template(tag = div)]
 #[html]
 #[autoclone]
 pub fn tabs<T: TabsDescriptor>(
@@ -134,21 +134,20 @@ pub fn tabs<T: TabsDescriptor>(
     let tab_items = {
         let li_list = tab_descriptors().map(|tab| {
             let selected = tab.selected(&state);
-            li(key = tab.key(), move |li| {
-                autoclone!(tab, state, options);
+            li(
+                key = tab.key(),
                 tab_item(
-                    li,
                     tab.clone(),
                     state.clone(),
                     selected.clone(),
                     options.clone(),
-                )
-            })
+                ),
+            )
         });
         div(class = options.items_class.clone(), ul(li_list..))
     };
 
-    div(
+    tag(
         class = options.tabs_class.clone(),
         [tab_titles, tab_items]..,
     )
@@ -274,7 +273,7 @@ fn tab_title<T: TabDescriptor + 'static>(
     );
 }
 
-#[template]
+#[template(tag = li)]
 #[html]
 fn tab_item<T: TabDescriptor + 'static>(
     tab: T,
@@ -287,7 +286,7 @@ fn tab_item<T: TabDescriptor + 'static>(
     } else {
         options.item_class.clone()
     };
-    li(class = class, [tab.item(&state).into()]..)
+    tag(class = class, [tab.item(&state).into()]..)
 }
 
 mod tab_options {
@@ -306,7 +305,7 @@ mod tab_options {
                 item_class: style::item,
                 selected_class: style::selected,
                 title_show_sep: style::title_show_sep,
-                title_hide_sep: &style::title_hide_sep,
+                title_hide_sep: style::title_hide_sep,
                 title_drop_zone: style::title_drop_zone,
                 title_dropping: style::title_dropping,
                 title_drop_sep: style::title_drop_sep,
@@ -318,17 +317,17 @@ mod tab_options {
             new: &TabsOptions<Option<O>>,
         ) -> TabsOptions<XString> {
             TabsOptions::<XString> {
-                tabs_class: Self::merge_class(&self.tabs_class, &new.tabs_class),
-                titles_class: Self::merge_class(&self.titles_class, &new.titles_class),
-                title_class: Self::merge_class(&self.title_class, &new.title_class),
-                items_class: Self::merge_class(&self.items_class, &new.items_class),
-                item_class: Self::merge_class(&self.item_class, &new.item_class),
-                selected_class: Self::merge_class(&self.selected_class, &new.selected_class),
-                title_show_sep: Self::merge_class(&self.title_show_sep, &new.title_show_sep),
-                title_hide_sep: Self::merge_class(&self.title_hide_sep, &new.title_hide_sep),
-                title_drop_zone: Self::merge_class(&self.title_drop_zone, &new.title_drop_zone),
-                title_dropping: Self::merge_class(&self.title_dropping, &new.title_dropping),
-                title_drop_sep: Self::merge_class(&self.title_drop_sep, &new.title_drop_sep),
+                tabs_class: Self::merge_class(self.tabs_class, &new.tabs_class),
+                titles_class: Self::merge_class(self.titles_class, &new.titles_class),
+                title_class: Self::merge_class(self.title_class, &new.title_class),
+                items_class: Self::merge_class(self.items_class, &new.items_class),
+                item_class: Self::merge_class(self.item_class, &new.item_class),
+                selected_class: Self::merge_class(self.selected_class, &new.selected_class),
+                title_show_sep: Self::merge_class(self.title_show_sep, &new.title_show_sep),
+                title_hide_sep: Self::merge_class(self.title_hide_sep, &new.title_hide_sep),
+                title_drop_zone: Self::merge_class(self.title_drop_zone, &new.title_drop_zone),
+                title_dropping: Self::merge_class(self.title_dropping, &new.title_dropping),
+                title_drop_sep: Self::merge_class(self.title_drop_sep, &new.title_drop_sep),
             }
         }
 

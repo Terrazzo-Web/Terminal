@@ -19,7 +19,7 @@ fn sample() -> XElement {
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Root text").into())));
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
                 attributes: gen_attributes,
@@ -65,7 +65,7 @@ fn sample() -> XElement {
                     gen_children.push(XNode::from(XText(format!("Paragraph 1").into())));
                     gen_children.push(XNode::from(XText(format!("Paragraph 2").into())));
                     XElement {
-                        tag_name: "span".into(),
+                        tag_name: Some("span".into()),
                         key: XKey::Named("inner".into()),
                         value: XElementValue::Static {
                             attributes: gen_attributes,
@@ -78,7 +78,7 @@ fn sample() -> XElement {
                 }),
             );
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
                 attributes: gen_attributes,
@@ -120,7 +120,7 @@ fn sample() -> XElement {
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Child1").into())));
         XElement {
-            tag_name: "span".into(),
+            tag_name: Some("span".into()),
             key: XKey::default(),
             value: XElementValue::Static {
                 attributes: gen_attributes,
@@ -136,7 +136,7 @@ fn sample() -> XElement {
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Child2").into())));
         XElement {
-            tag_name: "span".into(),
+            tag_name: Some("span".into()),
             key: XKey::default(),
             value: XElementValue::Static {
                 attributes: gen_attributes,
@@ -154,7 +154,7 @@ fn sample() -> XElement {
         gen_children.push(XNode::from(XText(format!("Root text").into())));
         gen_children.extend(children.into_iter().map(XNode::from));
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
                 attributes: gen_attributes,
@@ -190,9 +190,9 @@ fn sample() -> XElement {
         let mut gen_attributes = vec![];
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Text").into())));
-        gen_children.push(someNode);
+        gen_children.push(XNode::from(someNode));
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
                 attributes: gen_attributes,
@@ -242,7 +242,7 @@ fn sample() -> XElement {
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Root text").into())));
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
                 attributes: gen_attributes,
@@ -310,7 +310,7 @@ fn sample() -> XElement {
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Root text").into())));
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
                 attributes: gen_attributes,
@@ -350,7 +350,7 @@ fn sample() -> XElement {
                     let mut gen_children = vec![];
                     gen_children.push(XNode::from(XText(format!("Paragraph 1").into())));
                     XElement {
-                        tag_name: "span".into(),
+                        tag_name: Some("span".into()),
                         key: XKey::default(),
                         value: XElementValue::Static {
                             attributes: gen_attributes,
@@ -369,7 +369,7 @@ fn sample() -> XElement {
                     let mut gen_children = vec![];
                     gen_children.push(XNode::from(XText(format!("Paragraph 2").into())));
                     XElement {
-                        tag_name: "span".into(),
+                        tag_name: Some("span".into()),
                         key: XKey::default(),
                         value: XElementValue::Static {
                             attributes: gen_attributes,
@@ -382,7 +382,7 @@ fn sample() -> XElement {
                 }),
             );
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
             key: XKey::default(),
             value: XElementValue::Static {
                 attributes: gen_attributes,
@@ -414,9 +414,40 @@ fn dynamic() -> syn::Result<()> {
 fn sample() -> XElement {
     {
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
             key: XKey::default(),
             value: XElementValue::Dynamic((|element| do_template(element)).into()),
+            before_render: None,
+            after_render: None,
+        }
+    }
+}"#;
+    let actual = html(quote! {}, sample)?;
+    let actual = item_to_string(&syn::parse2(actual)?);
+    if expected.trim() != actual.trim() {
+        println!("{}", actual);
+        assert!(false);
+    }
+    Ok(())
+}
+
+#[test]
+fn dynamic_duplicate_callback() -> syn::Result<()> {
+    let sample = quote! {
+        fn sample() -> XElement {
+            div(
+                |element| do_template(element),
+                |element| do_template(element),
+            )
+        }
+    };
+    let expected = r#"
+fn sample() -> XElement {
+    {
+        XElement {
+            tag_name: Some("div".into()),
+            key: XKey::default(),
+            value: compile_error!("Dynamic nodes have a single callback"),
             before_render: None,
             after_render: None,
         }
@@ -443,7 +474,7 @@ fn sample() -> XElement {
     {
         compile_error!("Properties of dynamic nodes cannot be defined at the call site");
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
             key: XKey::default(),
             value: XElementValue::Dynamic((|element| do_template(element)).into()),
             before_render: None,
@@ -489,7 +520,7 @@ fn sample() -> XElement {
                     gen_children.push(XNode::from(XText(format!("Paragraph 1").into())));
                     gen_children.push(XNode::from(XText(format!("Paragraph 2").into())));
                     XElement {
-                        tag_name: "span".into(),
+                        tag_name: Some("span".into()),
                         key: XKey::Named("inner".into()),
                         value: XElementValue::Static {
                             attributes: gen_attributes,
@@ -502,7 +533,7 @@ fn sample() -> XElement {
                 }),
             );
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
                 attributes: gen_attributes,
@@ -552,7 +583,7 @@ fn sample() -> XElement {
                     gen_children.push(XNode::from(XText(format!("Paragraph 1").into())));
                     gen_children.push(XNode::from(XText(format!("Paragraph 2").into())));
                     XElement {
-                        tag_name: "span".into(),
+                        tag_name: Some("span".into()),
                         key: XKey::Named("inner".into()),
                         value: XElementValue::Static {
                             attributes: gen_attributes,
@@ -565,7 +596,42 @@ fn sample() -> XElement {
                 }),
             );
         XElement {
-            tag_name: "div".into(),
+            tag_name: Some("div".into()),
+            key: XKey::Named("root".into()),
+            value: XElementValue::Static {
+                attributes: gen_attributes,
+                children: gen_children,
+                events: vec![],
+            },
+            before_render: None,
+            after_render: None,
+        }
+    }
+}"#;
+    let actual = html(quote! {}, sample)?;
+    let actual = item_to_string(&syn::parse2(actual)?);
+    if expected.trim() != actual.trim() {
+        println!("{}", actual);
+        assert!(false);
+    }
+    Ok(())
+}
+
+#[test]
+fn tag() -> syn::Result<()> {
+    let sample = quote! {
+        fn sample() -> XElement {
+            tag(key = "root", "Root text")
+        }
+    };
+    let expected = r#"
+fn sample() -> XElement {
+    {
+        let mut gen_attributes = vec![];
+        let mut gen_children = vec![];
+        gen_children.push(XNode::from(XText(format!("Root text").into())));
+        XElement {
+            tag_name: None,
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
                 attributes: gen_attributes,

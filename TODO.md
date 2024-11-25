@@ -1,8 +1,6 @@
 # TODO
-- `#·60`. Support embedding assets in binary
 - `#·61`. Templates can supply the tag name in the #[template(tag = div)] attribute.
 - `#·62`. Attributes auto-convert to optional or dynamic
-- `#·59`. Move widgets to separate project
 - `#·58`. Shortcut for style attributes
 - `#·52`. Drag n Drop to create tiles
 - `#·55`. Better way to do APIs. `server_fn`?
@@ -71,3 +69,5 @@ Next: `#·63`.
 - `#·46`. What happens if processes run in the background with no tab attached?: Process hangs as it can't continue writing to stdout.
 - `#·56`. Improve documentation
 - `#·57`. Dynamic attributes
+- `#·59`. Move widgets to separate project
+- `#·60`. Support embedding assets in binary

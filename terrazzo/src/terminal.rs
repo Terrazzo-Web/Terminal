@@ -40,29 +40,25 @@ pub fn terminals(template: XTemplate) {
     std::mem::forget(consumers);
 }
 
-#[template]
 #[html]
+#[template]
 pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: TerminalTabs) -> XElement {
     info!("Render terminals: {terminal_tabs:?}");
     div(
         class = style::terminals,
-        div(move |template| {
-            let state = state.clone();
-            tabs(
-                template,
-                terminal_tabs.clone(),
-                state,
-                Rc::new(TabsOptions {
-                    tabs_class: Some(style::tabs.into()),
-                    titles_class: Some(style::titles.into()),
-                    title_class: Some(style::title.into()),
-                    items_class: Some(style::items.into()),
-                    item_class: Some(style::item.into()),
-                    selected_class: Some(style::selected.into()),
-                    ..TabsOptions::default()
-                }),
-            )
-        }),
+        tabs(
+            terminal_tabs,
+            state,
+            Rc::new(TabsOptions {
+                tabs_class: Some(style::tabs.into()),
+                titles_class: Some(style::titles.into()),
+                title_class: Some(style::title.into()),
+                items_class: Some(style::items.into()),
+                item_class: Some(style::item.into()),
+                selected_class: Some(style::selected.into()),
+                ..TabsOptions::default()
+            }),
+        ),
     )
 }
 

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Mutex;
 
+use tracing::error;
 use tracing::trace;
 use tracing::warn;
 use wasm_bindgen::JsCast;
@@ -167,7 +168,10 @@ fn element_matches(index: usize, new_element: &XElement, cur_element: &Element) 
     if let XElementValue::Dynamic { .. } = &new_element.value {
         return true;
     }
-    return cur_element.tag_name().to_lowercase().as_str() == new_element.tag_name.as_str();
+    let Some(new_tag_name) = new_element.tag_name.as_deref() else {
+        return true;
+    };
+    return cur_element.tag_name().to_lowercase().as_str() == new_tag_name;
 }
 
 fn create_new_element(
@@ -176,7 +180,10 @@ fn create_new_element(
     index: usize,
     new_element: &XElement,
 ) -> Option<Element> {
-    let tag_name = new_element.tag_name.as_ref();
+    let Some(tag_name) = new_element.tag_name.as_deref() else {
+        error!("Failed to new element with undefined tag name");
+        return None;
+    };
     let cur_element = document
         .create_element(tag_name)
         .inspect_err(|error| warn!("Create new element '{tag_name}' failed: {error:?}'"))
@@ -200,6 +207,7 @@ fn create_new_element(
 
     if let Err(error) = element.append_child(&cur_element) {
         warn!("Failed to append cur_element: {error:?}");
+        return None;
     }
 
     return Some(cur_element);

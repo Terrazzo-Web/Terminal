@@ -61,5 +61,12 @@ output_file = "./target/css/common.scss"
 folders = ["./src/"]
 extensions = [".scss", ".css"]
 
-[lints]
-workspace = true
+[lints.rust]
+unused = "deny"
+warnings = "deny"
+
+[lints.clippy]
+enum_variant_names = "allow"
+needless_return = "allow"
+too_many_arguments = "allow"
+type_complexity = "allow"
