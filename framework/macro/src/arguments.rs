@@ -10,6 +10,9 @@ pub struct MacroArgs {
 
     #[deluxe(default)]
     pub tag: Option<syn::Ident>,
+
+    #[deluxe(default)]
+    pub key: Option<syn::Expr>,
 }
 
 impl MacroArgs {

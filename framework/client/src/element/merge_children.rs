@@ -12,15 +12,19 @@ use web_sys::Element;
 use web_sys::Node;
 use web_sys::Text;
 
+use super::template::XTemplate;
 use super::XElement;
 use super::XElementValue;
 use crate::key::XKey;
-use crate::key::KEY_ATTRIBUTE;
 use crate::node::XNode;
 use crate::node::XText;
-use crate::signal::depth::Depth;
 
-pub fn merge(depth: Depth, new_nodes: &mut [XNode], old_nodes: &mut [XNode], element: &Element) {
+pub fn merge(
+    template: &XTemplate,
+    new_nodes: &mut [XNode],
+    old_nodes: &mut [XNode],
+    element: &Element,
+) {
     trace! { new_count = new_nodes.len(), old_count = old_nodes.len(), "Children" };
     let document: Document = window().unwrap().document().unwrap();
 
@@ -48,7 +52,7 @@ pub fn merge(depth: Depth, new_nodes: &mut [XNode], old_nodes: &mut [XNode], ele
         let mut index = 0;
         for cur_node in &cur_nodes {
             if let Some(cur_element) = cur_node.dyn_ref::<Element>() {
-                cur_elements.insert(XKey::of(index, cur_element), cur_element);
+                cur_elements.insert(XKey::of(template, index, cur_element), cur_element);
                 index += 1;
             }
         }
@@ -63,7 +67,7 @@ pub fn merge(depth: Depth, new_nodes: &mut [XNode], old_nodes: &mut [XNode], ele
             XNode::Element(new_element) => {
                 merge_element(
                     &document,
-                    depth,
+                    template,
                     element,
                     &mut old_elements_map,
                     &mut cur_nodes,
@@ -82,7 +86,7 @@ pub fn merge(depth: Depth, new_nodes: &mut [XNode], old_nodes: &mut [XNode], ele
 
 fn merge_element<'t>(
     document: &Document,
-    depth: Depth,
+    template: &XTemplate,
     element: &Element,
     old_elements_map: &mut HashMap<XKey, &mut XElement>,
     cur_nodes: &mut impl Iterator<Item = &'t Node>,
@@ -106,10 +110,16 @@ fn merge_element<'t>(
         }
     };
 
-    if let Some(cur_element) = get_cur_element(element, cur_nodes, cur_elements, index, new_element)
-    {
+    if let Some(cur_element) = get_cur_element(
+        template,
+        element,
+        cur_nodes,
+        cur_elements,
+        index,
+        new_element,
+    ) {
         new_element.merge(
-            depth,
+            template,
             old_element,
             Rc::new(Mutex::new(cur_element.to_owned())),
         );
@@ -118,9 +128,9 @@ fn merge_element<'t>(
         trace!("Cur element: Not found");
     }
 
-    if let Some(cur_element) = create_new_element(document, element, index, new_element) {
+    if let Some(cur_element) = create_new_element(document, template, element, index, new_element) {
         trace!("Cur element: Created new");
-        new_element.merge(depth, old_element, Rc::new(Mutex::new(cur_element)));
+        new_element.merge(template, old_element, Rc::new(Mutex::new(cur_element)));
         return;
     }
 
@@ -129,6 +139,7 @@ fn merge_element<'t>(
 
 /// Returns `cur_element` that is already attached to the DOM in the right position.
 fn get_cur_element<'t>(
+    template: &XTemplate,
     element: &Element,
     cur_nodes: &mut impl Iterator<Item = &'t Node>,
     cur_elements: &mut HashMap<XKey, &'t Element>,
@@ -138,7 +149,7 @@ fn get_cur_element<'t>(
     let maybe_cur_node = cur_nodes.next();
     let maybe_cur_element = maybe_cur_node.and_then(|cur_node| cur_node.dyn_ref::<Element>());
     if let Some(cur_element) = maybe_cur_element {
-        if element_matches(index, new_element, cur_element) {
+        if element_matches(template, index, new_element, cur_element) {
             // This is the most likely path when little has changed: we just need to merge with the next node.
             trace!("Cur element: Found in order");
             return Some(cur_element);
@@ -161,8 +172,13 @@ fn get_cur_element<'t>(
     return Some(cur_element);
 }
 
-fn element_matches(index: usize, new_element: &XElement, cur_element: &Element) -> bool {
-    if XKey::of(index, cur_element) != new_element.key {
+fn element_matches(
+    template: &XTemplate,
+    index: usize,
+    new_element: &XElement,
+    cur_element: &Element,
+) -> bool {
+    if XKey::of(template, index, cur_element) != new_element.key {
         return false;
     }
     if let XElementValue::Dynamic { .. } = &new_element.value {
@@ -176,12 +192,13 @@ fn element_matches(index: usize, new_element: &XElement, cur_element: &Element) 
 
 fn create_new_element(
     document: &Document,
+    template: &XTemplate,
     element: &Element,
     index: usize,
     new_element: &XElement,
 ) -> Option<Element> {
     let Some(tag_name) = new_element.tag_name.as_deref() else {
-        error!("Failed to new element with undefined tag name");
+        error!("Failed to create new element with undefined tag name");
         return None;
     };
     let cur_element = document
@@ -199,7 +216,7 @@ fn create_new_element(
     };
 
     let () = cur_element
-        .set_attribute(KEY_ATTRIBUTE, key)
+        .set_attribute(template.key_attribute(), key)
         .inspect_err(|error| {
             warn!("Set element key failed: {error:?}'");
         })

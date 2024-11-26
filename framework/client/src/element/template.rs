@@ -9,6 +9,7 @@ use crate::debug_correlation_id::DebugCorrelationId;
 use crate::element::XElement;
 use crate::element::XElementValue;
 use crate::key::XKey;
+use crate::key::KEY_ATTRIBUTE;
 use crate::node::XNode;
 use crate::signal::depth::Depth;
 use crate::template::IsTemplate;
@@ -34,6 +35,7 @@ mod inner {
     use crate::signal::depth::Depth;
 
     pub struct TemplateInner {
+        pub(super) key_attribute: String,
         pub(super) debug_id: DebugCorrelationId<&'static str>,
         pub(super) depth: Depth,
         pub(super) element_mut: Rc<Mutex<Element>>,
@@ -55,7 +57,11 @@ impl XTemplate {
     }
 
     pub(crate) fn with_depth(depth: Depth, element_mut: Rc<Mutex<Element>>) -> Self {
+        use std::sync::atomic::AtomicI32;
+        use std::sync::atomic::Ordering::SeqCst;
+        static NEXT: AtomicI32 = AtomicI32::new(0);
         Self(Rc::new(TemplateInner {
+            key_attribute: format!("{KEY_ATTRIBUTE}-{:#x}", NEXT.fetch_add(1, SeqCst)),
             debug_id: DebugCorrelationId::new(|| "template"),
             depth,
             element_mut,
@@ -71,6 +77,10 @@ impl XTemplate {
     pub(crate) fn with_old(&self, f: impl FnOnce(&Option<XElement>)) {
         f(&self.old.lock().expect("old"))
     }
+
+    pub(crate) fn key_attribute(&self) -> &str {
+        &self.key_attribute
+    }
 }
 
 impl IsTemplate for XTemplate {
@@ -81,10 +91,10 @@ impl IsTemplate for XTemplate {
         {
             let mut old = self.old.lock().unwrap();
             if let Some(old) = &mut *old {
-                new.merge(self.depth(), old, self.element_mut.clone())
+                new.merge(&self, old, self.element_mut.clone())
             } else {
                 let mut old = new.zero();
-                new.merge(self.depth(), &mut old, self.element_mut.clone())
+                new.merge(&self, &mut old, self.element_mut.clone())
             };
             *old = Some(new);
         }

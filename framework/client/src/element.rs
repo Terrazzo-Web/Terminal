@@ -19,11 +19,10 @@ use web_sys::Element;
 use self::template::XTemplate;
 use crate::attribute::XAttribute;
 use crate::key::XKey;
-use crate::key::KEY_ATTRIBUTE;
 use crate::node::XNode;
-use crate::signal::depth::Depth;
 use crate::signal::reactive_closure::reactive_closure_builder::Consumers;
 use crate::string::XString;
+use crate::template::IsTemplate;
 
 mod debug;
 mod merge_attributes;
@@ -79,7 +78,7 @@ impl<T: ?Sized> ClosureAsFunction for Closure<T> {
 pub struct OnRenderCallback(pub Box<dyn Fn(Element)>);
 
 impl XElement {
-    pub fn merge(&mut self, depth: Depth, old: &mut Self, element_mut: Rc<Mutex<Element>>) {
+    pub fn merge(&mut self, template: &XTemplate, old: &mut Self, element_rc: Rc<Mutex<Element>>) {
         let _span = match &self.key {
             XKey::Named(key) => debug_span!("Merge", %key),
             XKey::Index(_) => trace_span!("Merge", key = ?self.key),
@@ -87,8 +86,31 @@ impl XElement {
         .entered();
         trace!("Start");
         defer!(trace!("End"));
-        self.fix_element_tag(&mut element_mut.lock().unwrap());
-        let element: Element = element_mut.lock().expect("element").clone();
+
+        let element = {
+            let mut element = element_rc.lock().expect("element");
+            if let XKey::Named(new_key) = &self.key {
+                let should_update = if let XKey::Named(cur_key) = XKey::of(template, 0, &element) {
+                    if new_key != &cur_key {
+                        warn!("Templates conflict on key cur_key:{cur_key} vs new_key:{new_key}");
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    true
+                };
+                if should_update {
+                    let () = element
+                        .set_attribute(template.key_attribute(), new_key)
+                        .inspect_err(|error| warn!("Set element key failed: {error:?}'"))
+                        .unwrap();
+                }
+            }
+
+            self.fix_element_tag(template, &mut element);
+            element.clone()
+        };
 
         if let Some(OnRenderCallback(before_render)) = &self.before_render {
             before_render(element.clone());
@@ -105,9 +127,14 @@ impl XElement {
                     events: old_events,
                     children: old_children,
                 } => {
-                    merge_attributes::merge(depth, new_attributes, old_attributes, &element);
+                    merge_attributes::merge(
+                        template.depth(),
+                        new_attributes,
+                        old_attributes,
+                        &element,
+                    );
                     merge_events::merge(new_events, old_events, &element);
-                    merge_children::merge(depth, new_children, old_children, &element);
+                    merge_children::merge(template, new_children, old_children, &element);
                 }
                 XElementValue::Dynamic { .. } | XElementValue::Generated { .. } => {
                     // The reactive callback may still active!
@@ -117,9 +144,9 @@ impl XElement {
                         children: vec![],
                     };
                     debug!("A node changed from Dynamic/Generated to Static");
-                    merge_attributes::merge(depth, new_attributes, &mut [], &element);
+                    merge_attributes::merge(template.depth(), new_attributes, &mut [], &element);
                     merge_events::merge(new_events, &[], &element);
-                    merge_children::merge(depth, new_children, &mut [], &element);
+                    merge_children::merge(template, new_children, &mut [], &element);
                 }
             },
             XElementValue::Dynamic(XDynamicElement(new_reactive_callback)) => {
@@ -134,7 +161,7 @@ impl XElement {
                     old_template.clone()
                 } else {
                     trace!("Create a new template");
-                    XTemplate::with_depth(depth.next(), element_mut.clone())
+                    XTemplate::with_depth(template.depth().next(), element_rc.clone())
                 };
                 let consumers = new_reactive_callback(new_template.clone());
                 self.value = XElementValue::Generated {
@@ -167,7 +194,7 @@ impl XElement {
         }
     }
 
-    fn fix_element_tag(&self, element: &mut Element) -> Option<()> {
+    fn fix_element_tag(&self, template: &XTemplate, element: &mut Element) -> Option<()> {
         let Some(new_tag) = self.tag_name.as_deref() else {
             return Some(());
         };
@@ -182,15 +209,22 @@ impl XElement {
             .create_element(new_tag)
             .inspect_err(|error| warn!("Create new element '{new_tag}' failed: {error:?}'"))
             .ok()?;
-        if let Some(key) = element.get_attribute(KEY_ATTRIBUTE) {
+        if let Some(key) = element.get_attribute(template.key_attribute()) {
             let () = new_element
-                .set_attribute(KEY_ATTRIBUTE, &key)
+                .set_attribute(template.key_attribute(), &key)
                 .inspect_err(|error| warn!("Set element key failed: {error:?}'"))
                 .ok()?;
         }
-        let () = element
-            .replace_with_with_node_1(&new_element)
-            .inspect_err(|error| warn!("Replace element failed: {error:?}'"))
+
+        // Note: replaceWith() doesn't always work in Chrome when replacing nodes with different tag names.
+        let Some(parent) = element.parent_node() else {
+            warn!("Node has no parent!");
+            return None;
+        };
+        let insertion = parent.insert_before(&new_element, element.next_sibling().as_ref());
+        element.remove();
+        insertion
+            .inspect_err(|error| warn!("Failed to insert before: {error:?}"))
             .ok()?;
         *element = new_element.clone();
         Some(())

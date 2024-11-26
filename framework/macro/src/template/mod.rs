@@ -97,6 +97,10 @@ pub fn template(
         item_fn.vis = Visibility::Inherited;
         let aux = item_fn.to_token_stream();
         let tag = tag.to_string();
+        let key = args
+            .key
+            .map(|key| quote! { XKey::Named(#key.into()) })
+            .unwrap_or_else(|| quote! { XKey::default()});
         let name = original_item_fn.sig.ident.clone();
         let params = original_item_fn
             .sig
@@ -116,7 +120,7 @@ pub fn template(
                     #aux
                     XElement {
                         tag_name: Some(#tag.into()),
-                        key: XKey::default(),
+                        key: #key,
                         value: XElementValue::Dynamic((move |element| #name(element #(,#params.clone())*)).into()),
                         before_render: None,
                         after_render: None,
