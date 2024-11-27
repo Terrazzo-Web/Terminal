@@ -79,32 +79,34 @@ pub struct OnRenderCallback(pub Box<dyn Fn(Element)>);
 
 impl XElement {
     pub fn merge(&mut self, template: &XTemplate, old: &mut Self, element_rc: Rc<Mutex<Element>>) {
-        let _span = match &self.key {
-            XKey::Named(key) => debug_span!("Merge", %key),
-            XKey::Index(_) => trace_span!("Merge", key = ?self.key),
-        }
-        .entered();
-        trace!("Start");
-        defer!(trace!("End"));
+        match &self.key {
+            XKey::Named(key) => {
+                let _span = debug_span!("Merge", %key).entered();
+                debug!("Start");
+                defer!(debug!("End"));
+                self.merge_impl(template, old, element_rc);
+            }
+            XKey::Index(_) => {
+                let _span = trace_span!("Merge", key = ?self.key).entered();
+                trace!("Start");
+                defer!(trace!("End"));
+                self.merge_impl(template, old, element_rc);
+            }
+        };
+    }
 
+    fn merge_impl(&mut self, template: &XTemplate, old: &mut Self, element_rc: Rc<Mutex<Element>>) {
         let element = {
             let mut element = element_rc.lock().expect("element");
             if let XKey::Named(new_key) = &self.key {
-                let should_update = if let XKey::Named(cur_key) = XKey::of(template, 0, &element) {
+                if let XKey::Named(cur_key) = XKey::of(template, 0, &element) {
                     if new_key != &cur_key {
                         warn!("Templates conflict on key cur_key:{cur_key} vs new_key:{new_key}");
-                        true
-                    } else {
-                        false
+                        let () = element
+                            .set_attribute(template.key_attribute(), new_key)
+                            .inspect_err(|error| warn!("Set element key failed: {error:?}'"))
+                            .unwrap();
                     }
-                } else {
-                    true
-                };
-                if should_update {
-                    let () = element
-                        .set_attribute(template.key_attribute(), new_key)
-                        .inspect_err(|error| warn!("Set element key failed: {error:?}'"))
-                        .unwrap();
                 }
             }
 

@@ -42,6 +42,6 @@ impl<F: Fn()> ReactiveClosure<F> {
 
 impl<F> Drop for ReactiveClosure<F> {
     fn drop(&mut self) {
-        debug!(closure = %self.name, "ReactiveClosure dropped");
+        trace!(closure = %self.name, "ReactiveClosure dropped");
     }
 }
