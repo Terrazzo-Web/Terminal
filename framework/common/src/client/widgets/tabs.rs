@@ -56,7 +56,7 @@ pub struct TabsOptions<T = Option<XString>> {
     pub title_drop_sep: T,
 }
 
-/// ```
+/// ```text
 /// <tabs>
 ///     <titles>
 ///         <title> ... </title>

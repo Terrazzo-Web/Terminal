@@ -4,3 +4,7 @@ runs:
   steps:
     - run: cargo test
       shell: bash
+    - run: cargo test --features=client
+      shell: bash
+    - run: cargo test --features=server
+      shell: bash

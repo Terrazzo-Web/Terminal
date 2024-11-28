@@ -1,3 +1,5 @@
+use named::named;
+use named::NamedEnumValues as _;
 use tracing::debug;
 
 use super::raw_pts::Pts;
@@ -184,11 +186,12 @@ impl Command {
     }
 }
 
+#[named]
 #[derive(thiserror::Error, Debug)]
 pub enum SpawnError {
-    #[error("SetupSubprocessError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     SetupSubprocessError(std::io::Error),
 
-    #[error("InnerSpawnError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     InnerSpawnError(std::io::Error),
 }

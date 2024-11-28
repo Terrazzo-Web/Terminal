@@ -9,6 +9,7 @@ use futures::stream::TakeUntil;
 use futures::Stream;
 use futures::StreamExt as _;
 use named::named;
+use named::NamedEnumValues as _;
 use named::NamedType as _;
 use tracing::debug;
 use tracing::error;
@@ -56,12 +57,13 @@ impl Drop for ProcessIoEntry {
     }
 }
 
+#[named]
 #[derive(thiserror::Error, Debug)]
 pub enum LeaseProcessOutputError {
-    #[error("OutputNotSet")]
+    #[error("[{n}] Output not set", n = self.name())]
     OutputNotSet,
 
-    #[error("LeaseError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     LeaseError(#[from] LeaseError),
 }
 
@@ -95,9 +97,10 @@ impl ProcessOutputExchange {
     }
 }
 
+#[named]
 #[derive(thiserror::Error, Debug)]
 pub enum LeaseError {
-    #[error("Canceled")]
+    #[error("[{n}] Canceled", n = self.name())]
     Canceled(#[from] oneshot::Canceled),
 }
 

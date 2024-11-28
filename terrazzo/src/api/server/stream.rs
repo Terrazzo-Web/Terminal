@@ -1,5 +1,6 @@
 use axum::body::Body;
 use axum::extract::Path;
+use axum::extract::Query;
 use axum::response::Response;
 use http::StatusCode;
 use tracing::info_span;
@@ -7,6 +8,7 @@ use tracing::Instrument;
 
 use super::correlation_id::CorrelationId;
 use super::into_error;
+use crate::api::RegisterTerminalQuery;
 use crate::terminal_id::TerminalId;
 
 mod close;
@@ -18,9 +20,12 @@ pub fn pipe(correlation_id: CorrelationId) -> impl std::future::Future<Output = 
     pipe::pipe(correlation_id).instrument(info_span!("Pipe"))
 }
 
-pub async fn register(Path(terminal_id): Path<TerminalId>) -> Result<(), Response> {
+pub async fn register(
+    Path(terminal_id): Path<TerminalId>,
+    Query(query): Query<RegisterTerminalQuery>,
+) -> Result<(), Response> {
     let span = info_span!("Register", %terminal_id);
-    register::register(terminal_id)
+    register::register(terminal_id, query)
         .instrument(span)
         .await
         .map_err(into_error(StatusCode::BAD_REQUEST))

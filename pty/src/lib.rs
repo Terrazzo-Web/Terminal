@@ -1,6 +1,8 @@
 use std::task::ready;
 use std::task::Poll;
 
+use named::named;
+use named::NamedEnumValues as _;
 use pin_project::pin_project;
 use tokio::io::AsyncWrite;
 use tokio_util::io::ReaderStream;
@@ -36,13 +38,17 @@ pub struct ProcessInput(#[pin] OwnedWritePty);
 #[pin_project]
 pub struct ProcessOutput(#[pin] ReaderStream<OwnedReadPty>);
 
+#[named]
 #[derive(thiserror::Error, Debug)]
 pub enum OpenProcessError {
-    #[error("PtyProcessError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     PtyProcessError(#[from] PtyError),
 
-    #[error("SpawnError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     SpawnError(#[from] SpawnError),
+
+    #[error("[{n}] Not found", n = self.name())]
+    NotFound,
 }
 
 impl ProcessIO {
@@ -81,9 +87,10 @@ impl ProcessInput {
     }
 }
 
+#[named]
 #[derive(thiserror::Error, Debug)]
 pub enum ResizeTerminalError {
-    #[error("PtyError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     PtyError(#[from] PtyError),
 }
 

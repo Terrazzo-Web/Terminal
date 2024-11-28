@@ -31,3 +31,14 @@ pub struct TerminalDef {
     pub id: TerminalId,
     pub title: String,
 }
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct RegisterTerminalQuery {
+    pub mode: RegisterTerminalMode,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub enum RegisterTerminalMode {
+    Create,
+    Reopen,
+}

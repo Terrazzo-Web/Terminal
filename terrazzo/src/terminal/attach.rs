@@ -45,7 +45,7 @@ pub fn attach(template: XTemplate, terminal_tab: TerminalTab) -> Consumers {
     let xtermjs = TerminalJs::new();
     *terminal_tab.xtermjs.lock().expect("xtermjs") = Some(xtermjs.clone());
     let xtermjs = guard(xtermjs, |xtermjs| xtermjs.dispose());
-    xtermjs.open(element);
+    xtermjs.open(&element);
     let (input_tx, input_rx) = mpsc::unbounded();
     let on_data = xtermjs.do_on_data(input_tx);
     let on_resize = xtermjs.do_on_resize(terminal_id.clone());
@@ -54,7 +54,7 @@ pub fn attach(template: XTemplate, terminal_tab: TerminalTab) -> Consumers {
         let _on_data = on_data;
         let _on_resize = on_resize;
         let _on_title_change = on_title_change;
-        let stream_loop = xtermjs.stream_loop(&terminal_id);
+        let stream_loop = xtermjs.stream_loop(&terminal_id, element);
         let write_loop = write_loop(&terminal_id, input_rx);
         let unsubscribe_resize_event = ResizeEvent::signal().add_subscriber({
             let xtermjs = xtermjs.clone();
@@ -129,12 +129,13 @@ impl TerminalJs {
         return on_title_change;
     }
 
-    async fn stream_loop(&self, terminal_id: &TerminalId) {
+    async fn stream_loop(&self, terminal_id: &TerminalId, element: Element) {
         async {
             debug!("Start");
             let on_init = || self.clone().do_resize(terminal_id.clone());
             let eos =
-                api::client::stream::stream(terminal_id, on_init, |data| self.send(data)).await;
+                api::client::stream::stream(terminal_id, element, on_init, |data| self.send(data))
+                    .await;
             match eos {
                 Ok(()) => info!("End"),
                 Err(error) => warn!("Failed: {error}"),

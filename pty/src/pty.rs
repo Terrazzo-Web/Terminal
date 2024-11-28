@@ -2,6 +2,9 @@ use std::io::Read as _;
 use std::io::Write as _;
 use std::sync::Arc;
 
+use named::named;
+use named::NamedEnumValues as _;
+
 use super::raw_pts::Pts;
 use super::raw_pty;
 use super::raw_pty::PtsError;
@@ -12,21 +15,22 @@ type AsyncPty = tokio::io::unix::AsyncFd<raw_pty::RawPty>;
 /// An allocated pty
 pub struct Pty(AsyncPty);
 
+#[named]
 #[derive(thiserror::Error, Debug)]
 pub enum PtyError {
-    #[error("OpenError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     OpenError(#[from] raw_pty::OpenError),
 
-    #[error("SetSizeError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     SetSizeError(#[from] raw_pty::SetSizeError),
 
-    #[error("SetNonBlockingError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     SetNonBlockingError(#[from] raw_pty::SetNonBlockingError),
 
-    #[error("AsyncFdError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     AsyncFdError(std::io::Error),
 
-    #[error("PtsError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     PtsError(#[from] PtsError),
 }
 
