@@ -1,5 +1,4 @@
 # TODO
-- `#·67`. All tabs should awake when pipe awakes
 - `#·62`. Attributes auto-convert to optional or dynamic
 - `#·58`. Shortcut for style attributes
 - `#·52`. Drag n Drop to create tiles
@@ -76,3 +75,4 @@ Next: `#·68`.
 - `#·64`. Integer keys don't need to be set in DOM
 - `#·65`. Recover stream after disconnection
 - `#·66`. Tab is removed on end-of-stream
+- `#·67`. All tabs should awake when pipe awakes
