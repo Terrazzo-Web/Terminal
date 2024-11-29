@@ -41,7 +41,7 @@ async fn dispatch_chunk(chunk: &[u8]) {
     }
 }
 
-async fn send_chunk(terminal_id: &TerminalId, chunk: Vec<u8>) -> Result<(), SendPartError> {
+async fn send_chunk(terminal_id: &TerminalId, chunk: Option<Vec<u8>>) -> Result<(), SendPartError> {
     let mut dispatcher = {
         let mut dispatchers_lock = DISPATCHERS.lock().unwrap();
         let dispatchers = dispatchers_lock.as_mut().ok_or(SendPartError::NotFound)?;

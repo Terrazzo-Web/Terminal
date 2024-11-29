@@ -11,7 +11,7 @@ use crate::terminal_id::TerminalId;
 use crate::widgets::tabs::TabsDescriptor;
 use crate::widgets::tabs::TabsState;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TerminalTabs {
     terminal_tabs: Rc<Vec<TerminalTab>>,
 }

@@ -145,7 +145,10 @@ impl<T: std::fmt::Debug + 'static> XSignal<T> {
         T: Eq,
     {
         let _span = debug_span!("Set", signal = %self.producer.name()).entered();
-        self.update_impl(|_| Some(new_value.into()));
+        self.update_impl(|old_value| {
+            let new_value = new_value.into();
+            (new_value != *old_value).then_some(new_value)
+        });
     }
 
     pub fn update(&self, compute: impl FnOnce(&T) -> Option<T>) {

@@ -138,9 +138,9 @@ impl futures::Stream for ProcessOutput {
         cx: &mut std::task::Context<'_>,
     ) -> Poll<Option<Self::Item>> {
         match ready!(self.project().0.poll_next(cx)) {
-            Some(Ok(bytes)) => Some(Ok(bytes.to_vec())),
+            Some(Ok(bytes)) if !bytes.is_empty() => Some(Ok(bytes.to_vec())),
             Some(Err(error)) => Some(Err(error)),
-            None => None,
+            _ => None,
         }
         .into()
     }

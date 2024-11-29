@@ -2,10 +2,13 @@ use std::rc::Rc;
 
 use terminal_tab::TerminalTab;
 use terrazzo_client::prelude::*;
+use terrazzo_common::widgets::tabs::TabsDescriptor as _;
 use terrazzo_macro::html;
 use terrazzo_macro::template;
+use tracing::debug;
 use tracing::info;
 use tracing::warn;
+use wasm_bindgen_futures::spawn_local;
 
 use self::terminal_tabs::TerminalTabs;
 use crate::api;
@@ -35,7 +38,6 @@ pub fn terminals(template: XTemplate) {
         selected_tab,
         terminal_tabs: terminal_tabs.clone(),
     };
-    std::mem::forget(state.clone());
     let consumers = render_terminals(template, state, terminal_tabs);
     std::mem::forget(consumers);
 }
@@ -63,7 +65,7 @@ pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: Terminal
 }
 
 fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSignal<TerminalTabs>) {
-    wasm_bindgen_futures::spawn_local(async move {
+    spawn_local(async move {
         let terminal_defs = match api::client::list::list().await {
             Ok(terminal_defs) => terminal_defs,
             Err(error) => {
@@ -78,7 +80,7 @@ fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSign
                 selected_tab.force(first_terminal.id.clone());
             }
         }
-        terminal_tabs.force(TerminalTabs::from(Rc::new(
+        terminal_tabs.set(TerminalTabs::from(Rc::new(
             terminal_defs
                 .into_iter()
                 .map(|def| TerminalTab::of(def, &selected_tab))
@@ -86,4 +88,45 @@ fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSign
         )));
         drop(batch);
     });
+}
+
+impl TerminalsState {
+    /// Callback on end-of-stream to drop the terminal tab from the UI after the process is closed in the backend.
+    pub fn on_eos(&self, terminal_id: &TerminalId) {
+        debug!("Closing the terminal tab");
+        let _batch = Batch::use_batch("close-tab");
+        let TerminalsState {
+            selected_tab,
+            terminal_tabs,
+        } = self;
+        if selected_tab.get_value_untracked() == *terminal_id {
+            if let Some(next_selected_tab) = next_selected_tab(terminal_tabs, terminal_id) {
+                selected_tab.set(next_selected_tab);
+            }
+        }
+        terminal_tabs.update(|terminal_tabs| Some(terminal_tabs.clone().remove_tab(terminal_id)));
+        if let Some(last_dispatcher) = api::client::stream::drop_dispatcher(terminal_id) {
+            spawn_local(api::client::stream::close_pipe(last_dispatcher));
+        }
+    }
+}
+
+fn next_selected_tab(
+    terminal_tabs: &XSignal<TerminalTabs>,
+    closed_terminal_id: &TerminalId,
+) -> Option<TerminalId> {
+    let terminal_tabs = terminal_tabs.get_value_untracked();
+    let mut terminal_tabs = terminal_tabs.tab_descriptors().iter();
+    let mut prev = None;
+    while let Some(next) = terminal_tabs.next() {
+        if next.id == *closed_terminal_id {
+            if let Some(tab) = terminal_tabs.next() {
+                return Some(tab.id.clone());
+            } else {
+                return prev;
+            }
+        }
+        prev = Some(next.id.clone());
+    }
+    return prev;
 }
