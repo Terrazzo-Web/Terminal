@@ -6,6 +6,7 @@ members = [
     "framework/client",
     "framework/common",
     "framework/macro",
+    "game",
     "named/named",
     "named/named-macro",
     "named/named-tests",
