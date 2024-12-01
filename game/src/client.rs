@@ -20,10 +20,10 @@ fn start_impl() -> Option<()> {
     let window = web_sys::window()?;
     let document = window.document()?;
 
-    let game = document.get_element_by_id("main")?;
-    let game = XTemplate::new(Rc::new(Mutex::new(game)));
-    std::mem::forget(game.clone());
-    let consumer = game::run(game);
+    let main = document.get_element_by_id("main")?;
+    let template = XTemplate::new(Rc::new(Mutex::new(main.clone())));
+    std::mem::forget(template.clone());
+    let consumer = game::run(template, main);
     std::mem::forget(consumer);
     Some(())
 }

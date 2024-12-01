@@ -14,19 +14,21 @@ body {
   border: 1px solid black;
 }
 
+.cookie-17e2e2e {
+  position: absolute;
+}
+
+.cookies-e19359c {
+  width: 100%;
+  height: 100%;
+}
+
 .game-9cd8d74 {
   position: relative;
+}
+
+.game-9cd8d74,
+.board-9cd8d74 {
   width: 100%;
   height: 100%;
-  --color: black;
-  --link-color: blue;
-  --background-color: black;
-  background-color: var(--background-color);
-}
-.game-9cd8d74 .game-board-9cd8d74 {
-  width: 100%;
-  height: 100%;
-}
-.game-9cd8d74 .cookie-9cd8d74 {
-  position: absolute;
 }

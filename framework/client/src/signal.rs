@@ -151,33 +151,39 @@ impl<T: std::fmt::Debug + 'static> XSignal<T> {
         });
     }
 
-    pub fn update(&self, compute: impl FnOnce(&T) -> Option<T>) {
+    pub fn update<R, U>(&self, compute: impl FnOnce(&T) -> U) -> R
+    where
+        U: Into<UpdateSignalResult<Option<T>, R>>,
+    {
         let _span = debug_span!("Update", signal = %self.producer.name()).entered();
-        self.update_impl(compute);
+        self.update_impl(compute)
     }
 
-    fn update_impl(&self, compute: impl FnOnce(&T) -> Option<T>) {
-        let version = {
+    fn update_impl<R, U>(&self, compute: impl FnOnce(&T) -> U) -> R
+    where
+        U: Into<UpdateSignalResult<Option<T>, R>>,
+    {
+        let (version, result) = {
             let mut current = self.current_value.lock().expect("current");
             let current_value = current.value();
             let current_version = current.version.number();
-            let Some(new_value) = compute(current_value) else {
+            let UpdateSignalResult { new_value, result } = compute(current_value).into();
+            let Some(new_value) = new_value else {
                 debug! { "Signal value is not changing version:{current_version} value:{current_value:?}" };
-                return;
+                return result;
             };
-            let new_version = Version::next();
+            let new_version: Version = Version::next();
             debug!(
-                old_version = ?current.version,
-                ?new_version,
-                old_value = ?current_value,
-                ?new_value,
-                "Signal value has changed",
+                "Signal value has changed old@{}={current_value:?} vs new@{}={new_value:?}",
+                current_version,
+                new_version.number()
             );
             current.value = Some(new_value);
             current.version = new_version;
-            new_version
+            (new_version, result)
         };
         self.process_or_batch(version);
+        return result;
     }
 
     pub fn force(&self, new_value: impl Into<T>) {
@@ -210,6 +216,36 @@ impl<T: std::fmt::Debug + 'static> XSignal<T> {
     }
 }
 
+pub struct UpdateSignalResult<T, R> {
+    pub new_value: T,
+    pub result: R,
+}
+
+impl<T> From<T> for UpdateSignalResult<T, ()> {
+    fn from(new_value: T) -> Self {
+        Self {
+            new_value,
+            result: (),
+        }
+    }
+}
+
+pub trait UpdateAndReturn {
+    type NewValue;
+    fn and_return<R>(self, result: R) -> UpdateSignalResult<Self::NewValue, R>;
+}
+
+impl<T> UpdateAndReturn for T {
+    type NewValue = T;
+
+    fn and_return<R>(self, result: R) -> UpdateSignalResult<Self::NewValue, R> {
+        UpdateSignalResult {
+            new_value: self,
+            result,
+        }
+    }
+}
+
 impl<T> Drop for XSignalInner<T> {
     fn drop(&mut self) {
         debug!(signal = %self.producer.name(), "Dropped");
@@ -221,5 +257,13 @@ impl<T> Drop for XSignalInner<T> {
         for on_drop in std::mem::take(&mut *on_drop) {
             on_drop()
         }
+    }
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for XSignal<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("XSignal")
+            .field(self.current_value.lock().unwrap().value())
+            .finish()
     }
 }

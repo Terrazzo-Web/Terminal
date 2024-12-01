@@ -1,74 +1,43 @@
 use autoclone_macro::autoclone;
-use terrazzo_client::owned_closure::XOwnedClosure;
 use terrazzo_client::prelude::*;
+use terrazzo_common::widgets::resize_event::ResizeEvent;
 use terrazzo_macro::html;
 use terrazzo_macro::template;
+use tracing::info;
 use web_sys::window;
+
+use self::cookie::Cookie;
+use self::cookies::show_cookies;
+use self::state::Game;
+
+mod cookie;
+mod cookies;
+mod position;
+mod size;
+mod state;
 
 stylance::import_crate_style!(style, "src/game.scss");
 
 #[autoclone]
 #[template]
 #[html]
-pub fn run() -> XElement {
+pub fn run(main: Element) -> XElement {
     let window = window().unwrap();
-    let cookies = [1., 5., 20.]
-        .into_iter()
-        .enumerate()
-        .map(|(i, d)| {
-            let position = XSignal::new(
-                "cookie-pos",
-                Position {
-                    right: 0.,
-                    top: 50. + 220. * i as f64,
-                },
-            );
-            let closure = XOwnedClosure::new(|self_drop| {
-                move || {
-                    autoclone!(position);
-                    let _self_drop = &self_drop;
-                    position.update(|p| {
-                        Some(Position {
-                            right: p.right + d,
-                            ..*p
-                        })
-                    });
-                }
-            });
-            let closure = closure.as_function().unwrap();
-            window
-                .set_interval_with_callback_and_timeout_and_arguments_0(&closure, 10)
-                .unwrap();
-            return img(
-                class = style::cookie,
-                style %= move |t| {
-                    autoclone!(position);
-                    position_style(t, position.clone())
-                },
-                src = "/static/game/cookie.jpg",
-            );
-            // return img(move |t: XTemplate| moving_cookie(t, position.clone()));
-        })
-        .collect::<Vec<_>>();
+    ResizeEvent::set_up(&window);
+    let game = Game::new(window, main);
     div(
         class = style::game,
-        img(class = style::game_board, src = "/static/game/picture.jpg"),
-        cookies..,
+        img(
+            class = style::board,
+            src = "/static/game/picture.jpg",
+            load = move |_: web_sys::Event| {
+                autoclone!(game);
+                info!("Loading the game");
+                ResizeEvent::signal().force(());
+                let c1 = Cookie::new(&game, 1. / 20.);
+                game.cookies.update(|_| Some(vec![c1.clone()]));
+            },
+        ),
+        show_cookies(game.clone(), game.cookies.clone()),
     )
-}
-
-#[template]
-#[html]
-pub fn position_style(#[signal] cookie_style: Position) -> XAttributeValue {
-    format!(
-        "top: {}px; right: {}px;",
-        cookie_style.top, cookie_style.right
-    )
-    .into()
-}
-
-#[derive(Clone, Copy, Debug)]
-struct Position {
-    right: f64,
-    top: f64,
 }
