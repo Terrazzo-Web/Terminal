@@ -13,10 +13,10 @@ runs:
           ~/.cargo/git/db/
           target/
           terrazzo/target/wasm
-        key: ${{ runner.os }}-cargo-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-1.83.0-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-cargo-${{ github.job }}-
-          ${{ runner.os }}-cargo-
+          ${{ runner.os }}-cargo-1.83.0-${{ github.job }}-
+          ${{ runner.os }}-cargo-1.83.0-
 
     - name: Add wasm32 compilation target
       shell: bash
