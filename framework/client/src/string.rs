@@ -10,7 +10,6 @@ pub enum XString {
     Arc(Arc<str>),
 }
 
-#[allow(unused)]
 impl XString {
     #[must_use]
     pub fn as_str(&self) -> &str {

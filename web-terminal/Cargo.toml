@@ -1,5 +1,5 @@
 [package]
-name = "game"
+name = "web-terminal"
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
@@ -11,14 +11,24 @@ crate-type = ["cdylib", "rlib"]
 path = "src/client.rs"
 
 [[bin]]
-name = "game"
+name = "web-terminal"
 path = "src/server.rs"
 required-features = ["server"]
 
 [dependencies]
+dashmap = { workspace = true, optional = true }
+futures = { workspace = true }
 include_directory = { workspace = true, optional = true }
+named = { workspace = true }
+pin-project = { workspace = true }
+scopeguard = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_urlencoded = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
+thiserror = { workspace = true }
 terrazzo = { workspace = true }
+terrazzo-pty = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
 tower-http = { workspace = true, optional = true, features = [
     "fs",
@@ -26,11 +36,31 @@ tower-http = { workspace = true, optional = true, features = [
     "trace",
 ] }
 tracing = { workspace = true }
+tracing-futures = { workspace = true, features = [
+    "futures-03",
+], optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = [
     "env-filter",
 ] }
 wasm-bindgen = { workspace = true, optional = true }
-web-sys = { workspace = true, optional = true, features = [] }
+wasm-bindgen-futures = { workspace = true, optional = true }
+wasm-streams = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true, features = [
+    "DataTransfer",
+    "Document",
+    "DragEvent",
+    "Element",
+    "FocusEvent",
+    "Headers",
+    "HtmlInputElement",
+    "MouseEvent",
+    "Performance",
+    "Request",
+    "RequestInit",
+    "RequestMode",
+    "Response",
+    "Window",
+] }
 
 [build-dependencies]
 scopeguard = { workspace = true }
@@ -40,14 +70,20 @@ terrazzo-build = { workspace = true }
 default = []
 client = [
     "dep:stylance",
+    "dep:serde_urlencoded",
     "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+    "dep:wasm-streams",
     "dep:web-sys",
     "terrazzo/client",
 ]
 server = [
+    "dep:dashmap",
     "dep:include_directory",
+    "dep:terrazzo-pty",
     "dep:tokio",
     "dep:tower-http",
+    "dep:tracing-futures",
     "dep:tracing-subscriber",
     "terrazzo/server",
 ]
@@ -60,7 +96,7 @@ max_level_info = [
 concise_traces = ["terrazzo/concise_traces"]
 
 [package.metadata.stylance]
-output_file = "./target/css/game.scss"
+output_file = "./target/css/web-terminal.scss"
 folders = ["./src/"]
 extensions = [".scss", ".css"]
 
