@@ -12,19 +12,14 @@ runs:
       shell: bash
 
     - name: Clippy
-      run: cargo clippy
-      shell: bash
-    - name: Clippy server debug
-      run: cargo clippy --bin web-terminal --features server,max_level_debug
-      shell: bash
-    - name: Clippy server info
-      run: cargo clippy --bin web-terminal --features server,max_level_info
-      shell: bash
-    - name: Clippy client debug
-      run: cargo clippy --features client,max_level_debug
-      shell: bash
-    - name: Clippy client info
-      run: cargo clippy --features client,max_level_info
+      run: |
+        cargo clippy
+        cargo clippy --features client,max_level_debug
+        cargo clippy --features client,max_level_info
+        cargo clippy --bin game --features server,max_level_debug
+        cargo clippy --bin game --features server,max_level_info
+        cargo clippy --bin web-terminal --features server,max_level_debug
+        cargo clippy --bin web-terminal --features server,max_level_info
       shell: bash
 
     - name: Rustfmt
