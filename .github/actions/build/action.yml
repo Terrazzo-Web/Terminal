@@ -2,7 +2,9 @@ name: Build
 runs:
   using: "composite"
   steps:
-    - run: |
-        cargo build --bin terrazzo-server --features server,max_level_debug
-        cargo build --bin terrazzo-server --features server,max_level_info --release
+    - name: Compile debug
+      run: cargo build --bin terrazzo-server --features server,max_level_debug
+      shell: bash
+    - name: Compile release
+      run: cargo build --bin terrazzo-server --features server,max_level_info --release
       shell: bash

@@ -2,9 +2,12 @@ name: Test
 runs:
   using: "composite"
   steps:
-    - run: cargo test
+    - name: Test
+      run: cargo test
       shell: bash
-    - run: cargo test --features=client
+    - name: Test client
+      run: cargo test --features=client
       shell: bash
-    - run: cargo test --features=server
+    - name: Test server
+      run: cargo test --features=server
       shell: bash
