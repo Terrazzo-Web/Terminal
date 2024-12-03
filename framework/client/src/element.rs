@@ -20,6 +20,7 @@ use self::template::XTemplate;
 use crate::attribute::XAttribute;
 use crate::key::XKey;
 use crate::node::XNode;
+use crate::prelude::OrElseLog as _;
 use crate::signal::reactive_closure::reactive_closure_builder::Consumers;
 use crate::string::XString;
 use crate::template::IsTemplate;
@@ -97,15 +98,14 @@ impl XElement {
 
     fn merge_impl(&mut self, template: &XTemplate, old: &mut Self, element_rc: Rc<Mutex<Element>>) {
         let element = {
-            let mut element = element_rc.lock().expect("element");
+            let mut element = element_rc.lock().or_throw("element");
             if let XKey::Named(new_key) = &self.key {
                 if let XKey::Named(cur_key) = XKey::of(template, 0, &element) {
                     if new_key != &cur_key {
                         warn!("Templates conflict on key cur_key:{cur_key} vs new_key:{new_key}");
                         let () = element
                             .set_attribute(template.key_attribute(), new_key)
-                            .inspect_err(|error| warn!("Set element key failed: {error:?}'"))
-                            .unwrap();
+                            .or_else_throw(|error| format!("Set element key failed: {error:?}'"));
                     }
                 }
             }

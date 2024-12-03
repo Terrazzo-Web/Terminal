@@ -16,6 +16,7 @@ axum = { workspace = true, optional = true, features = [
     "tracing",
 ] }
 http = { workspace = true, optional = true }
+include_directory = { workspace = true, optional = true }
 mime = { workspace = true, optional = true }
 mime_guess = { workspace = true, optional = true }
 named = { workspace = true, optional = true }
@@ -57,6 +58,7 @@ client = [
 server = [
     "dep:axum",
     "dep:http",
+    "dep:include_directory",
     "dep:mime",
     "dep:mime_guess",
     "dep:rsass-macros",

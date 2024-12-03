@@ -1,5 +1,6 @@
 use named::named;
 use named::NamedEnumValues as _;
+use terrazzo::prelude::OrElseLog as _;
 use tracing::warn;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
@@ -31,7 +32,7 @@ async fn send_request(
     on_request(&request);
     let request = Request::new_with_str_and_init(&url, &request);
     let request = request.map_err(|error| SendRequestError::InvalidUrl { url, error })?;
-    let window = web_sys::window().unwrap();
+    let window = web_sys::window().or_throw("window");
     let promise = window.fetch_with_request(&request);
     let response = JsFuture::from(promise)
         .await

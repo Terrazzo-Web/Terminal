@@ -1,5 +1,6 @@
 use named::named;
 use named::NamedEnumValues as _;
+use terrazzo::prelude::OrElseLog as _;
 use wasm_bindgen::JsValue;
 use web_sys::Headers;
 use web_sys::Response;
@@ -18,10 +19,10 @@ pub async fn resize(terminal_id: &TerminalId, size: Size) -> Result<(), ResizeEr
         Method::POST,
         format!("{BASE_URL}/{RESIZE}/{terminal_id}"),
         move |request| {
-            let headers = Headers::new().expect("Headers::new()");
+            let headers = Headers::new().or_throw("Headers::new()");
             headers
                 .set("content-type", "application/json")
-                .expect("Set 'content-type'");
+                .or_throw("Set 'content-type'");
             request.set_headers(headers.as_ref());
             request.set_body(&JsValue::from_str(&json));
         },

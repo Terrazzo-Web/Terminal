@@ -2,6 +2,7 @@ use futures::channel::mpsc::SendError;
 use futures::SinkExt;
 use named::named;
 use named::NamedEnumValues as _;
+use terrazzo::prelude::OrElseLog as _;
 use tracing::trace;
 use tracing::warn;
 
@@ -43,7 +44,7 @@ async fn dispatch_chunk(chunk: &[u8]) {
 
 async fn send_chunk(terminal_id: &TerminalId, chunk: Option<Vec<u8>>) -> Result<(), SendPartError> {
     let mut dispatcher = {
-        let mut dispatchers_lock = DISPATCHERS.lock().unwrap();
+        let mut dispatchers_lock = DISPATCHERS.lock().or_throw("DISPATCHERS");
         let dispatchers = dispatchers_lock.as_mut().ok_or(SendPartError::NotFound)?;
         dispatchers
             .map

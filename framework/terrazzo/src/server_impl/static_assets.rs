@@ -9,6 +9,7 @@ use axum::body::Bytes;
 use axum::response::Response;
 use http::header;
 use http::HeaderValue;
+use include_directory::Dir;
 use tracing::debug;
 use tracing::warn;
 
@@ -107,6 +108,7 @@ macro_rules! declare_scss_asset {
 
 #[doc(hidden)]
 pub mod __macro_support {
+    pub use ::include_directory;
     pub use ::rsass_macros::include_scss;
 }
 
@@ -143,4 +145,28 @@ pub fn get(path: &str) -> std::future::Ready<Response<Body>> {
             .body(Body::from(Bytes::from_static(asset.content)))
             .expect(path),
     )
+}
+
+#[macro_export]
+macro_rules! declare_assets_dir {
+    ($prefix:literal, $dir:tt) => {{
+        use $crate::static_assets::__macro_support::include_directory;
+        static DIR: include_directory::Dir<'_> = include_directory::include_directory!($dir);
+        $crate::static_assets::install_dir($prefix, &DIR);
+    }};
+}
+
+pub fn install_dir(prefix: &str, dir: &Dir<'static>) {
+    for entry in dir.entries() {
+        if let Some(dir) = entry.as_dir() {
+            install_dir(prefix, dir);
+        }
+        if let Some(file) = entry.as_file() {
+            let path = Path::new(prefix).join(entry.path());
+            let path = path.as_os_str().to_str().unwrap();
+            AssetBuilder::new(path, file.contents())
+                .asset_name(path)
+                .install();
+        }
+    }
 }

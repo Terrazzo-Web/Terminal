@@ -25,10 +25,10 @@ impl ResizeEvent {
                 ResizeEvent::signal().force(())
             })
         });
-        let function = closure.as_function().expect("function");
+        let function = closure.as_function().or_throw("as_function()");
         window
             .add_event_listener_with_callback("resize", &function)
-            .expect("resize");
+            .or_throw("add_event_listener");
     }
 }
 

@@ -1,4 +1,9 @@
 # TODO
+- `#·68`. Persist order of tabs after relaunch
+- `#·70`. Periodically clear the console
+- `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
+- `#·74`. The tab title doesn't change even if the shell resets the tab title
+- `#·75`. Dynamic attributes can return anything that `impl Into<Option<XAttributeValue>>`
 - `#·62`. Attributes auto-convert to optional or dynamic
 - `#·58`. Shortcut for style attributes
 - `#·52`. Drag n Drop to create tiles
@@ -12,13 +17,12 @@
 
 # Nice to have
 - `#·51`. Save terminal buffer state before close
-- `#·39`. Reconnect tab after tab goes to sleep and stream times out.
 - `#·45`. Lazily load tab
 - `#·43`. Errors should implement a trait that indicates their http status code
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#·68`.
+Next: `#·76`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -76,3 +80,7 @@ Next: `#·68`.
 - `#·65`. Recover stream after disconnection
 - `#·66`. Tab is removed on end-of-stream
 - `#·67`. All tabs should awake when pipe awakes
+- `#·39`. Reconnect tab after tab goes to sleep and stream times out.
+- `#·69`. Add a shortcut for `option.or_log(&str)` and `option.or_else_log(|| &str)`
+- `#·71`. Creating a view-only signal holds a ref to the original signal REJECTED this creates a leak
+- `#·73`. Share `fn install_wasm()` as a framework function

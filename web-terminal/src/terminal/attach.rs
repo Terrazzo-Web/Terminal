@@ -32,7 +32,12 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
     let element = template.element();
     if let Some(IS_ATTACHED) = element.get_attribute(XTERMJS_ATTR).as_deref() {
         if terminal_tab.selected.get_value_untracked() {
-            if let Some(xtermjs) = terminal_tab.xtermjs.lock().expect("xtermjs").clone() {
+            if let Some(xtermjs) = terminal_tab
+                .xtermjs
+                .lock()
+                .or_throw("xtermjs.lock()")
+                .clone()
+            {
                 debug!("Focus and fit size");
                 xtermjs.focus();
                 xtermjs.fit();
@@ -40,11 +45,13 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
         }
         return Consumers::default();
     }
-    element.set_attribute(XTERMJS_ATTR, IS_ATTACHED).unwrap();
+    element
+        .set_attribute(XTERMJS_ATTR, IS_ATTACHED)
+        .or_throw(XTERMJS_ATTR);
 
     info!("Attaching XtermJS");
     let xtermjs = TerminalJs::new();
-    *terminal_tab.xtermjs.lock().expect("xtermjs") = Some(xtermjs.clone());
+    *terminal_tab.xtermjs.lock().or_throw("xtermjs") = Some(xtermjs.clone());
     let xtermjs = guard(xtermjs, |xtermjs| xtermjs.dispose());
     xtermjs.open(&element);
     let (input_tx, input_rx) = mpsc::unbounded();
@@ -109,8 +116,8 @@ impl TerminalJs {
 
     async fn do_resize(self, terminal_id: TerminalId) {
         let size = api::Size {
-            rows: self.rows().as_f64().expect("rows") as i32,
-            cols: self.cols().as_f64().expect("cols") as i32,
+            rows: self.rows().as_f64().or_throw("rows") as i32,
+            cols: self.cols().as_f64().or_throw("cols") as i32,
         };
         if let Err(error) = api::client::resize::resize(&terminal_id, size).await {
             warn!("Failed to resize: {error}");

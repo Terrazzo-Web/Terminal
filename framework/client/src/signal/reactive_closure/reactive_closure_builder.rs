@@ -10,6 +10,7 @@ use tracing::trace;
 
 use super::ReactiveClosure;
 use crate::debug_correlation_id::DebugCorrelationId;
+use crate::prelude::OrElseLog as _;
 use crate::signal::producers::consumer::Consumer;
 use crate::signal::producers::producer::Producer;
 use crate::signal::version::Version;
@@ -57,15 +58,16 @@ where
         let bound_closure = move || {
             let current_value = {
                 if let Some(signal) = signal_weak.upgrade() {
-                    signal.0.current_value.lock().expect("lock").value().clone()
+                    let lock = &signal.0.current_value.lock().or_throw("current_value");
+                    lock.value().clone()
                 } else {
                     // Signal -> ReactiveClosure
                     // ReactiveClosure -> Weak<Signal>: to read the value
                     // ReactiveClosure -> Weak<Signal>: to unsubscribe if dropped
                     let _span = span.enter();
                     debug!("Signal is dropped, keep previous value");
-                    let immutable_value = immutable_value.lock().expect("lock");
-                    immutable_value.as_ref().expect("immutable_value").clone()
+                    let immutable_value = immutable_value.lock().or_throw("immutable_value");
+                    immutable_value.as_ref().or_throw("immutable_value").clone()
                 }
             };
             reactive_closure()(current_value)

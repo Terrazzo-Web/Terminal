@@ -6,6 +6,7 @@ use futures::FutureExt;
 use futures::Stream;
 use pin_project::pin_project;
 use terrazzo::autoclone;
+use terrazzo::prelude::OrElseLog as _;
 use tracing::info;
 use tracing::info_span;
 use tracing::Instrument;
@@ -48,7 +49,7 @@ fn add_dispatcher_sync(
     tx: mpsc::Sender<Option<Vec<u8>>>,
     pipe_tx: oneshot::Sender<Result<(), PipeError>>,
 ) {
-    let mut dispatchers_lock = DISPATCHERS.lock().unwrap();
+    let mut dispatchers_lock = DISPATCHERS.lock().or_throw("DISPATCHERS");
     let dispatchers = if let Some(dispatchers) = &mut *dispatchers_lock {
         info!("Use current dispatchers");
         match &dispatchers.shutdown_pipe {
@@ -78,11 +79,11 @@ fn add_dispatcher_sync(
                 Ok(shutdown_pipe) => shutdown_pipe,
                 Err(error) => {
                     let _ = pipe_tx.send(Err(error));
-                    *DISPATCHERS.lock().unwrap() = None;
+                    *DISPATCHERS.lock().or_throw("DISPATCHERS") = None;
                     return;
                 }
             };
-            if let Some(dispatchers) = &mut *DISPATCHERS.lock().unwrap() {
+            if let Some(dispatchers) = &mut *DISPATCHERS.lock().or_throw("DISPATCHERS") {
                 dispatchers.shutdown_pipe = ShutdownPipe::Signal(shutdown_pipe);
             }
             let _ = pipe_tx.send(Ok(()));
@@ -93,7 +94,7 @@ fn add_dispatcher_sync(
             map: HashMap::new(),
             shutdown_pipe: ShutdownPipe::Pending(pending_rx.shared()),
         });
-        dispatchers_lock.as_mut().unwrap()
+        dispatchers_lock.as_mut().or_throw("dispatchers_lock")
     };
     dispatchers.map.insert(terminal_id.clone(), tx);
 }

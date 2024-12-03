@@ -1,5 +1,7 @@
 use named::named;
 use named::NamedEnumValues as _;
+use named::NamedType as _;
+use terrazzo::prelude::OrElseLog as _;
 use web_sys::Response;
 
 use super::pipe::PipeError;
@@ -20,7 +22,7 @@ pub async fn register(
         Method::POST,
         format!(
             "{BASE_URL}/stream/{REGISTER}/{terminal_id}?{query}",
-            query = serde_urlencoded::to_string(query).unwrap()
+            query = serde_urlencoded::to_string(query).or_throw(RegisterTerminalQuery::type_name())
         ),
         move |_| {},
     )
@@ -40,6 +42,9 @@ pub enum RegisterError {
 
 #[cfg(test)]
 mod tests {
+    use named::NamedType as _;
+    use terrazzo::prelude::OrElseLog as _;
+
     use crate::api::RegisterTerminalMode;
     use crate::api::RegisterTerminalQuery;
 
@@ -48,6 +53,9 @@ mod tests {
         let query = RegisterTerminalQuery {
             mode: RegisterTerminalMode::Create,
         };
-        assert_eq!("mode=Create", serde_urlencoded::to_string(&query).unwrap());
+        assert_eq!(
+            "mode=Create",
+            serde_urlencoded::to_string(&query).or_throw(RegisterTerminalQuery::type_name())
+        );
     }
 }

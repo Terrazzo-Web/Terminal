@@ -88,7 +88,7 @@ impl TabsState for TerminalsState {
             let moved_tab = terminal_tabs
                 .iter()
                 .find(|tab| tab.id.as_str() == moved_tab_key)
-                .unwrap();
+                .or_throw("'moved_tab' not found");
             let tabs = terminal_tabs
                 .iter()
                 .enumerate()

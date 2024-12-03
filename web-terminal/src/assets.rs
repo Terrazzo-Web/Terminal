@@ -1,8 +1,7 @@
 use std::path::Path;
 
-use include_directory::include_directory;
-use include_directory::Dir;
 use terrazzo::declare_asset;
+use terrazzo::declare_assets_dir;
 use terrazzo::declare_scss_asset;
 use terrazzo::static_assets::AssetBuilder;
 
@@ -48,22 +47,5 @@ fn install_wasm() {
     declare_asset!("/assets/wasm/web_terminal_bg.wasm")
         .asset_name("wasm/web_terminal_bg.wasm")
         .install();
-
-    static DIR: Dir<'_> = include_directory!("$CARGO_MANIFEST_DIR/assets/wasm/snippets");
-    install_wasm_snippets(&DIR);
-}
-
-fn install_wasm_snippets(dir: &Dir<'static>) {
-    for entry in dir.entries() {
-        if let Some(dir) = entry.as_dir() {
-            install_wasm_snippets(dir);
-        }
-        if let Some(file) = entry.as_file() {
-            let path = Path::new("wasm/snippets/").join(entry.path());
-            let path = path.as_os_str().to_str().unwrap();
-            AssetBuilder::new(path, file.contents())
-                .asset_name(path)
-                .install();
-        }
-    }
+    declare_assets_dir!("wasm/snippets", "$CARGO_MANIFEST_DIR/assets/wasm/snippets");
 }

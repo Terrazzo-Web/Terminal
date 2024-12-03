@@ -3,6 +3,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use scopeguard::guard;
+use terrazzo_client::prelude::OrElseLog as _;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 
@@ -27,8 +28,8 @@ impl DoDebounce for Duration {
 
 impl DoDebounce for Debounce {
     fn debounce<T: 'static>(self, f: impl Fn(T) + 'static) -> impl Fn(T) {
-        let window = web_sys::window().expect("window");
-        let performance = window.performance().expect("performance");
+        let window = web_sys::window().or_throw("window");
+        let performance = window.performance().or_throw("performance");
         let state = Rc::new(Cell::new(DebounceState::default()));
         let delay_millis = self.delay.as_secs_f64() * 1000.;
         let max_delay_millis = self.max_delay.map(|d| d.as_secs_f64() * 1000.);
@@ -37,7 +38,7 @@ impl DoDebounce for Debounce {
             let performance = performance.clone();
             move || {
                 let mut state = guard(state.take(), |new_state| state.set(new_state));
-                f(state.schedled_run.take().unwrap().arg);
+                f(state.scheduled_run.take().or_throw("scheduled_run").arg);
                 state.last_run = performance.now();
             }
         });
@@ -47,14 +48,14 @@ impl DoDebounce for Debounce {
             if let Some(max_delay_millis) = max_delay_millis {
                 if now - state.last_run - delay_millis > max_delay_millis {
                     // If max delay is exceeded and there is already a task running, let it run.
-                    if let Some(schedled_run) = &mut state.schedled_run {
-                        schedled_run.arg = arg;
+                    if let Some(scheduled_run) = &mut state.scheduled_run {
+                        scheduled_run.arg = arg;
                         return;
                     }
                 }
             }
 
-            if let Some(ScheduledRun { timeout_id, .. }) = state.schedled_run {
+            if let Some(ScheduledRun { timeout_id, .. }) = state.scheduled_run {
                 window.clear_timeout_with_handle(timeout_id);
             }
             let timeout_id = window
@@ -62,14 +63,14 @@ impl DoDebounce for Debounce {
                     closure.as_ref().unchecked_ref(),
                     (self.delay.as_secs() * 1000) as i32,
                 )
-                .expect("set_timeout");
-            state.schedled_run = Some(ScheduledRun { timeout_id, arg });
+                .or_throw("set_timeout");
+            state.scheduled_run = Some(ScheduledRun { timeout_id, arg });
         }
     }
 }
 
 struct DebounceState<T> {
-    schedled_run: Option<ScheduledRun<T>>,
+    scheduled_run: Option<ScheduledRun<T>>,
     last_run: f64,
 }
 
@@ -81,7 +82,7 @@ struct ScheduledRun<T> {
 impl<T> Default for DebounceState<T> {
     fn default() -> Self {
         Self {
-            schedled_run: None,
+            scheduled_run: None,
             last_run: 0.,
         }
     }
@@ -90,7 +91,7 @@ impl<T> Default for DebounceState<T> {
 impl<T> std::fmt::Debug for DebounceState<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DebounceState")
-            .field("schedled_run", &self.schedled_run.is_some())
+            .field("scheduled_run", &self.scheduled_run.is_some())
             .field("last_run", &self.last_run)
             .finish()
     }

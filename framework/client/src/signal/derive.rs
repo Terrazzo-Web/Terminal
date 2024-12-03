@@ -8,6 +8,7 @@ use tracing::warn;
 use super::depth::Depth;
 use super::XSignal;
 use crate::debug_correlation_id::DebugCorrelationId;
+use crate::prelude::OrElseLog as _;
 use crate::string::XString;
 
 impl<T> XSignal<T> {
@@ -26,7 +27,10 @@ impl<T> XSignal<T> {
         let main_name =
             DebugCorrelationId::new(|| format!("Main:{}", main.0.producer.name()).into());
 
-        let derived = XSignal::new(name, to(main.0.current_value.lock().unwrap().value()));
+        let derived = XSignal::new(
+            name,
+            to(main.0.current_value.lock().or_throw("main").value()),
+        );
         let derived_weak = derived.downgrade();
         let derived_name =
             DebugCorrelationId::new(|| format!("Derived:{}", derived.0.producer.name()).into());
@@ -57,15 +61,15 @@ impl<T> XSignal<T> {
                         return;
                     };
                     let t = from(
-                        main.0.current_value.lock().unwrap().value(),
-                        derived.0.current_value.lock().unwrap().value(),
+                        main.0.current_value.lock().or_throw("main").value(),
+                        derived.0.current_value.lock().or_throw("derived").value(),
                     );
                     if let Some(t) = t {
                         main.force(t);
                     }
                 });
             // If main is dropped there is no need to try to update it.
-            let mut on_main_drop = main.0.on_drop.lock().unwrap();
+            let mut on_main_drop = main.0.on_drop.lock().or_throw("on_drop");
             on_main_drop.push(Box::new(move || drop(consumer)));
         }
 
@@ -89,11 +93,11 @@ impl<T> XSignal<T> {
                     debug_assert!(false);
                     return;
                 };
-                let t = to(main.0.current_value.lock().unwrap().value());
+                let t = to(main.0.current_value.lock().or_throw("main").value());
                 derived.set(t);
             });
             // If derived is dropped there is no need to try to update it.
-            let mut on_drop = derived.0.on_drop.lock().unwrap();
+            let mut on_drop = derived.0.on_drop.lock().or_throw("on_drop");
             on_drop.push(Box::new(move || drop(consumer)));
         }
 

@@ -10,6 +10,7 @@ use super::producer::ProducedValue;
 use super::producer::Producer;
 use super::producer_weak::ProducerWeak;
 use crate::debug_correlation_id::DebugCorrelationId;
+use crate::prelude::OrElseLog as _;
 use crate::string::XString;
 
 #[must_use]
@@ -72,7 +73,7 @@ impl<V: ProducedValue, F: Fn(V::Value) + ?Sized> Drop for ConsumerInner<V, F> {
     fn drop(&mut self) {
         trace!(consumer_id = %self.id, consumer_name = %self.name, "Drop consumer");
         if let Some(producer) = self.producer.upgrade() {
-            let mut producer_lock = producer.inner.1.lock().unwrap();
+            let mut producer_lock = producer.inner.1.lock().or_throw("producer_lock");
             let consumers = Arc::try_unwrap(std::mem::take(&mut producer_lock.consumers))
                 .unwrap_or_else(|consumers| consumers.as_ref().clone())
                 .into_iter()

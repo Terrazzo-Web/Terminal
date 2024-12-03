@@ -2,6 +2,7 @@ use futures::FutureExt as _;
 use futures::TryFutureExt as _;
 use named::named;
 use named::NamedEnumValues as _;
+use terrazzo::prelude::OrElseLog as _;
 use tracing::debug;
 use tracing::info_span;
 use tracing::Instrument;
@@ -29,10 +30,10 @@ pub fn close(
         move |request| {
             debug!("Start");
             if let Some(correlation_id) = correlation_id {
-                let headers = Headers::new().expect("Headers::new()");
+                let headers = Headers::new().or_throw("Headers::new()");
                 headers
                     .set(CORRELATION_ID, &correlation_id)
-                    .expect(CORRELATION_ID);
+                    .or_throw(CORRELATION_ID);
                 request.set_headers(headers.as_ref());
             }
         },
@@ -55,7 +56,7 @@ pub enum CloseError {
 
 pub fn drop_dispatcher(terminal_id: &TerminalId) -> Option<String> {
     debug!("Drop dispatcher");
-    let mut dispatchers_lock = DISPATCHERS.lock().unwrap();
+    let mut dispatchers_lock = DISPATCHERS.lock().or_throw("DISPATCHERS");
     let dispatchers = dispatchers_lock.as_mut()?;
     dispatchers.map.remove(terminal_id);
 

@@ -34,10 +34,10 @@ pub fn run(main: Element) -> XElement {
                 autoclone!(game);
                 info!("Loading the game");
                 ResizeEvent::signal().force(());
-                let c1 = Cookie::new(&game, 1. / 20.);
-                game.cookies.update(|_| Some(vec![c1.clone()]));
+                game.cookies
+                    .update(|_| Some((0..20).map(|_| Cookie::new(&game)).collect()));
             },
         ),
-        show_cookies(game.clone(), game.cookies.clone()),
+        show_cookies(game.cookies.clone()),
     )
 }

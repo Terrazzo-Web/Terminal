@@ -55,12 +55,11 @@ fn show_editing(#[signal] mut content: XString, editing_mut: MutableSignal<bool>
         change = move |ev| on_change(&ev, &editing_mut, &content_mut),
         blur = move |ev: FocusEvent| on_change(ev.as_ref(), &editing_mut2, &content_mut2),
         after_render = |element| {
-            let Some(input) = element.dyn_ref::<HtmlInputElement>() else {
-                warn!("Not an <input> tag!");
-                return;
-            };
+            let input = element
+                .dyn_ref::<HtmlInputElement>()
+                .or_throw("Not an <input> tag!");
             let focused = input.focus();
-            focused.unwrap_or_else(|error| warn!("Failed to focus input text: {error:?}"));
+            focused.or_else_throw(|error| format!("Failed to focus input text: {error:?}"));
         }
     )
 }

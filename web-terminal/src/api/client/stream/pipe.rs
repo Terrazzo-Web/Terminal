@@ -6,6 +6,7 @@ use futures::TryFutureExt as _;
 use named::named;
 use named::NamedEnumValues as _;
 use scopeguard::defer;
+use terrazzo::prelude::OrElseLog as _;
 use tracing::debug;
 use tracing::info;
 use tracing::info_span;
@@ -36,10 +37,10 @@ pub async fn pipe(correlation_id: &str) -> Result<oneshot::Sender<()>, PipeError
             Method::POST,
             format!("{BASE_URL}/stream/{PIPE}"),
             move |request| {
-                let headers = Headers::new().expect("Headers::new()");
+                let headers = Headers::new().or_throw("Headers::new()");
                 headers
                     .set(CORRELATION_ID, correlation_id)
-                    .expect(CORRELATION_ID);
+                    .or_throw(CORRELATION_ID);
                 request.set_headers(headers.as_ref());
             },
         )
@@ -119,13 +120,17 @@ pub enum PipeError {
 
 fn close_dispatchers(correlation_id: &str) {
     let _span = info_span!("Close Stream Writers").entered();
-    let mut dispatchers_lock = DISPATCHERS.lock().unwrap();
+    let mut dispatchers_lock = DISPATCHERS.lock().or_throw("DISPATCHERS");
     if let Some(dispatchers) = &mut *dispatchers_lock {
         if *correlation_id != dispatchers.correlation_id {
             debug! { "Owned by {} instead of {correlation_id}", dispatchers.correlation_id };
             return;
         }
-        if let ShutdownPipe::Signal(signal) = dispatchers_lock.take().unwrap().shutdown_pipe {
+        if let ShutdownPipe::Signal(signal) = dispatchers_lock
+            .take()
+            .or_throw("dispatchers_lock")
+            .shutdown_pipe
+        {
             match signal.send(()) {
                 Ok(()) => info!("Closed"),
                 Err(()) => debug!("Already shutdown"),
@@ -145,10 +150,10 @@ pub fn close_pipe(correlation_id: String) -> impl std::future::Future<Output = (
         format!("{BASE_URL}/stream/{PIPE}/close"),
         move |request| {
             debug!("Start");
-            let headers = Headers::new().expect("Headers::new()");
+            let headers = Headers::new().or_throw("Headers::new()");
             headers
                 .set(CORRELATION_ID, &correlation_id)
-                .expect(CORRELATION_ID);
+                .or_throw(CORRELATION_ID);
             request.set_headers(headers.as_ref());
         },
     )
