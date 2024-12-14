@@ -1,4 +1,6 @@
 # TODO
+- `#·76`. Fix EOS
+- `#·77`. Fix rust-analyzer enables both client and server features
 - `#·68`. Persist order of tabs after relaunch
 - `#·70`. Periodically clear the console
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
@@ -22,7 +24,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#·76`.
+Next: `#·78`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`

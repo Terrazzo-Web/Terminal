@@ -1,6 +1,16 @@
-pub async fn new_id() -> String {
-    use std::sync::atomic::AtomicUsize;
-    use std::sync::atomic::Ordering::SeqCst;
-    static NEXT: AtomicUsize = AtomicUsize::new(1);
-    format!("Terminal {}", NEXT.fetch_add(1, SeqCst))
+use terrazzo::axum::Json;
+
+use crate::api::TerminalDef;
+use crate::processes::next_terminal_id;
+
+pub async fn new_id() -> Json<TerminalDef> {
+    let next = next_terminal_id();
+    let title = format!("Terminal {next}");
+    let id = format!("terminal-{next}").into();
+    TerminalDef {
+        id,
+        title,
+        order: next,
+    }
+    .into()
 }

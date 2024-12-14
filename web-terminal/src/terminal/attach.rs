@@ -20,6 +20,7 @@ use super::javascript::TerminalJs;
 use super::terminal_tab::TerminalTab;
 use super::TerminalsState;
 use crate::api;
+use crate::api::TerminalDef;
 use crate::terminal_id::TerminalId;
 use crate::widgets::resize_event::ResizeEvent;
 
@@ -28,6 +29,7 @@ const IS_ATTACHED: &str = "Y";
 
 pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: TerminalTab) -> Consumers {
     let terminal_id = terminal_tab.id.clone();
+    let terminal_def = terminal_tab.to_terminal_def();
     let _span = info_span!("XTermJS", %terminal_id).entered();
     let element = template.element();
     if let Some(IS_ATTACHED) = element.get_attribute(XTERMJS_ATTR).as_deref() {
@@ -62,7 +64,7 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
         let _on_data = on_data;
         let _on_resize = on_resize;
         let _on_title_change = on_title_change;
-        let stream_loop = xtermjs.stream_loop(state, &terminal_id, element);
+        let stream_loop = xtermjs.stream_loop(state, terminal_def, element);
         let write_loop = write_loop(&terminal_id, input_rx);
         let unsubscribe_resize_event = ResizeEvent::signal().add_subscriber({
             let xtermjs = xtermjs.clone();
@@ -72,6 +74,7 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
             xtermjs.focus();
             xtermjs.fit();
         }
+        // TODO: If write fails, we should not close the tab
         select! {
             () = stream_loop.fuse() => info!("Stream loop closed"),
             () = write_loop.fuse() => info!("Write loop closed"),
@@ -137,11 +140,17 @@ impl TerminalJs {
         return on_title_change;
     }
 
-    async fn stream_loop(&self, state: TerminalsState, terminal_id: &TerminalId, element: Element) {
+    async fn stream_loop(
+        &self,
+        state: TerminalsState,
+        terminal_def: TerminalDef,
+        element: Element,
+    ) {
         async {
             debug!("Start");
-            let on_init = || self.clone().do_resize(terminal_id.clone());
-            let eos = api::client::stream::stream(state, terminal_id, element, on_init, |data| {
+            let terminal_id = terminal_def.id.clone();
+            let on_init = || self.clone().do_resize(terminal_id);
+            let eos = api::client::stream::stream(state, terminal_def, element, on_init, |data| {
                 self.send(data)
             })
             .await;

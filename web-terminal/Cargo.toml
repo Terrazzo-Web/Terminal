@@ -23,7 +23,6 @@ pin-project = { workspace = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-serde_urlencoded = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
 thiserror = { workspace = true }
 terrazzo = { workspace = true }
@@ -69,7 +68,6 @@ terrazzo-build = { workspace = true }
 default = []
 client = [
     "dep:stylance",
-    "dep:serde_urlencoded",
     "dep:wasm-bindgen",
     "dep:wasm-bindgen-futures",
     "dep:wasm-streams",

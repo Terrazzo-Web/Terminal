@@ -13,11 +13,13 @@ use scopeguard::defer;
 use scopeguard::guard;
 use terrazzo::autoclone;
 use terrazzo::axum::body::Body;
+use terrazzo_pty::lease::LeaseItem;
 use tracing::debug;
 use tracing::info;
 use tracing::info_span;
 use tracing::trace;
 use tracing::Span;
+use tracing_futures::Instrument;
 
 use crate::api::server::correlation_id::CorrelationId;
 use crate::api::server::stream::registration::Registration;
@@ -46,42 +48,60 @@ pub fn pipe(correlation_id: CorrelationId) -> Body {
     }));
     let rx = rx.flat_map_unordered(None, move |(terminal_id, lease)| {
         let _rx_dropped = rx_dropped.clone();
-
-        #[cfg(debug_assertions)]
-        let span = lease.span().clone();
-        #[cfg(not(debug_assertions))]
         let span = tracing::info_span!("Lease", %terminal_id);
 
         // Debug logs
         #[cfg(debug_assertions)]
-        let lease = lease.inspect(|chunk| match chunk {
-            Ok(chunk) => assert!(!chunk.is_empty(), "Unexpected empty chunk"),
-            Err(error) => tracing::warn!("Stream failed with {error}"),
+        let lease = lease.inspect(|chunk| {
+            use named::NamedEnumValues;
+            match chunk {
+                LeaseItem::EOS => tracing::debug!("{}", chunk.name()),
+                LeaseItem::Data(data) => assert!(!data.is_empty(), "Unexpected empty chunk"),
+                LeaseItem::Error(error) => tracing::warn!("Stream failed with {error}"),
+            }
         });
 
         // Ignore error (logged above) and close stream on failure
+
         let lease = lease
-            .take_while(|chunk| ready(chunk.is_ok()))
-            .filter_map(|chunk| ready(chunk.ok()))
+            // Remove processes when EOS or failure
+            .inspect(move |chunk| {
+                autoclone!(terminal_id);
+                match chunk {
+                    LeaseItem::EOS | LeaseItem::Error { .. } => {}
+                    LeaseItem::Data { .. } => return,
+                };
+                match processes::close::close(&terminal_id) {
+                    Ok(()) => debug!("Closed {terminal_id}"),
+                    Err(error) => debug!("Closing {terminal_id} returned {error}"),
+                };
+            })
+            // Stream is revoked: end of stream
+            // Stream is EOS/failure: add a None item
+            // Streaming data: Some(data)
+            .map(|chunk| match chunk {
+                LeaseItem::EOS => Some(None),
+                LeaseItem::Error { .. } => None,
+                LeaseItem::Data(data) => Some(Some(data)),
+            })
+            .take_while(|chunk| ready(chunk.is_some()))
+            .filter_map(ready)
             .ready_chunks(10);
 
         // Concat chunks
-        let lease = lease.map(move |chunks| {
+        let lease = lease.flat_map(move |chunks| {
             debug_assert!(!chunks.is_empty(), "Unexpected empty chunks");
-            let data = chunks.concat();
+            let mut data = vec![];
+            for chunk in chunks {
+                if let Some(chunk) = chunk {
+                    data.extend(chunk)
+                } else {
+                    return futures::stream::iter(vec![Some(data), None]);
+                }
+            }
             trace! { "Streaming {}", String::from_utf8_lossy(&data).escape_default() };
-            Some(data)
+            return futures::stream::iter(vec![Some(data)]);
         });
-
-        // Add tombstone None for EOS
-        let lease = lease.chain(once(Box::pin(async move {
-            autoclone!(terminal_id);
-            match processes::close::close(&terminal_id) {
-                Ok(()) => debug!("Closed {terminal_id}"),
-                Err(error) => debug!("Closing {terminal_id} returned {error}"),
-            };
-            return None;
-        })));
 
         // Serialize as JSON separated by newlines.
         let lease = lease.map(move |data| {
@@ -92,12 +112,14 @@ pub fn pipe(correlation_id: CorrelationId) -> Body {
             return Ok::<Vec<u8>, std::io::Error>(json);
         });
         return LeaseClientStream {
-            on_drop: LeaseClientStreamDrop { span },
+            on_drop: LeaseClientStreamDrop { span: span.clone() },
             stream: lease,
-        };
+        }
+        .instrument(span);
     });
     let stream = once(ready(Ok(vec![NEWLINE]))).chain(rx);
     let stream = timeout_stream(stream);
+    let stream = stream.in_current_span();
     return Body::from_stream(stream);
 }
 

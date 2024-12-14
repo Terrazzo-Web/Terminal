@@ -13,13 +13,14 @@ use crate::api::TerminalDef;
 use crate::terminal_id::TerminalId;
 
 pub async fn open_stream<F>(
-    terminal_id: &TerminalId,
+    terminal_def: TerminalDef,
     open_process: impl Fn(&TerminalId) -> F,
 ) -> Result<ProcessOutputLease, GetOrCreateProcessError>
 where
     F: Future<Output = Result<ProcessIO, OpenProcessError>>,
 {
     let processes = get_processes();
+    let terminal_id = &terminal_def.id;
     match processes.entry(terminal_id.clone()) {
         dashmap::Entry::Occupied(occupied_entry) => {
             let entry = occupied_entry.get().1.clone();
@@ -30,20 +31,12 @@ where
             }
             info!("Can't get a lease");
             let entry = ProcessIoEntry::new(open_process(terminal_id).await?);
-            let terminal_def = TerminalDef {
-                id: terminal_id.clone(),
-                title: terminal_id.to_string(),
-            };
             processes.insert(terminal_id.clone(), (terminal_def, entry.clone()));
             return Ok(entry.lease_output().await?);
         }
         dashmap::Entry::Vacant(vacant_entry) => {
             info!("Not found");
             let entry = ProcessIoEntry::new(open_process(terminal_id).await?);
-            let terminal_def = TerminalDef {
-                id: terminal_id.clone(),
-                title: terminal_id.to_string(),
-            };
             vacant_entry.insert((terminal_def, entry.clone()));
             return Ok(entry.lease_output().await?);
         }

@@ -43,14 +43,14 @@ impl TabsDescriptor for TerminalTabs {
                     let this = this.clone();
                     let state = state.clone();
                     wasm_bindgen_futures::spawn_local(async move {
-                        let terminal_id = match api::client::new_id::new_id().await {
+                        let terminal_def = match api::client::new_id::new_id().await {
                             Ok(id) => id,
                             Err(error) => {
                                 warn!("Failed to allocate new ID: {error}");
                                 return;
                             }
                         };
-                        let new_tab = TerminalTab::new(terminal_id.into(), &state.selected_tab);
+                        let new_tab = TerminalTab::new(terminal_def, &state.selected_tab);
                         let _batch = Batch::use_batch("add-tab");
                         state.selected_tab.force(new_tab.id.clone());
                         state.terminal_tabs.force(this.clone().add_tab(new_tab));
@@ -79,7 +79,14 @@ impl TabsState for TerminalsState {
     type TabDescriptor = TerminalTab;
 
     fn move_tab(&self, after_tab: Option<TerminalTab>, moved_tab_key: String) {
-        self.terminal_tabs.update(|TerminalTabs { terminal_tabs }| {
+        move_tab(self.clone(), after_tab, moved_tab_key)
+    }
+}
+
+fn move_tab(state: TerminalsState, after_tab: Option<TerminalTab>, moved_tab_key: String) {
+    let tabs = state
+        .terminal_tabs
+        .update(|TerminalTabs { terminal_tabs }| {
             let after_tab = if let Some(after_tab) = after_tab {
                 terminal_tabs.iter().find(|tab| tab.id == after_tab.id)
             } else {
@@ -115,10 +122,20 @@ impl TabsState for TerminalsState {
                 })
                 .cloned()
                 .collect();
-            self.selected_tab.set(moved_tab.id.clone());
-            return Some(TerminalTabs {
+            state.selected_tab.set(moved_tab.id.clone());
+            let tabs = TerminalTabs {
                 terminal_tabs: Rc::new(tabs),
-            });
+            };
+            return Some(tabs.clone()).and_return(tabs);
         });
-    }
+    let tabs = tabs
+        .terminal_tabs
+        .iter()
+        .map(|tab| tab.id.clone())
+        .collect();
+    wasm_bindgen_futures::spawn_local(async move {
+        let () = api::client::set_order::set_order(tabs)
+            .await
+            .unwrap_or_else(|error| warn!("Failed to set order: {error}"));
+    });
 }

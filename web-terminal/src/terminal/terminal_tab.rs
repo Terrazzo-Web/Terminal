@@ -28,8 +28,7 @@ use crate::widgets::tabs::TabDescriptor;
 pub struct TerminalTab(Rc<TerminalTabInner>);
 
 pub struct TerminalTabInner {
-    pub id: TerminalId,
-    pub title: XSignal<XString>,
+    def: TerminalDef<XSignal<XString>>,
     pub selected: XSignal<bool>,
     pub xtermjs: Mutex<Option<TerminalJs>>,
     #[expect(unused)]
@@ -37,14 +36,8 @@ pub struct TerminalTabInner {
 }
 
 impl TerminalTab {
-    pub fn new(terminal_id: TerminalId, selected: &XSignal<TerminalId>) -> Self {
-        Self::of(
-            TerminalDef {
-                id: terminal_id.clone(),
-                title: terminal_id.to_string(),
-            },
-            selected,
-        )
+    pub fn new(terminal_def: TerminalDef, selected: &XSignal<TerminalId>) -> Self {
+        Self::of(terminal_def, selected)
     }
 
     #[autoclone]
@@ -52,6 +45,7 @@ impl TerminalTab {
         let TerminalDef {
             id: terminal_id,
             title: terminal_title,
+            order,
         } = terminal_definition;
         let selected = {
             let name: XString = if tracing::enabled!(Level::DEBUG) {
@@ -91,8 +85,11 @@ impl TerminalTab {
             });
         });
         Self(Rc::new(TerminalTabInner {
-            id: terminal_id,
-            title,
+            def: TerminalDef {
+                id: terminal_id,
+                title,
+                order,
+            },
             selected,
             xtermjs: Mutex::new(None),
             registrations,
@@ -155,6 +152,24 @@ impl Deref for TerminalTab {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl Deref for TerminalTabInner {
+    type Target = TerminalDef<XSignal<XString>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.def
+    }
+}
+
+impl TerminalTabInner {
+    pub fn to_terminal_def(&self) -> TerminalDef {
+        TerminalDef {
+            id: self.id.clone(),
+            title: self.title.get_value_untracked().to_string(),
+            order: self.order,
+        }
     }
 }
 
