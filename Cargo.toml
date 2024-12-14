@@ -52,9 +52,9 @@ darling = { version = "0.20.10" }
 dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
 futures = { version = "0.3.30" }
-http = { version = "1.1.0" }
+http = { version = "1.2.0" }
 include_directory = { version = "0.1.1" }
-libc = { version = "0.2.164" }
+libc = { version = "0.2.168" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 pin-project = { version = "1.1.7" }
@@ -62,27 +62,27 @@ prettyplease = { version = "0.2.25" }
 proc-macro2 = { version = "1.0.92" }
 quote = { version = "1.0.37" }
 reqwest-wasm = { version = "0.11.16" }
-rustix = { version = "0.38.41" }
+rustix = { version = "0.38.42" }
 scopeguard = { version = "1.2.0" }
-serde = { version = "1.0.215", features = ["derive", "rc"] }
+serde = { version = "1.0.216", features = ["derive", "rc"] }
 serde_json = { version = "1.0.133" }
 serde_urlencoded = { version = "0.7.1" }
 stylance = { version = "0.5.2" }
 rsass-macros = { version = "0.28.10" }
-syn = { version = "2.0.89" }
-thiserror = { version = "2.0.3" }
-tokio = { version = "1.41.1" }
-tokio-util = { version = "0.7.12" }
+syn = { version = "2.0.90" }
+thiserror = { version = "2.0.7" }
+tokio = { version = "1.42.0" }
+tokio-util = { version = "0.7.13" }
 tower-http = { version = "0.6.2" }
-tracing = { version = "0.1.40" }
+tracing = { version = "0.1.41" }
 tracing-futures = { version = "0.2.5" }
-tracing-subscriber = { version = "0.3.18" }
+tracing-subscriber = { version = "0.3.19" }
 tracing-subscriber-wasm = { version = "0.1.0" }
-wasm-bindgen = { version = "0.2.95" }
+wasm-bindgen = { version = "0.2.99" }
 wasm-bindgen-futures = { version = "0.4.45" }
 wasm-bindgen-test = { version = "0.3.45" }
 wasm-streams = { version = "0.4.2" }
-web-sys = { version = "0.3.72" }
+web-sys = { version = "0.3.76" }
 
 [workspace.lints.rust]
 unused = "deny"
