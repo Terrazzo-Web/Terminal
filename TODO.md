@@ -1,7 +1,5 @@
 # TODO
-- `#·76`. Fix EOS
 - `#·77`. Fix rust-analyzer enables both client and server features
-- `#·68`. Persist order of tabs after relaunch
 - `#·70`. Periodically clear the console
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
 - `#·74`. The tab title doesn't change even if the shell resets the tab title
@@ -86,3 +84,5 @@ Next: `#·78`.
 - `#·69`. Add a shortcut for `option.or_log(&str)` and `option.or_else_log(|| &str)`
 - `#·71`. Creating a view-only signal holds a ref to the original signal REJECTED this creates a leak
 - `#·73`. Share `fn install_wasm()` as a framework function
+- `#·76`. Fix handling of Process or Tab Closed/Crashed/EOS
+- `#·68`. Persist order of tabs after page refresh

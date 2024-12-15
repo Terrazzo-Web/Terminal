@@ -46,3 +46,12 @@ pub enum RegisterTerminalMode {
     Create,
     Reopen,
 }
+
+#[allow(unused)]
+pub static APPLICATION_JSON: &str = "application/json";
+
+#[test]
+#[cfg(all(test, feature = "server"))]
+fn application_json_test() {
+    assert_eq!(APPLICATION_JSON, terrazzo::mime::APPLICATION_JSON);
+}

@@ -5,11 +5,13 @@ use tracing::warn;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
+use web_sys::Headers;
 use web_sys::Request;
 use web_sys::RequestInit;
 use web_sys::RequestMode;
 use web_sys::Response;
 
+use super::APPLICATION_JSON;
 use crate::api::ERROR_HEADER;
 
 pub mod list;
@@ -84,4 +86,10 @@ pub enum SendRequestError {
 
     #[error("[{}] {details}", self.name())]
     InvalidHeader { details: String },
+}
+
+fn set_content_type_json(headers: &mut Headers) {
+    headers
+        .set("content-type", APPLICATION_JSON)
+        .or_throw("Set 'content-type'");
 }

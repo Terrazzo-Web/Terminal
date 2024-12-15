@@ -40,6 +40,7 @@ tracing-futures = { workspace = true, features = [
 tracing-subscriber = { workspace = true, optional = true, features = [
     "env-filter",
 ] }
+uuid = { workspace = true, optional = true, features = ["v4", "fast-rng"] }
 wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { workspace = true, optional = true }
 wasm-streams = { workspace = true, optional = true }
@@ -81,6 +82,7 @@ server = [
     "dep:tower-http",
     "dep:tracing-futures",
     "dep:tracing-subscriber",
+    "dep:uuid",
     "terrazzo/server",
 ]
 max_level_debug = ["tracing/max_level_debug", "tracing/release_max_level_debug"]
