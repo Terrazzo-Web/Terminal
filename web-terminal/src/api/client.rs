@@ -1,6 +1,8 @@
 use named::named;
 use named::NamedEnumValues as _;
-use terrazzo::prelude::OrElseLog as _;
+use terrazzo::prelude::OrElseLog;
+use terrazzo::prelude::XSignal;
+use terrazzo::prelude::XString;
 use tracing::warn;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
@@ -11,6 +13,8 @@ use web_sys::RequestInit;
 use web_sys::RequestMode;
 use web_sys::Response;
 
+use super::TabTitle;
+use super::TerminalDefImpl;
 use super::APPLICATION_JSON;
 use crate::api::ERROR_HEADER;
 
@@ -93,3 +97,5 @@ fn set_content_type_json(headers: &mut Headers) {
         .set("content-type", APPLICATION_JSON)
         .or_throw("Set 'content-type'");
 }
+
+pub type LiveTerminalDef = TerminalDefImpl<XSignal<TabTitle<XString>>>;

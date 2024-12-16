@@ -13,7 +13,6 @@ class TerminalJs {
         this.terminal.loadAddon(this.fitAddon);
         this.terminal.loadAddon(this.webLinksAddon);
         this.terminal.open(node);
-        this.fitAddon.fit();
     }
     fit() {
         this.fitAddon.fit();

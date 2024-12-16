@@ -92,19 +92,19 @@ mod implementations {
     }
 
     impl_owned_callback! {
-        new_fn: new2,
+        new_fn: new3,
         arg_types: [JsValue, JsValue, JsValue],
         arg_names: [a1, a2, a3]
     }
 
     impl_owned_callback! {
-        new_fn: new2,
+        new_fn: new4,
         arg_types: [JsValue, JsValue, JsValue, JsValue],
         arg_names: [a1, a2, a3, a4]
     }
 
     impl_owned_callback! {
-        new_fn: new2,
+        new_fn: new5,
         arg_types: [JsValue, JsValue, JsValue, JsValue, JsValue],
         arg_names: [a1, a2, a3, a4, a5]
     }

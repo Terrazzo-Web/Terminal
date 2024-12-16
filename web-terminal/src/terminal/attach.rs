@@ -20,6 +20,7 @@ use super::javascript::TerminalJs;
 use super::terminal_tab::TerminalTab;
 use super::TerminalsState;
 use crate::api;
+use crate::api::TabTitle;
 use crate::api::TerminalDef;
 use crate::terminal_id::TerminalId;
 use crate::widgets::resize_event::ResizeEvent;
@@ -127,13 +128,16 @@ impl TerminalJs {
         }
     }
 
-    fn do_on_title_change(&self, title: XSignal<XString>) -> Closure<dyn FnMut(JsValue)> {
+    fn do_on_title_change(&self, title: XSignal<TabTitle<XString>>) -> Closure<dyn FnMut(JsValue)> {
         let span = Span::current();
         let on_title_change: Closure<dyn FnMut(JsValue)> = Closure::new(move |data: JsValue| {
             let _span = span.enter();
             info!("Title changed: {data:?}");
             if let Some(new_title) = data.as_string() {
-                title.set(new_title);
+                title.update_mut(|t| TabTitle {
+                    shell_title: new_title.into(),
+                    override_title: t.override_title.take(),
+                });
             }
         });
         self.on_title_change(&on_title_change);

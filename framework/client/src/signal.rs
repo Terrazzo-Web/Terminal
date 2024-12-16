@@ -4,7 +4,6 @@ use std::sync::Mutex;
 use scopeguard::defer;
 use tracing::debug;
 use tracing::debug_span;
-use tracing::error;
 use tracing::trace;
 
 use self::batch::Batch;
@@ -77,11 +76,15 @@ struct XSignalValue<T> {
 
 impl<T> XSignalValue<T> {
     fn value(&self) -> &T {
-        let Some(value) = &self.value else {
-            error!("Value should never be null until dropped");
-            panic!()
-        };
-        value
+        self.value
+            .as_ref()
+            .or_throw("Value should never be null until dropped")
+    }
+
+    fn value_mut(&mut self) -> &mut T {
+        self.value
+            .as_mut()
+            .or_throw("Value should never be null until dropped")
     }
 }
 
@@ -161,20 +164,35 @@ impl<T: std::fmt::Debug + 'static> XSignal<T> {
         U: Into<UpdateSignalResult<Option<T>, R>>,
     {
         let _span = debug_span!("Update", signal = %self.producer.name()).entered();
-        self.update_impl(compute)
+        self.update_impl(|t| compute(t))
     }
 
-    fn update_impl<R, U>(&self, compute: impl FnOnce(&T) -> U) -> R
+    pub fn update_mut<R, U>(&self, compute: impl FnOnce(&mut T) -> U) -> R
+    where
+        U: Into<UpdateSignalResult<T, R>>,
+    {
+        let _span: tracing::span::EnteredSpan =
+            debug_span!("Update mut", signal = %self.producer.name()).entered();
+        self.update_impl(|t| {
+            let UpdateSignalResult { new_value, result } = compute(t).into();
+            UpdateSignalResult {
+                new_value: Some(new_value),
+                result,
+            }
+        })
+    }
+
+    fn update_impl<R, U>(&self, compute: impl FnOnce(&mut T) -> U) -> R
     where
         U: Into<UpdateSignalResult<Option<T>, R>>,
     {
         let (version, result) = {
             let mut current = self.current_value.lock().or_throw("current_value");
-            let current_value = current.value();
             let current_version = current.version.number();
+            let current_value = current.value_mut();
             let UpdateSignalResult { new_value, result } = compute(current_value).into();
             let Some(new_value) = new_value else {
-                debug! { "Signal value is not changing version:{current_version} value:{current_value:?}" };
+                debug! { "Signal value is not changing current@{current_version}={current_value:?}" };
                 return result;
             };
             let new_version: Version = Version::next();
@@ -183,8 +201,8 @@ impl<T: std::fmt::Debug + 'static> XSignal<T> {
                 current_version,
                 new_version.number()
             );
-            current.value = Some(new_value);
             current.version = new_version;
+            current.value = Some(new_value);
             (new_version, result)
         };
         self.process_or_batch(version);
