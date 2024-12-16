@@ -14,8 +14,12 @@ use crate::api::Size;
 use crate::terminal_id::TerminalId;
 
 #[named]
-pub async fn resize(terminal_id: &TerminalId, size: Size) -> Result<(), ResizeError> {
-    let json = serde_json::to_string(&size)?;
+pub async fn resize(
+    terminal_id: &TerminalId,
+    size: Size,
+    first_resize: bool,
+) -> Result<(), ResizeError> {
+    let json = serde_json::to_string(&(size, first_resize))?;
     let _: Response = send_request(
         Method::POST,
         format!("{BASE_URL}/{RESIZE}/{terminal_id}"),

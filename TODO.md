@@ -1,6 +1,5 @@
 # TODO
 - `#·77`. Fix rust-analyzer enables both client and server features
-- `#·70`. Periodically clear the console
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
 - `#·75`. Dynamic attributes can return anything that `impl Into<Option<XAttributeValue>>`
 - `#·62`. Attributes auto-convert to optional or dynamic
@@ -86,3 +85,4 @@ Next: `#·78`.
 - `#·76`. Fix handling of Process or Tab Closed/Crashed/EOS
 - `#·68`. Persist order of tabs after page refresh
 - `#·74`. The tab title doesn't change even if the shell resets the tab title
+- `#·70`. Periodically clear the console

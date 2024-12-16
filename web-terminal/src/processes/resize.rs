@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use terrazzo_pty::ResizeTerminalError;
 use tracing::debug;
 use tracing::error;
@@ -9,6 +11,7 @@ pub async fn resize(
     terminal_id: &TerminalId,
     rows: i32,
     cols: i32,
+    force: bool,
 ) -> Result<(), ResizeOperationError> {
     debug!(rows, cols, "Size");
     let processes = get_processes();
@@ -21,6 +24,11 @@ pub async fn resize(
         entry.value().1.clone()
     };
     let input = entry.input().await;
+    if force {
+        debug!("Forcing resize");
+        let () = input.resize(rows as u16 - 1, cols as u16 - 1).await?;
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
     let () = input.resize(rows as u16, cols as u16).await?;
     debug!("Done");
     Ok(())
