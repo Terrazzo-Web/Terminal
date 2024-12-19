@@ -105,6 +105,13 @@ impl HtmlElementVisitor {
                     element.process_optional_attribute(get_attribute_name(left).unwrap(), right);
                 }
 
+                // Style attribute
+                syn::Expr::Assign(syn::ExprAssign { left, right, .. })
+                    if get_style_attribute_name(left).is_some() =>
+                {
+                    element.process_style_attribute(get_style_attribute_name(left).unwrap(), right);
+                }
+
                 // Dynamic attribute
                 syn::Expr::Binary(syn::ExprBinary {
                     left,
@@ -112,7 +119,23 @@ impl HtmlElementVisitor {
                     right,
                     ..
                 }) if get_attribute_name(left).is_some() => {
-                    element.process_dynamic_attribute(get_attribute_name(left).unwrap(), right);
+                    element.process_dynamic_attribute(
+                        get_attribute_name(left).unwrap(),
+                        right,
+                        false,
+                    );
+                }
+                syn::Expr::Binary(syn::ExprBinary {
+                    left,
+                    op: syn::BinOp::RemAssign { .. },
+                    right,
+                    ..
+                }) if get_style_attribute_name(left).is_some() => {
+                    element.process_dynamic_attribute(
+                        get_style_attribute_name(left).unwrap(),
+                        right,
+                        true,
+                    );
                 }
 
                 // Dynamic
@@ -229,5 +252,44 @@ fn get_attribute_name(left: &syn::Expr) -> Option<&syn::Ident> {
     else {
         return None;
     };
+    return Some(ident);
+}
+
+fn get_style_attribute_name(left: &syn::Expr) -> Option<&syn::Ident> {
+    let syn::Expr::Path(syn::ExprPath {
+        attrs: _,
+        qself: None,
+        path: syn::Path {
+            leading_colon: None,
+            segments,
+        },
+    }) = left
+    else {
+        return None;
+    };
+    if segments.len() != 2 {
+        return None;
+    }
+
+    let Some(syn::PathSegment {
+        ident,
+        arguments: syn::PathArguments::None,
+    }) = segments.get(0)
+    else {
+        return None;
+    };
+
+    if ident != "style" {
+        return None;
+    }
+
+    let Some(syn::PathSegment {
+        ident,
+        arguments: syn::PathArguments::None,
+    }) = segments.get(1)
+    else {
+        return None;
+    };
+
     return Some(ident);
 }

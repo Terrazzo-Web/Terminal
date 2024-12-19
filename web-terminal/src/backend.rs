@@ -1,7 +1,5 @@
 #![cfg(feature = "server")]
 
-use crate::api;
-use crate::assets;
 use std::env::set_current_dir;
 use std::iter::once;
 
@@ -15,6 +13,9 @@ use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
 use tower_http::trace::TraceLayer;
 use tracing::enabled;
 use tracing::Level;
+
+use crate::api;
+use crate::assets;
 
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 

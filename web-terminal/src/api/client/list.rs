@@ -1,6 +1,6 @@
 use named::named;
 use named::NamedEnumValues as _;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use web_sys::js_sys::Uint8Array;
 use web_sys::Response;

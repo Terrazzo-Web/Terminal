@@ -4,7 +4,7 @@ use autoclone_macro::autoclone;
 use terrazzo_client::prelude::*;
 use terrazzo_macro::html;
 use terrazzo_macro::template;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::JsCast as _;
 use web_sys::HtmlElement;
 
 stylance::import_crate_style!(style, "src/client_impl/widgets/tabs.scss");
@@ -215,9 +215,9 @@ fn drop_zone_class(
         &options.title_hide_sep
     };
     if drop_zone_active {
-        format!("{show_or_hide} {}", options.title_dropping).into()
+        format!("{show_or_hide} {}", options.title_dropping)
     } else {
-        show_or_hide.clone().into()
+        show_or_hide.clone().to_string()
     }
 }
 
@@ -225,13 +225,13 @@ fn drop_zone_class(
 #[html]
 fn title_drop_zone_style(drop_zone: Element, #[signal] is_dragging: bool) -> XAttributeValue {
     if !is_dragging {
-        return "".into();
+        return None;
     }
     let drop_zone: &HtmlElement = drop_zone.dyn_ref().or_throw("drop_zone");
     let li_sep = drop_zone.parent_element().or_throw("drop_zone.parent");
     let li_sep: &HtmlElement = li_sep.dyn_ref().or_throw("as HtmlElement");
     let offset_left = li_sep.offset_left();
-    format!("left: calc({offset_left}px - var(--sep-zone)/2);").into()
+    Some(format!("left: calc({offset_left}px - var(--sep-zone)/2);"))
 }
 
 #[autoclone]

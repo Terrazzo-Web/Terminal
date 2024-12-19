@@ -20,10 +20,7 @@ impl XElement {
             self.events.push(event);
             return;
         };
-        let name = name.to_string();
-        let name = name.strip_prefix("r#").unwrap_or(&name);
-        let name = name.strip_suffix("_").unwrap_or(name);
-        let name = name.replace("_", "-");
+        let name = ident_to_kebab_case(name);
         match name.as_str() {
             "key" => self.key = quote! { XKey::Named(#value.into()) },
             "before-render" => self.before_render = Some(quote!(#value)),
@@ -42,10 +39,7 @@ impl XElement {
             self.events.push(quote! { compile_error!() });
             return;
         };
-        let name = name.to_string();
-        let name = name.strip_prefix("r#").unwrap_or(&name);
-        let name = name.strip_suffix("_").unwrap_or(name);
-        let name = name.replace("_", "-");
+        let name = ident_to_kebab_case(name);
         match name.as_str() {
             "key" => self.key = quote! { compile_error!() },
             "before-render" => self.before_render = Some(quote! { compile_error!() }),
@@ -63,15 +57,36 @@ impl XElement {
         }
     }
 
-    pub fn process_dynamic_attribute(&mut self, name: &syn::Ident, value: &syn::Expr) {
+    pub fn process_style_attribute(&mut self, name: &syn::Ident, value: &syn::Expr) {
+        if let Some(event) = process_event(name, value) {
+            self.events.push(event);
+            return;
+        };
+        let name = ident_to_kebab_case(name);
+        self.attributes.push(quote! {
+            gen_attributes.push(XAttribute {
+                name: XAttributeName::Style(#name.into()),
+                value: #value.into(),
+            });
+        })
+    }
+
+    pub fn process_dynamic_attribute(
+        &mut self,
+        name: &syn::Ident,
+        value: &syn::Expr,
+        is_style_attribute: bool,
+    ) {
         if process_event(name, value).is_some() {
             self.events.push(quote! { compile_error!() });
             return;
         };
-        let name = name.to_string();
-        let name = name.strip_prefix("r#").unwrap_or(&name);
-        let name = name.strip_suffix("_").unwrap_or(name);
-        let name = name.replace("_", "-");
+        let name = ident_to_kebab_case(name);
+        let name_value = if is_style_attribute {
+            quote! { XAttributeName::Style(#name.into()) }
+        } else {
+            quote! { #name.into() }
+        };
         match name.as_str() {
             "key" => self.key = quote! { compile_error!() },
             "before-render" => self.before_render = Some(quote! { compile_error!() }),
@@ -79,7 +94,7 @@ impl XElement {
             _ => {
                 self.attributes.push(quote! {
                     gen_attributes.push(XAttribute {
-                        name: #name.into(),
+                        name: #name_value,
                         value: XAttributeValue::Dynamic(
                             (#value).into(),
                         ),
@@ -143,4 +158,12 @@ impl XElement {
             gen_children.extend(#children.into_iter().map(XNode::from));
         });
     }
+}
+
+fn ident_to_kebab_case(name: &impl std::fmt::Display) -> String {
+    let name = name.to_string();
+    let name = name.strip_prefix("r#").unwrap_or(&name);
+    let name = name.strip_suffix("_").unwrap_or(name);
+    let name = name.replace("_", "-");
+    return name;
 }

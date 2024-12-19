@@ -3,7 +3,7 @@ use crate::signal::depth::Depth;
 
 pub trait IsTemplate: Clone + 'static {
     type Value;
-    fn apply(self, new: impl FnOnce() -> Self::Value);
+    fn apply<R: Into<Self::Value>>(self, new: impl FnOnce() -> R);
     fn depth(&self) -> Depth;
     fn debug_id(&self) -> &DebugCorrelationId<impl std::fmt::Display>;
 }
