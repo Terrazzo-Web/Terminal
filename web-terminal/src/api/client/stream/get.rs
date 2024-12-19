@@ -9,7 +9,7 @@ use terrazzo::autoclone;
 use terrazzo::prelude::OrElseLog as _;
 use tracing::info;
 use tracing::info_span;
-use tracing::Instrument;
+use tracing::Instrument as _;
 use web_sys::js_sys::Math;
 
 use super::pipe::pipe;

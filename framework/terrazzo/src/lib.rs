@@ -1,7 +1,4 @@
-#![cfg_attr(
-    any(feature = "client", feature = "server"),
-    deny(unused_crate_dependencies)
-)]
+pub use ::autoclone_macro::autoclone;
 
 #[cfg(feature = "client")]
 mod client_impl;

@@ -8,7 +8,6 @@ edition = { workspace = true }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-path = "src/client.rs"
 
 [[bin]]
 name = "game"
@@ -57,12 +56,5 @@ output_file = "./target/css/game.scss"
 folders = ["./src/"]
 extensions = [".scss", ".css"]
 
-[lints.rust]
-unused = "deny"
-warnings = "deny"
-
-[lints.clippy]
-enum_variant_names = "allow"
-needless_return = "allow"
-too_many_arguments = "allow"
-type_complexity = "allow"
+[lints]
+workspace = true

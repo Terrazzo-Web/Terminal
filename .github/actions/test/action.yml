@@ -8,9 +8,6 @@ runs:
         cargo build --bin game --features server
         cargo build --bin web-terminal --features server
       shell: bash
-    - name: Test
-      run: cargo test
-      shell: bash
     - name: Test client
       run: cargo test --features=client
       shell: bash

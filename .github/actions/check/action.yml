@@ -13,7 +13,6 @@ runs:
 
     - name: Clippy
       run: |
-        cargo clippy
         cargo clippy --features client,max_level_debug
         cargo clippy --features client,max_level_info
         cargo clippy --bin game --features server,max_level_debug

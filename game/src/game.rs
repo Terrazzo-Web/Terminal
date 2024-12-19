@@ -1,3 +1,5 @@
+#![cfg(feature = "client")]
+
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;

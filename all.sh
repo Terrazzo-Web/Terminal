@@ -2,10 +2,9 @@
 
 set -e
 
-cargo test
 cargo test --features=client
 cargo test --features=server
-cargo clippy
+cargo test --features=client,server
 cargo clippy --features client,max_level_debug
 cargo clippy --features client,max_level_info
 cargo clippy --bin game --features server,max_level_debug

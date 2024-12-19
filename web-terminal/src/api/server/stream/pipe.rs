@@ -19,7 +19,7 @@ use tracing::info;
 use tracing::info_span;
 use tracing::trace;
 use tracing::Span;
-use tracing_futures::Instrument;
+use tracing_futures::Instrument as _;
 
 use crate::api::server::correlation_id::CorrelationId;
 use crate::api::server::stream::registration::Registration;

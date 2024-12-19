@@ -3,7 +3,7 @@ use terrazzo::axum::response::Response;
 use terrazzo::axum::Json;
 use terrazzo::http::StatusCode;
 use tracing::info_span;
-use tracing::Instrument;
+use tracing::Instrument as _;
 
 use super::into_error;
 use crate::api::Size;

@@ -1,3 +1,5 @@
+#![cfg(feature = "server")]
+
 use std::path::Path;
 
 use terrazzo::declare_asset;
