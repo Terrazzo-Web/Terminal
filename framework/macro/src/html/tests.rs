@@ -332,6 +332,106 @@ fn sample() -> XElement {
 }
 
 #[test]
+fn style_attribute() -> syn::Result<()> {
+    let sample = quote! {
+        fn sample() -> XElement {
+            div(
+                key = "root",
+                "Root text",
+                class = "base",
+                style::width = format!("{}%", 100),
+            )
+        }
+    };
+    let expected = r#"
+fn sample() -> XElement {
+    {
+        let mut gen_attributes = vec![];
+        gen_attributes
+            .push(XAttribute {
+                name: "class".into(),
+                value: "base".into(),
+            });
+        gen_attributes
+            .push(XAttribute {
+                name: XAttributeName::Style("width".into()),
+                value: format!("{}%", 100).into(),
+            });
+        let mut gen_children = vec![];
+        gen_children.push(XNode::from(XText(format!("Root text").into())));
+        XElement {
+            tag_name: Some("div".into()),
+            key: XKey::Named("root".into()),
+            value: XElementValue::Static {
+                attributes: gen_attributes,
+                children: gen_children,
+                events: vec![],
+            },
+            before_render: None,
+            after_render: None,
+        }
+    }
+}"#;
+    let actual = html(quote! {}, sample)?;
+    let actual = item_to_string(&syn::parse2(actual)?);
+    if expected.trim() != actual.trim() {
+        println!("{}", actual);
+        assert!(false);
+    }
+    Ok(())
+}
+
+#[test]
+fn dynamic_attribute() -> syn::Result<()> {
+    let sample = quote! {
+        fn sample() -> XElement {
+            div(
+                key = "root",
+                "Root text",
+                class %= move |t| { make_class() },
+                style::width %= move |t| { make_width() },
+            )
+        }
+    };
+    let expected = r#"
+fn sample() -> XElement {
+    {
+        let mut gen_attributes = vec![];
+        gen_attributes
+            .push(XAttribute {
+                name: "class".into(),
+                value: XAttributeValue::Dynamic((move |t| { make_class() }).into()),
+            });
+        gen_attributes
+            .push(XAttribute {
+                name: XAttributeName::Style("width".into()),
+                value: XAttributeValue::Dynamic((move |t| { make_width() }).into()),
+            });
+        let mut gen_children = vec![];
+        gen_children.push(XNode::from(XText(format!("Root text").into())));
+        XElement {
+            tag_name: Some("div".into()),
+            key: XKey::Named("root".into()),
+            value: XElementValue::Static {
+                attributes: gen_attributes,
+                children: gen_children,
+                events: vec![],
+            },
+            before_render: None,
+            after_render: None,
+        }
+    }
+}"#;
+    let actual = html(quote! {}, sample)?;
+    let actual = item_to_string(&syn::parse2(actual)?);
+    if expected.trim() != actual.trim() {
+        println!("{}", actual);
+        assert!(false);
+    }
+    Ok(())
+}
+
+#[test]
 fn index_keys() -> syn::Result<()> {
     let sample = quote! {
         fn sample() -> XElement {

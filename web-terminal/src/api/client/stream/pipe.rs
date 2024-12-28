@@ -12,7 +12,7 @@ use tracing::info;
 use tracing::info_span;
 use tracing::warn;
 use tracing::Instrument as _;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::js_sys::Uint8Array;

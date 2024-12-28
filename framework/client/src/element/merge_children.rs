@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use tracing::error;
 use tracing::trace;
 use tracing::warn;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::JsCast as _;
 use web_sys::window;
 use web_sys::Document;
 use web_sys::Element;

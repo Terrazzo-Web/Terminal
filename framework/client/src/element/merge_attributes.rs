@@ -2,11 +2,16 @@ use std::collections::HashMap;
 
 use tracing::trace;
 use tracing::warn;
+use wasm_bindgen::JsCast as _;
 use web_sys::Element;
+use web_sys::HtmlElement;
 
 use super::XAttribute;
+use crate::attribute::XAttributeName;
 use crate::attribute::XAttributeValue;
+use crate::prelude::OrElseLog as _;
 use crate::signal::depth::Depth;
+use crate::string::XString;
 
 pub fn merge(
     depth: Depth,
@@ -23,8 +28,11 @@ pub fn merge(
     let mut old_attributes_map = HashMap::new();
     for old_attribute in old_attributes {
         old_attributes_map.insert(
-            std::mem::take(&mut old_attribute.name),
-            std::mem::replace(&mut old_attribute.value, XAttributeValue::Static("".into())),
+            std::mem::replace(
+                &mut old_attribute.name,
+                XAttributeName::Attribute(XString::default()),
+            ),
+            std::mem::replace(&mut old_attribute.value, XAttributeValue::Null),
         );
     }
 
@@ -35,12 +43,18 @@ pub fn merge(
     }
 
     for removed_old_attribute_name in old_attributes_map.keys() {
-        match element.remove_attribute(removed_old_attribute_name.as_str()) {
-            Ok(()) => {
-                trace! { "Removed attribute {}", removed_old_attribute_name };
-            }
-            Err(error) => {
-                warn! { "Removed attribute {} failed: {error:?}", removed_old_attribute_name };
+        match removed_old_attribute_name {
+            XAttributeName::Attribute(name) => match element.remove_attribute(name.as_str()) {
+                Ok(()) => trace!("Removed attribute {name}"),
+                Err(error) => warn!("Removed attribute {name} failed: {error:?}"),
+            },
+            XAttributeName::Style(name) => {
+                let html_element: &HtmlElement = element.dyn_ref().or_throw("HtmlElement");
+                let style = html_element.style();
+                match style.remove_property(name) {
+                    Ok(value) => trace!("Removed style {name}: {value}"),
+                    Err(error) => warn!("Removed style {name} failed: {error:?}"),
+                }
             }
         }
     }

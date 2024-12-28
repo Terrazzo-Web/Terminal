@@ -5,7 +5,7 @@ use std::time::Duration;
 use scopeguard::guard;
 use terrazzo_client::prelude::OrElseLog as _;
 use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::JsCast as _;
 
 pub trait DoDebounce {
     fn debounce<T: 'static>(self, f: impl Fn(T) + 'static) -> impl Fn(T);

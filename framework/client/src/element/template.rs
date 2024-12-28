@@ -86,8 +86,9 @@ impl XTemplate {
 
 impl IsTemplate for XTemplate {
     type Value = XElement;
-    fn apply(self, new: impl FnOnce() -> XElement) {
-        let mut new = new();
+
+    fn apply<R: Into<Self::Value>>(self, new: impl FnOnce() -> R) {
+        let mut new = new().into();
         reindex_nodes(&mut new);
         {
             let mut old = self.old.lock().unwrap();

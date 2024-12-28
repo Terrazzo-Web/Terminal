@@ -4,10 +4,13 @@ use named::named;
 use named::NamedType as _;
 use tracing::trace;
 use tracing::warn;
+use wasm_bindgen::JsCast as _;
 use web_sys::Element;
+use web_sys::HtmlElement;
 
 use self::inner::AttributeTemplateInner;
 use crate::debug_correlation_id::DebugCorrelationId;
+use crate::prelude::OrElseLog;
 use crate::signal::depth::Depth;
 use crate::signal::reactive_closure::reactive_closure_builder::Consumers;
 use crate::string::XString;
@@ -16,11 +19,18 @@ use crate::template::IsTemplated;
 
 #[named]
 pub struct XAttribute {
-    pub name: XString,
+    pub name: XAttributeName,
     pub value: XAttributeValue,
 }
 
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub enum XAttributeName {
+    Attribute(XString),
+    Style(XString),
+}
+
 pub enum XAttributeValue {
+    Null,
     Static(XString),
     Dynamic(XDynamicAttribute),
     Generated {
@@ -45,14 +55,14 @@ mod inner {
 
     use web_sys::Element;
 
+    use super::XAttributeName;
     use super::XAttributeTemplate;
     use crate::debug_correlation_id::DebugCorrelationId;
     use crate::signal::depth::Depth;
-    use crate::string::XString;
 
     pub struct AttributeTemplateInner {
         pub element: Element,
-        pub attribute_name: XString,
+        pub attribute_name: XAttributeName,
         pub(super) debug_id: DebugCorrelationId<String>,
         pub(super) depth: Depth,
     }
@@ -69,10 +79,10 @@ mod inner {
 impl IsTemplate for XAttributeTemplate {
     type Value = XAttributeValue;
 
-    fn apply(self, new: impl FnOnce() -> Self::Value) {
+    fn apply<R: Into<Self::Value>>(self, new: impl FnOnce() -> R) {
         let mut new = XAttribute {
             name: self.attribute_name.clone(),
-            value: new(),
+            value: new().into(),
         };
         new.merge(self.depth, None, &self.element);
     }
@@ -99,6 +109,18 @@ where
     }
 }
 
+impl<T> From<Option<T>> for XAttributeValue
+where
+    XString: From<T>,
+{
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(value) => Self::Static(value.into()),
+            None => Self::Null,
+        }
+    }
+}
+
 impl XAttribute {
     pub fn merge(
         &mut self,
@@ -109,11 +131,14 @@ impl XAttribute {
         let new_attribute = self;
         let attribute_name = &new_attribute.name;
         match &new_attribute.value {
+            XAttributeValue::Null => {
+                merge_static_atttribute(element, attribute_name, None, old_attribute_value);
+            }
             XAttributeValue::Static(new_attribute_value) => {
                 merge_static_atttribute(
                     element,
                     attribute_name,
-                    new_attribute_value,
+                    Some(new_attribute_value),
                     old_attribute_value,
                 );
             }
@@ -136,23 +161,48 @@ impl XAttribute {
 
 fn merge_static_atttribute(
     element: &Element,
-    attribute_name: &XString,
-    new_attribute_value: &XString,
-    old_attribute_value: Option<XAttributeValue>,
+    attribute_name: &XAttributeName,
+    new_value: Option<&XString>,
+    old_value: Option<XAttributeValue>,
 ) {
-    if let Some(XAttributeValue::Static(old_attribute_value)) = &old_attribute_value {
-        if new_attribute_value == old_attribute_value {
-            trace!("Attribute '{attribute_name}' is still '{new_attribute_value}'");
+    if let Some((XAttributeValue::Static(old_attribute_value), new_value)) =
+        old_value.as_ref().zip(new_value)
+    {
+        if new_value == old_attribute_value {
+            trace!("Attribute '{attribute_name}' is still '{new_value}'");
             return;
         }
     }
-    drop(old_attribute_value);
-    match element.set_attribute(attribute_name, new_attribute_value) {
-        Ok(()) => {
-            trace! { "Set attribute '{attribute_name}' to '{new_attribute_value}'" };
+    drop(old_value);
+    let Some(new_value) = new_value else {
+        match attribute_name {
+            XAttributeName::Attribute(name) => match element.remove_attribute(name.as_str()) {
+                Ok(()) => trace!("Removed attribute {name}"),
+                Err(error) => warn!("Removed attribute {name} failed: {error:?}"),
+            },
+            XAttributeName::Style(name) => {
+                let html_element: &HtmlElement = element.dyn_ref().or_throw("HtmlElement");
+                let style = html_element.style();
+                match style.remove_property(name) {
+                    Ok(value) => trace!("Removed style {name}: {value}"),
+                    Err(error) => warn!("Removed style {name} failed: {error:?}"),
+                }
+            }
         }
-        Err(error) => {
-            warn! { "Set attribute '{attribute_name}' to '{new_attribute_value}' failed: {error:?}" };
+        return;
+    };
+    match attribute_name {
+        XAttributeName::Attribute(name) => match element.set_attribute(name, new_value) {
+            Ok(()) => trace!("Set attribute '{name}' to '{new_value}'"),
+            Err(error) => warn!("Set attribute '{name}' to '{new_value}' failed: {error:?}"),
+        },
+        XAttributeName::Style(name) => {
+            let html_element: &HtmlElement = element.dyn_ref().or_throw("HtmlElement");
+            let style = html_element.style();
+            match style.set_property(name, new_value) {
+                Ok(()) => trace!("Set style {name}: {new_value}"),
+                Err(error) => warn!("Set style {name}: {new_value} failed: {error:?}"),
+            }
         }
     }
 }
@@ -160,7 +210,7 @@ fn merge_static_atttribute(
 fn merge_dynamic_atttribute(
     depth: Depth,
     element: &Element,
-    attribute_name: &XString,
+    attribute_name: &XAttributeName,
     new_attribute_value: &dyn Fn(XAttributeTemplate) -> Consumers,
     old_attribute_value: Option<XAttributeValue>,
 ) -> XAttributeValue {
@@ -184,5 +234,23 @@ fn merge_dynamic_atttribute(
     XAttributeValue::Generated {
         template: new_template.clone(),
         consumers: new_attribute_value(new_template),
+    }
+}
+
+impl<T> From<T> for XAttributeName
+where
+    T: Into<XString>,
+{
+    fn from(value: T) -> Self {
+        Self::Attribute(value.into())
+    }
+}
+
+impl std::fmt::Display for XAttributeName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Attribute(name) => std::fmt::Display::fmt(name, f),
+            Self::Style(name) => write!(f, "style::{}", name),
+        }
     }
 }

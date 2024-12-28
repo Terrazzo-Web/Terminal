@@ -24,24 +24,52 @@ stylance::import_crate_style!(style, "src/game/cookie.scss");
 pub fn cookie(c: Cookie) -> XElement {
     tag(
         class = style::cookie,
-        style %= move |t| {
+        style::top %= move |t| {
             autoclone!(c);
-            cookie_style(t, c.position.clone(), c.size.clone())
+            cookie_style::top(t, c.position.clone())
+        },
+        style::left %= move |t| {
+            autoclone!(c);
+            cookie_style::left(t, c.position.clone())
+        },
+        style::width %= move |t| {
+            autoclone!(c);
+            cookie_style::width(t, c.size.clone())
+        },
+        style::height %= move |t| {
+            autoclone!(c);
+            cookie_style::height(t, c.size.clone())
         },
         src = "/static/game/cookie.jpg",
     )
 }
 
-#[template]
-fn cookie_style(#[signal] mut position: Position, #[signal] mut size: Size) -> XAttributeValue {
-    format!(
-        "top: {top}px; left: {left}px; width: {width}px; height: {height}px",
-        top = position.top,
-        left = position.left,
-        width = size.x,
-        height = size.y,
-    )
-    .into()
+mod cookie_style {
+    use terrazzo::prelude::*;
+    use terrazzo::template;
+
+    use crate::game::position::Position;
+    use crate::game::size::Size;
+
+    #[template]
+    pub fn top(#[signal] mut position: Position) -> XAttributeValue {
+        format!("{}px", position.top)
+    }
+
+    #[template]
+    pub fn left(#[signal] mut position: Position) -> XAttributeValue {
+        format!("{}px", position.left)
+    }
+
+    #[template]
+    pub fn width(#[signal] mut size: Size) -> XAttributeValue {
+        format!("{}px", size.x)
+    }
+
+    #[template]
+    pub fn height(#[signal] mut size: Size) -> XAttributeValue {
+        format!("{}px", size.y)
+    }
 }
 
 #[derive(Clone, Debug)]

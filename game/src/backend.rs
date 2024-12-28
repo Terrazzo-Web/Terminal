@@ -14,6 +14,8 @@ use tower_http::trace::TraceLayer;
 use tracing::enabled;
 use tracing::Level;
 
+use crate::assets;
+
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
 pub async fn run_server() {
@@ -27,7 +29,7 @@ pub async fn run_server() {
         .with_target(false)
         .init();
 
-    crate::assets::install_assets();
+    assets::install_assets();
     let router = Router::new()
         .route("/", get(|| static_assets::get("index.html")))
         .route(

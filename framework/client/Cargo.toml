@@ -17,6 +17,7 @@ tracing-subscriber-wasm = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true, features = [
     "Attr",
+    "CssStyleDeclaration",
     "Document",
     "Element",
     "EventTarget",

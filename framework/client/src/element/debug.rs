@@ -49,15 +49,17 @@ mod verbose {
                     attributes, events, ..
                 } => {
                     for attribute in attributes {
+                        let attribute_name = &attribute.name;
                         match &attribute.value {
+                            XAttributeValue::Null => rest += &format!(" {attribute_name}=null"),
                             XAttributeValue::Static(value) => {
-                                rest += &format!(" {}={:?}", attribute.name, value)
+                                rest += &format!(" {attribute_name}={value:?}")
                             }
                             XAttributeValue::Dynamic { .. } => {
-                                rest += &format!(" {}=<Dynamic>", attribute.name)
+                                rest += &format!(" {attribute_name}=<Dynamic>")
                             }
                             XAttributeValue::Generated { .. } => {
-                                rest += &format!(" {}=<Generated>", attribute.name)
+                                rest += &format!(" {attribute_name}=<Generated>")
                             }
                         }
                     }
@@ -159,7 +161,7 @@ mod verbose {
 
             #[template]
             fn dyn_attribute() -> XAttributeValue {
-                "custom-value".into()
+                "custom-value"
             }
 
             let expected = r#"
