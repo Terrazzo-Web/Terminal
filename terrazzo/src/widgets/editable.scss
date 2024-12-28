@@ -1,0 +1,11 @@
+input.editing {
+  &[type="text"] {
+    border: 0px;
+    color: inherit;
+    background-color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+  }
+}
+
+span.printed {}

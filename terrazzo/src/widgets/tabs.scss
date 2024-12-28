@@ -1,0 +1,48 @@
+.tabs {
+    display: flex;
+    flex-direction: column;
+
+    --padding: 10px;
+}
+
+.titles {
+    flex-grow: 0;
+
+    >ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+
+    }
+}
+
+li.title {
+    border: 0;
+    margin: 0;
+    padding: var(--padding);
+
+    &:hover,
+    &.selected {
+        background-color: red;
+    }
+}
+
+.items {
+    flex-grow: 1;
+
+    &>ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+
+        .item {
+            display: none;
+            visibility: hidden;
+
+            &.selected {
+                display: block;
+                visibility: visible;
+            }
+        }
+    }
+}

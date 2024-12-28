@@ -1,0 +1,33 @@
+:root {
+    --link-color: red;
+    --link-underline-thickness: 1px;
+    --link-transition-speed: 0.3s;
+}
+
+.link {
+    &:before {
+        display: block;
+        content: "";
+        height: var(--link-underline-thickness);
+        border-radius: var(--link-underline-thickness);
+        width: 100%;
+        visibility: hidden;
+    }
+
+    &:after {
+        display: block;
+        content: "";
+        background-color: var(--link-color);
+        height: var(--link-underline-thickness);
+        border-radius: var(--link-underline-thickness);
+        width: 100%;
+        transform-origin: right;
+        transform: scaleX(0);
+        transition: transform var(--link-transition-speed) ease-in-out;
+    }
+
+    &:hover:after {
+        transform-origin: left;
+        transform: scaleX(1);
+    }
+}
