@@ -10,7 +10,7 @@ updates:
     schedule:
       interval: "weekly"
     labels:
-      - "Dependabot"
+      - "dependabot"
     groups:
        minor-updates:
           applies-to: version-updates
