@@ -1,6 +1,6 @@
 use futures::channel::mpsc;
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use scopeguard::defer;
 use terrazzo_pty::lease::ProcessOutputLease;
 use terrazzo_pty::OpenProcessError;
@@ -44,7 +44,7 @@ fn push_lease(terminal_id: TerminalId, lease: ProcessOutputLease) -> Result<(), 
         .map_err(|err| err.into_send_error())?)
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum RegisterStreamError {
     #[error("[{n}] {0}", n = self.name())]

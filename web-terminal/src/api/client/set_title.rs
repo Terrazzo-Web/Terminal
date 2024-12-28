@@ -1,5 +1,5 @@
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use terrazzo::prelude::OrElseLog as _;
 use wasm_bindgen::JsValue;
 use web_sys::Headers;
@@ -13,7 +13,7 @@ use super::BASE_URL;
 use crate::api::TabTitle;
 use crate::terminal_id::TerminalId;
 
-#[named]
+#[nameth]
 pub async fn set_title(
     terminal_id: &TerminalId,
     title: TabTitle<String>,
@@ -33,7 +33,7 @@ pub async fn set_title(
     return Ok(());
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum SetTitleError {
     #[error("[{n}] {0}", n = self.name())]

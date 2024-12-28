@@ -1,11 +1,13 @@
 # TODO
+- `#·78`. Move terrazzo client and aux crates to the new repo.
+- `#·78`. Create a new Reddit account.
+- `#·78`. Announce open source autoclone.
+- `#·79`. Announce open source named.
+- `#·32`. Announce open source terrazzo client in a new repo
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
 - `#·52`. Drag n Drop to create tiles
-- `#·55`. Better way to do APIs. `server_fn`?
-- `#·32`. Open source terrazzo client.
-- `#·32`. Open source named.
-- `#·32`. Open source autoclone.
 - `#··8`. Resizeable component
+- `#·55`. Better way to do APIs. `server_fn`?
 - `#··6`. Text editor based on Monaco
 - `#··7`. Integration with Language Server
 
@@ -86,3 +88,5 @@ Next: `#·78`.
 - `#·58`. Shortcut for style attributes
 - `#·75`. Dynamic attributes can return anything that `impl Into<Option<XAttributeValue>>`
 - `#·62`. Attributes auto-convert to optional or dynamic: Rejected because can't have 2 `From<T>` implementations
+- `#·78`. Create a new email address.
+- `#·78`. Create a new Github account and repo.

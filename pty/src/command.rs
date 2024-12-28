@@ -1,5 +1,5 @@
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use tracing::debug;
 
 use super::raw_pts::Pts;
@@ -186,7 +186,7 @@ impl Command {
     }
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum SpawnError {
     #[error("[{n}] {0}", n = self.name())]

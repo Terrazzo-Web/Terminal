@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use terrazzo::axum::async_trait;
 use terrazzo::axum::extract::FromRequestParts;
 use terrazzo::axum::response::IntoResponse;
@@ -36,7 +36,7 @@ impl<S> FromRequestParts<S> for CorrelationId {
     }
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum CorrelationIdError {
     #[error("[{n}] Missing header '{CORRELATION_ID}'", n = self.name() )]

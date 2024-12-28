@@ -3,8 +3,8 @@ use futures::select;
 use futures::FutureExt as _;
 use futures::StreamExt as _;
 use futures::TryFutureExt as _;
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use scopeguard::defer;
 use terrazzo::prelude::OrElseLog as _;
 use tracing::debug;
@@ -29,7 +29,7 @@ use super::DISPATCHERS;
 use crate::api::CORRELATION_ID;
 
 /// Spawns the pipe in the background.
-#[named]
+#[nameth]
 pub async fn pipe(correlation_id: &str) -> Result<oneshot::Sender<()>, PipeError> {
     async move {
         info!("Start");
@@ -99,7 +99,7 @@ async fn pipe_impl(
     }
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum PipeError {
     #[error("[{n}] {0}", n = self.name())]
@@ -142,7 +142,7 @@ fn close_dispatchers(correlation_id: &str) {
 }
 
 /// Sends a request to close the pipe.
-#[named]
+#[nameth]
 pub fn close_pipe(correlation_id: String) -> impl std::future::Future<Output = ()> {
     let span = info_span!("ClosePipe", %correlation_id);
     send_request(

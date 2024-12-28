@@ -2,8 +2,8 @@ use std::os::fd::AsRawFd as _;
 use std::os::fd::FromRawFd as _;
 use std::os::unix::ffi::OsStrExt as _;
 
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use tracing::debug;
 
 use super::raw_pts::Pts;
@@ -29,7 +29,7 @@ impl RawPty {
     }
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum OpenError {
     #[error("[{n}] {0}", n = self.name())]
@@ -64,7 +64,7 @@ impl RawPty {
     }
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum SetSizeError {
     #[error("[{n}] {0}", n = self.name())]
@@ -84,7 +84,7 @@ impl RawPty {
     }
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum PtsError {
     #[error("[{n}] {0}", n = self.name())]
@@ -103,7 +103,7 @@ impl RawPty {
     }
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum SetNonBlockingError {
     #[error("[{n}] {0}", n = self.name())]

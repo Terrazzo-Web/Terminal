@@ -2,8 +2,8 @@ use std::io::Read as _;
 use std::io::Write as _;
 use std::sync::Arc;
 
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 
 use super::raw_pts::Pts;
 use super::raw_pty;
@@ -15,7 +15,7 @@ type AsyncPty = tokio::io::unix::AsyncFd<raw_pty::RawPty>;
 /// An allocated pty
 pub struct Pty(AsyncPty);
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum PtyError {
     #[error("[{n}] {0}", n = self.name())]

@@ -1,5 +1,5 @@
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use terrazzo::prelude::OrElseLog as _;
 use wasm_bindgen::JsValue;
 use web_sys::Headers;
@@ -12,7 +12,7 @@ use super::BASE_URL;
 use crate::api::client::set_content_type_json;
 use crate::terminal_id::TerminalId;
 
-#[named]
+#[nameth]
 pub async fn set_order(tabs: Vec<TerminalId>) -> Result<(), SetOrderError> {
     let body = serde_json::to_string(&tabs)?;
     let _: Response = send_request(Method::POST, format!("{BASE_URL}/{SET_ORDER}"), |request| {
@@ -25,7 +25,7 @@ pub async fn set_order(tabs: Vec<TerminalId>) -> Result<(), SetOrderError> {
     return Ok(());
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum SetOrderError {
     #[error("[{n}] {0}", n = self.name())]

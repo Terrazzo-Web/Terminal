@@ -10,8 +10,8 @@ use futures::stream::ReadyChunks;
 use futures::FutureExt as _;
 use futures::StreamExt as _;
 use get::StreamReader;
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use scopeguard::defer;
 use terrazzo::prelude::OrElseLog as _;
 use tracing::debug;
@@ -192,7 +192,7 @@ pub fn try_restart_pipe() {
     let _ = tx.send(());
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum StreamError {
     #[error("[{n}] {0}", n = self.name())]

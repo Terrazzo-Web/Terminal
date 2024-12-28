@@ -1,7 +1,7 @@
 use futures::channel::mpsc::SendError;
 use futures::SinkExt;
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use terrazzo::prelude::OrElseLog as _;
 use tracing::trace;
 use tracing::warn;
@@ -58,7 +58,7 @@ async fn send_chunk(terminal_id: &TerminalId, chunk: Option<Vec<u8>>) -> Result<
         .map_err(SendPartError::SendError)
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum SendPartError {
     #[error("[{n}] Stream writer not registered", n = self.name())]

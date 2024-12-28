@@ -1,5 +1,5 @@
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use web_sys::js_sys::Uint8Array;
@@ -11,7 +11,7 @@ use super::SendRequestError;
 use super::BASE_URL;
 use crate::api::TerminalDef;
 
-#[named]
+#[nameth]
 pub async fn list() -> Result<Vec<TerminalDef>, ListError> {
     let response: Response =
         send_request(Method::GET, format!("{BASE_URL}/{LIST}"), |_| {}).await?;
@@ -43,7 +43,7 @@ pub async fn list() -> Result<Vec<TerminalDef>, ListError> {
     Ok(terminal_ids)
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum ListError {
     #[error("[{n}] {0}", n = self.name())]

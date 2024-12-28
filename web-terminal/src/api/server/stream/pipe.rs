@@ -53,7 +53,7 @@ pub fn pipe(correlation_id: CorrelationId) -> Body {
         // Debug logs
         #[cfg(debug_assertions)]
         let lease = lease.inspect(|chunk| {
-            use named::NamedEnumValues;
+            use nameth::NamedEnumValues;
             match chunk {
                 LeaseItem::EOS => tracing::debug!("{}", chunk.name()),
                 LeaseItem::Data(data) => assert!(!data.is_empty(), "Unexpected empty chunk"),
