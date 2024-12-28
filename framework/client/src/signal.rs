@@ -27,7 +27,10 @@ mod tests;
 mod version;
 mod weak;
 
-/// A mutable value that callback can subscribe to.
+/// A mutable value that callbacks can subscribe to.
+///
+/// - Derived signals
+/// - ReactiveClosures re-compute and update HTML nodes when signals change
 pub struct XSignal<T>(Arc<XSignalInner<T>>);
 
 struct XSignalInner<T> {
@@ -40,6 +43,7 @@ struct XSignalInner<T> {
 pub struct ProducedSignal;
 
 impl ProducedValue for ProducedSignal {
+    /// The SortKey is [Depth], ensuring that parent nodes are recomputed before child nodes.
     type SortKey = Depth;
     type Value = Version;
 }

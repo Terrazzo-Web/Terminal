@@ -1,3 +1,5 @@
+//! Build script to compile client code to wasm and copy assets to target folder.
+
 use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;

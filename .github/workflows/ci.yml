@@ -6,6 +6,8 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    - cron: '0 0 * * 6'
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -41,7 +43,6 @@ jobs:
           cargo build --bin terrazzo-server --features server,max_level_info --release
       - name: Clippy
         run: |
-          cargo test
           cargo clippy
           cargo clippy --bin terrazzo-server --features server,max_level_debug
           cargo clippy --bin terrazzo-server --features server,max_level_info

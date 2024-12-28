@@ -1,3 +1,68 @@
+//! A simple macro to cloning variable before passing them into a `move` closure or async block.
+//!
+//! # Usage
+//! The list of variables to clone are defined at the beginning of the block,
+//! which is easier to add cloning for variables.
+//!
+//! With autoclone:
+//! ```
+//! use autoclone_macro::autoclone;
+//! #[autoclone]
+//! fn test() {
+//!     let my_string = "Hello, World!".to_string();
+//!     let callback = move || {
+//!         // Declare variables that need cloning.
+//!         // `autoclone!(<my_variabke>, <other_variabke>, ...);`
+//!         // Just remove the `autoclone!(...);` statement if cloning is not required.
+//!         autoclone!(my_string);
+//!         println!("Inside the move callback: {my_string}");
+//!     };
+//!     println!("Outside the move callback: {my_string}");
+//!     callback();
+//! }
+//! test();
+//! ```
+//!
+//! # Comparison with clone-macro
+//! With clone-macro:
+//! ```
+//! fn test() {
+//!     use clone_macro::clone;
+//!     let my_string = "Hello, World!".to_string();
+//!     // Adding cloning is not trivial
+//!     // - requires adding/removing `clone!([my_string]` if cloning is necessary
+//!     // - requires adding/removing the corresponding closing `)`
+//!     let callback = clone!([my_string], move || {
+//!         println!("Inside the move callback: {my_string}");
+//!     });
+//!     println!("Outside the move callback: {my_string}");
+//!     callback();
+//! }
+//! test();
+//! ```
+//!
+//! See also https://docs.rs/clone-macro
+//!
+//! # Syntax sugar
+//! The `autoclone!()` macro does not exist.
+//! Instead, the `#[autoclone]` proc macro modifies the code.
+//! You can see the modified code using `#[autoclone(debug = true)]`
+//!
+//! The previous example expands to
+//! ```
+//! fn test() {
+//!     let my_string = "Hello, World!".to_string();
+//!     let callback = {
+//!         let my_string = my_string.to_owned();
+//!         move || {
+//!             println!("Inside the move callback: {my_string}");
+//!         }
+//!     };
+//!     println!("Outside the move callback: {my_string}");
+//!     callback();
+//! }
+//! ```
+
 use darling::ast::NestedMeta;
 use darling::FromMeta;
 use quote::format_ident;
@@ -13,6 +78,9 @@ use syn::Token;
 
 mod tests;
 
+/// A simple macro to cloning variable before passing them into a `move` closure or async block.
+///
+/// See [crate] documentations for details.
 #[proc_macro_attribute]
 pub fn autoclone(
     attr: proc_macro::TokenStream,
@@ -144,3 +212,6 @@ fn item_to_string(item: &syn::Item) -> String {
         items: vec![item.clone()],
     })
 }
+
+#[cfg(test)]
+use clone_macro as _;
