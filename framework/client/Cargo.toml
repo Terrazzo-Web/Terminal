@@ -25,6 +25,11 @@ web-sys = { workspace = true, features = [
     "Window",
 ] }
 
+[dev-dependencies]
+terrazzo-macro = { workspace = true }
+
+web-sys = { workspace = true, features = ["MouseEvent"] }
+
 [features]
 concise_traces = []
 

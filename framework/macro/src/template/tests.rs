@@ -8,12 +8,12 @@ use crate::item_to_string;
 #[test]
 fn simple_node() -> syn::Result<()> {
     let sample = quote! {
-        fn sample() {
+        fn sample() -> XElement {
             div(key = "root", "Root text")
         }
     };
     let expected = r#"
-fn sample(generated_template: XTemplate) -> Consumers {
+fn sample(generated_template: <XElement as IsTemplated>::Template) -> Consumers {
     let generated_template1 = generated_template.clone();
     make_reactive_closure()
         .named("sample")
@@ -36,12 +36,15 @@ fn sample(generated_template: XTemplate) -> Consumers {
 #[test]
 fn with_signal() -> syn::Result<()> {
     let sample = quote! {
-        fn sample(#[signal] signal: String) {
+        fn sample(#[signal] signal: String) -> XElement {
             div(key = "root", "Root text")
         }
     };
     let expected = r#"
-fn sample(generated_template: XTemplate, signal: XSignal<String>) -> Consumers {
+fn sample(
+    generated_template: <XElement as IsTemplated>::Template,
+    signal: XSignal<String>,
+) -> Consumers {
     let generated_template1 = generated_template.clone();
     make_reactive_closure()
         .named("sample")
@@ -67,13 +70,13 @@ fn sample(generated_template: XTemplate, signal: XSignal<String>) -> Consumers {
 #[test]
 fn with_2_signals() -> syn::Result<()> {
     let sample = quote! {
-        fn sample(#[signal] signal1: String, #[signal] signal2: &'static str) {
+        fn sample(#[signal] signal1: String, #[signal] signal2: &'static str) -> XElement {
             div(key = "root", "{signal1}", "{signal2}")
         }
     };
     let expected = r#"
 fn sample(
-    generated_template: XTemplate,
+    generated_template: <XElement as IsTemplated>::Template,
     signal1: XSignal<String>,
     signal2: XSignal<&'static str>,
 ) -> Consumers {
@@ -111,13 +114,13 @@ fn with_2_mutable_signals() -> syn::Result<()> {
             #[signal] mut signal1: String,
             #[signal] mut signal2: &'static str,
             constant: i32,
-        ) {
+        ) -> XElement {
             div(key = "root", "{signal1}", "{signal2}")
         }
     };
     let expected = r#"
 fn sample(
-    generated_template: XTemplate,
+    generated_template: <XElement as IsTemplated>::Template,
     signal1: XSignal<String>,
     signal2: XSignal<&'static str>,
     constant: i32,

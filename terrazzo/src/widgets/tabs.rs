@@ -4,6 +4,8 @@ use autoclone_macro::autoclone;
 use terrazzo_client::prelude::*;
 use terrazzo_macro::html;
 use terrazzo_macro::template;
+use wasm_bindgen::JsCast;
+use web_sys::HtmlElement;
 
 stylance::import_crate_style!(style, "src/widgets/tabs.scss");
 
@@ -40,16 +42,18 @@ pub trait TabDescriptor: Clone + 'static {
 }
 
 #[derive(Default)]
-pub struct TabsOptions {
-    pub tabs_class: Option<XString>,
-    pub titles_class: Option<XString>,
-    pub title_class: Option<XString>,
-    pub items_class: Option<XString>,
-    pub item_class: Option<XString>,
-    pub selected_class: Option<XString>,
-    pub show_separator: Option<XString>,
-    pub hide_separator: Option<XString>,
-    pub hover_separator: Option<XString>,
+pub struct TabsOptions<T = Option<XString>> {
+    pub tabs_class: T,
+    pub titles_class: T,
+    pub title_class: T,
+    pub items_class: T,
+    pub item_class: T,
+    pub selected_class: T,
+    pub title_show_sep: T,
+    pub title_hide_sep: T,
+    pub title_drop_zone: T,
+    pub title_dropping: T,
+    pub title_drop_sep: T,
 }
 
 /// ```
@@ -69,59 +73,31 @@ pub struct TabsOptions {
 #[template]
 #[html]
 #[autoclone]
-pub fn tabs<T: TabsDescriptor>(tabs_descriptor: T, state: T::State, tabs_options: Rc<TabsOptions>) {
-    fn merge_class(
-        base_class: &'static str,
-        override_class: &Option<impl std::fmt::Display>,
-    ) -> XString {
-        override_class
-            .as_ref()
-            .map(|override_class| format!("{} {}", base_class, override_class).into())
-            .unwrap_or(base_class.into())
-    }
-
-    let TabsOptions {
-        tabs_class,
-        titles_class,
-        title_class,
-        items_class,
-        item_class,
-        selected_class,
-        show_separator,
-        hide_separator,
-        hover_separator,
-    } = &*tabs_options;
-
+pub fn tabs<T: TabsDescriptor>(
+    tabs_descriptor: T,
+    state: T::State,
+    options: Rc<TabsOptions>,
+) -> XElement {
+    let options = Rc::new(TabsOptions::base_options().merge(&options));
     let tab_descriptors = || tabs_descriptor.tab_descriptors().iter();
-    let tabs_class = merge_class(style::tabs, tabs_class);
-    let titles_class = merge_class(style::titles, titles_class);
-    let title_class = merge_class(style::title, title_class);
-    let items_class = merge_class(style::items, items_class);
-    let item_class = merge_class(style::item, item_class);
-    let selected_class = merge_class(style::selected, selected_class);
-    let show_separator = merge_class(style::show_separator, show_separator);
-    let hide_separator = merge_class(style::hide_separator, hide_separator);
-    let hover_separator = merge_class(style::hover_separator, hover_separator);
-
     let is_dragging = XSignal::new("is_dragging", false);
-    let drop_separator_class = is_dragging.derive(
-        "drop_separator_class",
-        move |t| (if *t { &show_separator } else { &hide_separator }).clone(),
-        |_, _| None,
-    );
+
+    let drop_zone = move |e, tab| {
+        autoclone!(state, is_dragging, options);
+        drop_zone(e, state.clone(), tab, is_dragging.clone(), options.clone())
+    };
 
     let tab_titles = {
         let li_list = tab_descriptors().map(|tab| {
             let selected = tab.selected(&state);
             li(key = tab.key(), move |li| {
-                autoclone!(tab, state, title_class, selected_class, is_dragging);
+                autoclone!(tab, state, options, is_dragging);
                 tab_title(
                     li,
                     tab.clone(),
                     state.clone(),
                     selected.clone(),
-                    title_class.clone(),
-                    selected_class.clone(),
+                    options.clone(),
                     is_dragging.clone(),
                 )
             })
@@ -131,30 +107,18 @@ pub fn tabs<T: TabsDescriptor>(tabs_descriptor: T, state: T::State, tabs_options
             [
                 title,
                 li(move |e| {
-                    autoclone!(state, drop_separator_class, hover_separator);
-                    drop_zone(
-                        e,
-                        state.clone(),
-                        Some(tab.clone()),
-                        drop_separator_class.clone(),
-                        hover_separator.clone(),
-                    )
+                    autoclone!(drop_zone);
+                    drop_zone(e, Some(tab.clone()))
                 }),
             ]
         });
         let li_list = std::iter::once(li(move |e| {
-            autoclone!(state, drop_separator_class, hover_separator);
-            drop_zone(
-                e,
-                state.clone(),
-                None,
-                drop_separator_class.clone(),
-                hover_separator.clone(),
-            )
+            autoclone!(drop_zone);
+            drop_zone(e, None)
         }))
         .chain(li_list);
         div(
-            class = titles_class,
+            class = options.titles_class.clone(),
             tabs_descriptor
                 .before_titles(&state)
                 .into_iter()
@@ -171,21 +135,23 @@ pub fn tabs<T: TabsDescriptor>(tabs_descriptor: T, state: T::State, tabs_options
         let li_list = tab_descriptors().map(|tab| {
             let selected = tab.selected(&state);
             li(key = tab.key(), move |li| {
-                autoclone!(tab, state, item_class, selected_class);
+                autoclone!(tab, state, options);
                 tab_item(
                     li,
                     tab.clone(),
                     state.clone(),
                     selected.clone(),
-                    item_class.clone(),
-                    selected_class.clone(),
+                    options.clone(),
                 )
             })
         });
-        div(class = items_class, ul(li_list..))
+        div(class = options.items_class.clone(), ul(li_list..))
     };
 
-    div(class = tabs_class, [tab_titles, tab_items]..)
+    div(
+        class = options.tabs_class.clone(),
+        [tab_titles, tab_items]..,
+    )
 }
 
 #[autoclone]
@@ -194,32 +160,84 @@ pub fn tabs<T: TabsDescriptor>(tabs_descriptor: T, state: T::State, tabs_options
 fn drop_zone<S: TabsState>(
     state: S,
     prev_tab: Option<S::TabDescriptor>,
-    #[signal] mut drop_separator_class: XString,
-    hover_separator: XString,
-) {
-    // Hold on to the mutable signal, else the value is frozen.
-    let _drop_separator_class = drop_separator_class_mut;
-
-    // TODO: This can be used with `#·57`. Dynamic attributes
-    drop(hover_separator);
+    is_dragging: XSignal<bool>,
+    options: Rc<TabsOptions<XString>>,
+) -> XElement {
+    let drop_zone_active = XSignal::new("drop-zone-active", false);
     li(
-        class = drop_separator_class,
-        drop = do_or_log(move |ev: web_sys::DragEvent| {
-            autoclone!(state);
-            ev.prevent_default();
-            let dt = ev.data_transfer().ok_or("data_transfer".warn())?;
-            let dragged_tab_key = dt.get_data(DRAG_KEY).map_err(|_| "Get DRAG_KEY".warn())?;
-            state.move_tab(prev_tab.clone(), dragged_tab_key);
-            Ok(())
-        }),
-        dragover = do_or_log(|ev: web_sys::DragEvent| {
-            ev.prevent_default();
-            let dt = ev.data_transfer().ok_or("data_transfer".warn())?;
-            dt.set_drop_effect("move");
-            Ok(())
-        }),
-        "",
+        class %= move |a| {
+            autoclone!(is_dragging, drop_zone_active, options);
+            drop_zone_class(
+                a,
+                is_dragging.clone(),
+                drop_zone_active.clone(),
+                options.clone(),
+            )
+        },
+        div(
+            class = options.title_drop_zone.clone(),
+            style %= move |a: XAttributeTemplate| {
+                autoclone!(is_dragging);
+                let drop_zone = a.element.clone();
+                title_drop_zone_style(a, drop_zone, is_dragging.clone())
+            },
+            drop = do_or_log(move |ev: web_sys::DragEvent| {
+                autoclone!(state);
+                ev.prevent_default();
+                let dt = ev.data_transfer().ok_or("data_transfer".warn())?;
+                let dragged_tab_key = dt.get_data(DRAG_KEY).map_err(|_| "Get DRAG_KEY".warn())?;
+                state.move_tab(prev_tab.clone(), dragged_tab_key);
+                Ok(())
+            }),
+            dragover = do_or_log(|ev: web_sys::DragEvent| {
+                ev.prevent_default();
+                let dt = ev.data_transfer().ok_or("data_transfer".warn())?;
+                dt.set_drop_effect("move");
+                Ok(())
+            }),
+            dragenter = move |_: web_sys::DragEvent| {
+                autoclone!(drop_zone_active);
+                drop_zone_active.set(true);
+            },
+            dragleave = move |_: web_sys::DragEvent| {
+                autoclone!(drop_zone_active);
+                drop_zone_active.set(false);
+            },
+        ),
+        div(class = options.title_drop_sep.clone()),
     )
+}
+
+#[template]
+#[html]
+fn drop_zone_class(
+    #[signal] is_dragging: bool,
+    #[signal] drop_zone_active: bool,
+    options: Rc<TabsOptions<XString>>,
+) -> XAttributeValue {
+    let show_or_hide = if is_dragging {
+        &options.title_show_sep
+    } else {
+        &options.title_hide_sep
+    };
+    if drop_zone_active {
+        format!("{show_or_hide} {}", options.title_dropping).into()
+    } else {
+        show_or_hide.clone().into()
+    }
+}
+
+#[template]
+#[html]
+fn title_drop_zone_style(drop_zone: Element, #[signal] is_dragging: bool) -> XAttributeValue {
+    if !is_dragging {
+        return "".into();
+    }
+    let drop_zone: &HtmlElement = drop_zone.dyn_ref().unwrap();
+    let li_sep = drop_zone.parent_element().unwrap();
+    let li_sep: &HtmlElement = li_sep.dyn_ref().unwrap();
+    let offset_left = li_sep.offset_left();
+    format!("left: calc({offset_left}px - var(--sep-zone)/2);").into()
 }
 
 #[autoclone]
@@ -229,14 +247,13 @@ fn tab_title<T: TabDescriptor + 'static>(
     tab: T,
     state: T::State,
     #[signal] mut selected: bool,
-    title_class: XString,
-    selected_class: XString,
+    options: Rc<TabsOptions<XString>>,
     is_dragging: XSignal<bool>,
-) {
+) -> XElement {
     let class = if selected {
-        format!("{title_class} {selected_class}").into()
+        format!("{} {}", options.title_class, options.selected_class).into()
     } else {
-        title_class
+        options.title_class.clone()
     };
     let key = tab.key();
     return li(
@@ -253,7 +270,7 @@ fn tab_title<T: TabDescriptor + 'static>(
         }),
         dragend = move |_| is_dragging.set(false),
         click = move |_| selected_mut.set(true),
-        [tab.title(&state).into()]..,
+        tab.title(&state).into(),
     );
 }
 
@@ -263,13 +280,66 @@ fn tab_item<T: TabDescriptor + 'static>(
     tab: T,
     state: T::State,
     #[signal] selected: bool,
-    item_class: XString,
-    selected_class: XString,
-) {
+    options: Rc<TabsOptions<XString>>,
+) -> XElement {
     let class = if selected {
-        format!("{item_class} {selected_class}").into()
+        format!("{} {}", options.item_class, options.selected_class).into()
     } else {
-        item_class
+        options.item_class.clone()
     };
     li(class = class, [tab.item(&state).into()]..)
+}
+
+mod tab_options {
+    use terrazzo_client::prelude::XString;
+
+    use super::style;
+    use super::TabsOptions;
+
+    impl TabsOptions<&'static str> {
+        pub const fn base_options() -> Self {
+            Self {
+                tabs_class: style::tabs,
+                titles_class: style::titles,
+                title_class: style::title,
+                items_class: style::items,
+                item_class: style::item,
+                selected_class: style::selected,
+                title_show_sep: style::title_show_sep,
+                title_hide_sep: &style::title_hide_sep,
+                title_drop_zone: style::title_drop_zone,
+                title_dropping: style::title_dropping,
+                title_drop_sep: style::title_drop_sep,
+            }
+        }
+
+        pub fn merge<O: std::fmt::Display>(
+            &self,
+            new: &TabsOptions<Option<O>>,
+        ) -> TabsOptions<XString> {
+            TabsOptions::<XString> {
+                tabs_class: Self::merge_class(&self.tabs_class, &new.tabs_class),
+                titles_class: Self::merge_class(&self.titles_class, &new.titles_class),
+                title_class: Self::merge_class(&self.title_class, &new.title_class),
+                items_class: Self::merge_class(&self.items_class, &new.items_class),
+                item_class: Self::merge_class(&self.item_class, &new.item_class),
+                selected_class: Self::merge_class(&self.selected_class, &new.selected_class),
+                title_show_sep: Self::merge_class(&self.title_show_sep, &new.title_show_sep),
+                title_hide_sep: Self::merge_class(&self.title_hide_sep, &new.title_hide_sep),
+                title_drop_zone: Self::merge_class(&self.title_drop_zone, &new.title_drop_zone),
+                title_dropping: Self::merge_class(&self.title_dropping, &new.title_dropping),
+                title_drop_sep: Self::merge_class(&self.title_drop_sep, &new.title_drop_sep),
+            }
+        }
+
+        fn merge_class(
+            base_class: &'static str,
+            override_class: &Option<impl std::fmt::Display>,
+        ) -> XString {
+            override_class
+                .as_ref()
+                .map(|override_class| format!("{} {}", base_class, override_class).into())
+                .unwrap_or(base_class.into())
+        }
+    }
 }

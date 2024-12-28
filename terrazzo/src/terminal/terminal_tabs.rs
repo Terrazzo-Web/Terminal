@@ -115,6 +115,7 @@ impl TabsState for TerminalsState {
                 })
                 .cloned()
                 .collect();
+            self.selected_tab.set(moved_tab.id.clone());
             return Some(TerminalTabs {
                 terminal_tabs: Rc::new(tabs),
             });

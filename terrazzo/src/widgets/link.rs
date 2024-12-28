@@ -10,7 +10,8 @@ stylance::import_crate_style!(style, "src/widgets/link.scss");
 pub fn link<C, CI>(
     click: impl Fn(MouseEvent) + Clone + 'static,
     content: impl FnOnce() -> CI + Clone + 'static,
-) where
+) -> XElement
+where
     XNode: From<C>,
     CI: IntoIterator<Item = C>,
 {

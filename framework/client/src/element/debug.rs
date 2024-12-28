@@ -2,10 +2,12 @@
 mod verbose {
     use std::ops::DerefMut;
 
+    use crate::attribute::XAttributeValue;
+    use crate::element::template::XTemplate;
     use crate::element::XElement;
     use crate::element::XElementValue;
     use crate::node::XNode;
-    use crate::prelude::XTemplate;
+    use crate::template::IsTemplate as _;
 
     impl std::fmt::Debug for XElement {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -47,7 +49,17 @@ mod verbose {
                     attributes, events, ..
                 } => {
                     for attribute in attributes {
-                        rest += &format!(" {}={:?}", attribute.name, attribute.value);
+                        match &attribute.value {
+                            XAttributeValue::Static(value) => {
+                                rest += &format!(" {}={:?}", attribute.name, value)
+                            }
+                            XAttributeValue::Dynamic { .. } => {
+                                rest += &format!(" {}=<Dynamic>", attribute.name)
+                            }
+                            XAttributeValue::Generated { .. } => {
+                                rest += &format!(" {}=<Generated>", attribute.name)
+                            }
+                        }
                     }
                     for event in events {
                         rest += &format!(" on:{}=[callback]", event.event_type);
@@ -108,6 +120,68 @@ mod verbose {
                     b.writeln("[empty]");
                 }
             });
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use terrazzo_macro::html;
+        use terrazzo_macro::template;
+
+        use crate::prelude::*;
+
+        #[test]
+        fn element() {
+            #[html]
+            fn html() -> XElement {
+                div(
+                    key = "root",
+                    class = "root-css-style",
+                    "Text",
+                    ul(
+                        li(key = "1", "First"),
+                        li(key = "2", "Second"),
+                        li(key = "3", "Third"),
+                    ),
+                    p(|t| child(t)),
+                    data_dyn_attribute %= |t| dyn_attribute(t),
+                )
+            }
+
+            #[html]
+            #[template]
+            fn child() -> XElement {
+                div(key = "child", class = "child-css-style", span("Child"))
+            }
+
+            #[template]
+            fn dyn_attribute() -> XAttributeValue {
+                "custom-value".into()
+            }
+
+            let expected = r#"
+<div key='root' class=Str("root-css-style") data-dyn-attribute=<Dynamic>>
+    "Text"
+    <ul key=#0>
+        <li key='1'>
+            "First"
+        </li>
+        <li key='2'>
+            "Second"
+        </li>
+        <li key='3'>
+            "Third"
+        </li>
+    </ul>
+    <p key=#0>
+        [dynamic]
+    </p>
+</div>"#;
+            let actual = format!("{:?}", html());
+            if expected.trim() != actual.trim() {
+                println!("{}", actual);
+                assert!(false);
+            }
         }
     }
 }

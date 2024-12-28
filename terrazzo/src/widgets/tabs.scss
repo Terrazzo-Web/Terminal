@@ -46,7 +46,7 @@ li.title {
     }
 }
 
-.show-separator {
+.title-show-sep {
     display: block;
     visibility: visible;
     border: 0;
@@ -54,34 +54,54 @@ li.title {
     padding: 0;
     height: 100%;
 
-    position: relative;
+    --sep-zone: 50px;
 
-    &::before {
-        content: "";
-        width: 10px;
-        height: 100%;
-        left: -10px;
+    .title-drop-zone {
+        height: 100px;
         position: absolute;
-        background-color: rgba(255, 0, 0, 0.5);
+        z-index: 100;
+        width: var(--sep-zone);
     }
 
-    &:first-child::before {
-        left: 0px;
-    }
-
-    &:hover {
-        background-color: rgba(255, 0, 0, 1.0);
-    }
-
-    &.hover-separator::before {
-        width: 30px;
-        left: 0px;
+    .title-drop-sep {
         position: relative;
-        background-color: rgba(0, 255, 0, 0.5);
+        height: 100%;
+
+        &::before {
+            content: "";
+            height: 100%;
+            position: absolute;
+            background-color: gray;
+
+            --width: 2px;
+            width: var(--width);
+            left: calc(-1 * var(--width)/2);
+        }
+    }
+
+    &.title-dropping .title-drop-sep {
+        &::before {
+            background-color: white;
+            --width: 8px;
+        }
     }
 }
 
-.hide-separator {
+.titles {
+    .title-show-sep:first-child {
+        .title-drop-sep::before {
+            left: 0px;
+        }
+    }
+
+    .title-show-sep:last-child {
+        .title-drop-sep::before {
+            left: calc(-1 * var(--width));
+        }
+    }
+}
+
+.title-hide-sep {
     display: none;
     visibility: hidden;
 }

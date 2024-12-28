@@ -1,6 +1,7 @@
 use debug_correlation_id::DebugCorrelationId;
 use named::NamedType as _;
 
+mod attribute;
 mod debug_correlation_id;
 mod element;
 mod key;

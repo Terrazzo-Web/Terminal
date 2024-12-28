@@ -176,7 +176,7 @@ fn print_editable_title(
     terminal_id: TerminalId,
     title: XSignal<XString>,
     selected_tab: XSignal<TerminalId>,
-) {
+) -> XElement {
     let editing = XSignal::new("Editing", false);
     let is_editable = selected_tab.derive(
         "is_editable",
@@ -214,7 +214,7 @@ fn print_editable_title(
 
 #[html]
 #[template]
-fn print_title(#[signal] title: XString) {
+fn print_title(#[signal] title: XString) -> XElement {
     span("{title}")
 }
 

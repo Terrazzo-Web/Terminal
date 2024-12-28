@@ -21,7 +21,8 @@ pub fn editable<P, PI>(
     editable: XSignal<bool>,
     #[signal] mut editing: bool,
     printed: impl FnOnce() -> PI + Clone + 'static,
-) where
+) -> XElement
+where
     XNode: From<P>,
     PI: IntoIterator<Item = P>,
 {
@@ -34,7 +35,7 @@ pub fn editable<P, PI>(
 
 #[html]
 #[template]
-fn show_editing(#[signal] mut content: XString, editing_mut: MutableSignal<bool>) {
+fn show_editing(#[signal] mut content: XString, editing_mut: MutableSignal<bool>) -> XElement {
     let editing_mut2 = editing_mut.clone();
     let content_mut2 = content_mut.clone();
     input!(
@@ -61,7 +62,8 @@ fn show_printed<P, PI>(
     editable: XSignal<bool>,
     printed: impl FnOnce() -> PI + Clone + 'static,
     editing_mut: MutableSignal<bool>,
-) where
+) -> XElement
+where
     XNode: From<P>,
     PI: IntoIterator<Item = P>,
 {

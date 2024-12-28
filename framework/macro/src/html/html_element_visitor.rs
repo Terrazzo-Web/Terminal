@@ -105,6 +105,16 @@ impl HtmlElementVisitor {
                     element.process_optional_attribute(get_attribute_name(left).unwrap(), right);
                 }
 
+                // Dynamic attribute
+                syn::Expr::Binary(syn::ExprBinary {
+                    left,
+                    op: syn::BinOp::RemAssign { .. },
+                    right,
+                    ..
+                }) if get_attribute_name(left).is_some() => {
+                    element.process_dynamic_attribute(get_attribute_name(left).unwrap(), right);
+                }
+
                 // Dynamic
                 syn::Expr::Closure { .. } | syn::Expr::Block { .. } => element.process_dynamic(arg),
 
