@@ -1,5 +1,6 @@
 # TODO
-- `#·61`. Templates can supply the tag name in the #[template(tag = div)] attribute.
+- `#·63`. Keys: child templates don't override the key of their parent. Integer
+- `#·64`. Integer keys don't need to be set in DOM
 - `#·62`. Attributes auto-convert to optional or dynamic
 - `#·58`. Shortcut for style attributes
 - `#·52`. Drag n Drop to create tiles
@@ -19,7 +20,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#·63`.
+Next: `#·65`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -71,3 +72,4 @@ Next: `#·63`.
 - `#·57`. Dynamic attributes
 - `#·59`. Move widgets to separate project
 - `#·60`. Support embedding assets in binary
+- `#·61`. Templates can supply the tag name in the #[template(tag = div)] attribute.

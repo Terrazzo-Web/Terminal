@@ -1,6 +1,7 @@
 use tracing::warn;
 use web_sys::Element;
 
+use crate::element::template::XTemplate;
 use crate::string::XString;
 
 /// The key of an Element node.
@@ -13,8 +14,8 @@ pub enum XKey {
 pub const KEY_ATTRIBUTE: &str = "data-trz-key";
 
 impl XKey {
-    pub fn of(index: usize, element: &Element) -> Self {
-        if let Some(key) = element.get_attribute(KEY_ATTRIBUTE) {
+    pub fn of(template: &XTemplate, index: usize, element: &Element) -> Self {
+        if let Some(key) = element.get_attribute(template.key_attribute()) {
             parse_index_key(&key).unwrap_or_else(|| XKey::Named(key.into()))
         } else {
             warn!("Node doesn't have a key");

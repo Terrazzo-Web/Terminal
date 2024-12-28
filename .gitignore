@@ -16,3 +16,4 @@ target/
 .DS_Store
 ._.DS_Store
 **/assets/**/*.br
+**/assets/**/*.css.map

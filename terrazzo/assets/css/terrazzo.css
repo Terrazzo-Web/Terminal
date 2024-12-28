@@ -129,6 +129,9 @@ body {
 .terminals-ed8a36b .items-ed8a36b > ul {
   height: 100%;
 }
+.terminals-ed8a36b .items-ed8a36b > ul > li {
+  height: 100%;
+}
 .terminals-ed8a36b .item-ed8a36b {
   height: 100%;
 }

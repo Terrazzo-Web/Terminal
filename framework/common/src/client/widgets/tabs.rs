@@ -134,14 +134,11 @@ pub fn tabs<T: TabsDescriptor>(
     let tab_items = {
         let li_list = tab_descriptors().map(|tab| {
             let selected = tab.selected(&state);
-            li(
-                key = tab.key(),
-                tab_item(
-                    tab.clone(),
-                    state.clone(),
-                    selected.clone(),
-                    options.clone(),
-                ),
+            tab_item(
+                tab.clone(),
+                state.clone(),
+                selected.clone(),
+                options.clone(),
             )
         });
         div(class = options.items_class.clone(), ul(li_list..))
@@ -273,7 +270,7 @@ fn tab_title<T: TabDescriptor + 'static>(
     );
 }
 
-#[template(tag = li)]
+#[template(tag = li, key = tab.key())]
 #[html]
 fn tab_item<T: TabDescriptor + 'static>(
     tab: T,

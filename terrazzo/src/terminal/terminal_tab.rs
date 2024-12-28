@@ -184,7 +184,7 @@ fn print_editable_title(
             autoclone!(terminal_id);
             *selected_tab == terminal_id
         },
-        |_, _| unimplemented!(),
+        |_, _| None,
     );
     span(move |t| {
         editable(

@@ -27,9 +27,18 @@ where
     PI: IntoIterator<Item = P>,
 {
     if editing {
-        input!(move |t| show_editing(t, value.clone(), editing_mut.clone()))
+        input!(key = "editing", move |t| show_editing(
+            t,
+            value.clone(),
+            editing_mut.clone()
+        ))
     } else {
-        span!(move |t| show_printed(t, editable.clone(), printed.clone(), editing_mut.clone()))
+        span!(key = "printed", move |t| show_printed(
+            t,
+            editable.clone(),
+            printed.clone(),
+            editing_mut.clone()
+        ))
     }
 }
 

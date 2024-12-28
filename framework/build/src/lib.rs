@@ -183,6 +183,7 @@ pub fn build_css(css: &str) {
         .args([
             "exec",
             "sass",
+            "-y",
             "--",
             "--no-source-map",
             &format!("target/css/{css}.scss"),
