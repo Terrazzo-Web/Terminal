@@ -3,7 +3,7 @@ use std::sync::Weak;
 
 use named::named;
 use named::NamedType as _;
-use tracing::debug;
+use tracing::trace;
 
 use super::consumer_id::ConsumerId;
 use super::producer::ProducedValue;
@@ -29,7 +29,7 @@ impl<V: ProducedValue> Consumer<V> {
         F: Fn(V::Value) + 'static,
     {
         let consumer_id = ConsumerId::new();
-        debug!(%consumer_id, "New consumer");
+        trace!(%consumer_id, "New consumer");
         Self {
             inner: Arc::new(ConsumerInner {
                 id: consumer_id,
@@ -70,7 +70,7 @@ impl<V: ProducedValue> Consumer<V> {
 
 impl<V: ProducedValue, F: Fn(V::Value) + ?Sized> Drop for ConsumerInner<V, F> {
     fn drop(&mut self) {
-        debug!(consumer_id = %self.id, consumer_name = %self.name, "Drop consumer");
+        trace!(consumer_id = %self.id, consumer_name = %self.name, "Drop consumer");
         if let Some(producer) = self.producer.upgrade() {
             let mut producer_lock = producer.inner.1.lock().unwrap();
             let consumers = Arc::try_unwrap(std::mem::take(&mut producer_lock.consumers))

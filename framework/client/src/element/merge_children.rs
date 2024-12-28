@@ -128,7 +128,7 @@ fn merge_element<'t>(
         trace!("Cur element: Not found");
     }
 
-    if let Some(cur_element) = create_new_element(document, template, element, index, new_element) {
+    if let Some(cur_element) = create_new_element(document, template, element, new_element) {
         trace!("Cur element: Created new");
         new_element.merge(template, old_element, Rc::new(Mutex::new(cur_element)));
         return;
@@ -194,7 +194,6 @@ fn create_new_element(
     document: &Document,
     template: &XTemplate,
     element: &Element,
-    index: usize,
     new_element: &XElement,
 ) -> Option<Element> {
     let Some(tag_name) = new_element.tag_name.as_deref() else {
@@ -206,21 +205,14 @@ fn create_new_element(
         .inspect_err(|error| warn!("Create new element '{tag_name}' failed: {error:?}'"))
         .ok()?;
 
-    let index_to_string;
-    let key = match &new_element.key {
-        XKey::Named(key) => key.as_str(),
-        XKey::Index(_) => {
-            index_to_string = format!("#{index}");
-            &index_to_string
-        }
-    };
-
-    let () = cur_element
-        .set_attribute(template.key_attribute(), key)
-        .inspect_err(|error| {
-            warn!("Set element key failed: {error:?}'");
-        })
-        .ok()?;
+    if let XKey::Named(key) = &new_element.key {
+        let () = cur_element
+            .set_attribute(template.key_attribute(), key)
+            .inspect_err(|error| {
+                warn!("Set element key failed: {error:?}'");
+            })
+            .ok()?;
+    }
 
     if let Err(error) = element.append_child(&cur_element) {
         warn!("Failed to append cur_element: {error:?}");

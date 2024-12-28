@@ -51,7 +51,7 @@ where
         let span = debug_span!("Bind", closure = %self.name, signal = %signal.0.producer.name());
         let _span = span.clone().entered();
         let reactive_closure = self.reactive_closure;
-        debug!("Bind");
+        trace!("Bind");
         let signal_weak = signal.downgrade();
         let immutable_value = signal.0.immutable_value.clone();
         let bound_closure = move || {
@@ -96,7 +96,7 @@ impl<F: Fn() + 'static> ReactiveClosureBuilder<F> {
             reactive_closure,
             last_version: AtomicUsize::new(0),
         });
-        debug!("Call");
+        trace!("Call");
         reactive_closure.call(Version::current());
 
         defer!(trace!("Add consumers: Done."));
