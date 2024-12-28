@@ -7,6 +7,7 @@ use futures::channel::mpsc;
 use futures::channel::oneshot;
 use futures::future::Shared;
 use futures::stream::ReadyChunks;
+use futures::FutureExt as _;
 use futures::StreamExt as _;
 use get::StreamReader;
 use named::named;
@@ -42,6 +43,9 @@ mod register;
 pub use self::close::close;
 pub use self::close::drop_dispatcher;
 pub use self::pipe::close_pipe;
+
+static GLOBAL_AWAKE: Mutex<Option<(oneshot::Sender<()>, Shared<oneshot::Receiver<()>>)>> =
+    Mutex::new(None);
 
 /// Pumps data into XTermJS.
 ///
@@ -87,8 +91,19 @@ where
         let () = element
             .add_event_listener_with_callback(WAKE_EVENT_TYPE, closure.as_ref().unchecked_ref())
             .unwrap_or_else(|error| warn!("Unable to attach mouse move event handler: {error:?}"));
-        let (tx, rx) = oneshot::channel();
-        streaming_state.set(Some((tx, closure)));
+        let rx = {
+            let mut global_awake = GLOBAL_AWAKE.lock().unwrap();
+            match &*global_awake {
+                Some((_tx, rx)) => rx.clone(),
+                None => {
+                    let (tx, rx) = oneshot::channel();
+                    let rx = rx.shared();
+                    *global_awake = Some((tx, rx.clone()));
+                    rx
+                }
+            }
+        };
+        streaming_state.set(Some(closure));
 
         match rx.await {
             Ok(()) => debug!("Wake-up to continue streaming"),
@@ -152,20 +167,27 @@ const WAKE_EVENT_TYPE: &str = "mousemove";
 
 fn make_wake_closure(
     element: Element,
-    closure_state: Rc<Cell<Option<(oneshot::Sender<()>, Closure<dyn Fn(MouseEvent)>)>>>,
+    closure: Rc<Cell<Option<Closure<dyn Fn(MouseEvent)>>>>,
 ) -> Closure<dyn Fn(MouseEvent)> {
     Closure::new(move |_| {
-        if let Some((tx, closure)) = closure_state.take() {
+        if let Some(closure) = closure.take() {
             debug!("Mouse move triggers restart stream");
             let function = closure.as_ref().unchecked_ref();
             let () = element
                 .remove_event_listener_with_callback(WAKE_EVENT_TYPE, function)
                 .unwrap_or_else(|error| warn!("Failed to remove event handler: {error:?}"));
-            let _ = tx.send(());
+            try_restart_pipe();
         } else {
             warn!("Event handler fired twice");
         }
     })
+}
+
+pub fn try_restart_pipe() {
+    let Some((tx, _rx)) = GLOBAL_AWAKE.lock().unwrap().take() else {
+        return;
+    };
+    let _ = tx.send(());
 }
 
 #[named]

@@ -26,7 +26,7 @@ use crate::api::NEWLINE;
 use crate::processes;
 
 const PIPE_TTL: Duration = if cfg!(feature = "concise_traces") {
-    Duration::from_secs(300)
+    Duration::from_secs(3600)
 } else {
     Duration::from_secs(5)
 };
