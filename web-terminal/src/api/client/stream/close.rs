@@ -1,7 +1,7 @@
 use futures::FutureExt as _;
 use futures::TryFutureExt as _;
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use terrazzo::prelude::OrElseLog as _;
 use tracing::debug;
 use tracing::info_span;
@@ -19,7 +19,7 @@ use crate::api::CORRELATION_ID;
 use crate::terminal_id::TerminalId;
 
 /// Sends a request to close the process.
-#[named]
+#[nameth]
 pub fn close(
     terminal_id: TerminalId,
     correlation_id: Option<String>,
@@ -47,7 +47,7 @@ pub fn close(
     .instrument(info_span!("Close", %terminal_id))
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum CloseError {
     #[error("[{n}] {0}", n = self.name())]

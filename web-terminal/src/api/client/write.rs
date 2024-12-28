@@ -1,5 +1,5 @@
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use wasm_bindgen::JsValue;
 use web_sys::Response;
 
@@ -9,7 +9,7 @@ use super::SendRequestError;
 use super::BASE_URL;
 use crate::terminal_id::TerminalId;
 
-#[named]
+#[nameth]
 pub async fn write(terminal_id: &TerminalId, data: String) -> Result<(), WriteError> {
     let _: Response = send_request(
         Method::POST,
@@ -20,7 +20,7 @@ pub async fn write(terminal_id: &TerminalId, data: String) -> Result<(), WriteEr
     return Ok(());
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum WriteError {
     #[error("[{n}] {0}", n = self.name())]

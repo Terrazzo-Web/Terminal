@@ -1,5 +1,5 @@
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use terrazzo::prelude::OrElseLog as _;
 use wasm_bindgen::JsValue;
 use web_sys::Headers;
@@ -13,7 +13,7 @@ use crate::api::client::set_content_type_json;
 use crate::api::Size;
 use crate::terminal_id::TerminalId;
 
-#[named]
+#[nameth]
 pub async fn resize(
     terminal_id: &TerminalId,
     size: Size,
@@ -34,7 +34,7 @@ pub async fn resize(
     return Ok(());
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum ResizeError {
     #[error("[{n}] {0}", n = self.name())]

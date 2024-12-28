@@ -2,8 +2,8 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::Mutex;
 
-use named::named;
-use named::NamedType;
+use nameth::nameth;
+use nameth::NamedType;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
@@ -24,7 +24,7 @@ use crate::api::TabTitle;
 use crate::api::TerminalDef;
 use crate::terminal_id::TerminalId;
 
-#[named]
+#[nameth]
 #[derive(Clone, PartialEq, Eq)]
 pub struct TerminalTab(Rc<TerminalTabInner>);
 

@@ -1,4 +1,4 @@
-use named::named;
+use nameth::nameth;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -52,7 +52,7 @@ impl<T> TabTitle<T> {
 
 pub type TerminalDef = TerminalDefImpl<TabTitle<String>>;
 
-#[named]
+#[nameth]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RegisterTerminalRequest {
     pub mode: RegisterTerminalMode,

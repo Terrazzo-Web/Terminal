@@ -8,9 +8,9 @@ use futures::lock::Mutex;
 use futures::stream::TakeUntil;
 use futures::Stream;
 use futures::StreamExt as _;
-use named::named;
-use named::NamedEnumValues as _;
-use named::NamedType as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
+use nameth::NamedType as _;
 use scopeguard::defer;
 use tracing::debug;
 use tracing::debug_span;
@@ -23,7 +23,7 @@ use crate::ProcessIO;
 use crate::ProcessInput;
 use crate::ProcessOutput;
 
-#[named]
+#[nameth]
 pub struct ProcessIoEntry {
     input: Mutex<ProcessInput>,
     output: Mutex<Option<ProcessOutputExchange>>,
@@ -60,7 +60,7 @@ impl Drop for ProcessIoEntry {
     }
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum LeaseProcessOutputError {
     #[error("[{n}] Output not set", n = self.name())]
@@ -103,14 +103,14 @@ impl ProcessOutputExchange {
     }
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum LeaseError {
     #[error("[{n}] Canceled", n = self.name())]
     Canceled(#[from] oneshot::Canceled),
 }
 
-#[named]
+#[nameth]
 pub enum ProcessOutputLease {
     /// The process is active and this is the current lease.
     Leased(TakeUntil<ReleaseOnDrop<ProcessOutput>, oneshot::Receiver<()>>),
@@ -193,7 +193,7 @@ impl Stream for ProcessOutputLease {
     }
 }
 
-#[named]
+#[nameth]
 pub enum LeaseItem {
     EOS,
     Data(Vec<u8>),

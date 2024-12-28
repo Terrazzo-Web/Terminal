@@ -18,7 +18,6 @@ fn main() {
 
     if env::var(CLIENT_FEATURE).is_ok() {
         println!("cargo::warning=Can't enable both 'client' and 'server' features");
-        return;
     }
 
     let server_dir: PathBuf = env::var("CARGO_MANIFEST_DIR").unwrap().into();

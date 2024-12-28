@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use named::named;
-use named::NamedType;
+use nameth::nameth;
+use nameth::NamedType;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[named]
+#[nameth]
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct TerminalId {

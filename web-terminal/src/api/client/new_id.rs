@@ -1,5 +1,5 @@
-use named::named;
-use named::NamedEnumValues as _;
+use nameth::nameth;
+use nameth::NamedEnumValues as _;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::Response;
 
@@ -9,7 +9,7 @@ use super::SendRequestError;
 use super::BASE_URL;
 use crate::api::TerminalDef;
 
-#[named]
+#[nameth]
 pub async fn new_id() -> Result<TerminalDef, NewIdError> {
     let response: Response =
         send_request(Method::POST, format!("{BASE_URL}/{NEW_ID}"), |_| {}).await?;
@@ -23,7 +23,7 @@ pub async fn new_id() -> Result<TerminalDef, NewIdError> {
     Ok(serde_json::from_str(&body)?)
 }
 
-#[named]
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum NewIdError {
     #[error("[{n}] {0}", n = self.name())]
