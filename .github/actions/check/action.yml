@@ -1,0 +1,21 @@
+name: Check
+runs:
+  using: "composite"
+
+  steps:
+    - name: Stylance
+      run: cd terrazzo && stylance .
+      shell: bash
+
+    - name: Clippy
+      run: |
+        cargo clippy
+        cargo clippy --bin terrazzo-server --features server,max_level_debug
+        cargo clippy --bin terrazzo-server --features server,max_level_info
+        cargo clippy --features client,max_level_debug
+        cargo clippy --features client,max_level_info
+      shell: bash
+
+    - name: Rustfmt
+      run: cargo fmt
+      shell: bash
