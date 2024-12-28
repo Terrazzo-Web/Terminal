@@ -3,24 +3,32 @@ use named::named;
 use named::NamedEnumValues as _;
 use scopeguard::defer;
 use terrazzo_pty::lease::ProcessOutputLease;
+use terrazzo_pty::OpenProcessError;
 use terrazzo_pty::ProcessIO;
 use tracing::debug;
 use tracing::warn;
 use tracing_futures as _;
 
 use super::registration::Registration;
+use crate::api::RegisterTerminalMode;
+use crate::api::RegisterTerminalQuery;
 use crate::processes;
 use crate::terminal_id::TerminalId;
 
-pub async fn register(terminal_id: TerminalId) -> Result<(), RegisterStreamError> {
-    register_impl(terminal_id).await
-}
-
-async fn register_impl(terminal_id: TerminalId) -> Result<(), RegisterStreamError> {
+pub async fn register(
+    terminal_id: TerminalId,
+    query: RegisterTerminalQuery,
+) -> Result<(), RegisterStreamError> {
     defer!(debug!("End"));
     debug!("Start");
     async {
-        let lease = processes::stream::open_stream(&terminal_id, |_| ProcessIO::open()).await?;
+        let lease = processes::stream::open_stream(&terminal_id, |_| async {
+            match query.mode {
+                RegisterTerminalMode::Create => ProcessIO::open().await,
+                RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
+            }
+        })
+        .await?;
         push_lease(terminal_id, lease)?;
         Ok(())
     }

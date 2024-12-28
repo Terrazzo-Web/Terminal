@@ -12,7 +12,7 @@ extern "C" {
     pub fn new() -> TerminalJs;
 
     #[wasm_bindgen(method)]
-    pub fn open(this: &TerminalJs, terminal_node: Element);
+    pub fn open(this: &TerminalJs, terminal_node: &Element);
 
     #[wasm_bindgen(method)]
     pub fn fit(this: &TerminalJs);

@@ -48,7 +48,7 @@ async fn main() {
     } else {
         router
     };
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{PORT}"))
+    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{PORT}"))
         .await
         .unwrap();
     println!("listening on {}", listener.local_addr().unwrap());

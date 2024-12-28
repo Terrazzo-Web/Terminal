@@ -16,7 +16,7 @@ path = "src/server.rs"
 required-features = ["server"]
 
 [dependencies]
-autoclone-macro = { workspace = true, optional = true }
+autoclone-macro = { workspace = true }
 axum = { workspace = true, optional = true, features = [
     "http1",
     "http2",
@@ -32,6 +32,7 @@ pin-project = { workspace = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_urlencoded = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
 thiserror = { workspace = true }
 terrazzo-client = { workspace = true, optional = true }
@@ -78,8 +79,8 @@ terrazzo-build = { workspace = true }
 [features]
 default = []
 client = [
-    "dep:autoclone-macro",
     "dep:stylance",
+    "dep:serde_urlencoded",
     "dep:terrazzo-client",
     "dep:terrazzo-macro",
     "dep:wasm-bindgen",
@@ -105,8 +106,9 @@ max_level_debug = ["tracing/max_level_debug", "tracing/release_max_level_debug"]
 max_level_info = [
     "tracing/max_level_info",
     "tracing/release_max_level_info",
-    "terrazzo-client?/concise_traces",
+    "concise_traces",
 ]
+concise_traces = ["terrazzo-client?/concise_traces"]
 
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo.scss"

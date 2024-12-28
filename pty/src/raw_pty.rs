@@ -2,6 +2,8 @@ use std::os::fd::AsRawFd as _;
 use std::os::fd::FromRawFd as _;
 use std::os::unix::ffi::OsStrExt as _;
 
+use named::named;
+use named::NamedEnumValues as _;
 use tracing::debug;
 
 use super::raw_pts::Pts;
@@ -27,21 +29,22 @@ impl RawPty {
     }
 }
 
+#[named]
 #[derive(thiserror::Error, Debug)]
 pub enum OpenError {
-    #[error("OpenPT: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     OpenPT(rustix::io::Errno),
 
-    #[error("GrantPT: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     GrantPT(rustix::io::Errno),
 
-    #[error("UnlockPT: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     UnlockPT(rustix::io::Errno),
 
-    #[error("FcntlGetFD: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     FcntlGetFD(rustix::io::Errno),
 
-    #[error("FcntlSetFD: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     FcntlSetFD(rustix::io::Errno),
 }
 
@@ -61,9 +64,10 @@ impl RawPty {
     }
 }
 
+#[named]
 #[derive(thiserror::Error, Debug)]
 pub enum SetSizeError {
-    #[error("IoCtlWinSize: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     IoCtlWinSize(#[from] rustix::io::Errno),
 }
 
@@ -80,12 +84,13 @@ impl RawPty {
     }
 }
 
+#[named]
 #[derive(thiserror::Error, Debug)]
 pub enum PtsError {
-    #[error("PtsName: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     PtsNameError(rustix::io::Errno),
 
-    #[error("OpenError: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     OpenError(std::io::Error),
 }
 
@@ -98,12 +103,13 @@ impl RawPty {
     }
 }
 
+#[named]
 #[derive(thiserror::Error, Debug)]
 pub enum SetNonBlockingError {
-    #[error("FcntlGetFL: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     FcntlGetFL(rustix::io::Errno),
 
-    #[error("FcntlSetFL: {0}")]
+    #[error("[{n}] {0}", n = self.name())]
     FcntlSetFL(rustix::io::Errno),
 }
 

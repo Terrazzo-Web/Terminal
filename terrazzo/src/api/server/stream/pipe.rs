@@ -1,8 +1,13 @@
 use std::future::ready;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::SeqCst;
 use std::sync::Arc;
+use std::time::Duration;
 
+use autoclone_macro::autoclone;
 use axum::body::Body;
 use futures::channel::mpsc;
+use futures::Stream;
 use futures::StreamExt as _;
 use pin_project::pin_project;
 use scopeguard::guard;
@@ -16,8 +21,14 @@ use crate::api::server::stream::registration::Registration;
 use crate::api::Chunk;
 use crate::api::NEWLINE;
 
+const PIPE_TTL: Duration = if cfg!(feature = "concise_traces") {
+    Duration::from_secs(300)
+} else {
+    Duration::from_secs(5)
+};
+
 pub async fn pipe(correlation_id: CorrelationId) -> Body {
-    let span = info_span!("Pipe", %correlation_id);
+    let span = info_span !("Pipe", % correlation_id);
     let _span = span.clone().entered();
     info!("Start");
     let (tx, rx) = mpsc::channel(10);
@@ -58,7 +69,28 @@ pub async fn pipe(correlation_id: CorrelationId) -> Body {
         };
     });
     let stream = futures::stream::once(ready(Ok(vec![NEWLINE]))).chain(rx);
+    let stream = timeout_stream(stream);
     return Body::from_stream(stream);
+}
+
+#[autoclone]
+fn timeout_stream<I>(stream: impl Stream<Item = I>) -> impl Stream<Item = I> {
+    let tick = Arc::new(AtomicBool::new(false));
+    let stream = stream.inspect(move |_| {
+        autoclone!(tick);
+        tick.store(true, SeqCst)
+    });
+    let (stream, handle) = futures::stream::abortable(stream);
+    tokio::spawn(async move {
+        loop {
+            let () = tokio::time::sleep(PIPE_TTL).await;
+            if tick.swap(false, SeqCst) {
+                continue;
+            }
+            handle.abort();
+        }
+    });
+    stream
 }
 
 #[pin_project]
