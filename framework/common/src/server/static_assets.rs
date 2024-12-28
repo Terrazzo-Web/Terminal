@@ -89,13 +89,13 @@ struct Asset {
 fn add(name: String, value: Asset) {
     let mut assets = ASSETS.write().unwrap();
     if let Some(assets) = &mut *assets {
-        let old = assets.insert(name.clone(), value.into());
+        let old = assets.insert(name.clone(), value);
         assert!(old.is_none(), "Duplicate asset '{name}'");
         return;
     }
 
     let mut map = HashMap::new();
-    map.insert(name, value.into());
+    map.insert(name, value);
     *assets = Some(map);
 }
 

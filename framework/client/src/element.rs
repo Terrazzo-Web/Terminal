@@ -34,7 +34,7 @@ pub mod template;
 #[named]
 pub struct XElement {
     pub key: XKey,
-    pub tag_name: XString,
+    pub tag_name: Option<XString>,
     pub value: XElementValue,
     pub before_render: Option<OnRenderCallback>,
     pub after_render: Option<OnRenderCallback>,
@@ -156,7 +156,7 @@ impl XElement {
     pub fn zero(&self) -> XElement {
         XElement {
             key: self.key.to_owned(),
-            tag_name: self.tag_name.clone(),
+            tag_name: None,
             value: XElementValue::Static {
                 attributes: vec![],
                 events: vec![],
@@ -168,9 +168,11 @@ impl XElement {
     }
 
     fn fix_element_tag(&self, element: &mut Element) -> Option<()> {
+        let Some(new_tag) = self.tag_name.as_deref() else {
+            return Some(());
+        };
         let old_tag = element.tag_name().to_lowercase();
-        let new_tag = self.tag_name.as_str();
-        if old_tag.as_str() == new_tag {
+        if old_tag == new_tag {
             return Some(());
         }
 

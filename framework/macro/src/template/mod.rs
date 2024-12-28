@@ -3,6 +3,7 @@ use quote::quote_spanned;
 use quote::ToTokens as _;
 use readonly::process_readonly_input;
 use syn::spanned::Spanned;
+use syn::Visibility;
 
 use self::signal::process_signal_input;
 use crate::arguments::MacroArgs;
@@ -52,6 +53,8 @@ pub fn template(
         }
     }
 
+    let original_item_fn = item_fn.clone();
+
     prelude.reverse();
     copies.reverse();
     bind_signals.reverse();
@@ -88,10 +91,53 @@ pub fn template(
         Box::new(syn::parse2(quote! { Consumers }).unwrap()),
     );
 
+    let result = if let Some(tag) = args.tag {
+        assert!(tag != "tag");
+        item_fn.attrs = vec![];
+        item_fn.vis = Visibility::Inherited;
+        let aux = item_fn.to_token_stream();
+        let tag = tag.to_string();
+        let name = original_item_fn.sig.ident.clone();
+        let params = original_item_fn
+            .sig
+            .inputs
+            .iter()
+            .map(|p| {
+                let syn::FnArg::Typed(syn::PatType { pat, .. }) = p else {
+                    panic!()
+                };
+                quote! { #pat }
+            })
+            .collect::<Vec<_>>();
+        let mut original_item_fn = original_item_fn;
+        original_item_fn.block = Box::new(
+            syn::parse2(quote! {
+                {
+                    #aux
+                    XElement {
+                        tag_name: Some(#tag.into()),
+                        key: XKey::default(),
+                        value: XElementValue::Dynamic((move |element| #name(element #(,#params.clone())*)).into()),
+                        before_render: None,
+                        after_render: None,
+                    }
+                }
+            })
+            .unwrap(),
+        );
+        original_item_fn.to_token_stream()
+    } else {
+        item_fn.to_token_stream()
+    };
+
     if args.debug {
-        println!("{}\n", item_to_string(&item_fn));
+        println!(
+            "{}\n",
+            item_to_string(&syn::parse2(result.clone()).unwrap())
+        );
     }
-    Ok(item_fn.to_token_stream())
+
+    Ok(result)
 }
 
 fn item_to_string(item: &syn::ItemFn) -> String {

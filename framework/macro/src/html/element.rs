@@ -1,11 +1,10 @@
 use quote::quote;
-use syn::spanned::Spanned;
 
 use super::event::process_event;
 use super::html_element_visitor::HtmlElementVisitor;
 
 pub struct XElement {
-    pub tag_name: proc_macro2::TokenStream,
+    pub tag_name: Option<proc_macro2::TokenStream>,
     pub key: proc_macro2::TokenStream,
     pub attributes: Vec<proc_macro2::TokenStream>,
     pub events: Vec<proc_macro2::TokenStream>,
@@ -26,7 +25,6 @@ impl XElement {
         let name = name.strip_suffix("_").unwrap_or(name);
         let name = name.replace("_", "-");
         match name.as_str() {
-            "tag-name" => self.tag_name = quote! { #value.into() },
             "key" => self.key = quote! { XKey::Named(#value.into()) },
             "before-render" => self.before_render = Some(quote!(#value)),
             "after-render" => self.after_render = Some(quote!(#value)),
@@ -49,7 +47,6 @@ impl XElement {
         let name = name.strip_suffix("_").unwrap_or(name);
         let name = name.replace("_", "-");
         match name.as_str() {
-            "tag-name" => self.tag_name = quote! { compile_error },
             "key" => self.key = quote! { compile_error!() },
             "before-render" => self.before_render = Some(quote! { compile_error!() }),
             "after-render" => self.after_render = Some(quote! { compile_error!() }),
@@ -76,7 +73,6 @@ impl XElement {
         let name = name.strip_suffix("_").unwrap_or(name);
         let name = name.replace("_", "-");
         match name.as_str() {
-            "tag-name" => self.tag_name = quote! { compile_error },
             "key" => self.key = quote! { compile_error!() },
             "before-render" => self.before_render = Some(quote! { compile_error!() }),
             "after-render" => self.after_render = Some(quote! { compile_error!() }),
@@ -94,8 +90,14 @@ impl XElement {
     }
 
     pub fn process_dynamic(&mut self, dynamic: &syn::Expr) {
+        if self.dynamic.is_some() {
+            self.dynamic = Some(quote! {
+                compile_error!("Dynamic nodes have a single callback")
+            });
+            return;
+        }
         self.dynamic = Some(quote! {
-            value: XElementValue::Dynamic((#dynamic).into())
+            XElementValue::Dynamic((#dynamic).into())
         });
     }
 
@@ -105,24 +107,21 @@ impl XElement {
         child: &syn::Expr,
     ) {
         let child = match child {
-            syn::Expr::Call(expr_call) => {
-                let Some(child_tag_name) = html_element_visitor.get_tag_name(&expr_call.func)
-                else {
-                    html_element_visitor.success =
-                        Err(syn::Error::new(expr_call.span(), "Not a known HTML tag"));
-                    return;
-                };
+            syn::Expr::Call(expr_call)
+                if html_element_visitor.get_tag_name(&expr_call.func).is_some() =>
+            {
+                let child_tag_name = html_element_visitor.get_tag_name(&expr_call.func).unwrap();
                 let child = html_element_visitor.process_html_tag(child_tag_name, expr_call);
                 quote! { XNode::from(#child) }
             }
-            syn::Expr::Macro(expr_macro) => {
-                let Some(child_tag_name) =
-                    html_element_visitor.get_tag_name_from_path(&expr_macro.mac.path)
-                else {
-                    html_element_visitor.success =
-                        Err(syn::Error::new(expr_macro.span(), "Not a known HTML tag"));
-                    return;
-                };
+            syn::Expr::Macro(expr_macro)
+                if html_element_visitor
+                    .get_tag_name_from_path(&expr_macro.mac.path)
+                    .is_some() =>
+            {
+                let child_tag_name = html_element_visitor
+                    .get_tag_name_from_path(&expr_macro.mac.path)
+                    .unwrap();
                 let syn::Macro { path, tokens, .. } = &expr_macro.mac;
                 let expr_call: syn::ExprCall = syn::parse2(quote! { #path(#tokens) }).unwrap();
                 let child = html_element_visitor.process_html_tag(child_tag_name, &expr_call);
@@ -132,7 +131,7 @@ impl XElement {
                 lit: syn::Lit::Str(string),
                 ..
             }) => quote! { XNode::from(XText(format!(#string).into())) },
-            child => quote! { #child },
+            child => quote! { XNode::from(#child) },
         };
         self.children.push(quote! {
             gen_children.push(#child);

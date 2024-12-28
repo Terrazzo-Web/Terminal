@@ -156,3 +156,48 @@ fn sample(
     }
     Ok(())
 }
+
+#[test]
+fn tagged() -> syn::Result<()> {
+    let sample = quote! {
+        /// Docs
+        pub fn sample(arg: &str) -> XElement {
+            div(key = "root", "Root text")
+        }
+    };
+    let expected = r#"
+/// Docs
+pub fn sample(arg: &str) -> XElement {
+    fn sample(
+        generated_template: <XElement as IsTemplated>::Template,
+        arg: &str,
+    ) -> Consumers {
+        let generated_template1 = generated_template.clone();
+        make_reactive_closure()
+            .named("sample")
+            .closure(move || {
+                let generated_template = generated_template.clone();
+                let arg = arg.clone();
+                let generated_body = move || { div(key = "root", "Root text") };
+                generated_template.apply(generated_body)
+            })
+            .register(generated_template1)
+    }
+    XElement {
+        tag_name: Some("div".into()),
+        key: XKey::default(),
+        value: XElementValue::Dynamic(
+            (move |element| sample(element, arg.clone())).into(),
+        ),
+        before_render: None,
+        after_render: None,
+    }
+}"#;
+    let actual = template(quote! { tag = div }, sample)?;
+    let actual = item_to_string(&syn::parse2(actual)?);
+    if expected.trim() != actual.trim() {
+        println!("{}", actual);
+        assert!(false);
+    }
+    Ok(())
+}

@@ -70,7 +70,7 @@ mod verbose {
             }
             b.writeln(format!(
                 "<{tag_name} key={key:?}{rest}>",
-                tag_name = self.tag_name,
+                tag_name = self.tag_name.as_deref().unwrap_or("tag"),
                 key = self.key
             ));
             {
@@ -94,7 +94,10 @@ mod verbose {
                     }
                 }
             }
-            b.writeln(format!("</{tag_name}>", tag_name = self.tag_name));
+            b.writeln(format!(
+                "</{tag_name}>",
+                tag_name = self.tag_name.as_deref().unwrap_or("tag")
+            ));
         }
     }
 

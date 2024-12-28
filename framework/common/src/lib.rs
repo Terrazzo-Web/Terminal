@@ -1,3 +1,8 @@
+#![cfg_attr(
+    any(feature = "client", feature = "server"),
+    deny(unused_crate_dependencies)
+)]
+
 #[cfg(feature = "client")]
 mod client;
 #[cfg(feature = "client")]

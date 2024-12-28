@@ -7,6 +7,9 @@ pub struct MacroArgs {
 
     #[deluxe(default)]
     pub html_tags: HashSet<syn::Ident>,
+
+    #[deluxe(default)]
+    pub tag: Option<syn::Ident>,
 }
 
 impl MacroArgs {
@@ -21,7 +24,8 @@ impl MacroArgs {
 
 fn well_known_tags() -> HashSet<syn::Ident> {
     [
-        ["a", "abbr", "address", "area", "article", "aside", "audio"].as_slice(),
+        ["tag"].as_slice(),
+        &["a", "abbr", "address", "area", "article", "aside", "audio"],
         &["b", "base", "bdi", "bdo", "blockquote", "body", "br"],
         &["button", "canvas", "caption", "cite", "code", "col"],
         &["colgroup", "data", "datalist", "dd", "del", "details"],
@@ -42,5 +46,10 @@ fn well_known_tags() -> HashSet<syn::Ident> {
     .into_iter()
     .flatten()
     .map(|tag| syn::Ident::new(tag, proc_macro2::Span::call_site()))
+    .inspect({
+        // Check for duplicates
+        let mut tags = HashSet::new();
+        move |tag| assert!(tags.insert(tag.clone()))
+    })
     .collect()
 }

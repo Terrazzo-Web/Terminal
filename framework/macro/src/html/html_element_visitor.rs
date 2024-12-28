@@ -77,7 +77,7 @@ impl HtmlElementVisitor {
 
     pub fn process_html_tag(&mut self, tag_name: String, expr_call: &syn::ExprCall) -> syn::Expr {
         let mut element = XElement {
-            tag_name: quote! { #tag_name.into() },
+            tag_name: (tag_name != "tag").then(|| quote! { #tag_name.into() }),
             key: quote! { XKey::default() },
             attributes: vec![],
             events: vec![],
@@ -164,7 +164,7 @@ impl HtmlElementVisitor {
                     #(#children)*
                 };
                 let value = quote! {
-                    value: XElementValue::Static {
+                    XElementValue::Static {
                         attributes: gen_attributes,
                         children: gen_children,
                         events: vec![#(#events),*],
@@ -185,13 +185,16 @@ impl HtmlElementVisitor {
             return quote! { Some( OnRenderCallback(Box::new(#on_render)) ) };
         });
 
+        let tag_name = tag_name
+            .map(|tag_name| quote! { Some(#tag_name) })
+            .unwrap_or(quote! { None });
         let element = quote! {
             {
                 #generators
                 XElement {
                     tag_name: #tag_name,
                     key: #key,
-                    #value,
+                    value: #value,
                     before_render: #before_render,
                     after_render: #after_render,
                 }
