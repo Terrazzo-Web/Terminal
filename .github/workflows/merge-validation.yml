@@ -7,18 +7,21 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    name: Sanity checks
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/check
   test:
     runs-on: ubuntu-latest
+    name: Unit tests
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/test
   build:
     runs-on: ubuntu-latest
+    name: Compilation check
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
