@@ -19,6 +19,8 @@ pub use crate::signal::reactive_closure::reactive_closure_builder::make_reactive
 pub use crate::signal::reactive_closure::reactive_closure_builder::BindReactiveClosure;
 pub use crate::signal::reactive_closure::reactive_closure_builder::Consumers;
 pub use crate::signal::reactive_closure::reactive_closure_builder::ReactiveClosureBuilder;
+pub use crate::signal::UpdateAndReturn;
+pub use crate::signal::UpdateSignalResult;
 pub use crate::signal::XSignal;
 pub use crate::string::XString;
 pub use crate::template::IsTemplate;

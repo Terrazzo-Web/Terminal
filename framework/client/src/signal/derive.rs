@@ -99,6 +99,14 @@ impl<T> XSignal<T> {
 
         return derived;
     }
+
+    pub fn view<U>(&self, name: impl Into<XString>, to: impl Fn(&T) -> U + 'static) -> XSignal<U>
+    where
+        T: Debug + 'static,
+        U: Debug + Eq + 'static,
+    {
+        self.derive(name, to, |_, _| None)
+    }
 }
 
 pub fn if_change<T: Eq, U>(
