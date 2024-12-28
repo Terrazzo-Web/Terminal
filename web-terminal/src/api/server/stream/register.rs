@@ -11,19 +11,17 @@ use tracing_futures as _;
 
 use super::registration::Registration;
 use crate::api::RegisterTerminalMode;
-use crate::api::RegisterTerminalQuery;
+use crate::api::RegisterTerminalRequest;
 use crate::processes;
 use crate::terminal_id::TerminalId;
 
-pub async fn register(
-    terminal_id: TerminalId,
-    query: RegisterTerminalQuery,
-) -> Result<(), RegisterStreamError> {
+pub async fn register(request: RegisterTerminalRequest) -> Result<(), RegisterStreamError> {
     defer!(debug!("End"));
     debug!("Start");
     async {
-        let lease = processes::stream::open_stream(&terminal_id, |_| async {
-            match query.mode {
+        let terminal_id = request.def.id.clone();
+        let lease = processes::stream::open_stream(request.def, |_| async {
+            match request.mode {
                 RegisterTerminalMode::Create => ProcessIO::open().await,
                 RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
             }

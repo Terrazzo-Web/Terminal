@@ -1908,7 +1908,6 @@ dependencies = [
  "scopeguard",
  "serde",
  "serde_json",
- "serde_urlencoded",
  "stylance",
  "terrazzo",
  "terrazzo-build",

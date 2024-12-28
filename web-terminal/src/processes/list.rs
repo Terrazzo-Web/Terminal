@@ -6,6 +6,6 @@ pub fn list() -> Vec<TerminalDef> {
         .iter()
         .map(|entry| entry.value().0.clone())
         .collect::<Vec<_>>();
-    processes.sort_by_key(|t| t.id.clone());
+    processes.sort_by_key(|t| t.order);
     return processes;
 }

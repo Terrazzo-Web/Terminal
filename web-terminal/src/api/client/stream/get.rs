@@ -19,16 +19,14 @@ use super::register::RegisterError;
 use super::StreamDispatchers;
 use super::DISPATCHERS;
 use crate::api::client::stream::ShutdownPipe;
-use crate::api::RegisterTerminalQuery;
+use crate::api::RegisterTerminalRequest;
 use crate::terminal_id::TerminalId;
 
-pub async fn get(
-    terminal_id: &TerminalId,
-    query: RegisterTerminalQuery,
-) -> Result<StreamReader, RegisterError> {
+pub async fn get(request: RegisterTerminalRequest) -> Result<StreamReader, RegisterError> {
     async {
+        let terminal_id = &request.def.id;
         let stream_reader = add_dispatcher(terminal_id).await?;
-        register(terminal_id, query).await?;
+        register(request).await?;
         return Ok(stream_reader);
     }
     .instrument(info_span!("Get"))

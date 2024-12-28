@@ -28,15 +28,17 @@ pub struct Chunk {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TerminalDef {
+pub struct TerminalDef<T = String> {
     pub id: TerminalId,
-    pub title: String,
+    pub title: T,
+    pub order: i32,
 }
 
 #[named]
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub struct RegisterTerminalQuery {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RegisterTerminalRequest {
     pub mode: RegisterTerminalMode,
+    pub def: TerminalDef,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

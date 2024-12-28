@@ -53,7 +53,7 @@ impl ProcessIoEntry {
 
 impl Drop for ProcessIoEntry {
     fn drop(&mut self) {
-        info!("Drop {}", ProcessIoEntry::type_name());
+        info!("Drop {}", Self::type_name());
     }
 }
 
@@ -104,9 +104,15 @@ pub enum LeaseError {
     Canceled(#[from] oneshot::Canceled),
 }
 
-#[derive(Default)]
-pub struct ProcessOutputLease {
-    maybe_output: Option<TakeUntil<ReleaseOnDrop<ProcessOutput>, oneshot::Receiver<()>>>,
+pub enum ProcessOutputLease {
+    /// The process is active and this is the current lease.
+    Lease(TakeUntil<ReleaseOnDrop<ProcessOutput>, oneshot::Receiver<()>>),
+
+    /// The process is still active but another client is consuming the stream.
+    Revoked,
+
+    /// The process is closed. We return one last [LeaseItem] to indicate the closure.
+    Closed,
 }
 
 impl ProcessOutputLease {
@@ -115,53 +121,69 @@ impl ProcessOutputLease {
     ) -> (Self, oneshot::Sender<()>, oneshot::Receiver<ProcessOutput>) {
         let (process_output, process_output_rx) = ReleaseOnDrop::new(process_output);
         let (signal_tx, signal_rx) = oneshot::channel();
-        let lease = Self {
-            maybe_output: Some(process_output.take_until(signal_rx)),
-        };
+        let process_output = process_output.take_until(signal_rx);
+        let lease = Self::Lease(process_output);
         (lease, signal_tx, process_output_rx)
     }
 
-    fn release(&mut self) {
-        *self = Self::default()
+    fn revoke(&mut self) {
+        *self = Self::Revoked
     }
 }
 
 impl Stream for ProcessOutputLease {
-    type Item = std::io::Result<Vec<u8>>;
+    type Item = LeaseItem;
 
     fn poll_next(
         mut self: Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> Poll<Option<Self::Item>> {
         let next = {
-            let Some(process_io) = self.maybe_output.as_mut() else {
-                // Normally this can't happen.
-                // Another terminal can "steal" the process using signaling,
-                // which closes and releases this stream.
-                info!("The process output lease was lost while streaming");
-                return None.into();
+            let process_io = match &mut *self {
+                ProcessOutputLease::Lease(process_io) => process_io,
+                ProcessOutputLease::Revoked => return None.into(),
+                ProcessOutputLease::Closed => {
+                    self.revoke();
+                    return Some(LeaseItem::EOS).into();
+                }
             };
-            ready!(process_io.poll_next_unpin(cx))
+            let next = ready!(process_io.poll_next_unpin(cx));
+            if next.is_none() && process_io.is_stopped() {
+                debug!("The process stopped");
+                self.revoke();
+                return Some(LeaseItem::EOS).into();
+            }
+            next
         };
 
-        if let Some(next) = next {
-            match &next {
-                Ok(data) => {
-                    debug_assert!(!data.is_empty(), "Unexpected empty buffer");
-                    debug! { "Reading {}", String::from_utf8_lossy(data).escape_default() }
-                }
-                Err(error) => error!("Reading failed: {error}"),
+        Some(match next {
+            Some(Ok(data)) => {
+                debug_assert!(!data.is_empty(), "Unexpected empty buffer");
+                debug! { "Reading {}", String::from_utf8_lossy(&data).escape_default() }
+                LeaseItem::Data(data)
             }
-            return Some(next).into();
-        }
-
-        self.release();
-        return None.into();
+            Some(Err(error)) => {
+                error!("Reading failed: {error}");
+                LeaseItem::Error(error)
+            }
+            None => {
+                self.revoke();
+                return None.into();
+            }
+        })
+        .into()
     }
 }
 
+#[named]
+pub enum LeaseItem {
+    EOS,
+    Data(Vec<u8>),
+    Error(std::io::Error),
+}
+
 impl Stream for ReleaseOnDrop<ProcessOutput> {
-    type Item = std::io::Result<Vec<u8>>;
+    type Item = <ProcessOutput as Stream>::Item;
 
     fn poll_next(
         self: Pin<&mut Self>,

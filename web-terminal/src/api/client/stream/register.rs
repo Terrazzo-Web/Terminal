@@ -1,7 +1,8 @@
 use named::named;
 use named::NamedEnumValues as _;
-use named::NamedType as _;
 use terrazzo::prelude::OrElseLog as _;
+use wasm_bindgen::JsValue;
+use web_sys::Headers;
 use web_sys::Response;
 
 use super::pipe::PipeError;
@@ -9,22 +10,23 @@ use crate::api::client::send_request;
 use crate::api::client::Method;
 use crate::api::client::SendRequestError;
 use crate::api::client::BASE_URL;
-use crate::api::RegisterTerminalQuery;
-use crate::terminal_id::TerminalId;
+use crate::api::RegisterTerminalRequest;
 
 /// Instructs the server to include `terminal_id`'s data in the pipe.
 #[named]
-pub async fn register(
-    terminal_id: &TerminalId,
-    query: RegisterTerminalQuery,
-) -> Result<(), RegisterError> {
+pub async fn register(request: RegisterTerminalRequest) -> Result<(), RegisterError> {
+    let json = serde_json::to_string(&request)?;
     let _: Response = send_request(
         Method::POST,
-        format!(
-            "{BASE_URL}/stream/{REGISTER}/{terminal_id}?{query}",
-            query = serde_urlencoded::to_string(query).or_throw(RegisterTerminalQuery::type_name())
-        ),
-        move |_| {},
+        format!("{BASE_URL}/stream/{REGISTER}"),
+        move |request| {
+            let headers = Headers::new().or_throw("Headers::new()");
+            headers
+                .set("content-type", "application/json")
+                .or_throw("Set 'content-type'");
+            request.set_headers(headers.as_ref());
+            request.set_body(&JsValue::from_str(&json));
+        },
     )
     .await?;
     return Ok(());
@@ -38,24 +40,7 @@ pub enum RegisterError {
 
     #[error("[{n}] {0}", n = self.name())]
     PipeError(#[from] PipeError),
-}
 
-#[cfg(test)]
-mod tests {
-    use named::NamedType as _;
-    use terrazzo::prelude::OrElseLog as _;
-
-    use crate::api::RegisterTerminalMode;
-    use crate::api::RegisterTerminalQuery;
-
-    #[test]
-    fn serialize_register_terminal_mode() {
-        let query = RegisterTerminalQuery {
-            mode: RegisterTerminalMode::Create,
-        };
-        assert_eq!(
-            "mode=Create",
-            serde_urlencoded::to_string(&query).or_throw(RegisterTerminalQuery::type_name())
-        );
-    }
+    #[error("[{n}] {0}", n = self.name())]
+    InvalidJson(#[from] serde_json::Error),
 }

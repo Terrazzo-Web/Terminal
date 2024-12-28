@@ -31,7 +31,8 @@ use super::Method;
 use super::SendRequestError;
 use super::BASE_URL;
 use crate::api::RegisterTerminalMode;
-use crate::api::RegisterTerminalQuery;
+use crate::api::RegisterTerminalRequest;
+use crate::api::TerminalDef;
 use crate::terminal::TerminalsState;
 use crate::terminal_id::TerminalId;
 
@@ -61,7 +62,7 @@ static GLOBAL_AWAKE: Mutex<Option<(oneshot::Sender<()>, Shared<oneshot::Receiver
 /// 6. */Server side/* If there is a correlation id, drop the registration
 pub async fn stream<F, F0>(
     state: TerminalsState,
-    terminal_id: &TerminalId,
+    terminal_def: TerminalDef,
     element: Element,
     on_init: impl FnOnce() -> F0,
     on_data: impl Fn(JsValue) -> F,
@@ -70,11 +71,13 @@ where
     F: std::future::Future<Output = ()>,
     F0: std::future::Future<Output = ()>,
 {
-    defer! { state.on_eos(terminal_id); }
-    let query = RegisterTerminalQuery {
+    let terminal_id = terminal_def.id.clone();
+    defer! { state.on_eos(&terminal_id); }
+    let query = RegisterTerminalRequest {
         mode: RegisterTerminalMode::Create,
+        def: terminal_def,
     };
-    let mut reader = get(terminal_id, query).await?.ready_chunks(10);
+    let mut reader = get(query.clone()).await?.ready_chunks(10);
 
     debug!("On init");
     let () = on_init().await;
@@ -113,13 +116,11 @@ where
                 return Ok(());
             }
         }
-        let query = RegisterTerminalQuery {
+        let query = RegisterTerminalRequest {
             mode: RegisterTerminalMode::Reopen,
+            def: query.def.clone(),
         };
-        let Ok(new_reader) = get(terminal_id, query)
-            .await
-            .map(|reader| reader.ready_chunks(10))
-        else {
+        let Ok(new_reader) = get(query).await.map(|reader| reader.ready_chunks(10)) else {
             warn!("Can't re-open the stream");
             return Ok(());
         };

@@ -11,6 +11,7 @@ mod correlation_id;
 mod list;
 mod new_id;
 mod resize;
+mod set_order;
 mod set_title;
 mod stream;
 mod write;
@@ -23,10 +24,11 @@ pub fn route() -> Router {
         .route("/new_id", post(new_id::new_id))
         .route("/stream/pipe", post(stream::pipe))
         .route("/stream/pipe/close", post(stream::close_pipe))
-        .route("/stream/register/:terminal_id", post(stream::register))
+        .route("/stream/register", post(stream::register))
         .route("/stream/close/:terminal_id", post(stream::close))
         .route("/resize/:terminal_id", post(resize::resize))
         .route("/set_title/:terminal_id", post(set_title::set_title))
+        .route("/set_order", post(set_order::set_order))
         .route("/write/:terminal_id", post(write::write))
 }
 
