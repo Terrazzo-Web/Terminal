@@ -4,6 +4,7 @@ members = [
     "autoclone/autoclone-macro-tests",
     "framework/build",
     "framework/client",
+    "framework/common",
     "framework/macro",
     "named/named",
     "named/named-macro",
@@ -41,6 +42,7 @@ named = { path = "named/named" }
 named-macro = { path = "named/named-macro" }
 terrazzo-build = { path = "framework/build" }
 terrazzo-client = { path = "framework/client" }
+terrazzo-common = { path = "framework/common" }
 terrazzo-macro = { path = "framework/macro" }
 terrazzo-pty = { path = "pty" }
 
@@ -50,7 +52,10 @@ dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
 futures = { version = "0.3.30" }
 http = { version = "1.1.0" }
+include_directory = { version = "0.1.1" }
 libc = { version = "0.2.162" }
+mime = { version = "0.3.17" }
+mime_guess = { version = "2.0.5" }
 pin-project = { version = "1.1.7" }
 prettyplease = { version = "0.2.25" }
 proc-macro2 = { version = "1.0.89" }

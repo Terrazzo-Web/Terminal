@@ -36,5 +36,7 @@ fn main() {
         server_dir,
         wasm_pack_options,
     })
-    .unwrap()
+    .unwrap();
+
+    terrazzo_build::build_css("terrazzo");
 }

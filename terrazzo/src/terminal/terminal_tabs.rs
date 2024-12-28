@@ -38,7 +38,7 @@ impl TabsDescriptor for TerminalTabs {
             class = super::style::add_tab_icon,
             key = "add-tab-icon",
             div(
-                img(src = "/assets/icons/plus-square.svg"),
+                img(src = "/static/icons/plus-square.svg"),
                 click = move |_ev| {
                     let this = this.clone();
                     let state = state.clone();

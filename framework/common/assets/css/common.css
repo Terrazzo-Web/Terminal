@@ -1,0 +1,123 @@
+input.editing-1aa7378[type=text] {
+  border: 0px;
+  color: inherit;
+  background-color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+:root {
+  --link-color: red;
+  --link-underline-thickness: 1px;
+  --link-transition-speed: 0.3s;
+}
+
+.link-bb368a9:before {
+  display: block;
+  content: "";
+  height: var(--link-underline-thickness);
+  border-radius: var(--link-underline-thickness);
+  width: 100%;
+  visibility: hidden;
+}
+.link-bb368a9:after {
+  display: block;
+  content: "";
+  background-color: var(--link-color);
+  height: var(--link-underline-thickness);
+  border-radius: var(--link-underline-thickness);
+  width: 100%;
+  transform-origin: right;
+  transform: scaleX(0);
+  transition: transform var(--link-transition-speed) ease-in-out;
+}
+.link-bb368a9:hover:after {
+  transform-origin: left;
+  transform: scaleX(1);
+}
+
+.tabs-6ae162d {
+  display: flex;
+  flex-direction: column;
+  --padding: 10px;
+}
+
+.titles-6ae162d {
+  flex-grow: 0;
+}
+.titles-6ae162d > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+li.title-6ae162d {
+  border: 0;
+  margin: 0;
+  padding: var(--padding);
+}
+li.title-6ae162d:hover, li.title-6ae162d.selected-6ae162d {
+  background-color: red;
+}
+
+.items-6ae162d {
+  flex-grow: 1;
+}
+.items-6ae162d > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.items-6ae162d > ul .item-6ae162d {
+  display: none;
+  visibility: hidden;
+}
+.items-6ae162d > ul .item-6ae162d.selected-6ae162d {
+  display: block;
+  visibility: visible;
+}
+
+.title-show-sep-6ae162d {
+  display: block;
+  visibility: visible;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  --sep-zone: 50px;
+}
+.title-show-sep-6ae162d .title-drop-zone-6ae162d {
+  height: 100px;
+  position: absolute;
+  z-index: 100;
+  width: var(--sep-zone);
+}
+.title-show-sep-6ae162d .title-drop-sep-6ae162d {
+  position: relative;
+  height: 100%;
+}
+.title-show-sep-6ae162d .title-drop-sep-6ae162d::before {
+  content: "";
+  height: 100%;
+  position: absolute;
+  background-color: gray;
+  --width: 2px;
+  width: var(--width);
+  left: calc(-1 * var(--width) / 2);
+}
+.title-show-sep-6ae162d.title-dropping-6ae162d .title-drop-sep-6ae162d::before {
+  background-color: white;
+  --width: 8px;
+}
+
+.titles-6ae162d .title-show-sep-6ae162d:first-child .title-drop-sep-6ae162d::before {
+  left: 0px;
+}
+.titles-6ae162d .title-show-sep-6ae162d:last-child .title-drop-sep-6ae162d::before {
+  left: calc(-1 * var(--width));
+}
+
+.title-hide-sep-6ae162d {
+  display: none;
+  visibility: hidden;
+}

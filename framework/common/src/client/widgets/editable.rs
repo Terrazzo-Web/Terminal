@@ -10,7 +10,7 @@ use web_sys::MouseEvent;
 
 use super::more_event::MoreEvent;
 
-stylance::import_crate_style!(style, "src/widgets/editable.scss");
+stylance::import_crate_style!(style, "src/client/widgets/editable.scss");
 
 static EDITABLE_ELEMENT: &str = "Editable element";
 
