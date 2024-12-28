@@ -1,3 +1,5 @@
+use std::future::ready;
+
 use futures::channel::mpsc;
 use futures::select;
 use futures::FutureExt as _;
@@ -73,7 +75,6 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
         });
         if terminal_tab.selected.get_value_untracked() {
             xtermjs.focus();
-            xtermjs.fit();
         }
         // TODO: If write fails, we should not close the tab
         select! {
@@ -108,22 +109,24 @@ impl TerminalJs {
     fn do_on_resize(&self, terminal_id: TerminalId) -> Closure<dyn FnMut(JsValue)> {
         let span = Span::current();
         let this = self.clone();
+        let mut first_resize = true;
         let on_resize: Closure<dyn FnMut(JsValue)> = Closure::new(move |data| {
             let _span = span.enter();
-            info!("Resized: {data:?}");
-            let resize = this.clone().do_resize(terminal_id.clone());
+            let first_resize = std::mem::replace(&mut first_resize, false);
+            debug!("Resize: {data:?} first_resize:{first_resize}");
+            let resize = this.clone().do_resize(terminal_id.clone(), first_resize);
             wasm_bindgen_futures::spawn_local(resize.in_current_span());
         });
         self.on_resize(&on_resize);
         return on_resize;
     }
 
-    async fn do_resize(self, terminal_id: TerminalId) {
+    async fn do_resize(self, terminal_id: TerminalId, first_resize: bool) {
         let size = api::Size {
             rows: self.rows().as_f64().or_throw("rows") as i32,
             cols: self.cols().as_f64().or_throw("cols") as i32,
         };
-        if let Err(error) = api::client::resize::resize(&terminal_id, size).await {
+        if let Err(error) = api::client::resize::resize(&terminal_id, size, first_resize).await {
             warn!("Failed to resize: {error}");
         }
     }
@@ -152,8 +155,10 @@ impl TerminalJs {
     ) {
         async {
             debug!("Start");
-            let terminal_id = terminal_def.id.clone();
-            let on_init = || self.clone().do_resize(terminal_id);
+            let on_init = || {
+                self.fit();
+                ready(())
+            };
             let eos = api::client::stream::stream(state, terminal_def, element, on_init, |data| {
                 self.send(data)
             })
