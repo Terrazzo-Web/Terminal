@@ -1,5 +1,7 @@
 # TODO
 - `#·52`. Drag n Drop to create tiles
+- `#·57`. Dynamic attributes
+- `#·58`. Shortcut for style attributes
 - `#·55`. Better way to do APIs. `server_fn`?
 - `#·32`. Open source terrazzo client.
 - `#·32`. Open source named.
@@ -16,7 +18,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#·57`.
+Next: `#·59`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`

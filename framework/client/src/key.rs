@@ -1,3 +1,4 @@
+use tracing::warn;
 use web_sys::Element;
 
 use crate::string::XString;
@@ -16,6 +17,7 @@ impl XKey {
         if let Some(key) = element.get_attribute(KEY_ATTRIBUTE) {
             parse_index_key(&key).unwrap_or_else(|| XKey::Named(key.into()))
         } else {
+            warn!("Node doesn't have a key");
             XKey::Index(index)
         }
     }

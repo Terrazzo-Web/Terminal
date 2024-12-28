@@ -89,11 +89,20 @@ impl HtmlElementVisitor {
         for arg in &expr_call.args {
             match arg {
                 // Attribute
-                syn::Expr::Assign(expr_assign) if get_attribute_name(expr_assign).is_some() => {
-                    element.process_attribute(
-                        get_attribute_name(expr_assign).unwrap(),
-                        &expr_assign.right,
-                    );
+                syn::Expr::Assign(syn::ExprAssign { left, right, .. })
+                    if get_attribute_name(left).is_some() =>
+                {
+                    element.process_attribute(get_attribute_name(left).unwrap(), right);
+                }
+
+                // Optional attribute
+                syn::Expr::Binary(syn::ExprBinary {
+                    left,
+                    op: syn::BinOp::BitOrAssign { .. },
+                    right,
+                    ..
+                }) if get_attribute_name(left).is_some() => {
+                    element.process_optional_attribute(get_attribute_name(left).unwrap(), right);
                 }
 
                 // Dynamic
@@ -122,7 +131,7 @@ impl HtmlElementVisitor {
             before_render,
             after_render,
         } = element;
-        let (gen_children, value) = match dynamic {
+        let (generators, value) = match dynamic {
             Some(dynamic) => {
                 if attributes.is_empty() && events.is_empty() && children.is_empty() {
                     (quote! {}, dynamic)
@@ -136,18 +145,26 @@ impl HtmlElementVisitor {
                 }
             }
             None => {
+                let gen_attributes = quote! {
+                    let mut gen_attributes = vec![];
+                    #(#attributes)*
+                };
                 let gen_children = quote! {
                     let mut gen_children = vec![];
                     #(#children)*
                 };
                 let value = quote! {
                     value: XElementValue::Static {
+                        attributes: gen_attributes,
                         children: gen_children,
-                        attributes: vec![#(#attributes),*],
                         events: vec![#(#events),*],
                     }
                 };
-                (gen_children, value)
+                let generators = quote! {
+                    #gen_attributes
+                    #gen_children
+                };
+                (generators, value)
             }
         };
 
@@ -160,7 +177,7 @@ impl HtmlElementVisitor {
 
         let element = quote! {
             {
-                #gen_children
+                #generators
                 XElement {
                     tag_name: #tag_name,
                     key: #key,
@@ -177,7 +194,7 @@ impl HtmlElementVisitor {
     }
 }
 
-fn get_attribute_name(expr_assign: &syn::ExprAssign) -> Option<&syn::Ident> {
+fn get_attribute_name(left: &syn::Expr) -> Option<&syn::Ident> {
     let syn::Expr::Path(syn::ExprPath {
         attrs: _,
         qself: None,
@@ -185,7 +202,7 @@ fn get_attribute_name(expr_assign: &syn::ExprAssign) -> Option<&syn::Ident> {
             leading_colon: None,
             segments,
         },
-    }) = &*expr_assign.left
+    }) = left
     else {
         return None;
     };

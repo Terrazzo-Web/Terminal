@@ -15,14 +15,15 @@ fn simple_node() -> syn::Result<()> {
     let expected = r#"
 fn sample() -> XElement {
     {
+        let mut gen_attributes = vec![];
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Root text").into())));
         XElement {
             tag_name: "div".into(),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
+                attributes: gen_attributes,
                 children: gen_children,
-                attributes: vec![],
                 events: vec![],
             },
             before_render: None,
@@ -53,11 +54,13 @@ fn child() -> syn::Result<()> {
     let expected = r#"
 fn sample() -> XElement {
     return {
+        let mut gen_attributes = vec![];
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Root text").into())));
         gen_children
             .push(
                 XNode::from({
+                    let mut gen_attributes = vec![];
                     let mut gen_children = vec![];
                     gen_children.push(XNode::from(XText(format!("Paragraph 1").into())));
                     gen_children.push(XNode::from(XText(format!("Paragraph 2").into())));
@@ -65,8 +68,8 @@ fn sample() -> XElement {
                         tag_name: "span".into(),
                         key: XKey::Named("inner".into()),
                         value: XElementValue::Static {
+                            attributes: gen_attributes,
                             children: gen_children,
-                            attributes: vec![],
                             events: vec![],
                         },
                         before_render: None,
@@ -78,8 +81,8 @@ fn sample() -> XElement {
             tag_name: "div".into(),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
+                attributes: gen_attributes,
                 children: gen_children,
-                attributes: vec![],
                 events: vec![],
             },
             before_render: None,
@@ -113,14 +116,15 @@ fn children() -> syn::Result<()> {
     let expected = r#"
 fn sample() -> XElement {
     let child1 = {
+        let mut gen_attributes = vec![];
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Child1").into())));
         XElement {
             tag_name: "span".into(),
             key: XKey::default(),
             value: XElementValue::Static {
+                attributes: gen_attributes,
                 children: gen_children,
-                attributes: vec![],
                 events: vec![],
             },
             before_render: None,
@@ -128,14 +132,15 @@ fn sample() -> XElement {
         }
     };
     let child2 = {
+        let mut gen_attributes = vec![];
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Child2").into())));
         XElement {
             tag_name: "span".into(),
             key: XKey::default(),
             value: XElementValue::Static {
+                attributes: gen_attributes,
                 children: gen_children,
-                attributes: vec![],
                 events: vec![],
             },
             before_render: None,
@@ -144,6 +149,7 @@ fn sample() -> XElement {
     };
     let children = [child1, child2];
     return {
+        let mut gen_attributes = vec![];
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Root text").into())));
         gen_children.extend(children.into_iter().map(XNode::from));
@@ -151,8 +157,8 @@ fn sample() -> XElement {
             tag_name: "div".into(),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
+                attributes: gen_attributes,
                 children: gen_children,
-                attributes: vec![],
                 events: vec![],
             },
             before_render: None,
@@ -195,18 +201,93 @@ fn attribute() -> syn::Result<()> {
     let expected = r#"
 fn sample() -> XElement {
     {
+        let mut gen_attributes = vec![];
+        gen_attributes
+            .push(XAttribute {
+                name: "class".into(),
+                value: "base".into(),
+            });
+        gen_attributes
+            .push(XAttribute {
+                name: "style".into(),
+                value: format!("width: {}%", 100).into(),
+            });
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Root text").into())));
         XElement {
             tag_name: "div".into(),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
+                attributes: gen_attributes,
                 children: gen_children,
-                attributes: vec![
-                    XAttribute { name : "class".into(), value : "base".into(), },
-                    XAttribute { name : "style".into(), value : format!("width: {}%",
-                    100) .into(), }
-                ],
+                events: vec![],
+            },
+            before_render: None,
+            after_render: None,
+        }
+    }
+}"#;
+    let actual = html(quote! {}, sample)?;
+    let actual = item_to_string(&syn::parse2(actual)?);
+    if expected.trim() != actual.trim() {
+        println!("{}", actual);
+        assert!(false);
+    }
+    Ok(())
+}
+
+#[test]
+fn optional_attribute() -> syn::Result<()> {
+    let sample = quote! {
+        fn sample() -> XElement {
+            div(
+                key = "root",
+                "Root text",
+                class = "base",
+                style |= Some(format!("width: {}%", 100)),
+                data_custom |= Some("custom attribute"),
+                data_custom |= if true { Some("y") } else { None },
+            )
+        }
+    };
+    let expected = r#"
+fn sample() -> XElement {
+    {
+        let mut gen_attributes = vec![];
+        gen_attributes
+            .push(XAttribute {
+                name: "class".into(),
+                value: "base".into(),
+            });
+        if let Some(value) = Some(format!("width: {}%", 100)) {
+            gen_attributes
+                .push(XAttribute {
+                    name: "style".into(),
+                    value: value.into(),
+                });
+        }
+        if let Some(value) = Some("custom attribute") {
+            gen_attributes
+                .push(XAttribute {
+                    name: "data-custom".into(),
+                    value: value.into(),
+                });
+        }
+        if let Some(value) = if true { Some("y") } else { None } {
+            gen_attributes
+                .push(XAttribute {
+                    name: "data-custom".into(),
+                    value: value.into(),
+                });
+        }
+        let mut gen_children = vec![];
+        gen_children.push(XNode::from(XText(format!("Root text").into())));
+        XElement {
+            tag_name: "div".into(),
+            key: XKey::Named("root".into()),
+            value: XElementValue::Static {
+                attributes: gen_attributes,
+                children: gen_children,
                 events: vec![],
             },
             before_render: None,
@@ -233,18 +314,20 @@ fn index_keys() -> syn::Result<()> {
     let expected = r#"
 fn sample() -> XElement {
     return {
+        let mut gen_attributes = vec![];
         let mut gen_children = vec![];
         gen_children
             .push(
                 XNode::from({
+                    let mut gen_attributes = vec![];
                     let mut gen_children = vec![];
                     gen_children.push(XNode::from(XText(format!("Paragraph 1").into())));
                     XElement {
                         tag_name: "span".into(),
                         key: XKey::default(),
                         value: XElementValue::Static {
+                            attributes: gen_attributes,
                             children: gen_children,
-                            attributes: vec![],
                             events: vec![],
                         },
                         before_render: None,
@@ -255,14 +338,15 @@ fn sample() -> XElement {
         gen_children
             .push(
                 XNode::from({
+                    let mut gen_attributes = vec![];
                     let mut gen_children = vec![];
                     gen_children.push(XNode::from(XText(format!("Paragraph 2").into())));
                     XElement {
                         tag_name: "span".into(),
                         key: XKey::default(),
                         value: XElementValue::Static {
+                            attributes: gen_attributes,
                             children: gen_children,
-                            attributes: vec![],
                             events: vec![],
                         },
                         before_render: None,
@@ -274,8 +358,8 @@ fn sample() -> XElement {
             tag_name: "div".into(),
             key: XKey::default(),
             value: XElementValue::Static {
+                attributes: gen_attributes,
                 children: gen_children,
-                attributes: vec![],
                 events: vec![],
             },
             before_render: None,
@@ -367,11 +451,13 @@ fn child_macros() -> syn::Result<()> {
     let expected = r#"
 fn sample() -> XElement {
     return {
+        let mut gen_attributes = vec![];
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Root text").into())));
         gen_children
             .push(
                 XNode::from({
+                    let mut gen_attributes = vec![];
                     let mut gen_children = vec![];
                     gen_children.push(XNode::from(XText(format!("Paragraph 1").into())));
                     gen_children.push(XNode::from(XText(format!("Paragraph 2").into())));
@@ -379,8 +465,8 @@ fn sample() -> XElement {
                         tag_name: "span".into(),
                         key: XKey::Named("inner".into()),
                         value: XElementValue::Static {
+                            attributes: gen_attributes,
                             children: gen_children,
-                            attributes: vec![],
                             events: vec![],
                         },
                         before_render: None,
@@ -392,8 +478,8 @@ fn sample() -> XElement {
             tag_name: "div".into(),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
+                attributes: gen_attributes,
                 children: gen_children,
-                attributes: vec![],
                 events: vec![],
             },
             before_render: None,
@@ -428,11 +514,13 @@ fn child_macros2() -> syn::Result<()> {
     let expected = r#"
 fn sample() -> XElement {
     {
+        let mut gen_attributes = vec![];
         let mut gen_children = vec![];
         gen_children.push(XNode::from(XText(format!("Root text").into())));
         gen_children
             .push(
                 XNode::from({
+                    let mut gen_attributes = vec![];
                     let mut gen_children = vec![];
                     gen_children.push(XNode::from(XText(format!("Paragraph 1").into())));
                     gen_children.push(XNode::from(XText(format!("Paragraph 2").into())));
@@ -440,8 +528,8 @@ fn sample() -> XElement {
                         tag_name: "span".into(),
                         key: XKey::Named("inner".into()),
                         value: XElementValue::Static {
+                            attributes: gen_attributes,
                             children: gen_children,
-                            attributes: vec![],
                             events: vec![],
                         },
                         before_render: None,
@@ -453,8 +541,8 @@ fn sample() -> XElement {
             tag_name: "div".into(),
             key: XKey::Named("root".into()),
             value: XElementValue::Static {
+                attributes: gen_attributes,
                 children: gen_children,
-                attributes: vec![],
                 events: vec![],
             },
             before_render: None,

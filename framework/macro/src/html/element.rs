@@ -24,17 +24,45 @@ impl XElement {
         let name = name.to_string();
         let name = name.strip_prefix("r#").unwrap_or(&name);
         let name = name.strip_suffix("_").unwrap_or(name);
-        match name {
-            "tag_name" => self.tag_name = quote! { #value.into() },
+        let name = name.replace("_", "-");
+        match name.as_str() {
+            "tag-name" => self.tag_name = quote! { #value.into() },
             "key" => self.key = quote! { XKey::Named(#value.into()) },
-            "before_render" => self.before_render = Some(quote!(#value)),
-            "after_render" => self.after_render = Some(quote!(#value)),
+            "before-render" => self.before_render = Some(quote!(#value)),
+            "after-render" => self.after_render = Some(quote!(#value)),
             _ => self.attributes.push(quote! {
-                XAttribute {
+                gen_attributes.push(XAttribute {
                     name: #name.into(),
                     value: #value.into(),
-                }
+                });
             }),
+        }
+    }
+
+    pub fn process_optional_attribute(&mut self, name: &syn::Ident, value: &syn::Expr) {
+        if process_event(name, value).is_some() {
+            self.events.push(quote! { compile_error!() });
+            return;
+        };
+        let name = name.to_string();
+        let name = name.strip_prefix("r#").unwrap_or(&name);
+        let name = name.strip_suffix("_").unwrap_or(name);
+        let name = name.replace("_", "-");
+        match name.as_str() {
+            "tag-name" => self.tag_name = quote! { compile_error },
+            "key" => self.key = quote! { compile_error!() },
+            "before-render" => self.before_render = Some(quote! { compile_error!() }),
+            "after-render" => self.after_render = Some(quote! { compile_error!() }),
+            _ => {
+                self.attributes.push(quote! {
+                    if let Some(value) = #value {
+                        gen_attributes.push(XAttribute {
+                            name: #name.into(),
+                            value: value.into(),
+                        });
+                    }
+                });
+            }
         }
     }
 

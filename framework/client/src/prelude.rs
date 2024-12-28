@@ -19,3 +19,5 @@ pub use crate::signal::reactive_closure::reactive_closure_builder::ReactiveClosu
 pub use crate::signal::XSignal;
 pub use crate::string::XString;
 pub use crate::template::XTemplate;
+pub use crate::utils::do_or_log::do_or_log;
+pub use crate::utils::do_or_log::ToLogMessage as _;

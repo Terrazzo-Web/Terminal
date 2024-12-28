@@ -10,6 +10,7 @@ pub mod prelude;
 mod signal;
 mod string;
 mod template;
+mod utils;
 
 pub fn setup_logging() {
     use tracing_subscriber_wasm::MakeConsoleWriter;

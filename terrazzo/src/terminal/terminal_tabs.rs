@@ -9,6 +9,7 @@ use super::TerminalsState;
 use crate::api;
 use crate::terminal_id::TerminalId;
 use crate::widgets::tabs::TabsDescriptor;
+use crate::widgets::tabs::TabsState;
 
 #[derive(Clone, Debug)]
 pub struct TerminalTabs {
@@ -71,5 +72,52 @@ impl TerminalTabs {
         let terminal_tabs = Rc::make_mut(&mut self.terminal_tabs);
         terminal_tabs.retain(|tab| tab.id != *id);
         self
+    }
+}
+
+impl TabsState for TerminalsState {
+    type TabDescriptor = TerminalTab;
+
+    fn move_tab(&self, after_tab: Option<TerminalTab>, moved_tab_key: String) {
+        self.terminal_tabs.update(|TerminalTabs { terminal_tabs }| {
+            let after_tab = if let Some(after_tab) = after_tab {
+                terminal_tabs.iter().find(|tab| tab.id == after_tab.id)
+            } else {
+                None
+            };
+            let moved_tab = terminal_tabs
+                .iter()
+                .find(|tab| tab.id.as_str() == moved_tab_key)
+                .unwrap();
+            let tabs = terminal_tabs
+                .iter()
+                .enumerate()
+                .flat_map(|(i, tab)| {
+                    if after_tab.is_some_and(|t| tab.id == t.id) {
+                        [Some(tab), Some(moved_tab)]
+                    } else if after_tab.is_none() && i == 0 {
+                        [Some(moved_tab), Some(tab)]
+                    } else if tab.id == moved_tab.id {
+                        Default::default()
+                    } else {
+                        [Some(tab), None]
+                    }
+                })
+                .flatten()
+                .filter({
+                    // Handle move to same position
+                    let mut last = None;
+                    move |tab| {
+                        let result = Some(&tab.id) != last.as_ref();
+                        last = Some(tab.id.clone());
+                        return result;
+                    }
+                })
+                .cloned()
+                .collect();
+            return Some(TerminalTabs {
+                terminal_tabs: Rc::new(tabs),
+            });
+        });
     }
 }
