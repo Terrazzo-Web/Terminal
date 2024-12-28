@@ -11,9 +11,12 @@ use futures::StreamExt as _;
 use named::named;
 use named::NamedEnumValues as _;
 use named::NamedType as _;
+use scopeguard::defer;
 use tracing::debug;
+use tracing::debug_span;
 use tracing::error;
 use tracing::info;
+use tracing::trace;
 
 use crate::release_on_drop::ReleaseOnDrop;
 use crate::ProcessIO;
@@ -82,10 +85,13 @@ impl ProcessOutputExchange {
     }
 
     async fn lease(self) -> Result<(ProcessOutputLease, Self), LeaseError> {
-        debug!("Stop current lease");
-        let _ = self.signal_tx.send(());
+        match self.signal_tx.send(()) {
+            Ok(()) => debug!("Current lease was stopped"),
+            Err(()) => debug!("The process was not leased"),
+        }
+        debug!("Getting new lease...");
         let process_output = self.process_output_rx.await?;
-        debug!("Got new lease");
+        debug!("Getting new lease: Done");
         let (lease, signal_tx, process_output_rx) = ProcessOutputLease::new(process_output);
         Ok((
             lease,
@@ -104,9 +110,10 @@ pub enum LeaseError {
     Canceled(#[from] oneshot::Canceled),
 }
 
+#[named]
 pub enum ProcessOutputLease {
     /// The process is active and this is the current lease.
-    Lease(TakeUntil<ReleaseOnDrop<ProcessOutput>, oneshot::Receiver<()>>),
+    Leased(TakeUntil<ReleaseOnDrop<ProcessOutput>, oneshot::Receiver<()>>),
 
     /// The process is still active but another client is consuming the stream.
     Revoked,
@@ -122,11 +129,14 @@ impl ProcessOutputLease {
         let (process_output, process_output_rx) = ReleaseOnDrop::new(process_output);
         let (signal_tx, signal_rx) = oneshot::channel();
         let process_output = process_output.take_until(signal_rx);
-        let lease = Self::Lease(process_output);
+        let lease = Self::Leased(process_output);
         (lease, signal_tx, process_output_rx)
     }
 
     fn revoke(&mut self) {
+        let _span = debug_span!("Revoking").entered();
+        debug!("Start");
+        defer!(debug!("End"));
         *self = Self::Revoked
     }
 }
@@ -138,9 +148,10 @@ impl Stream for ProcessOutputLease {
         mut self: Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> Poll<Option<Self::Item>> {
+        trace!("Poll next: state={}", self.name());
         let next = {
             let process_io = match &mut *self {
-                ProcessOutputLease::Lease(process_io) => process_io,
+                ProcessOutputLease::Leased(process_io) => process_io,
                 ProcessOutputLease::Revoked => return None.into(),
                 ProcessOutputLease::Closed => {
                     self.revoke();
@@ -149,10 +160,16 @@ impl Stream for ProcessOutputLease {
             };
             let next = ready!(process_io.poll_next_unpin(cx));
             if next.is_none() && process_io.is_stopped() {
-                debug!("The process stopped");
-                self.revoke();
-                return Some(LeaseItem::EOS).into();
+                match process_io.take_result() {
+                    Some(Err(oneshot::Canceled)) | None => {
+                        debug!("The process ended");
+                        self.revoke();
+                        return Some(LeaseItem::EOS).into();
+                    }
+                    Some(Ok(())) => debug!("The lease was revoked"),
+                }
             }
+            trace! { "next.is_none={} process_io.is_stopped={}", next.is_none(), process_io.is_stopped() };
             next
         };
 
@@ -163,10 +180,11 @@ impl Stream for ProcessOutputLease {
                 LeaseItem::Data(data)
             }
             Some(Err(error)) => {
-                error!("Reading failed: {error}");
+                trace!("Reading failed: {error}");
                 LeaseItem::Error(error)
             }
             None => {
+                debug!("next is None");
                 self.revoke();
                 return None.into();
             }

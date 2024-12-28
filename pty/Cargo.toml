@@ -12,6 +12,7 @@ libc = { workspace = true }
 named = { workspace = true }
 pin-project = { workspace = true }
 rustix = { workspace = true, features = ["fs", "process", "pty"] }
+scopeguard = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = [
     "macros",

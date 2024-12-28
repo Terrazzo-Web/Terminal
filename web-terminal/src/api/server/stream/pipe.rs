@@ -57,7 +57,7 @@ pub fn pipe(correlation_id: CorrelationId) -> Body {
             match chunk {
                 LeaseItem::EOS => tracing::debug!("{}", chunk.name()),
                 LeaseItem::Data(data) => assert!(!data.is_empty(), "Unexpected empty chunk"),
-                LeaseItem::Error(error) => tracing::warn!("Stream failed with {error}"),
+                LeaseItem::Error(error) => tracing::warn!("Stream failed with: {error}"),
             }
         });
 
@@ -76,32 +76,24 @@ pub fn pipe(correlation_id: CorrelationId) -> Body {
                     Err(error) => debug!("Closing {terminal_id} returned {error}"),
                 };
             })
-            // Stream is revoked: end of stream
-            // Stream is EOS/failure: add a None item
-            // Streaming data: Some(data)
-            .map(|chunk| match chunk {
-                LeaseItem::EOS => Some(None),
-                LeaseItem::Error { .. } => None,
-                LeaseItem::Data(data) => Some(Some(data)),
-            })
-            .take_while(|chunk| ready(chunk.is_some()))
-            .filter_map(ready)
             .ready_chunks(10);
 
         // Concat chunks
-        let lease = lease.flat_map(move |chunks| {
-            debug_assert!(!chunks.is_empty(), "Unexpected empty chunks");
-            let mut data = vec![];
-            for chunk in chunks {
-                if let Some(chunk) = chunk {
-                    data.extend(chunk)
-                } else {
-                    return futures::stream::iter(vec![Some(data), None]);
+        let lease = lease
+            .flat_map(move |chunks| {
+                debug_assert!(!chunks.is_empty(), "Unexpected empty chunks");
+                let mut data = vec![];
+                for chunk in chunks {
+                    if let LeaseItem::Data(chunk) = chunk {
+                        data.extend(chunk)
+                    } else {
+                        return futures::stream::iter([Some(data), None]);
+                    }
                 }
-            }
-            trace! { "Streaming {}", String::from_utf8_lossy(&data).escape_default() };
-            return futures::stream::iter(vec![Some(data)]);
-        });
+                trace! { "Streaming {}", String::from_utf8_lossy(&data).escape_default() };
+                return futures::stream::iter([Some(data), Some(vec![])]);
+            })
+            .filter(|chunk| ready(*chunk != Some(vec![])));
 
         // Serialize as JSON separated by newlines.
         let lease = lease.map(move |data| {

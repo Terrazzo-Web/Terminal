@@ -9,6 +9,7 @@ use super::send_request;
 use super::Method;
 use super::SendRequestError;
 use super::BASE_URL;
+use crate::api::client::set_content_type_json;
 use crate::api::Size;
 use crate::terminal_id::TerminalId;
 
@@ -19,10 +20,8 @@ pub async fn resize(terminal_id: &TerminalId, size: Size) -> Result<(), ResizeEr
         Method::POST,
         format!("{BASE_URL}/{RESIZE}/{terminal_id}"),
         move |request| {
-            let headers = Headers::new().or_throw("Headers::new()");
-            headers
-                .set("content-type", "application/json")
-                .or_throw("Set 'content-type'");
+            let mut headers = Headers::new().or_throw("Headers::new()");
+            set_content_type_json(&mut headers);
             request.set_headers(headers.as_ref());
             request.set_body(&JsValue::from_str(&json));
         },

@@ -78,6 +78,7 @@ tracing = { version = "0.1.41" }
 tracing-futures = { version = "0.2.5" }
 tracing-subscriber = { version = "0.3.19" }
 tracing-subscriber-wasm = { version = "0.1.0" }
+uuid = { version = "1.11.0" }
 wasm-bindgen = { version = "0.2.99" }
 wasm-bindgen-futures = { version = "0.4.45" }
 wasm-bindgen-test = { version = "0.3.45" }
