@@ -412,6 +412,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "game"
+version = "0.1.0"
+dependencies = [
+ "autoclone-macro",
+ "axum",
+ "http 1.1.0",
+ "include_directory",
+ "mime",
+ "scopeguard",
+ "stylance",
+ "terrazzo-build",
+ "terrazzo-client",
+ "terrazzo-common",
+ "terrazzo-macro",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "gimli"
 version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
