@@ -1,9 +1,10 @@
 use tracing::trace;
 
 use super::get_processes;
+use crate::api::TabTitle;
 use crate::terminal_id::TerminalId;
 
-pub fn set_title(terminal_id: &TerminalId, new_title: String) -> std::io::Result<()> {
+pub fn set_title(terminal_id: &TerminalId, new_title: TabTitle<String>) -> std::io::Result<()> {
     trace!("Setting title of {terminal_id} to {new_title:?}");
     let processes = get_processes();
     let Some(mut entry) = processes.get_mut(terminal_id) else {

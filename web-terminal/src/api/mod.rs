@@ -28,11 +28,29 @@ pub struct Chunk {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TerminalDef<T = String> {
+pub struct TerminalDefImpl<T> {
     pub id: TerminalId,
     pub title: T,
     pub order: i32,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TabTitle<T> {
+    pub shell_title: T,
+    pub override_title: Option<T>,
+}
+
+#[cfg(feature = "client")]
+impl<T> TabTitle<T> {
+    pub fn map<U>(self, f: impl Fn(T) -> U) -> TabTitle<U> {
+        TabTitle {
+            shell_title: f(self.shell_title),
+            override_title: self.override_title.map(f),
+        }
+    }
+}
+
+pub type TerminalDef = TerminalDefImpl<TabTitle<String>>;
 
 #[named]
 #[derive(Clone, Debug, Serialize, Deserialize)]
