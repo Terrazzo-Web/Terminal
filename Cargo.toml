@@ -46,31 +46,31 @@ terrazzo-common = { path = "framework/common" }
 terrazzo-macro = { path = "framework/macro" }
 terrazzo-pty = { path = "pty" }
 
-axum = { version = "0.7.7" }
+axum = { version = "0.7.9" }
 darling = { version = "0.20.10" }
 dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
 futures = { version = "0.3.30" }
 http = { version = "1.1.0" }
 include_directory = { version = "0.1.1" }
-libc = { version = "0.2.162" }
+libc = { version = "0.2.164" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 pin-project = { version = "1.1.7" }
 prettyplease = { version = "0.2.25" }
-proc-macro2 = { version = "1.0.89" }
+proc-macro2 = { version = "1.0.92" }
 quote = { version = "1.0.37" }
 reqwest-wasm = { version = "0.11.16" }
-rustix = { version = "0.38.40" }
+rustix = { version = "0.38.41" }
 scopeguard = { version = "1.2.0" }
-serde = { version = "1.0.213", features = ["derive", "rc"] }
-serde_json = { version = "1.0.131" }
+serde = { version = "1.0.215", features = ["derive", "rc"] }
+serde_json = { version = "1.0.133" }
 stylance = { version = "0.5.2" }
-syn = { version = "2.0.87" }
+syn = { version = "2.0.89" }
 thiserror = { version = "2.0.3" }
 tokio = { version = "1.41.1" }
 tokio-util = { version = "0.7.12" }
-tower-http = { version = "0.6.1" }
+tower-http = { version = "0.6.2" }
 tracing = { version = "0.1.40" }
 tracing-futures = { version = "0.2.5" }
 tracing-subscriber = { version = "0.3.18" }
