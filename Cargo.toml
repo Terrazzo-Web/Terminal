@@ -50,7 +50,7 @@ dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
 futures = { version = "0.3.30" }
 http = { version = "1.1.0" }
-libc = { version = "0.2.161" }
+libc = { version = "0.2.162" }
 pin-project = { version = "1.1.7" }
 prettyplease = { version = "0.2.25" }
 proc-macro2 = { version = "1.0.89" }
