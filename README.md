@@ -1,7 +1,7 @@
 # Rust setup
 
 - `rustup update`
-- `rustup toolchain install nightly`
+- `rustup toolchain install nightly` to use `cargo +nightly fmt`
 - `cargo install cargo-watch`
 - `cargo install wasm-pack` from https://rustwasm.github.io/wasm-pack/installer/
 - `cargo install stylance-cli`
