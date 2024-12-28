@@ -20,7 +20,7 @@ pub async fn register(
         Method::POST,
         format!(
             "{BASE_URL}/stream/{REGISTER}/{terminal_id}?{query}",
-            query = serde_urlencoded::to_string(&query).unwrap()
+            query = serde_urlencoded::to_string(query).unwrap()
         ),
         move |_| {},
     )

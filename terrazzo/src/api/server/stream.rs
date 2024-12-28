@@ -1,3 +1,5 @@
+use std::future::ready;
+
 use axum::body::Body;
 use axum::extract::Path;
 use axum::extract::Query;
@@ -16,8 +18,11 @@ mod pipe;
 mod register;
 mod registration;
 
+pub use self::close::close;
+pub use self::pipe::close_pipe;
+
 pub fn pipe(correlation_id: CorrelationId) -> impl std::future::Future<Output = Body> {
-    pipe::pipe(correlation_id).instrument(info_span!("Pipe"))
+    ready(pipe::pipe(correlation_id))
 }
 
 pub async fn register(
@@ -30,5 +35,3 @@ pub async fn register(
         .await
         .map_err(into_error(StatusCode::BAD_REQUEST))
 }
-
-pub use self::close::close;

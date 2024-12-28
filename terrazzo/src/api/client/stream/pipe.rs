@@ -1,6 +1,8 @@
 use futures::channel::oneshot;
 use futures::select;
+use futures::FutureExt as _;
 use futures::StreamExt;
+use futures::TryFutureExt as _;
 use named::named;
 use named::NamedEnumValues as _;
 use scopeguard::defer;
@@ -14,6 +16,7 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::js_sys::Uint8Array;
 use web_sys::Headers;
+use web_sys::Response;
 
 use super::dispatch::dispatch;
 use super::send_request;
@@ -30,7 +33,7 @@ pub async fn pipe(correlation_id: &str) -> Result<oneshot::Sender<()>, PipeError
     async move {
         info!("Start");
         let response = send_request(
-            Method::GET,
+            Method::POST,
             format!("{BASE_URL}/stream/{PIPE}"),
             move |request| {
                 let headers = Headers::new().expect("Headers::new()");
@@ -130,7 +133,30 @@ fn close_dispatchers(correlation_id: &str) {
         } else {
             warn!("Pipe was still pending")
         }
-    } else {
-        info!("Not set")
     }
+}
+
+/// Sends a request to close the pipe.
+#[named]
+pub fn close_pipe(correlation_id: String) -> impl std::future::Future<Output = ()> {
+    let span = info_span!("ClosePipe", %correlation_id);
+    send_request(
+        Method::POST,
+        format!("{BASE_URL}/stream/{PIPE}/close"),
+        move |request| {
+            debug!("Start");
+            let headers = Headers::new().expect("Headers::new()");
+            headers
+                .set(CORRELATION_ID, &correlation_id)
+                .expect(CORRELATION_ID);
+            request.set_headers(headers.as_ref());
+        },
+    )
+    .map(|response| {
+        debug!("End");
+        let _: Response = response?;
+        Ok(())
+    })
+    .unwrap_or_else(|error: PipeError| warn!("Failed to close the pipe: {error}"))
+    .instrument(span)
 }

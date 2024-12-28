@@ -15,7 +15,6 @@ use tracing::Level;
 use super::attach;
 use super::javascript::TerminalJs;
 use super::style;
-use super::terminal_tabs::TerminalTabs;
 use super::TerminalsState;
 use crate::api;
 use crate::api::TerminalDef;
@@ -23,10 +22,9 @@ use crate::terminal_id::TerminalId;
 use crate::widgets;
 use crate::widgets::editable::editable;
 use crate::widgets::tabs::TabDescriptor;
-use crate::widgets::tabs::TabsDescriptor;
 
 #[named]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct TerminalTab(Rc<TerminalTabInner>);
 
 pub struct TerminalTabInner {
@@ -114,7 +112,6 @@ impl TabDescriptor for TerminalTab {
     fn title(&self, state: &TerminalsState) -> impl Into<XNode> {
         let id = &self.id;
         let title = &self.title;
-        let terminal_tabs = state.terminal_tabs.clone();
         let selected_tab = state.selected_tab.clone();
         let title_link = span(move |template| {
             autoclone!(id, title, selected_tab);
@@ -128,18 +125,8 @@ impl TabDescriptor for TerminalTab {
                 autoclone!(id);
                 ev.stop_propagation();
                 wasm_bindgen_futures::spawn_local(async move {
-                    autoclone!(id, terminal_tabs, selected_tab);
-                    if let Err(error) = api::client::stream::close(&id).await {
-                        warn!("Failed to close: {error}");
-                    }
-                    let _batch = Batch::use_batch("add-tab");
-                    if selected_tab.get_value_untracked() == id {
-                        if let Some(next_selected_tab) = next_selected_tab(&terminal_tabs, &id) {
-                            selected_tab.set(next_selected_tab);
-                        }
-                    }
-                    terminal_tabs
-                        .update(|terminal_tabs| Some(terminal_tabs.clone().remove_tab(&id)));
+                    autoclone!(id);
+                    api::client::stream::close(id, None).await;
                 });
             },
         );
@@ -148,11 +135,12 @@ impl TabDescriptor for TerminalTab {
     }
 
     #[html]
-    fn item(&self, _state: &TerminalsState) -> impl Into<XNode> {
+    fn item(&self, state: &TerminalsState) -> impl Into<XNode> {
         let this = self.clone();
+        let state = state.clone();
         div(
             class = style::terminal,
-            div(move |template| attach::attach(template, this.clone())),
+            div(move |template| attach::attach(template, state.clone(), this.clone())),
         )
     }
 
@@ -226,22 +214,10 @@ impl std::fmt::Debug for TerminalTab {
     }
 }
 
-fn next_selected_tab(
-    terminal_tabs: &XSignal<TerminalTabs>,
-    closed_terminal_id: &TerminalId,
-) -> Option<TerminalId> {
-    let terminal_tabs = terminal_tabs.get_value_untracked();
-    let mut terminal_tabs = terminal_tabs.tab_descriptors().iter();
-    let mut prev = None;
-    while let Some(next) = terminal_tabs.next() {
-        if next.id == *closed_terminal_id {
-            if let Some(tab) = terminal_tabs.next() {
-                return Some(tab.id.clone());
-            } else {
-                return prev;
-            }
-        }
-        prev = Some(next.id.clone());
+impl PartialEq for TerminalTabInner {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
     }
-    return prev;
 }
+
+impl Eq for TerminalTabInner {}

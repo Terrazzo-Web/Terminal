@@ -17,7 +17,6 @@ use super::register::register;
 use super::register::RegisterError;
 use super::StreamDispatchers;
 use super::DISPATCHERS;
-use crate::api::client::stream::close::drop_dispatcher;
 use crate::api::client::stream::ShutdownPipe;
 use crate::api::RegisterTerminalQuery;
 use crate::terminal_id::TerminalId;
@@ -40,16 +39,13 @@ async fn add_dispatcher(terminal_id: &TerminalId) -> Result<StreamReader, PipeEr
     let (pipe_tx, pipe_rx) = oneshot::channel();
     add_dispatcher_sync(terminal_id, tx, pipe_tx);
     let () = pipe_rx.await.unwrap_or_else(|_| Err(PipeError::Canceled))?;
-    Ok(StreamReader {
-        id: OnStreamReaderDrop(terminal_id.clone()),
-        rx,
-    })
+    Ok(StreamReader { rx })
 }
 
 #[autoclone]
 fn add_dispatcher_sync(
     terminal_id: &TerminalId,
-    tx: mpsc::Sender<Vec<u8>>,
+    tx: mpsc::Sender<Option<Vec<u8>>>,
     pipe_tx: oneshot::Sender<Result<(), PipeError>>,
 ) {
     let mut dispatchers_lock = DISPATCHERS.lock().unwrap();
@@ -106,26 +102,17 @@ fn add_dispatcher_sync(
 // On drop it removes the dispatcher.
 #[pin_project]
 pub struct StreamReader {
-    id: OnStreamReaderDrop,
     #[pin]
-    rx: mpsc::Receiver<Vec<u8>>,
+    rx: mpsc::Receiver<Option<Vec<u8>>>,
 }
 
-struct OnStreamReaderDrop(TerminalId);
-
 impl Stream for StreamReader {
-    type Item = Vec<u8>;
+    type Item = Option<Vec<u8>>;
 
     fn poll_next(
         self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
         self.project().rx.poll_next(cx)
-    }
-}
-
-impl Drop for OnStreamReaderDrop {
-    fn drop(&mut self) {
-        drop_dispatcher(&self.0);
     }
 }

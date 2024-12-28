@@ -23,7 +23,7 @@ pub struct Size {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Chunk {
     terminal_id: TerminalId,
-    data: Vec<u8>,
+    data: Option<Vec<u8>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

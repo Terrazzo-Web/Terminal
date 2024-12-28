@@ -15,6 +15,7 @@ use crate::api::CORRELATION_ID;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CorrelationId(Arc<str>);
 
+/// [CorrelationId] can be provided as a header.
 #[async_trait]
 impl<S> FromRequestParts<S> for CorrelationId {
     type Rejection = CorrelationIdError;

@@ -18,6 +18,7 @@ use wasm_bindgen::JsValue;
 
 use super::javascript::TerminalJs;
 use super::terminal_tab::TerminalTab;
+use super::TerminalsState;
 use crate::api;
 use crate::terminal_id::TerminalId;
 use crate::widgets::resize_event::ResizeEvent;
@@ -25,7 +26,7 @@ use crate::widgets::resize_event::ResizeEvent;
 const XTERMJS_ATTR: &str = "data-xtermjs";
 const IS_ATTACHED: &str = "Y";
 
-pub fn attach(template: XTemplate, terminal_tab: TerminalTab) -> Consumers {
+pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: TerminalTab) -> Consumers {
     let terminal_id = terminal_tab.id.clone();
     let _span = info_span!("XTermJS", %terminal_id).entered();
     let element = template.element();
@@ -54,7 +55,7 @@ pub fn attach(template: XTemplate, terminal_tab: TerminalTab) -> Consumers {
         let _on_data = on_data;
         let _on_resize = on_resize;
         let _on_title_change = on_title_change;
-        let stream_loop = xtermjs.stream_loop(&terminal_id, element);
+        let stream_loop = xtermjs.stream_loop(state, &terminal_id, element);
         let write_loop = write_loop(&terminal_id, input_rx);
         let unsubscribe_resize_event = ResizeEvent::signal().add_subscriber({
             let xtermjs = xtermjs.clone();
@@ -129,13 +130,14 @@ impl TerminalJs {
         return on_title_change;
     }
 
-    async fn stream_loop(&self, terminal_id: &TerminalId, element: Element) {
+    async fn stream_loop(&self, state: TerminalsState, terminal_id: &TerminalId, element: Element) {
         async {
             debug!("Start");
             let on_init = || self.clone().do_resize(terminal_id.clone());
-            let eos =
-                api::client::stream::stream(terminal_id, element, on_init, |data| self.send(data))
-                    .await;
+            let eos = api::client::stream::stream(state, terminal_id, element, on_init, |data| {
+                self.send(data)
+            })
+            .await;
             match eos {
                 Ok(()) => info!("End"),
                 Err(error) => warn!("Failed: {error}"),

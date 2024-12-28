@@ -138,21 +138,21 @@ impl Stream for ProcessOutputLease {
                 // Normally this can't happen.
                 // Another terminal can "steal" the process using signaling,
                 // which closes and releases this stream.
-                error!("The process output lease was lost while streaming");
+                info!("The process output lease was lost while streaming");
                 return None.into();
             };
             ready!(process_io.poll_next_unpin(cx))
         };
 
-        if next.is_some() {
+        if let Some(next) = next {
             match &next {
-                Some(Ok(data)) => {
-                    debug!("Reading {}", String::from_utf8_lossy(data).escape_default())
+                Ok(data) => {
+                    debug_assert!(!data.is_empty(), "Unexpected empty buffer");
+                    debug! { "Reading {}", String::from_utf8_lossy(data).escape_default() }
                 }
-                Some(Err(error)) => error!("Reading failed: {error}"),
-                None => (),
+                Err(error) => error!("Reading failed: {error}"),
             }
-            return next.into();
+            return Some(next).into();
         }
 
         self.release();
