@@ -1,6 +1,6 @@
-use terrazzo_client::prelude::*;
-use terrazzo_macro::html;
-use terrazzo_macro::template;
+use terrazzo::html;
+use terrazzo::prelude::*;
+use terrazzo::template;
 
 use super::cookie::cookie;
 use super::cookie::Cookie;

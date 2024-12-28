@@ -3,18 +3,22 @@ runs:
   using: "composite"
 
   steps:
-    - name: Stylance
-      run: cd terrazzo && stylance .
+    - name: Stylance web-terminal
+      run: cd web-terminal && stylance .
+      shell: bash
+
+    - name: Stylance game
+      run: cd game && stylance .
       shell: bash
 
     - name: Clippy
       run: cargo clippy
       shell: bash
     - name: Clippy server debug
-      run: cargo clippy --bin terrazzo-server --features server,max_level_debug
+      run: cargo clippy --bin web-terminal --features server,max_level_debug
       shell: bash
     - name: Clippy server info
-      run: cargo clippy --bin terrazzo-server --features server,max_level_info
+      run: cargo clippy --bin web-terminal --features server,max_level_info
       shell: bash
     - name: Clippy client debug
       run: cargo clippy --features client,max_level_debug

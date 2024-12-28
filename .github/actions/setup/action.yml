@@ -13,12 +13,19 @@ runs:
           ~/.cargo/git/db/
           target/
           terrazzo/target/wasm
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.job }}
+        key: ${{ runner.os }}-cargo-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ github.job }}-
+          ${{ runner.os }}-cargo-
+
+    - name: Add wasm32 compilation target
+      shell: bash
+      run: rustup target add wasm32-unknown-unknown
 
     - name: Install wasm-pack
       shell: bash
-      run: cargo install wasm-pack
+      run: cargo install wasm-pack --version 0.13.1
 
     - name: Install stylance
       shell: bash
-      run: cargo install stylance-cli
+      run: cargo install stylance-cli --version 0.5.2

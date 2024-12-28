@@ -1,8 +1,8 @@
 use std::ops::Deref;
 use std::rc::Rc;
 
-use terrazzo_client::prelude::*;
-use terrazzo_common::widgets::resize_event::ResizeEvent;
+use terrazzo::prelude::*;
+use terrazzo::widgets::resize_event::ResizeEvent;
 use web_sys::Window;
 
 use super::cookie::Cookie;

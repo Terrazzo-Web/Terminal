@@ -3,8 +3,8 @@ runs:
   using: "composite"
   steps:
     - name: Compile debug
-      run: cargo build --bin terrazzo-server --features server,max_level_debug
+      run: cargo build --bin web-terminal --features server,max_level_debug
       shell: bash
     - name: Compile release
-      run: cargo build --bin terrazzo-server --features server,max_level_info --release
+      run: cargo build --bin web-terminal --features server,max_level_info --release
       shell: bash

@@ -4,11 +4,11 @@ use std::cell::Cell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use autoclone_macro::autoclone;
-use terrazzo_client::owned_closure::XOwnedClosure;
-use terrazzo_client::prelude::*;
-use terrazzo_macro::html;
-use terrazzo_macro::template;
+use terrazzo::autoclone;
+use terrazzo::html;
+use terrazzo::owned_closure::XOwnedClosure;
+use terrazzo::prelude::*;
+use terrazzo::template;
 use web_sys::js_sys::Math::random;
 
 use super::position::Position;

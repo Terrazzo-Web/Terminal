@@ -2,17 +2,18 @@ use std::path::Path;
 
 use include_directory::include_directory;
 use include_directory::Dir;
-use terrazzo_common::declare_asset;
-use terrazzo_common::static_assets::AssetBuilder;
+use terrazzo::declare_asset;
+use terrazzo::declare_scss_asset;
+use terrazzo::static_assets::AssetBuilder;
 
 pub fn install_assets() {
-    terrazzo_common::install_assets();
+    terrazzo::install_assets();
     declare_asset!("/assets/index.html")
-        .mime(mime::TEXT_HTML_UTF_8.as_ref())
+        .mime(terrazzo::mime::TEXT_HTML_UTF_8.as_ref())
         .install();
     declare_asset!("/assets/bootstrap.js").install();
     declare_asset!("/assets/images/favicon.ico").install();
-    declare_asset!("/assets/css/game.css").install();
+    declare_scss_asset!("target/css/game.scss").install();
 
     install_game();
     install_wasm();

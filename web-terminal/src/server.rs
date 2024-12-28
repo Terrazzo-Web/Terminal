@@ -4,7 +4,6 @@
 use std::env::set_current_dir;
 use std::iter::once;
 
-use game as _;
 use terrazzo::axum;
 use terrazzo::axum::extract::Path;
 use terrazzo::axum::routing::get;
@@ -15,10 +14,14 @@ use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
 use tower_http::trace::TraceLayer;
 use tracing::enabled;
 use tracing::Level;
+use web_terminal as _;
 
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
+mod api;
 mod assets;
+mod processes;
+mod terminal_id;
 
 #[tokio::main]
 async fn main() {
@@ -38,7 +41,8 @@ async fn main() {
         .route(
             "/static/*file",
             get(|Path(path): Path<String>| static_assets::get(&path)),
-        );
+        )
+        .nest_service("/api", api::server::route());
     let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
     let router = if enabled!(Level::TRACE) {
         router.layer(TraceLayer::new_for_http())

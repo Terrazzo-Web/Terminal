@@ -1,8 +1,8 @@
-use autoclone_macro::autoclone;
-use terrazzo_client::prelude::*;
-use terrazzo_common::widgets::resize_event::ResizeEvent;
-use terrazzo_macro::html;
-use terrazzo_macro::template;
+use terrazzo::autoclone;
+use terrazzo::html;
+use terrazzo::prelude::*;
+use terrazzo::template;
+use terrazzo::widgets::resize_event::ResizeEvent;
 use tracing::info;
 use web_sys::window;
 
