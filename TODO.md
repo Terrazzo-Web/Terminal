@@ -1,5 +1,4 @@
 # TODO
-- `#·78`. Move terrazzo client and aux crates to the new repo.
 - `#·78`. Create a new Reddit account.
 - `#·78`. Announce open source autoclone.
 - `#·79`. Announce open source named.
@@ -90,3 +89,4 @@ Next: `#·78`.
 - `#·62`. Attributes auto-convert to optional or dynamic: Rejected because can't have 2 `From<T>` implementations
 - `#·78`. Create a new email address.
 - `#·78`. Create a new Github account and repo.
+- `#·78`. Move terrazzo client and aux crates to the new repo.
