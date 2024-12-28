@@ -5,7 +5,7 @@ use named::NamedEnumValues as _;
 use terrazzo::prelude::OrElseLog as _;
 use tracing::debug;
 use tracing::info_span;
-use tracing::Instrument;
+use tracing::Instrument as _;
 use web_sys::Headers;
 use web_sys::Response;
 

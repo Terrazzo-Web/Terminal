@@ -6,7 +6,7 @@ use terrazzo::axum::response::Response;
 use terrazzo::http::StatusCode;
 use tracing::debug_span;
 use tracing::trace;
-use tracing::Instrument;
+use tracing::Instrument as _;
 
 use super::into_error;
 use crate::processes;

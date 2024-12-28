@@ -1,7 +1,7 @@
 use futures::channel::oneshot;
 use futures::select;
 use futures::FutureExt as _;
-use futures::StreamExt;
+use futures::StreamExt as _;
 use futures::TryFutureExt as _;
 use named::named;
 use named::NamedEnumValues as _;
@@ -11,7 +11,7 @@ use tracing::debug;
 use tracing::info;
 use tracing::info_span;
 use tracing::warn;
-use tracing::Instrument;
+use tracing::Instrument as _;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;

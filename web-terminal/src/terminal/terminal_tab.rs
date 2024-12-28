@@ -8,6 +8,8 @@ use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
+use terrazzo::widgets::editable::editable;
+use terrazzo::widgets::tabs::TabDescriptor;
 use tracing::debug;
 use tracing::warn;
 use tracing::Level;
@@ -21,9 +23,6 @@ use crate::api::client::LiveTerminalDef;
 use crate::api::TabTitle;
 use crate::api::TerminalDef;
 use crate::terminal_id::TerminalId;
-use crate::widgets;
-use crate::widgets::editable::editable;
-use crate::widgets::tabs::TabDescriptor;
 
 #[named]
 #[derive(Clone, PartialEq, Eq)]
@@ -215,7 +214,7 @@ fn print_editable_title(
             move || {
                 autoclone!(terminal_id, title);
                 [span(move |t| {
-                    widgets::link::link(
+                    terrazzo::widgets::link::link(
                         t,
                         move |_ev| {
                             autoclone!(terminal_id);

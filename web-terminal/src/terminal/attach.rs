@@ -8,6 +8,7 @@ use futures::StreamExt as _;
 use scopeguard::defer;
 use scopeguard::guard;
 use terrazzo::prelude::*;
+use terrazzo::widgets::resize_event::ResizeEvent;
 use tracing::debug;
 use tracing::debug_span;
 use tracing::error;
@@ -25,7 +26,6 @@ use crate::api;
 use crate::api::TabTitle;
 use crate::api::TerminalDef;
 use crate::terminal_id::TerminalId;
-use crate::widgets::resize_event::ResizeEvent;
 
 const XTERMJS_ATTR: &str = "data-xtermjs";
 const IS_ATTACHED: &str = "Y";

@@ -1,10 +1,14 @@
+#![cfg(feature = "client")]
+
 use std::rc::Rc;
 
 use terminal_tab::TerminalTab;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
+use terrazzo::widgets::tabs::tabs;
 use terrazzo::widgets::tabs::TabsDescriptor as _;
+use terrazzo::widgets::tabs::TabsOptions;
 use tracing::debug;
 use tracing::info;
 use tracing::warn;
@@ -13,8 +17,6 @@ use wasm_bindgen_futures::spawn_local;
 use self::terminal_tabs::TerminalTabs;
 use crate::api;
 use crate::terminal_id::TerminalId;
-use crate::widgets::tabs::tabs;
-use crate::widgets::tabs::TabsOptions;
 
 stylance::import_crate_style!(style, "src/terminal.scss");
 

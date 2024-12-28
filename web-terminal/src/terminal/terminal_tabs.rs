@@ -2,14 +2,14 @@ use std::rc::Rc;
 
 use terrazzo::html;
 use terrazzo::prelude::*;
+use terrazzo::widgets::tabs::TabsDescriptor;
+use terrazzo::widgets::tabs::TabsState;
 use tracing::warn;
 
 use super::terminal_tab::TerminalTab;
 use super::TerminalsState;
 use crate::api;
 use crate::terminal_id::TerminalId;
-use crate::widgets::tabs::TabsDescriptor;
-use crate::widgets::tabs::TabsState;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TerminalTabs {
