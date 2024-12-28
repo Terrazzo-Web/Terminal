@@ -98,19 +98,19 @@ async fn pipe_impl(
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum PipeError {
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 
-    #[error("[{}] Pipe is an empty stream", self.name())]
+    #[error("[{n}] Pipe is an empty stream", n = self.name())]
     EmptyStream,
 
-    #[error("[{}] Chunk is not a byte array: {0:?}", self.name())]
+    #[error("[{n}] Chunk is not a byte array: {0:?}", n = self.name())]
     InvalidChunk(JsValue),
 
-    #[error("[{}] Stream failed: {0:?}", self.name())]
+    #[error("[{n}] Stream failed: {0:?}", n = self.name())]
     ReadError(JsValue),
 
-    #[error("[{}] Pipe canceled", self.name())]
+    #[error("[{n}] Pipe canceled", n = self.name())]
     Canceled,
 }
 

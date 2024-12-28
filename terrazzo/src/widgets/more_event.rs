@@ -28,9 +28,9 @@ impl MoreEvent for web_sys::Event {
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum CurrentTargetElementError {
-    #[error("[{}] [{0}] Missing current target", self.name())]
+    #[error("[{n}] [{0}] Missing current target", n = self.name())]
     Missing(XString),
 
-    #[error("[{}] [{0}] Wrong type: {1:?}", self.name())]
+    #[error("[{n}] [{0}] Wrong type: {1:?}", n = self.name())]
     WrongType(XString, EventTarget),
 }

@@ -52,10 +52,10 @@ where
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum StreamError {
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     RegisterError(#[from] RegisterError),
 }
 

@@ -139,33 +139,33 @@ fn rm<E>(path: &Path, error: E) -> Result<(), E> {
 
 #[named]
 #[derive(thiserror::Error, Debug)]
-#[error("[{}] {0}", Self::type_name())]
+#[error("[{t}] {0}", t = Self::type_name())]
 pub struct BuildError(#[from] BuildErrorInner);
 
 #[named]
 #[derive(thiserror::Error, Debug)]
 enum BuildErrorInner {
-    #[error("[{}] Client src dir is invalid UTF-8", self.name())]
+    #[error("[{n}] Client src dir is invalid UTF-8", n = self.name())]
     InvalidClientSrcDir,
 
-    #[error("[{}] Failed to eraze old client pkg folder", self.name())]
+    #[error("[{n}] Failed to eraze old client pkg folder", n = self.name())]
     RmClientPkgError,
 
-    #[error("[{}] Failed build the WASM", self.name())]
+    #[error("[{n}] Failed build the WASM", n = self.name())]
     WasmPackError,
 
-    #[error("[{}] Failed to eraze server assets wasm folder", self.name())]
+    #[error("[{n}] Failed to eraze server assets wasm folder", n = self.name())]
     RmServerAssetsWasmError,
 
-    #[error("[{}] Failed to move the wasm to the server assets folder", self.name())]
+    #[error("[{n}] Failed to move the wasm to the server assets folder", n = self.name())]
     MvWasmError,
 
-    #[error("[{}] Failed to erase the target assets folder", self.name())]
+    #[error("[{n}] Failed to erase the target assets folder", n = self.name())]
     RmTargetAssetsError,
 
-    #[error("[{}] Failed to make the target assets folder", self.name())]
+    #[error("[{n}] Failed to make the target assets folder", n = self.name())]
     MkdirTargetAssetsError,
 
-    #[error("[{}] Failed to copy to the target assets folder", self.name())]
+    #[error("[{n}] Failed to copy to the target assets folder", n = self.name())]
     CpTargetAssetsError,
 }

@@ -23,6 +23,6 @@ pub async fn write(terminal_id: &TerminalId, data: String) -> Result<(), WriteEr
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum WriteError {
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 }

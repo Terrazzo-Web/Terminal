@@ -60,9 +60,9 @@ async fn send_chunk(terminal_id: &TerminalId, chunk: Vec<u8>) -> Result<(), Send
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum SendPartError {
-    #[error("[{}] Stream writer not registered", self.name())]
+    #[error("[{n}] Stream writer not registered", n = self.name())]
     NotFound,
 
-    #[error("[{}] Unable to send data through the channel: {0}", self.name())]
+    #[error("[{n}] Unable to send data through the channel: {0}", n = self.name())]
     SendError(SendError),
 }

@@ -24,9 +24,9 @@ pub async fn register(terminal_id: &TerminalId) -> Result<(), RegisterError> {
 #[named]
 #[derive(thiserror::Error, Debug)]
 pub enum RegisterError {
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 
-    #[error("[{}] {0}", self.name())]
+    #[error("[{n}] {0}", n = self.name())]
     PipeError(#[from] PipeError),
 }
