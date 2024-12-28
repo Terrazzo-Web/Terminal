@@ -1,3 +1,4 @@
+use named::named;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -32,6 +33,7 @@ pub struct TerminalDef {
     pub title: String,
 }
 
+#[named]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct RegisterTerminalQuery {
     pub mode: RegisterTerminalMode,

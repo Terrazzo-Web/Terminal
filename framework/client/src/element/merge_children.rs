@@ -18,6 +18,7 @@ use super::XElementValue;
 use crate::key::XKey;
 use crate::node::XNode;
 use crate::node::XText;
+use crate::prelude::OrElseLog as _;
 
 pub fn merge(
     template: &XTemplate,
@@ -26,7 +27,7 @@ pub fn merge(
     element: &Element,
 ) {
     trace! { new_count = new_nodes.len(), old_count = old_nodes.len(), "Children" };
-    let document: Document = window().unwrap().document().unwrap();
+    let document: Document = window().or_throw("window").document().or_throw("document");
 
     let mut old_elements_map = {
         let mut old_elements_map = HashMap::new();

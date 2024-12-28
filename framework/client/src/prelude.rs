@@ -25,5 +25,4 @@ pub use crate::signal::XSignal;
 pub use crate::string::XString;
 pub use crate::template::IsTemplate;
 pub use crate::template::IsTemplated;
-pub use crate::utils::do_or_log::do_or_log;
-pub use crate::utils::do_or_log::ToLogMessage as _;
+pub use crate::utils::or_else_log::OrElseLog;

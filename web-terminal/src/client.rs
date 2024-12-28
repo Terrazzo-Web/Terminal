@@ -15,17 +15,15 @@ use terrazzo::widgets;
 #[wasm_bindgen]
 pub fn start() {
     terrazzo::setup_logging();
-    let () = start_impl().unwrap();
-}
-
-fn start_impl() -> Option<()> {
     tracing::info!("Starting client");
-    let window = web_sys::window()?;
-    let document = window.document()?;
+
+    let window = web_sys::window().or_throw("window");
+    let document = window.document().or_throw("document");
     self::widgets::resize_event::ResizeEvent::set_up(&window);
 
-    let main = document.get_element_by_id("main")?;
+    let main = document
+        .get_element_by_id("main")
+        .or_throw("#main not found");
     let main = XTemplate::new(Rc::new(Mutex::new(main)));
     let () = terminal::terminals(main);
-    Some(())
 }

@@ -8,6 +8,7 @@ use tracing::trace;
 use super::consumer::Consumer;
 use super::consumer::ConsumerWeak;
 use crate::debug_correlation_id::DebugCorrelationId;
+use crate::prelude::OrElseLog as _;
 use crate::string::XString;
 
 pub trait ProducedValue {
@@ -59,7 +60,7 @@ impl<V: ProducedValue> Producer<V> {
     ) -> Consumer<V> {
         let _span =
             debug_span! { "Register", producer_name = %self.name(), %consumer_name }.entered();
-        let mut producer_lock = self.inner.1.lock().unwrap();
+        let mut producer_lock = self.inner.1.lock().or_throw("producer_lock");
         let consumer = Consumer::new(consumer_name, self, sort_key, closure);
         let is_still_sorted = producer_lock
             .consumers
@@ -95,7 +96,7 @@ impl<V: ProducedValue> Producer<V> {
         V: 'static,
     {
         let consumers = {
-            let mut producer_lock = self.inner.1.lock().unwrap();
+            let mut producer_lock = self.inner.1.lock().or_throw("producer_lock");
             if let ConsumersState::NotSorted = producer_lock.state {
                 let mut consumers = Arc::try_unwrap(std::mem::take(&mut producer_lock.consumers))
                     .unwrap_or_else(|consumers| consumers.as_ref().clone());

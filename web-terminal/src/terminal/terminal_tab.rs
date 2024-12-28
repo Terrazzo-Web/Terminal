@@ -167,14 +167,10 @@ fn print_editable_title(
     selected_tab: XSignal<TerminalId>,
 ) -> XElement {
     let editing = XSignal::new("Editing", false);
-    let is_editable = selected_tab.derive(
-        "is_editable",
-        move |selected_tab| {
-            autoclone!(terminal_id);
-            *selected_tab == terminal_id
-        },
-        |_, _| None,
-    );
+    let is_editable = selected_tab.view("is_editable", move |selected_tab| {
+        autoclone!(terminal_id);
+        *selected_tab == terminal_id
+    });
     span(move |t| {
         editable(
             t,

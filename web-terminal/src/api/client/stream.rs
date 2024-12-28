@@ -13,6 +13,7 @@ use get::StreamReader;
 use named::named;
 use named::NamedEnumValues as _;
 use scopeguard::defer;
+use terrazzo::prelude::OrElseLog as _;
 use tracing::debug;
 use tracing::info;
 use tracing::warn;
@@ -92,7 +93,7 @@ where
             .add_event_listener_with_callback(WAKE_EVENT_TYPE, closure.as_ref().unchecked_ref())
             .unwrap_or_else(|error| warn!("Unable to attach mouse move event handler: {error:?}"));
         let rx = {
-            let mut global_awake = GLOBAL_AWAKE.lock().unwrap();
+            let mut global_awake = GLOBAL_AWAKE.lock().or_throw("GLOBAL_AWAKE");
             match &*global_awake {
                 Some((_tx, rx)) => rx.clone(),
                 None => {
@@ -184,7 +185,7 @@ fn make_wake_closure(
 }
 
 pub fn try_restart_pipe() {
-    let Some((tx, _rx)) = GLOBAL_AWAKE.lock().unwrap().take() else {
+    let Some((tx, _rx)) = GLOBAL_AWAKE.lock().or_throw("GLOBAL_AWAKE").take() else {
         return;
     };
     let _ = tx.send(());

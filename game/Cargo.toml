@@ -16,7 +16,6 @@ path = "src/server.rs"
 required-features = ["server"]
 
 [dependencies]
-include_directory = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
 terrazzo = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
@@ -38,14 +37,8 @@ terrazzo-build = { workspace = true }
 
 [features]
 default = []
-client = [
-    "dep:stylance",
-    "dep:wasm-bindgen",
-    "dep:web-sys",
-    "terrazzo/client",
-]
+client = ["dep:stylance", "dep:wasm-bindgen", "dep:web-sys", "terrazzo/client"]
 server = [
-    "dep:include_directory",
     "dep:tokio",
     "dep:tower-http",
     "dep:tracing-subscriber",

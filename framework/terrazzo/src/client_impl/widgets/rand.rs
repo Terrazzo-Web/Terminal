@@ -3,6 +3,8 @@
 use std::num::NonZeroU32;
 use std::sync::Mutex;
 
+use terrazzo_client::prelude::OrElseLog as _;
+
 pub struct Rand {
     next: Mutex<u32>,
 }
@@ -24,7 +26,7 @@ impl Rand {
     }
 
     pub fn next(&self, from: i32, to: i32) -> i32 {
-        let mut rand = self.next.lock().unwrap();
+        let mut rand = self.next.lock().or_throw("Next rand");
         let rand = &mut *rand;
         *rand ^= *rand << 13;
         *rand ^= *rand >> 17;

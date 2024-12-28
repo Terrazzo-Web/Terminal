@@ -16,6 +16,7 @@ use self::version::Version;
 use super::string::XString;
 use crate::debug_correlation_id::DebugCorrelationId;
 use crate::prelude::Consumers;
+use crate::prelude::OrElseLog as _;
 
 pub mod batch;
 pub mod depth;
@@ -129,7 +130,11 @@ impl<T> XSignal<T> {
     where
         T: Clone,
     {
-        self.current_value.lock().unwrap().value().clone()
+        self.current_value
+            .lock()
+            .or_throw("get_value_untracked()")
+            .value()
+            .clone()
     }
 }
 
@@ -164,7 +169,7 @@ impl<T: std::fmt::Debug + 'static> XSignal<T> {
         U: Into<UpdateSignalResult<Option<T>, R>>,
     {
         let (version, result) = {
-            let mut current = self.current_value.lock().expect("current");
+            let mut current = self.current_value.lock().or_throw("current_value");
             let current_value = current.value();
             let current_version = current.version.number();
             let UpdateSignalResult { new_value, result } = compute(current_value).into();
@@ -190,7 +195,7 @@ impl<T: std::fmt::Debug + 'static> XSignal<T> {
         let _span = debug_span!("Force", signal = %self.producer.name()).entered();
         let new_value = new_value.into();
         let version = {
-            let mut current = self.current_value.lock().expect("current");
+            let mut current = self.current_value.lock().or_throw("current_value");
             current.value = Some(new_value);
             current.version = Version::next();
             debug! { "Signal value was forced to version:{} value:{:?}", current.version.number(), current.value() };
@@ -250,10 +255,10 @@ impl<T> Drop for XSignalInner<T> {
     fn drop(&mut self) {
         debug!(signal = %self.producer.name(), "Dropped");
         if Arc::strong_count(&self.immutable_value) > 1 {
-            let mut immutable_value = self.immutable_value.lock().unwrap();
-            *immutable_value = self.current_value.lock().unwrap().value.take();
+            let mut immutable_value = self.immutable_value.lock().or_throw("immutable_value");
+            *immutable_value = self.current_value.lock().or_throw("current").value.take();
         }
-        let mut on_drop = self.on_drop.lock().unwrap();
+        let mut on_drop = self.on_drop.lock().or_throw("on_drop");
         for on_drop in std::mem::take(&mut *on_drop) {
             on_drop()
         }
@@ -263,7 +268,7 @@ impl<T> Drop for XSignalInner<T> {
 impl<T: std::fmt::Debug> std::fmt::Debug for XSignal<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("XSignal")
-            .field(self.current_value.lock().unwrap().value())
+            .field(self.current_value.lock().or_throw("current_value").value())
             .finish()
     }
 }

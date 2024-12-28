@@ -177,20 +177,18 @@ fn drop_zone<S: TabsState>(
                 let drop_zone = a.element.clone();
                 title_drop_zone_style(a, drop_zone, is_dragging.clone())
             },
-            drop = do_or_log(move |ev: web_sys::DragEvent| {
+            drop = move |ev: web_sys::DragEvent| {
                 autoclone!(state);
                 ev.prevent_default();
-                let dt = ev.data_transfer().ok_or("data_transfer".warn())?;
-                let dragged_tab_key = dt.get_data(DRAG_KEY).map_err(|_| "Get DRAG_KEY".warn())?;
+                let dt = ev.data_transfer().or_throw("data_transfer");
+                let dragged_tab_key = dt.get_data(DRAG_KEY).or_throw("Get DRAG_KEY");
                 state.move_tab(prev_tab.clone(), dragged_tab_key);
-                Ok(())
-            }),
-            dragover = do_or_log(|ev: web_sys::DragEvent| {
+            },
+            dragover = |ev: web_sys::DragEvent| {
                 ev.prevent_default();
-                let dt = ev.data_transfer().ok_or("data_transfer".warn())?;
+                let dt = ev.data_transfer().or_throw("data_transfer");
                 dt.set_drop_effect("move");
-                Ok(())
-            }),
+            },
             dragenter = move |_: web_sys::DragEvent| {
                 autoclone!(drop_zone_active);
                 drop_zone_active.set(true);
@@ -229,9 +227,9 @@ fn title_drop_zone_style(drop_zone: Element, #[signal] is_dragging: bool) -> XAt
     if !is_dragging {
         return "".into();
     }
-    let drop_zone: &HtmlElement = drop_zone.dyn_ref().unwrap();
-    let li_sep = drop_zone.parent_element().unwrap();
-    let li_sep: &HtmlElement = li_sep.dyn_ref().unwrap();
+    let drop_zone: &HtmlElement = drop_zone.dyn_ref().or_throw("drop_zone");
+    let li_sep = drop_zone.parent_element().or_throw("drop_zone.parent");
+    let li_sep: &HtmlElement = li_sep.dyn_ref().or_throw("as HtmlElement");
     let offset_left = li_sep.offset_left();
     format!("left: calc({offset_left}px - var(--sep-zone)/2);").into()
 }
@@ -255,15 +253,13 @@ fn tab_title<T: TabDescriptor + 'static>(
     return li(
         class = class,
         draggable = true,
-        dragstart = do_or_log(move |ev: web_sys::DragEvent| {
+        dragstart = move |ev: web_sys::DragEvent| {
             autoclone!(is_dragging);
-            let dt = ev.data_transfer().ok_or("data_transfer".warn())?;
-            dt.set_data(DRAG_KEY, &key)
-                .map_err(|_| "Set DRAG_KEY".warn())?;
+            let dt = ev.data_transfer().or_throw("data_transfer");
+            dt.set_data(DRAG_KEY, &key).or_throw("Set DRAG_KEY");
             dt.set_effect_allowed("move");
             is_dragging.set(true);
-            Ok(())
-        }),
+        },
         dragend = move |_| is_dragging.set(false),
         click = move |_| selected_mut.set(true),
         tab.title(&state).into(),

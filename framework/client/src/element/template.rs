@@ -11,6 +11,7 @@ use crate::element::XElementValue;
 use crate::key::XKey;
 use crate::key::KEY_ATTRIBUTE;
 use crate::node::XNode;
+use crate::prelude::OrElseLog as _;
 use crate::signal::depth::Depth;
 use crate::template::IsTemplate;
 use crate::template::IsTemplated;
@@ -70,12 +71,12 @@ impl XTemplate {
     }
 
     pub fn element(&self) -> Element {
-        self.element_mut.lock().expect("element").clone()
+        self.element_mut.lock().or_throw("element").clone()
     }
 
     #[cfg(not(feature = "concise_traces"))]
     pub(crate) fn with_old(&self, f: impl FnOnce(&Option<XElement>)) {
-        f(&self.old.lock().expect("old"))
+        f(&self.old.lock().or_throw("old"))
     }
 
     pub(crate) fn key_attribute(&self) -> &str {

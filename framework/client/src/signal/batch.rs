@@ -6,6 +6,7 @@ use tracing::span::EnteredSpan;
 use tracing::trace_span;
 
 use super::version::Version;
+use crate::prelude::OrElseLog as _;
 
 pub struct Batch {
     prev: Option<BatchedCallbacks>,
@@ -55,7 +56,9 @@ pub(super) struct NotBatched(());
 impl Drop for Batch {
     fn drop(&mut self) {
         debug!("Processing batch...");
-        let batch = WAITING_BATCH.replace(self.prev.take()).expect("batch");
+        let batch = WAITING_BATCH
+            .replace(self.prev.take())
+            .or_throw("WAITING_BATCH");
         for process in batch.0 {
             process(Version::current());
         }
