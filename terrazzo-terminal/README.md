@@ -15,5 +15,5 @@ cargo install stylance-cli
 
 Then run `terrazzo-terminal` using
 ```
-cargo run --bin terrazzo-terminal --release --no-default-features --features server,max_level_info
+cargo run --bin terrazzo-terminal --release
 ```
