@@ -1546,6 +1546,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "terrazzo-terminal"
+version = "0.1.0"
+dependencies = [
+ "dashmap",
+ "futures",
+ "nameth",
+ "pin-project",
+ "scopeguard",
+ "serde",
+ "serde_json",
+ "stylance",
+ "terrazzo",
+ "terrazzo-build",
+ "terrazzo-pty",
+ "thiserror 2.0.9",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-futures",
+ "tracing-subscriber",
+ "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-streams",
+ "web-sys",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1942,34 +1970,6 @@ checksum = "04dd7223427d52553d3702c004d3b2fe07c148165faa56313cb00211e31c12bc"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "web-terminal"
-version = "0.1.0"
-dependencies = [
- "dashmap",
- "futures",
- "nameth",
- "pin-project",
- "scopeguard",
- "serde",
- "serde_json",
- "stylance",
- "terrazzo",
- "terrazzo-build",
- "terrazzo-pty",
- "thiserror 2.0.9",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-futures",
- "tracing-subscriber",
- "uuid",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-streams",
- "web-sys",
 ]
 
 [[package]]

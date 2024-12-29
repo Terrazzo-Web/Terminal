@@ -1,8 +1,12 @@
 [package]
-name = "web-terminal"
+name = "terrazzo-terminal"
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
+description = "A simple web-based terminal emulator built on Terrazzo."
+readme = "README.md"
+categories = ["command-line-utilities", "wasm"]
+keywords = ["terrazzo", "terminal", "wasm"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
