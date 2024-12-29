@@ -20,7 +20,16 @@ fn main() {
         println!("cargo::warning=Can't enable both 'client' and 'server' features");
     }
 
-    let server_dir: PathBuf = env::var("CARGO_MANIFEST_DIR").unwrap().into();
+    let cargo_manifest_dir: PathBuf = env::var("CARGO_MANIFEST_DIR").unwrap().into();
+    let server_dir =
+        cargo_manifest_dir
+            .join("target")
+            .join("assets")
+            .join(if cfg!(debug_assertions) {
+                "debug"
+            } else {
+                "release"
+            });
     let client_dir: PathBuf = server_dir.clone();
     let mut wasm_pack_options = vec!["--no-default-features", "--features", "client"];
     if env::var(MAX_LEVEL_INFO).is_ok() {
