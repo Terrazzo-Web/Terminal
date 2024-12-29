@@ -21,9 +21,11 @@ path = "src/server.rs"
 required-features = ["server"]
 
 [dependencies]
+clap = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
 nameth = { workspace = true }
+nix = { workspace = true, optional = true, features = ["signal"] }
 pin-project = { workspace = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
@@ -81,7 +83,9 @@ client = [
     "terrazzo/client",
 ]
 server = [
+    "dep:clap",
     "dep:dashmap",
+    "dep:nix",
     "dep:terrazzo-pty",
     "dep:tokio",
     "dep:tower-http",
