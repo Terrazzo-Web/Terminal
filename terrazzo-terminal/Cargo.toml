@@ -69,7 +69,7 @@ scopeguard = { workspace = true }
 terrazzo-build = { workspace = true }
 
 [features]
-default = []
+default = ["server", "max_level_info"]
 client = [
     "dep:stylance",
     "dep:wasm-bindgen",

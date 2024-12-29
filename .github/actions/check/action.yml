@@ -13,12 +13,12 @@ runs:
 
     - name: Clippy
       run: |
-        cargo clippy --features client,max_level_debug
-        cargo clippy --features client,max_level_info
-        cargo clippy --bin game --features server,max_level_debug
-        cargo clippy --bin game --features server,max_level_info
-        cargo clippy --bin terrazzo-terminal --features server,max_level_debug
-        cargo clippy --bin terrazzo-terminal --features server,max_level_info
+        cargo clippy --no-default-features --features client,max_level_debug
+        cargo clippy --no-default-features --features client,max_level_info
+        cargo clippy --bin game --no-default-features --features server,max_level_debug
+        cargo clippy --bin game --no-default-features --features server,max_level_info
+        cargo clippy --bin terrazzo-terminal --no-default-features --features server,max_level_debug
+        cargo clippy --bin terrazzo-terminal --no-default-features --features server,max_level_info
       shell: bash
 
     - name: Rustfmt
