@@ -17,3 +17,8 @@ Then run `terrazzo-terminal` using
 ```
 cargo run --bin terrazzo-terminal --release
 ```
+
+Open the address printed on the terminal to stack hacking
+```
+Listening on http://127.0.0.1:3001
+```
