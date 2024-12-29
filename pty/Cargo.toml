@@ -3,6 +3,8 @@ name = "terrazzo-pty"
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
 description = "Utility to run commands in a PTY"
 readme = "README.md"
 categories = ["command-line-utilities"]

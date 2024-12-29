@@ -3,6 +3,8 @@ name = "terrazzo-terminal"
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
 description = "A simple web-based terminal emulator built on Terrazzo."
 readme = "README.md"
 categories = ["command-line-utilities", "wasm"]

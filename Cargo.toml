@@ -6,6 +6,8 @@ resolver = "2"
 version = "0.1.0"
 authors = ["Lamparo <LamparoS@Pavy.one>"]
 edition = "2021"
+repository = "https://github.com/Terrazzo-Web/Terrazzo"
+license = "MIT"
 
 [profile.dev.package."*"]
 # Set the default for dependencies in Development mode.
