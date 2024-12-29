@@ -1,5 +1,3 @@
-#![cfg(feature = "server")]
-
 use std::fs::File;
 use std::io::ErrorKind;
 use std::io::Read;
@@ -20,7 +18,7 @@ use super::PORT;
 #[command(version, about, long_about = None)]
 pub struct Cli {
     /// Whether to start or stop the terrazzo-terminal daemon.
-    #[arg(long, value_enum, default_value_t = Action::Start)]
+    #[arg(long, value_enum, default_value_t = Action::Run)]
     pub action: Action,
 
     /// The TCP host to listen to.
@@ -38,6 +36,7 @@ pub struct Cli {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Action {
+    Run,
     Start,
     Stop,
 }
