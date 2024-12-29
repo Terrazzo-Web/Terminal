@@ -3,8 +3,8 @@ runs:
   using: "composite"
 
   steps:
-    - name: Stylance terrazzo-terminal
-      run: cd terrazzo-terminal && stylance .
+    - name: Stylance terminal
+      run: cd terminal && stylance .
       shell: bash
 
     - name: Stylance game
