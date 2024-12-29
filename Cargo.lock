@@ -520,7 +520,7 @@ dependencies = [
 
 [[package]]
 name = "game"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "scopeguard",
  "stylance",
@@ -1656,7 +1656,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-pty"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "futures",
  "libc",
@@ -1672,7 +1672,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-terminal"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "dashmap",
