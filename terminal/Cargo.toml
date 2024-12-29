@@ -23,6 +23,7 @@ required-features = ["server"]
 [dependencies]
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
+libc = { workspace = true, optional = true }
 nameth = { workspace = true }
 pin-project = { workspace = true }
 scopeguard = { workspace = true }
@@ -82,6 +83,7 @@ client = [
 ]
 server = [
     "dep:dashmap",
+    "dep:libc",
     "dep:terrazzo-pty",
     "dep:tokio",
     "dep:tower-http",
