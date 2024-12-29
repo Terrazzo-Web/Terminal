@@ -1,9 +1,7 @@
 #![cfg(feature = "server")]
 
 use std::env::set_current_dir;
-use std::io::ErrorKind;
 use std::iter::once;
-use std::num::NonZeroI32;
 
 use clap::Parser as _;
 use terrazzo::axum;
@@ -23,6 +21,7 @@ use crate::api;
 use crate::assets;
 
 mod cli;
+mod daemonize;
 
 const HOST: &str = "127.0.0.1";
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
@@ -38,29 +37,11 @@ pub fn run_server() -> std::io::Result<()> {
         return cli.kill();
     }
 
-    if let Some(pid) = cli.read_pid()? {
-        return Err(std::io::Error::new(
-            ErrorKind::AddrInUse,
-            format!("Already running PID = {pid}"),
-        ));
-    }
-
     let address = format!("{}:{}", cli.host, cli.port);
     println!("Listening on http://{address}");
 
-    match fork()? {
-        Some(_pid) => std::process::exit(0),
-        None => { /* in the child process */ }
-    }
-    check_err(unsafe { nix::libc::setsid() }, |r| r != 1)?;
-
-    match fork()? {
-        Some(pid) => {
-            println!("Server running in the background. PID = {pid}");
-            cli.save_pidfile(pid)?;
-            std::process::exit(0);
-        }
-        None => { /* in the child process */ }
+    if cli.action == Action::Start {
+        self::daemonize::daemonize(cli)?;
     }
 
     run_server_async(&address)
@@ -95,17 +76,4 @@ async fn run_server_async(address: &str) -> std::io::Result<()> {
 
     let listener = tokio::net::TcpListener::bind(address).await?;
     axum::serve(listener, router).await
-}
-
-fn fork() -> std::io::Result<Option<NonZeroI32>> {
-    let pid = check_err(unsafe { nix::libc::fork() }, |pid| pid != -1)?;
-    return Ok(NonZeroI32::new(pid));
-}
-
-fn check_err<IsOk: FnOnce(R) -> bool, R: Copy>(result: R, is_ok: IsOk) -> std::io::Result<R> {
-    if is_ok(result) {
-        Ok(result)
-    } else {
-        Err(std::io::Error::last_os_error())
-    }
 }

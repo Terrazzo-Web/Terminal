@@ -43,11 +43,14 @@ fn install_xterm() {
 }
 
 fn install_wasm() {
-    declare_asset!("/assets/wasm/terrazzo_terminal.js")
+    declare_asset!("/target/assets/wasm/terrazzo_terminal.js")
         .asset_name("wasm/terrazzo_terminal.js")
         .install();
-    declare_asset!("/assets/wasm/terrazzo_terminal_bg.wasm")
+    declare_asset!("/target/assets/wasm/terrazzo_terminal_bg.wasm")
         .asset_name("wasm/terrazzo_terminal_bg.wasm")
         .install();
-    declare_assets_dir!("wasm/snippets", "$CARGO_MANIFEST_DIR/assets/wasm/snippets");
+    declare_assets_dir!(
+        "wasm/snippets",
+        "$CARGO_MANIFEST_DIR/target/assets/wasm/snippets"
+    );
 }

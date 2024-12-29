@@ -1,0 +1,12 @@
+name: Publish
+runs:
+  using: "composite"
+  steps:
+    - name: Login
+      run: cargo login $CRATES_TOKEN
+      shell: bash
+    - name: Publish
+      run: |
+        cargo publish -p terrazzo-pty
+        cargo publish -p terrazzo-terminal
+      shell: bash
