@@ -1,6 +1,7 @@
 #![cfg(feature = "server")]
 
 use std::env::set_current_dir;
+use std::fs::File;
 use std::iter::once;
 use std::num::NonZeroI32;
 
@@ -29,6 +30,7 @@ pub fn run_server() -> std::io::Result<()> {
         Some(_pid) => std::process::exit(0),
         None => { /* in the child process */ }
     }
+    check_err(unsafe { libc::setsid() }, |r| r != 1)?;
 
     match fork()? {
         Some(pid) => {
@@ -38,7 +40,8 @@ pub fn run_server() -> std::io::Result<()> {
         None => { /* in the child process */ }
     }
 
-    check_err(unsafe { libc::setsid() }, |r| r != 1)?;
+    File::open(path)
+
     run_server_async(&address)
 }
 
