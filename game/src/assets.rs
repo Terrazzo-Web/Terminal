@@ -17,10 +17,10 @@ pub fn install_assets() {
 }
 
 fn install_wasm() {
-    declare_asset!("/assets/wasm/game.js")
+    declare_asset!("/target/assets/wasm/game.js")
         .asset_name("wasm/game.js")
         .install();
-    declare_asset!("/assets/wasm/game_bg.wasm")
+    declare_asset!("/target/assets/wasm/game_bg.wasm")
         .asset_name("wasm/game_bg.wasm")
         .install();
 }

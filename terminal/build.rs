@@ -21,13 +21,7 @@ fn main() {
     }
 
     let cargo_manifest_dir: PathBuf = env::var("CARGO_MANIFEST_DIR").unwrap().into();
-    let server_dir = cargo_manifest_dir
-        .join("target")
-        .join(if cfg!(debug_assertions) {
-            "debug-server"
-        } else {
-            "release-server"
-        });
+    let server_dir = cargo_manifest_dir.join("target");
     std::fs::create_dir_all(server_dir.join("assets")).expect("server_dir");
     let client_dir: PathBuf = cargo_manifest_dir.clone();
 
