@@ -15,7 +15,7 @@ pub struct RawPty(std::os::fd::OwnedFd);
 impl RawPty {
     pub fn open() -> Result<Self, OpenError> {
         let pt = rustix::pty::openpt(
-            // can't use CLOEXEC here because it's linux-specific
+            // Can't use CLOEXEC here because it's linux-specific
             rustix::pty::OpenptFlags::RDWR | rustix::pty::OpenptFlags::NOCTTY,
         )
         .map_err(OpenError::OpenPT)?;

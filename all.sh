@@ -15,3 +15,4 @@ cargo build --bin game --no-default-features --features server,max_level_debug
 cargo build --bin game --no-default-features --features server,max_level_info --release
 cargo build --bin terrazzo-terminal --no-default-features --features server,max_level_debug
 cargo build --bin terrazzo-terminal --no-default-features --features server,max_level_info --release
+cargo doc --all-features

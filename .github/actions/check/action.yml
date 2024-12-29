@@ -24,3 +24,7 @@ runs:
     - name: Rustfmt
       run: cargo fmt
       shell: bash
+
+    - name: Documentation
+      run: cargo doc --all-features
+      shell: bash
