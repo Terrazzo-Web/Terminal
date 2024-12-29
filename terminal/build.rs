@@ -21,16 +21,16 @@ fn main() {
     }
 
     let cargo_manifest_dir: PathBuf = env::var("CARGO_MANIFEST_DIR").unwrap().into();
-    let server_dir =
-        cargo_manifest_dir
-            .join("target")
-            .join("assets")
-            .join(if cfg!(debug_assertions) {
-                "debug"
-            } else {
-                "release"
-            });
-    let client_dir: PathBuf = server_dir.clone();
+    let server_dir = cargo_manifest_dir
+        .join("target")
+        .join(if cfg!(debug_assertions) {
+            "debug-server"
+        } else {
+            "release-server"
+        });
+    std::fs::create_dir_all(server_dir.join("assets")).expect("server_dir");
+    let client_dir: PathBuf = cargo_manifest_dir.clone();
+
     let mut wasm_pack_options = vec!["--no-default-features", "--features", "client"];
     if env::var(MAX_LEVEL_INFO).is_ok() {
         wasm_pack_options.extend(["--features", "max_level_info"]);
