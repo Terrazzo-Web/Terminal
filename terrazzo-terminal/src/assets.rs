@@ -14,7 +14,7 @@ pub fn install_assets() {
         .install();
     declare_asset!("/assets/bootstrap.js").install();
     declare_asset!("/assets/images/favicon.ico").install();
-    declare_scss_asset!("target/css/web-terminal.scss").install();
+    declare_scss_asset!("target/css/terrazzo-terminal.scss").install();
     install_icons();
     install_xterm();
     install_wasm();
@@ -43,11 +43,11 @@ fn install_xterm() {
 }
 
 fn install_wasm() {
-    declare_asset!("/assets/wasm/web_terminal.js")
-        .asset_name("wasm/web_terminal.js")
+    declare_asset!("/assets/wasm/terrazzo_terminal.js")
+        .asset_name("wasm/terrazzo_terminal.js")
         .install();
-    declare_asset!("/assets/wasm/web_terminal_bg.wasm")
-        .asset_name("wasm/web_terminal_bg.wasm")
+    declare_asset!("/assets/wasm/terrazzo_terminal_bg.wasm")
+        .asset_name("wasm/terrazzo_terminal_bg.wasm")
         .install();
     declare_assets_dir!("wasm/snippets", "$CARGO_MANIFEST_DIR/assets/wasm/snippets");
 }

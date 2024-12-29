@@ -14,7 +14,7 @@ keywords = ["terrazzo", "terminal", "wasm"]
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "web-terminal"
+name = "terrazzo-terminal"
 path = "src/server.rs"
 required-features = ["server"]
 
@@ -97,7 +97,7 @@ max_level_info = [
 concise_traces = ["terrazzo/concise_traces"]
 
 [package.metadata.stylance]
-output_file = "./target/css/web-terminal.scss"
+output_file = "./target/css/terrazzo-terminal.scss"
 folders = ["./src/"]
 extensions = [".scss", ".css"]
 

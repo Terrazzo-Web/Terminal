@@ -1,4 +1,4 @@
-import init, { start } from './wasm/web_terminal.js';
+import init, { start } from './wasm/terrazzo_terminal.js';
 
 function run() {
     start();

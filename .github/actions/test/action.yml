@@ -6,7 +6,7 @@ runs:
     - name: First compile
       run: |
         cargo build --bin game --features server
-        cargo build --bin web-terminal --features server
+        cargo build --bin terrazzo-terminal --features server
       shell: bash
     - name: Test client
       run: cargo test --features=client

@@ -6,6 +6,6 @@ runs:
       run: |
         cargo build --bin game --features server,max_level_debug
         cargo build --bin game --features server,max_level_info --release
-        cargo build --bin web-terminal --features server,max_level_debug
-        cargo build --bin web-terminal --features server,max_level_info --release
+        cargo build --bin terrazzo-terminal --features server,max_level_debug
+        cargo build --bin terrazzo-terminal --features server,max_level_info --release
       shell: bash

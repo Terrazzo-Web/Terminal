@@ -17,6 +17,7 @@ use tracing::Level;
 use crate::api;
 use crate::assets;
 
+const HOST: &str = "127.0.0.1";
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
 pub async fn run_server() {
@@ -44,9 +45,9 @@ pub async fn run_server() {
     } else {
         router
     };
-    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{PORT}"))
+    let listener = tokio::net::TcpListener::bind(format!("{HOST}:{PORT}"))
         .await
         .unwrap();
-    println!("listening on {}", listener.local_addr().unwrap());
+    println!("listening on http://{}", listener.local_addr().unwrap());
     axum::serve(listener, router).await.unwrap();
 }

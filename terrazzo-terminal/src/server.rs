@@ -2,5 +2,5 @@
 
 #[tokio::main]
 async fn main() {
-    web_terminal::run_server().await
+    terrazzo_terminal::run_server().await
 }

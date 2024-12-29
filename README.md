@@ -8,13 +8,13 @@
 
 # Build code
 - `cargo +nightly watch -c -x fmt`
-- `cargo run --bin web-terminal --features server`
-- `cargo run --bin web-terminal --release --features server,max_level_info` to run it
-- `cargo build --bin web-terminal --release --features server,max_level_info && nohup ./target/release/web-terminal > /dev/null 2>&1 &` to run it in the background
+- `cargo run --bin terrazzo-terminal --features server`
+- `cargo run --bin terrazzo-terminal --release --features server,max_level_info` to run it
+- `cargo build --bin terrazzo-terminal --release --features server,max_level_info && nohup ./target/release/terrazzo-terminal > /dev/null 2>&1 &` to run it in the background
 
 # Clippy
-- `cargo clippy --bin web-terminal --features server,max_level_debug`
-- `cargo clippy --bin web-terminal --features server,max_level_info`
+- `cargo clippy --bin terrazzo-terminal --features server,max_level_debug`
+- `cargo clippy --bin terrazzo-terminal --features server,max_level_info`
 - `cargo clippy --features client,max_level_debug`
 - `cargo clippy --features client,max_level_info`
 
