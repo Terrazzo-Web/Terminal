@@ -13,6 +13,7 @@ cargo install wasm-pack
 cargo install stylance-cli
 ```
 
+## Compile from source
 Then run `terrazzo-terminal` using
 ```
 cargo run --bin terrazzo-terminal --release
@@ -21,4 +22,14 @@ cargo run --bin terrazzo-terminal --release
 Open the address printed on the terminal to stack hacking
 ```
 Listening on http://127.0.0.1:3001
+```
+
+## Install using `cargo install`
+```
+cargo install terrazzo-terminal
+```
+
+Then start it using
+```
+terrazzo-terminal
 ```
