@@ -1,10 +1,11 @@
 #![cfg(feature = "server")]
 
 use std::env::set_current_dir;
-use std::fs::File;
+use std::io::ErrorKind;
 use std::iter::once;
 use std::num::NonZeroI32;
 
+use clap::Parser as _;
 use terrazzo::axum;
 use terrazzo::axum::extract::Path;
 use terrazzo::axum::routing::get;
@@ -16,14 +17,35 @@ use tower_http::trace::TraceLayer;
 use tracing::enabled;
 use tracing::Level;
 
+use self::cli::Action;
+use self::cli::Cli;
 use crate::api;
 use crate::assets;
+
+mod cli;
 
 const HOST: &str = "127.0.0.1";
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
 pub fn run_server() -> std::io::Result<()> {
-    let address = format!("{HOST}:{PORT}");
+    let cli = {
+        let mut cli = Cli::parse();
+        cli.pidfile = cli.pidfile.replace("$port", &cli.port.to_string());
+        cli
+    };
+
+    if cli.action == Action::Stop {
+        return cli.kill();
+    }
+
+    if let Some(pid) = cli.read_pid()? {
+        return Err(std::io::Error::new(
+            ErrorKind::AddrInUse,
+            format!("Already running PID = {pid}"),
+        ));
+    }
+
+    let address = format!("{}:{}", cli.host, cli.port);
     println!("Listening on http://{address}");
 
     match fork()? {
@@ -34,13 +56,12 @@ pub fn run_server() -> std::io::Result<()> {
 
     match fork()? {
         Some(pid) => {
-            println!("Child pid is {pid}");
+            println!("Server running in the background. PID = {pid}");
+            cli.save_pidfile(pid)?;
             std::process::exit(0);
         }
         None => { /* in the child process */ }
     }
-
-    File::open(path)
 
     run_server_async(&address)
 }
