@@ -1677,7 +1677,6 @@ dependencies = [
  "clap",
  "dashmap",
  "futures",
- "libc",
  "nameth",
  "nix",
  "pin-project",

@@ -24,7 +24,6 @@ required-features = ["server"]
 clap = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
-libc = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 pin-project = { workspace = true }
@@ -86,7 +85,6 @@ client = [
 server = [
     "dep:clap",
     "dep:dashmap",
-    "dep:libc",
     "dep:nix",
     "dep:terrazzo-pty",
     "dep:tokio",

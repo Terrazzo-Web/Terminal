@@ -52,7 +52,7 @@ pub fn run_server() -> std::io::Result<()> {
         Some(_pid) => std::process::exit(0),
         None => { /* in the child process */ }
     }
-    check_err(unsafe { libc::setsid() }, |r| r != 1)?;
+    check_err(unsafe { nix::libc::setsid() }, |r| r != 1)?;
 
     match fork()? {
         Some(pid) => {
@@ -98,7 +98,7 @@ async fn run_server_async(address: &str) -> std::io::Result<()> {
 }
 
 fn fork() -> std::io::Result<Option<NonZeroI32>> {
-    let pid = check_err(unsafe { libc::fork() }, |pid| pid != -1)?;
+    let pid = check_err(unsafe { nix::libc::fork() }, |pid| pid != -1)?;
     return Ok(NonZeroI32::new(pid));
 }
 
