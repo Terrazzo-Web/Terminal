@@ -1,8 +1,14 @@
 [package]
-name = "web-terminal"
+name = "terrazzo-terminal"
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+description = "A simple web-based terminal emulator built on Terrazzo."
+readme = "README.md"
+categories = ["command-line-utilities", "wasm"]
+keywords = ["terrazzo", "terminal", "wasm"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,7 +16,7 @@ edition = { workspace = true }
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "web-terminal"
+name = "terrazzo-terminal"
 path = "src/server.rs"
 required-features = ["server"]
 
@@ -65,7 +71,7 @@ scopeguard = { workspace = true }
 terrazzo-build = { workspace = true }
 
 [features]
-default = []
+default = ["server", "max_level_info"]
 client = [
     "dep:stylance",
     "dep:wasm-bindgen",
@@ -93,7 +99,7 @@ max_level_info = [
 concise_traces = ["terrazzo/concise_traces"]
 
 [package.metadata.stylance]
-output_file = "./target/css/web-terminal.scss"
+output_file = "./target/css/terrazzo-terminal.scss"
 folders = ["./src/"]
 extensions = [".scss", ".css"]
 

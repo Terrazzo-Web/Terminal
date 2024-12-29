@@ -45,6 +45,6 @@ pub async fn run_server() {
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{PORT}"))
         .await
         .unwrap();
-    println!("listening on {}", listener.local_addr().unwrap());
+    println!("Listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, router).await.unwrap();
 }

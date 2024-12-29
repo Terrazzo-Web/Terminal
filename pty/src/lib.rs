@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use std::task::ready;
 use std::task::Poll;
 

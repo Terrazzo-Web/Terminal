@@ -419,7 +419,7 @@ dependencies = [
 
 [[package]]
 name = "game"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "scopeguard",
  "stylance",
@@ -1531,7 +1531,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-pty"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "futures",
  "libc",
@@ -1543,6 +1543,34 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+]
+
+[[package]]
+name = "terrazzo-terminal"
+version = "0.1.1"
+dependencies = [
+ "dashmap",
+ "futures",
+ "nameth",
+ "pin-project",
+ "scopeguard",
+ "serde",
+ "serde_json",
+ "stylance",
+ "terrazzo",
+ "terrazzo-build",
+ "terrazzo-pty",
+ "thiserror 2.0.9",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-futures",
+ "tracing-subscriber",
+ "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-streams",
+ "web-sys",
 ]
 
 [[package]]
@@ -1942,34 +1970,6 @@ checksum = "04dd7223427d52553d3702c004d3b2fe07c148165faa56313cb00211e31c12bc"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "web-terminal"
-version = "0.1.0"
-dependencies = [
- "dashmap",
- "futures",
- "nameth",
- "pin-project",
- "scopeguard",
- "serde",
- "serde_json",
- "stylance",
- "terrazzo",
- "terrazzo-build",
- "terrazzo-pty",
- "thiserror 2.0.9",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-futures",
- "tracing-subscriber",
- "uuid",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-streams",
- "web-sys",
 ]
 
 [[package]]

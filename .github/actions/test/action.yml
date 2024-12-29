@@ -5,12 +5,12 @@ runs:
     # Avoids race with two build scripts installing wasm-bindgen-cli at the same time.
     - name: First compile
       run: |
-        cargo build --bin game --features server
-        cargo build --bin web-terminal --features server
+        cargo build --bin game --no-default-features --features server
+        cargo build --bin terrazzo-terminal --no-default-features --features server
       shell: bash
     - name: Test client
-      run: cargo test --features=client
+      run: cargo test --no-default-features --features client
       shell: bash
     - name: Test server
-      run: cargo test --features=server
+      run: cargo test --no-default-features --features server
       shell: bash
