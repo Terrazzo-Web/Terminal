@@ -252,9 +252,9 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "clap"
-version = "4.5.26"
+version = "4.5.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8eb5e908ef3a6efbe1ed62520fb7287959888c88485abe072543190ecc66783"
+checksum = "769b0145982b4b48713e01ec42d61614425f27b7058bda7180a3a41f30104796"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -262,9 +262,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.26"
+version = "4.5.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96b01801b5fc6a0a232407abc821660c9c6d25a1cafc0d4f85f29fb8d9afc121"
+checksum = "1b26884eb4b57140e4d2d93652abfa49498b938b3c9179f9fc487b0acc3edad7"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1372,9 +1372,9 @@ checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
 
 [[package]]
 name = "rustix"
-version = "0.38.43"
+version = "0.38.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a78891ee6bf2340288408954ac787aa063d8e8817e9f53abb37c695c6d834ef6"
+checksum = "fdb5bc1ae2baa591800df16c9ca78619bf65c0488b41b96ccec5d11220d8c154"
 dependencies = [
  "bitflags",
  "errno",
@@ -1539,18 +1539,18 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stylance"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "981a6fef6bbf59af6dbe5c9caccccd8cf8eac4c2ae1b32a7e48326b8891bb044"
+checksum = "c28964692dbcf988cd17b0cc30bceb355438fc91d7803e3dcf1a2c382e938145"
 dependencies = [
  "stylance-macros",
 ]
 
 [[package]]
 name = "stylance-core"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe4192323683e94789a098284b6e5c6a79123c2b721b2a50744611989729c4a3"
+checksum = "e04511824ca83a862bd4e821d08dba472ca95535a6ee292b6352e3a2b67d3f85"
 dependencies = [
  "anyhow",
  "serde",
@@ -1561,9 +1561,9 @@ dependencies = [
 
 [[package]]
 name = "stylance-macros"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a8c1524166ab601e8e91be07a41a3324cf16e6977bfb04a579863aabf3289c2"
+checksum = "17090721f174e089066c42d722ca2b5987a984d58c8c4d26ccbba398247e5134"
 dependencies = [
  "anyhow",
  "proc-macro2",
@@ -1995,9 +1995,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.12.0"
+version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "744018581f9a3454a9e15beb8a33b017183f1e7c0cd170232a2d1453b23a51c4"
+checksum = "b3758f5e68192bb96cc8f9b7e2c2cfdabb435499a28499a42f8f984092adad4b"
 dependencies = [
  "getrandom",
  "rand",
