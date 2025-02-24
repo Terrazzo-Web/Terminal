@@ -1,6 +1,6 @@
 # TODO
-- `#·78`. Create a new Reddit account.
-- `#·78`. Announce open source autoclone.
+- `#·81`. Create a new Reddit account.
+- `#·82`. Announce open source autoclone.
 - `#·79`. Announce open source named.
 - `#·32`. Announce open source terrazzo client in a new repo
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
@@ -17,7 +17,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#·78`.
+Next: `#·83`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -88,5 +88,5 @@ Next: `#·78`.
 - `#·75`. Dynamic attributes can return anything that `impl Into<Option<XAttributeValue>>`
 - `#·62`. Attributes auto-convert to optional or dynamic: Rejected because can't have 2 `From<T>` implementations
 - `#·78`. Create a new email address.
-- `#·78`. Create a new Github account and repo.
-- `#·78`. Move terrazzo client and aux crates to the new repo.
+- `#·79`. Create a new Github account and repo.
+- `#·80`. Move terrazzo client and aux crates to the new repo.
