@@ -1,5 +1,5 @@
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use tracing::debug;
 
 use super::raw_pts::Pts;

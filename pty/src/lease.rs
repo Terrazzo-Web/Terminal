@@ -1,16 +1,16 @@
 use std::pin::Pin;
 use std::sync::Arc;
-use std::task::ready;
 use std::task::Poll;
+use std::task::ready;
 
+use futures::Stream;
+use futures::StreamExt as _;
 use futures::channel::oneshot;
 use futures::lock::Mutex;
 use futures::stream::TakeUntil;
-use futures::Stream;
-use futures::StreamExt as _;
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
 use nameth::NamedType as _;
+use nameth::nameth;
 use scopeguard::defer;
 use tracing::debug;
 use tracing::debug_span;
@@ -18,10 +18,10 @@ use tracing::error;
 use tracing::info;
 use tracing::trace;
 
-use crate::release_on_drop::ReleaseOnDrop;
 use crate::ProcessIO;
 use crate::ProcessInput;
 use crate::ProcessOutput;
+use crate::release_on_drop::ReleaseOnDrop;
 
 #[nameth]
 pub struct ProcessIoEntry {

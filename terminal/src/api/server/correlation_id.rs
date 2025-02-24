@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
-use terrazzo::axum::async_trait;
+use nameth::nameth;
 use terrazzo::axum::extract::FromRequestParts;
 use terrazzo::axum::response::IntoResponse;
 use terrazzo::axum::response::Response;
-use terrazzo::http;
-use terrazzo::http::header::ToStrError;
 use terrazzo::http::StatusCode;
+use terrazzo::http::header::ToStrError;
 
 use super::into_error;
 use crate::api::CORRELATION_ID;
@@ -17,12 +15,11 @@ use crate::api::CORRELATION_ID;
 pub struct CorrelationId(Arc<str>);
 
 /// [CorrelationId] can be provided as a header.
-#[async_trait]
-impl<S> FromRequestParts<S> for CorrelationId {
+impl<S: Send + Sync> FromRequestParts<S> for CorrelationId {
     type Rejection = CorrelationIdError;
 
     async fn from_request_parts(
-        parts: &mut http::request::Parts,
+        parts: &mut terrazzo::http::request::Parts,
         _state: &S,
     ) -> Result<Self, Self::Rejection> {
         let correlation_id = parts

@@ -1,16 +1,16 @@
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use terrazzo::prelude::OrElseLog as _;
 use wasm_bindgen::JsValue;
 use web_sys::Headers;
 use web_sys::Response;
 
 use super::pipe::PipeError;
-use crate::api::client::send_request;
+use crate::api::RegisterTerminalRequest;
+use crate::api::client::BASE_URL;
 use crate::api::client::Method;
 use crate::api::client::SendRequestError;
-use crate::api::client::BASE_URL;
-use crate::api::RegisterTerminalRequest;
+use crate::api::client::send_request;
 
 /// Instructs the server to include `terminal_id`'s data in the pipe.
 #[nameth]

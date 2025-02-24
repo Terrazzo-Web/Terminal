@@ -1,8 +1,8 @@
+use terrazzo::axum::Router;
 use terrazzo::axum::response::IntoResponse as _;
 use terrazzo::axum::response::Response;
 use terrazzo::axum::routing::get;
 use terrazzo::axum::routing::post;
-use terrazzo::axum::Router;
 use terrazzo::http::HeaderMap;
 use terrazzo::http::HeaderName;
 use terrazzo::http::StatusCode;

@@ -1,10 +1,10 @@
 #![doc = include_str!("../README.md")]
 
-use std::task::ready;
 use std::task::Poll;
+use std::task::ready;
 
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use pin_project::pin_project;
 use tokio::io::AsyncWrite;
 use tokio_util::io::ReaderStream;

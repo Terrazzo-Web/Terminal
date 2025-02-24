@@ -4,15 +4,15 @@ use std::env::set_current_dir;
 use std::iter::once;
 
 use terrazzo::axum;
+use terrazzo::axum::Router;
 use terrazzo::axum::extract::Path;
 use terrazzo::axum::routing::get;
-use terrazzo::axum::Router;
 use terrazzo::http::header::AUTHORIZATION;
 use terrazzo::static_assets;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
 use tower_http::trace::TraceLayer;
-use tracing::enabled;
 use tracing::Level;
+use tracing::enabled;
 
 use crate::assets;
 

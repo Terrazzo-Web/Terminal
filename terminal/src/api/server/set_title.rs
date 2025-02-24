@@ -1,7 +1,7 @@
 use scopeguard::defer;
+use terrazzo::axum::Json;
 use terrazzo::axum::extract::Path;
 use terrazzo::axum::response::Response;
-use terrazzo::axum::Json;
 use terrazzo::http::StatusCode;
 use tracing::debug_span;
 use tracing::trace;

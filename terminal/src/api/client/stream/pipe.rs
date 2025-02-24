@@ -1,31 +1,31 @@
-use futures::channel::oneshot;
-use futures::select;
 use futures::FutureExt as _;
 use futures::StreamExt as _;
 use futures::TryFutureExt as _;
-use nameth::nameth;
+use futures::channel::oneshot;
+use futures::select;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use scopeguard::defer;
 use terrazzo::prelude::OrElseLog as _;
+use tracing::Instrument as _;
 use tracing::debug;
 use tracing::info;
 use tracing::info_span;
 use tracing::warn;
-use tracing::Instrument as _;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::js_sys::Uint8Array;
 use web_sys::Headers;
 use web_sys::Response;
+use web_sys::js_sys::Uint8Array;
 
-use super::dispatch::dispatch;
-use super::send_request;
+use super::BASE_URL;
+use super::DISPATCHERS;
 use super::Method;
 use super::SendRequestError;
 use super::ShutdownPipe;
-use super::BASE_URL;
-use super::DISPATCHERS;
+use super::dispatch::dispatch;
+use super::send_request;
 use crate::api::CORRELATION_ID;
 
 /// Spawns the pipe in the background.
@@ -143,7 +143,7 @@ fn close_dispatchers(correlation_id: &str) {
 
 /// Sends a request to close the pipe.
 #[nameth]
-pub fn close_pipe(correlation_id: String) -> impl std::future::Future<Output = ()> {
+pub fn close_pipe(correlation_id: String) -> impl Future<Output = ()> {
     let span = info_span!("ClosePipe", %correlation_id);
     send_request(
         Method::POST,

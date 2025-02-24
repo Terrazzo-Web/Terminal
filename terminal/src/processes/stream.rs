@@ -1,10 +1,8 @@
-use std::future::Future;
-
+use terrazzo_pty::OpenProcessError;
+use terrazzo_pty::ProcessIO;
 use terrazzo_pty::lease::LeaseProcessOutputError;
 use terrazzo_pty::lease::ProcessIoEntry;
 use terrazzo_pty::lease::ProcessOutputLease;
-use terrazzo_pty::OpenProcessError;
-use terrazzo_pty::ProcessIO;
 use tracing::error;
 use tracing::info;
 

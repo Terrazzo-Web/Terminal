@@ -1,10 +1,10 @@
 use futures::channel::mpsc;
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use scopeguard::defer;
-use terrazzo_pty::lease::ProcessOutputLease;
 use terrazzo_pty::OpenProcessError;
 use terrazzo_pty::ProcessIO;
+use terrazzo_pty::lease::ProcessOutputLease;
 use tracing::debug;
 use tracing::warn;
 use tracing_futures as _;

@@ -1,27 +1,27 @@
 use std::future::ready;
 
-use futures::channel::mpsc;
-use futures::select;
 use futures::FutureExt as _;
 use futures::SinkExt as _;
 use futures::StreamExt as _;
+use futures::channel::mpsc;
+use futures::select;
 use scopeguard::defer;
 use scopeguard::guard;
 use terrazzo::prelude::*;
 use terrazzo::widgets::resize_event::ResizeEvent;
+use tracing::Instrument as _;
+use tracing::Span;
 use tracing::debug;
 use tracing::debug_span;
 use tracing::error;
 use tracing::info;
 use tracing::info_span;
 use tracing::warn;
-use tracing::Instrument as _;
-use tracing::Span;
 use wasm_bindgen::JsValue;
 
+use super::TerminalsState;
 use super::javascript::TerminalJs;
 use super::terminal_tab::TerminalTab;
-use super::TerminalsState;
 use crate::api;
 use crate::api::TabTitle;
 use crate::api::TerminalDef;

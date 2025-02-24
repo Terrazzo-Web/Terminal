@@ -1,5 +1,5 @@
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use terrazzo::prelude::OrElseLog;
 use terrazzo::prelude::XSignal;
 use terrazzo::prelude::XString;
@@ -13,9 +13,9 @@ use web_sys::RequestInit;
 use web_sys::RequestMode;
 use web_sys::Response;
 
+use super::APPLICATION_JSON;
 use super::TabTitle;
 use super::TerminalDefImpl;
-use super::APPLICATION_JSON;
 use crate::api::ERROR_HEADER;
 
 pub mod list;

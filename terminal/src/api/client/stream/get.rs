@@ -1,25 +1,25 @@
 use std::collections::HashMap;
 
-use futures::channel::mpsc;
-use futures::channel::oneshot;
 use futures::FutureExt;
 use futures::Stream;
+use futures::channel::mpsc;
+use futures::channel::oneshot;
 use pin_project::pin_project;
 use terrazzo::autoclone;
 use terrazzo::prelude::OrElseLog as _;
+use tracing::Instrument as _;
 use tracing::info;
 use tracing::info_span;
-use tracing::Instrument as _;
 use web_sys::js_sys::Math;
 
-use super::pipe::pipe;
-use super::pipe::PipeError;
-use super::register::register;
-use super::register::RegisterError;
-use super::StreamDispatchers;
 use super::DISPATCHERS;
-use crate::api::client::stream::ShutdownPipe;
+use super::StreamDispatchers;
+use super::pipe::PipeError;
+use super::pipe::pipe;
+use super::register::RegisterError;
+use super::register::register;
 use crate::api::RegisterTerminalRequest;
+use crate::api::client::stream::ShutdownPipe;
 use crate::terminal_id::TerminalId;
 
 pub async fn get(request: RegisterTerminalRequest) -> Result<StreamReader, RegisterError> {

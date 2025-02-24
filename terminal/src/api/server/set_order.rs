@@ -1,6 +1,6 @@
 use scopeguard::defer;
-use terrazzo::axum::response::Response;
 use terrazzo::axum::Json;
+use terrazzo::axum::response::Response;
 use tracing::debug_span;
 use tracing::trace;
 

@@ -1,9 +1,9 @@
+use terrazzo::axum::Json;
 use terrazzo::axum::extract::Path;
 use terrazzo::axum::response::Response;
-use terrazzo::axum::Json;
 use terrazzo::http::StatusCode;
-use tracing::info_span;
 use tracing::Instrument as _;
+use tracing::info_span;
 
 use super::into_error;
 use crate::api::Size;

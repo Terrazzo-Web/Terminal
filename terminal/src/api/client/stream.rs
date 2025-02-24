@@ -3,33 +3,33 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Mutex;
 
+use futures::FutureExt as _;
+use futures::StreamExt as _;
 use futures::channel::mpsc;
 use futures::channel::oneshot;
 use futures::future::Shared;
 use futures::stream::ReadyChunks;
-use futures::FutureExt as _;
-use futures::StreamExt as _;
 use get::StreamReader;
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use scopeguard::defer;
 use terrazzo::prelude::OrElseLog as _;
 use tracing::debug;
 use tracing::info;
 use tracing::warn;
-use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
-use web_sys::js_sys::Uint8Array;
+use wasm_bindgen::prelude::Closure;
 use web_sys::Element;
 use web_sys::MouseEvent;
+use web_sys::js_sys::Uint8Array;
 
 use self::get::get;
 use self::register::RegisterError;
-use super::send_request;
+use super::BASE_URL;
 use super::Method;
 use super::SendRequestError;
-use super::BASE_URL;
+use super::send_request;
 use crate::api::RegisterTerminalMode;
 use crate::api::RegisterTerminalRequest;
 use crate::api::TerminalDef;
@@ -68,8 +68,8 @@ pub async fn stream<F, F0>(
     on_data: impl Fn(JsValue) -> F,
 ) -> Result<(), StreamError>
 where
-    F: std::future::Future<Output = ()>,
-    F0: std::future::Future<Output = ()>,
+    F: Future<Output = ()>,
+    F0: Future<Output = ()>,
 {
     let terminal_id = terminal_def.id.clone();
     defer! { state.on_eos(&terminal_id); }
@@ -134,7 +134,7 @@ async fn do_stream<F>(
     on_data: &impl Fn(JsValue) -> F,
 ) -> StreamStatus
 where
-    F: std::future::Future<Output = ()>,
+    F: Future<Output = ()>,
 {
     while let Some(chunks) = reader.next().await {
         let chunk = {

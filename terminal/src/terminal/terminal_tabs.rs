@@ -6,8 +6,8 @@ use terrazzo::widgets::tabs::TabsDescriptor;
 use terrazzo::widgets::tabs::TabsState;
 use tracing::warn;
 
-use super::terminal_tab::TerminalTab;
 use super::TerminalsState;
+use super::terminal_tab::TerminalTab;
 use crate::api;
 use crate::terminal_id::TerminalId;
 

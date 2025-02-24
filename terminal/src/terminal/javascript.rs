@@ -1,6 +1,6 @@
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsValue;
+use wasm_bindgen::prelude::Closure;
+use wasm_bindgen::prelude::wasm_bindgen;
 use web_sys::Element;
 
 #[wasm_bindgen(module = "/src/terminal/javascript.js")]
