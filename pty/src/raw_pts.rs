@@ -17,7 +17,7 @@ impl Pts {
         ))
     }
 
-    pub fn session_leader(&self) -> impl FnMut() -> std::io::Result<()> {
+    pub fn session_leader(&self) -> impl FnMut() -> std::io::Result<()> + 'static {
         let pts_fd = self.0.as_raw_fd();
         move || {
             rustix::process::setsid()?;

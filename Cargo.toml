@@ -3,7 +3,7 @@ members = ["game", "pty", "terminal"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.3"
+version = "0.1.4"
 authors = ["Lamparo <LamparoS@Pavy.one>"]
 edition = "2024"
 repository = "https://github.com/Terrazzo-Web/Terminal"
@@ -27,18 +27,19 @@ incremental = true       # Incremental compilation.
 opt-level = "s"
 
 [workspace.dependencies]
-terrazzo-pty = { version = "0.1.3", path = "pty" }
+terrazzo-pty = { version = "0.1.4", path = "pty" }
 
+async-trait = { version = "0.1.86" }
 autoclone = { version = "0.1.4" }
 axum = { version = "0.8.1" }
-clap = { version = "4.5.30", features = ["derive"] }
+clap = { version = "4.5.31", features = ["derive"] }
 darling = { version = "0.20.10" }
 dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
 futures = { version = "0.3.31" }
 http = { version = "1.2.0" }
 include_directory = { version = "0.1.1" }
-libc = { version = "0.2.169" }
+libc = { version = "0.2.170" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.4" }
@@ -51,8 +52,8 @@ reqwest-wasm = { version = "0.11.16" }
 rsass-macros = { version = "0.29.0" }
 rustix = { version = "0.38.44" }
 scopeguard = { version = "1.2.0" }
-serde = { version = "1.0.217", features = ["derive", "rc"] }
-serde_json = { version = "1.0.138" }
+serde = { version = "1.0.218", features = ["derive", "rc"] }
+serde_json = { version = "1.0.139" }
 serde_urlencoded = { version = "0.7.1" }
 stylance = { version = "0.5.4" }
 syn = { version = "2.0.98" }
@@ -66,7 +67,7 @@ tracing = { version = "0.1.41" }
 tracing-futures = { version = "0.2.5" }
 tracing-subscriber = { version = "0.3.19" }
 tracing-subscriber-wasm = { version = "0.1.0" }
-uuid = { version = "1.13.1" }
+uuid = { version = "1.14.0" }
 wasm-bindgen = { version = "0.2.100" }
 wasm-bindgen-futures = { version = "0.4.50" }
 wasm-bindgen-test = { version = "0.3.50" }
