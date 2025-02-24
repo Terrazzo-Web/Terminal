@@ -18,20 +18,18 @@ pub struct CorrelationId(Arc<str>);
 impl<S: Send + Sync> FromRequestParts<S> for CorrelationId {
     type Rejection = CorrelationIdError;
 
-    fn from_request_parts(
+    async fn from_request_parts(
         parts: &mut terrazzo::http::request::Parts,
         _: &S,
-    ) -> impl Future<Output = Result<Self, CorrelationIdError>> + Send {
-        async {
-            let correlation_id = parts
-                .headers
-                .get(CORRELATION_ID)
-                .ok_or(CorrelationIdError::MissingCorrelationId)?;
-            let correlation_id = correlation_id
-                .to_str()
-                .map_err(CorrelationIdError::InvalidString)?;
-            return Ok(CorrelationId(correlation_id.into()));
-        }
+    ) -> Result<Self, CorrelationIdError> {
+        let correlation_id = parts
+            .headers
+            .get(CORRELATION_ID)
+            .ok_or(CorrelationIdError::MissingCorrelationId)?;
+        let correlation_id = correlation_id
+            .to_str()
+            .map_err(CorrelationIdError::InvalidString)?;
+        return Ok(CorrelationId(correlation_id.into()));
     }
 }
 
