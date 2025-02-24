@@ -20,10 +20,7 @@ use crate::terminal_id::TerminalId;
 
 /// Sends a request to close the process.
 #[nameth]
-pub fn close(
-    terminal_id: TerminalId,
-    correlation_id: Option<String>,
-) -> impl std::future::Future<Output = ()> {
+pub fn close(terminal_id: TerminalId, correlation_id: Option<String>) -> impl Future<Output = ()> {
     send_request(
         Method::POST,
         format!("{BASE_URL}/stream/{CLOSE}/{terminal_id}"),

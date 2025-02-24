@@ -19,7 +19,7 @@ mod registration;
 pub use self::close::close;
 pub use self::pipe::close_pipe;
 
-pub fn pipe(correlation_id: CorrelationId) -> impl std::future::Future<Output = Body> {
+pub fn pipe(correlation_id: CorrelationId) -> impl Future<Output = Body> {
     ready(pipe::pipe(correlation_id))
 }
 

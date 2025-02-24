@@ -1,5 +1,3 @@
-use std::future::Future;
-
 use terrazzo_pty::OpenProcessError;
 use terrazzo_pty::ProcessIO;
 use terrazzo_pty::lease::LeaseProcessOutputError;

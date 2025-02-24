@@ -68,8 +68,8 @@ pub async fn stream<F, F0>(
     on_data: impl Fn(JsValue) -> F,
 ) -> Result<(), StreamError>
 where
-    F: std::future::Future<Output = ()>,
-    F0: std::future::Future<Output = ()>,
+    F: Future<Output = ()>,
+    F0: Future<Output = ()>,
 {
     let terminal_id = terminal_def.id.clone();
     defer! { state.on_eos(&terminal_id); }
@@ -134,7 +134,7 @@ async fn do_stream<F>(
     on_data: &impl Fn(JsValue) -> F,
 ) -> StreamStatus
 where
-    F: std::future::Future<Output = ()>,
+    F: Future<Output = ()>,
 {
     while let Some(chunks) = reader.next().await {
         let chunk = {

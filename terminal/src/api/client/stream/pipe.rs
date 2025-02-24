@@ -143,7 +143,7 @@ fn close_dispatchers(correlation_id: &str) {
 
 /// Sends a request to close the pipe.
 #[nameth]
-pub fn close_pipe(correlation_id: String) -> impl std::future::Future<Output = ()> {
+pub fn close_pipe(correlation_id: String) -> impl Future<Output = ()> {
     let span = info_span!("ClosePipe", %correlation_id);
     send_request(
         Method::POST,
