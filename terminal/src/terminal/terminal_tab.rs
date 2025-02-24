@@ -2,26 +2,26 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::Mutex;
 
-use nameth::nameth;
 use nameth::NamedType;
+use nameth::nameth;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::editable::editable;
 use terrazzo::widgets::tabs::TabDescriptor;
+use tracing::Level;
 use tracing::debug;
 use tracing::warn;
-use tracing::Level;
 
+use super::TerminalsState;
 use super::attach;
 use super::javascript::TerminalJs;
 use super::style;
-use super::TerminalsState;
 use crate::api;
-use crate::api::client::LiveTerminalDef;
 use crate::api::TabTitle;
 use crate::api::TerminalDef;
+use crate::api::client::LiveTerminalDef;
 use crate::terminal_id::TerminalId;
 
 #[nameth]

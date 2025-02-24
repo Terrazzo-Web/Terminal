@@ -1,20 +1,20 @@
 use futures::FutureExt as _;
 use futures::TryFutureExt as _;
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use terrazzo::prelude::OrElseLog as _;
+use tracing::Instrument as _;
 use tracing::debug;
 use tracing::info_span;
-use tracing::Instrument as _;
 use web_sys::Headers;
 use web_sys::Response;
 
-use super::send_request;
-use super::warn;
-use super::Method;
-use super::SendRequestError;
 use super::BASE_URL;
 use super::DISPATCHERS;
+use super::Method;
+use super::SendRequestError;
+use super::send_request;
+use super::warn;
 use crate::api::CORRELATION_ID;
 use crate::terminal_id::TerminalId;
 

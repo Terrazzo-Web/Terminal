@@ -2,8 +2,8 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 
-use super::cookie::cookie;
 use super::cookie::Cookie;
+use super::cookie::cookie;
 
 stylance::import_crate_style!(style, "src/game/cookies.scss");
 

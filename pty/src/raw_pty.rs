@@ -2,8 +2,8 @@ use std::os::fd::AsRawFd as _;
 use std::os::fd::FromRawFd as _;
 use std::os::unix::ffi::OsStrExt as _;
 
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use tracing::debug;
 
 use super::raw_pts::Pts;

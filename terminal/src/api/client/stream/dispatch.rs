@@ -1,7 +1,7 @@
-use futures::channel::mpsc::SendError;
 use futures::SinkExt;
-use nameth::nameth;
+use futures::channel::mpsc::SendError;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use terrazzo::prelude::OrElseLog as _;
 use tracing::trace;
 use tracing::warn;

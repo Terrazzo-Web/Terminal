@@ -4,9 +4,9 @@ use terrazzo::axum::body::Body;
 use terrazzo::axum::extract::Path;
 use terrazzo::axum::response::Response;
 use terrazzo::http::StatusCode;
+use tracing::Instrument as _;
 use tracing::debug_span;
 use tracing::trace;
-use tracing::Instrument as _;
 
 use super::into_error;
 use crate::processes;

@@ -1,14 +1,14 @@
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
-use web_sys::js_sys::Uint8Array;
 use web_sys::Response;
+use web_sys::js_sys::Uint8Array;
 
-use super::send_request;
+use super::BASE_URL;
 use super::Method;
 use super::SendRequestError;
-use super::BASE_URL;
+use super::send_request;
 use crate::api::TerminalDef;
 
 #[nameth]

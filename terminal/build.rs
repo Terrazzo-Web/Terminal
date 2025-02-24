@@ -13,8 +13,8 @@ fn main() {
     let Ok(server_feature) = env::var(SERVER_FEATURE) else {
         return;
     };
-    env::remove_var(SERVER_FEATURE);
-    defer!(std::env::set_var(SERVER_FEATURE, server_feature));
+    unsafe { env::remove_var(SERVER_FEATURE) };
+    defer!(unsafe { std::env::set_var(SERVER_FEATURE, server_feature) });
 
     if env::var(CLIENT_FEATURE).is_ok() {
         println!("cargo::warning=Can't enable both 'client' and 'server' features");

@@ -1,12 +1,12 @@
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::Response;
 
-use super::send_request;
+use super::BASE_URL;
 use super::Method;
 use super::SendRequestError;
-use super::BASE_URL;
+use super::send_request;
 use crate::api::TerminalDef;
 
 #[nameth]

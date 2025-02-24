@@ -1,16 +1,16 @@
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use terrazzo::prelude::OrElseLog as _;
 use wasm_bindgen::JsValue;
 use web_sys::Headers;
 use web_sys::Response;
 
-use super::send_request;
+use super::BASE_URL;
 use super::Method;
 use super::SendRequestError;
-use super::BASE_URL;
-use crate::api::client::set_content_type_json;
+use super::send_request;
 use crate::api::Size;
+use crate::api::client::set_content_type_json;
 use crate::terminal_id::TerminalId;
 
 #[nameth]

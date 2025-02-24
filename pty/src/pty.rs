@@ -2,8 +2,8 @@ use std::io::Read as _;
 use std::io::Write as _;
 use std::sync::Arc;
 
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 
 use super::raw_pts::Pts;
 use super::raw_pty;

@@ -1,11 +1,11 @@
 use std::future::ready;
 
+use terrazzo::axum::Json;
 use terrazzo::axum::body::Body;
 use terrazzo::axum::response::Response;
-use terrazzo::axum::Json;
 use terrazzo::http::StatusCode;
-use tracing::info_span;
 use tracing::Instrument as _;
+use tracing::info_span;
 
 use super::correlation_id::CorrelationId;
 use super::into_error;

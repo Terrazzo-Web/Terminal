@@ -1,30 +1,30 @@
 use std::future::ready;
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::SeqCst;
-use std::sync::Arc;
 use std::time::Duration;
 
-use futures::channel::mpsc;
-use futures::stream::once;
 use futures::Stream;
 use futures::StreamExt as _;
+use futures::channel::mpsc;
+use futures::stream::once;
 use pin_project::pin_project;
 use scopeguard::defer;
 use scopeguard::guard;
 use terrazzo::autoclone;
 use terrazzo::axum::body::Body;
 use terrazzo_pty::lease::LeaseItem;
+use tracing::Span;
 use tracing::debug;
 use tracing::info;
 use tracing::info_span;
 use tracing::trace;
-use tracing::Span;
 use tracing_futures::Instrument as _;
 
-use crate::api::server::correlation_id::CorrelationId;
-use crate::api::server::stream::registration::Registration;
 use crate::api::Chunk;
 use crate::api::NEWLINE;
+use crate::api::server::correlation_id::CorrelationId;
+use crate::api::server::stream::registration::Registration;
 use crate::processes;
 
 const PIPE_TTL: Duration = if cfg!(feature = "concise_traces") {

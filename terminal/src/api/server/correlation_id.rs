@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use nameth::nameth;
 use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use terrazzo::axum::async_trait;
 use terrazzo::axum::extract::FromRequestParts;
 use terrazzo::axum::response::IntoResponse;
 use terrazzo::axum::response::Response;
 use terrazzo::http;
-use terrazzo::http::header::ToStrError;
 use terrazzo::http::StatusCode;
+use terrazzo::http::header::ToStrError;
 
 use super::into_error;
 use crate::api::CORRELATION_ID;
