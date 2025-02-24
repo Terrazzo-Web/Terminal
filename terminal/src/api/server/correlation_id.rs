@@ -20,8 +20,8 @@ impl<S: Send + Sync> FromRequestParts<S> for CorrelationId {
 
     async fn from_request_parts(
         parts: &mut terrazzo::http::request::Parts,
-        _: &S,
-    ) -> Result<Self, CorrelationIdError> {
+        _state: &S,
+    ) -> Result<Self, Self::Rejection> {
         let correlation_id = parts
             .headers
             .get(CORRELATION_ID)
