@@ -32,6 +32,10 @@ pub struct Cli {
     /// The file to store the pid of the daemon while it is running
     #[arg(long, default_value_t = format!("{}/.terrazzo/terminal-$port.pid", std::env::var("HOME").expect("HOME")))]
     pub pidfile: String,
+
+    /// The file to store private Root CA
+    #[arg(long, default_value_t = format!("{}/.terrazzo/root_ca", std::env::var("HOME").expect("HOME")))]
+    pub private_root_ca: String,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
