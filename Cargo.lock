@@ -114,9 +114,9 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "autoclone"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bf90ba046a88332ac0ea068d24c8b77486f11f459f57da3a47178758e0964d5"
+checksum = "9ecaaa35bdcaffc494a2669c68c7a60a80003cd598731a580f3948e1b224ccda"
 dependencies = [
  "darling",
  "prettyplease",
@@ -1008,18 +1008,18 @@ dependencies = [
 
 [[package]]
 name = "nameth"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f80a8a087b51fc40c16a44faac28c0ebae11bc88a8687e909db2c10a6cacb055"
+checksum = "48bab1eb4dc4c9eb3500eac655321a362082c9dbc4ec9c87ad34cd73353d4896"
 dependencies = [
  "nameth-macro",
 ]
 
 [[package]]
 name = "nameth-macro"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9af3db9c5f9090da3f9807b3002802ab17b6641a2fccb4e0da1cf7529d445ee1"
+checksum = "f6db93ba7caf5d09097927f3a84d98f55b3b0855bbbc4c243aa8b6075de18175"
 dependencies = [
  "darling",
  "quote",
@@ -1542,9 +1542,9 @@ checksum = "0bf256ce5efdfa370213c1dabab5935a12e49f2c58d15e9eac2870d3b4f27263"
 
 [[package]]
 name = "terrazzo"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac1e05dd34d2a2f6ef4c54c17b84ad597d97dc76eeb44bda3a53c863ff4701fa"
+checksum = "48b1c3cb2fa588609507abe6ac7798d9877821b4e178e5de156f8798e76fddb0"
 dependencies = [
  "autoclone",
  "axum",
@@ -1567,9 +1567,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-build"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b46b3cf7f20654ab36a2d52302bcee2599b15f53ee85897135f9e43c8caf5474"
+checksum = "0fcb7ba7c050208b88e1794b9cdee40ff1d87071b33906a33b5b774cc5e9e491"
 dependencies = [
  "nameth",
  "thiserror 2.0.11",
@@ -1577,9 +1577,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-client"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "416becb85371b7e7fffee7b6da1a095e43e291ce1c86d5d937afb2347b7fb01f"
+checksum = "3e76a5b581a44def35ee9ecfe85e40d22835c8fad0c0f9b1566ae5b92d9b7796"
 dependencies = [
  "autoclone",
  "nameth",
@@ -1594,9 +1594,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-macro"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa2845e0bc891aa1393916ccaadbbbf7649c74fec787e1381148f581c5217301"
+checksum = "e34c21a2ddb4f9fc1c2d7f1d01631e0292c6b0737f6fb69e88ed708b43ff30be"
 dependencies = [
  "deluxe",
  "prettyplease",
