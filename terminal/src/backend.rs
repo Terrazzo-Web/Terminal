@@ -63,7 +63,7 @@ async fn run_server_async(address: &str) -> std::io::Result<()> {
     let router = Router::new()
         .route("/", get(|| static_assets::get("index.html")))
         .route(
-            "/static/*file",
+            "/static/{*file}",
             get(|Path(path): Path<String>| static_assets::get(&path)),
         )
         .nest_service("/api", api::server::route());
