@@ -25,11 +25,11 @@ pub fn route() -> Router {
         .route("/stream/pipe", post(stream::pipe))
         .route("/stream/pipe/close", post(stream::close_pipe))
         .route("/stream/register", post(stream::register))
-        .route("/stream/close/:terminal_id", post(stream::close))
-        .route("/resize/:terminal_id", post(resize::resize))
-        .route("/set_title/:terminal_id", post(set_title::set_title))
+        .route("/stream/close/{terminal_id}", post(stream::close))
+        .route("/resize/{terminal_id}", post(resize::resize))
+        .route("/set_title/{terminal_id}", post(set_title::set_title))
         .route("/set_order", post(set_order::set_order))
-        .route("/write/:terminal_id", post(write::write))
+        .route("/write/{terminal_id}", post(write::write))
 }
 
 fn into_error<E: std::error::Error>(status_code: StatusCode) -> impl FnMut(E) -> Response {

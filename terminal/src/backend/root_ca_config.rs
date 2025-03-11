@@ -14,6 +14,7 @@ use trz_gateway_common::security_configuration::certificate::as_trusted_store::a
 use trz_gateway_common::security_configuration::certificate::cache::CachedCertificate;
 use trz_gateway_common::security_configuration::certificate::pem::PemCertificate;
 use trz_gateway_common::security_configuration::trusted_store::TrustedStoreConfig;
+use trz_gateway_common::x509::name::CertitficateName;
 use trz_gateway_common::x509::validity::Validity;
 use trz_gateway_server::server::root_ca_configuration;
 use trz_gateway_server::server::root_ca_configuration::RootCaConfigError;
@@ -26,7 +27,11 @@ pub struct PrivateRootCa(CachedCertificate);
 impl PrivateRootCa {
     pub fn load(cli: &Cli) -> Result<Self, PrivateRootCaError> {
         let root_ca = root_ca_configuration::load_root_ca(
-            "Terrazzo Terminal Root CA",
+            CertitficateName {
+                organization: Some("Terrazzo"),
+                common_name: Some("Terrazzo Terminal Root CA"),
+                ..CertitficateName::default()
+            },
             CertificateInfo {
                 certificate: format!("{}.cert", cli.private_root_ca),
                 private_key: format!("{}.key", cli.private_root_ca),
@@ -75,5 +80,17 @@ impl TrustedStoreConfig for PrivateRootCa {
 
     fn root_certificates(&self) -> Result<Arc<X509Store>, Self::Error> {
         as_trusted_store(self)
+    }
+}
+
+mod debug {
+    use std::fmt::Debug;
+
+    use super::PrivateRootCa;
+
+    impl Debug for PrivateRootCa {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_tuple("PrivateRootCa").finish()
+        }
     }
 }

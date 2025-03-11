@@ -93,13 +93,10 @@ impl ProcessOutputExchange {
         let process_output = self.process_output_rx.await?;
         debug!("Getting new lease: Done");
         let (lease, signal_tx, process_output_rx) = ProcessOutputLease::new(process_output);
-        Ok((
-            lease,
-            Self {
-                signal_tx,
-                process_output_rx,
-            },
-        ))
+        Ok((lease, Self {
+            signal_tx,
+            process_output_rx,
+        }))
     }
 }
 

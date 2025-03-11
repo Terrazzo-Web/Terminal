@@ -1,5 +1,7 @@
 #![allow(unused_crate_dependencies)]
 
-fn main() -> std::io::Result<()> {
+use terrazzo_terminal::RunServerError;
+
+fn main() -> Result<(), RunServerError> {
     terrazzo_terminal::run_server()
 }

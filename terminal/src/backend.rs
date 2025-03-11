@@ -1,35 +1,37 @@
 #![cfg(feature = "server")]
 
 use std::env::set_current_dir;
-use std::iter::once;
 
 use clap::Parser as _;
-use root_ca_config::PrivateRootCa;
-use terrazzo::axum;
-use terrazzo::axum::Router;
-use terrazzo::axum::extract::Path;
-use terrazzo::axum::routing::get;
-use terrazzo::http::header::AUTHORIZATION;
-use terrazzo::static_assets;
-use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
-use tower_http::trace::TraceLayer;
-use tracing::Level;
-use tracing::enabled;
-use trz_gateway_server::server::gateway_config::GatewayConfig;
+use cli::kill::KillServerError;
+use daemonize::DaemonizeServerError;
+use nameth::NamedEnumValues as _;
+use nameth::nameth;
+use root_ca_config::PrivateRootCaError;
+use server_config::TerminalBackendServer;
+use tls_config::TlsConfigError;
+use tokio::signal::unix::SignalKind;
+use tokio::signal::unix::signal;
+use trz_gateway_common::handle::ServerStopError;
+use trz_gateway_server::server::GatewayError;
+use trz_gateway_server::server::Server;
 
 use self::cli::Action;
 use self::cli::Cli;
-use crate::api;
+use self::root_ca_config::PrivateRootCa;
+use self::tls_config::make_tls_config;
 use crate::assets;
 
 mod cli;
 mod daemonize;
 mod root_ca_config;
+mod server_config;
+mod tls_config;
 
 const HOST: &str = "127.0.0.1";
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
-pub fn run_server() -> std::io::Result<()> {
+pub fn run_server() -> Result<(), RunServerError> {
     let cli = {
         let mut cli = Cli::parse();
         cli.pidfile = cli.pidfile.replace("$port", &cli.port.to_string());
@@ -37,84 +39,64 @@ pub fn run_server() -> std::io::Result<()> {
     };
 
     if cli.action == Action::Stop {
-        return cli.kill();
+        return Ok(cli.kill()?);
     }
 
-    let address = format!("{}:{}", cli.host, cli.port);
-    println!("Listening on http://{address}");
+    let root_ca = PrivateRootCa::load(&cli)?;
+    let tls_config = make_tls_config(&root_ca)?;
+    let config = TerminalBackendServer {
+        host: cli.host.clone(),
+        port: cli.port,
+        root_ca,
+        tls_config,
+    };
 
     if cli.action == Action::Start {
         self::daemonize::daemonize(cli)?;
     }
 
-    run_server_async(&address)
+    return run_server_async(config);
 }
 
 #[tokio::main]
-async fn run_server_async(address: &str) -> std::io::Result<()> {
-    set_current_dir(std::env::var("HOME").expect("HOME"))?;
-
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
-        .with_ansi(true)
-        .with_line_number(true)
-        .with_file(true)
-        .with_target(false)
-        .init();
+async fn run_server_async(config: TerminalBackendServer) -> Result<(), RunServerError> {
+    set_current_dir(std::env::var("HOME").expect("HOME")).map_err(RunServerError::SetCurrentDir)?;
 
     assets::install_assets();
-    let router = Router::new()
-        .route("/", get(|| static_assets::get("index.html")))
-        .route(
-            "/static/{*file}",
-            get(|Path(path): Path<String>| static_assets::get(&path)),
-        )
-        .nest_service("/api", api::server::route());
-    let router = trz_gateway_server::server::Server::run(config);
-    let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
-    let router = if enabled!(Level::TRACE) {
-        router.layer(TraceLayer::new_for_http())
-    } else {
-        router
-    };
-
-    let listener = tokio::net::TcpListener::bind(address).await?;
-    axum::serve(listener, router).await
+    let (server, handle) = Server::run(config).await?;
+    signal(SignalKind::terminate())
+        .map_err(RunServerError::Signal)?
+        .recv()
+        .await;
+    handle.stop("Quit").await?;
+    drop(server);
+    Ok(())
 }
 
-struct TerminalBackendServer {
-    root_ca: PrivateRootCa,
-}
+#[nameth]
+#[derive(thiserror::Error, Debug)]
+pub enum RunServerError {
+    #[error("[{n}] {0}", n = self.name())]
+    KillServer(#[from] KillServerError),
 
-impl GatewayConfig for TerminalBackendServer {
-    type RootCaConfig = PrivateRootCa;
-    fn root_ca(&self) -> Self::RootCaConfig {
-        self.root_ca.clone()
-    }
+    #[error("[{n}] {0}", n = self.name())]
+    PrivateRootCa(#[from] PrivateRootCaError),
 
-    type TlsConfig;
-    fn tls(&self) -> Self::TlsConfig {
-        todo!()
-    }
+    #[error("[{n}] {0}", n = self.name())]
+    TlsConfig(#[from] TlsConfigError),
 
-    type ClientCertificateIssuerConfig;
-    fn client_certificate_issuer(&self) -> Self::ClientCertificateIssuerConfig {
-        todo!()
-    }
+    #[error("[{n}] {0}", n = self.name())]
+    Daemonize(#[from] DaemonizeServerError),
 
-    fn enable_tracing(&self) -> bool {
-        true
-    }
+    #[error("[{n}] {0}", n = self.name())]
+    Server(#[from] GatewayError<TerminalBackendServer>),
 
-    fn host(&self) -> &str {
-        "127.0.0.1"
-    }
+    #[error("[{n}] {0}", n = self.name())]
+    SetCurrentDir(std::io::Error),
 
-    fn port(&self) -> u16 {
-        if cfg!(debug_assertions) { 3000 } else { 3001 }
-    }
+    #[error("[{n}] {0}", n = self.name())]
+    Signal(std::io::Error),
 
-    fn app_config(&self) -> impl trz_gateway_server::server::gateway_config::AppConfig {
-        |router| router
-    }
+    #[error("[{n}] {0}", n = self.name())]
+    Stop(#[from] ServerStopError),
 }
