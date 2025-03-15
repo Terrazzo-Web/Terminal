@@ -12,8 +12,8 @@ use tracing::Level;
 use tracing::enabled;
 use trz_gateway_common::security_configuration::SecurityConfig;
 use trz_gateway_common::security_configuration::certificate::cache::CachedCertificate;
-use trz_gateway_server::server::gateway_config::AppConfig;
 use trz_gateway_server::server::gateway_config::GatewayConfig;
+use trz_gateway_server::server::gateway_config::app_config::AppConfig;
 
 use super::root_ca_config::PrivateRootCa;
 use crate::api;
