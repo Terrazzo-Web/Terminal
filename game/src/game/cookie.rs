@@ -105,10 +105,13 @@ impl Cookie {
         let c = Self {
             inner: Rc::new(CookieInner {
                 id,
-                position: XSignal::new("position", Position {
-                    top: random() * (window_size.y - (window_size * size_f).y) as f64,
-                    left: window_size.x as f64,
-                }),
+                position: XSignal::new(
+                    "position",
+                    Position {
+                        top: random() * (window_size.y - (window_size * size_f).y) as f64,
+                        left: window_size.x as f64,
+                    },
+                ),
                 size: game
                     .window_size
                     .view("cookie_size", move |window_size| *window_size * size_f),
