@@ -1,7 +1,6 @@
 #![cfg(feature = "server")]
 
 use std::env::set_current_dir;
-use std::sync::Arc;
 
 use clap::Parser as _;
 use cli::kill::KillServerError;
@@ -16,8 +15,6 @@ use tokio::signal::unix::signal;
 use trz_gateway_common::handle::ServerStopError;
 use trz_gateway_server::server::GatewayError;
 use trz_gateway_server::server::Server;
-use trz_gateway_server::server::gateway_config::GatewayConfig;
-use trz_gateway_server::server::gateway_config::memoize::MemoizedGatewayConfig;
 
 use self::cli::Action;
 use self::cli::Cli;
@@ -45,27 +42,24 @@ pub fn run_server() -> Result<(), RunServerError> {
         return Ok(cli.kill()?);
     }
 
-    let config = MemoizedGatewayConfig::new(true, || {
-        let root_ca = PrivateRootCa::load(&cli)?;
-        let tls_config = make_tls_config(&root_ca)?;
-        let config = TerminalBackendServer {
-            host: cli.host.clone(),
-            port: cli.port,
-            root_ca,
-            tls_config,
-        };
+    let root_ca = PrivateRootCa::load(&cli)?;
+    let tls_config = make_tls_config(&root_ca)?;
+    let config = TerminalBackendServer {
+        host: cli.host.clone(),
+        port: cli.port,
+        root_ca,
+        tls_config,
+    };
 
-        if cli.action == Action::Start {
-            self::daemonize::daemonize(cli)?;
-        }
-        Ok::<RunServerError>(Arc::new(config))
-    });
+    if cli.action == Action::Start {
+        self::daemonize::daemonize(cli)?;
+    }
 
     return run_server_async(config);
 }
 
 #[tokio::main]
-async fn run_server_async(config: impl GatewayConfig) -> Result<(), RunServerError> {
+async fn run_server_async(config: TerminalBackendServer) -> Result<(), RunServerError> {
     set_current_dir(std::env::var("HOME").expect("HOME")).map_err(RunServerError::SetCurrentDir)?;
 
     assets::install_assets();
