@@ -28,7 +28,7 @@ mod root_ca_config;
 mod server_config;
 mod tls_config;
 
-const HOST: &str = "127.0.0.1";
+const HOST: &str = "localhost";
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
 pub fn run_server() -> Result<(), RunServerError> {
