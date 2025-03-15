@@ -25,4 +25,4 @@ runs:
 
     - name: Install stylance
       shell: bash
-      run: cargo install stylance-cli --version 0.5.4
+      run: cargo install stylance-cli --version 0.5.5
