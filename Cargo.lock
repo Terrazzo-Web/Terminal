@@ -3110,6 +3110,7 @@ dependencies = [
  "nameth 0.1.5",
  "openssl",
  "pem",
+ "pin-project",
  "prost-types",
  "rustls",
  "scopeguard",
