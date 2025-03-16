@@ -12,6 +12,7 @@ use server_config::TerminalBackendServer;
 use tls_config::TlsConfigError;
 use tokio::signal::unix::SignalKind;
 use tokio::signal::unix::signal;
+use trz_gateway_common::crypto_provider::crypto_provider;
 use trz_gateway_common::handle::ServerStopError;
 use trz_gateway_server::server::GatewayError;
 use trz_gateway_server::server::Server;
@@ -32,6 +33,7 @@ const HOST: &str = "localhost";
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
 pub fn run_server() -> Result<(), RunServerError> {
+    crypto_provider();
     let cli = {
         let mut cli = Cli::parse();
         cli.pidfile = cli.pidfile.replace("$port", &cli.port.to_string());
