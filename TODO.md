@@ -1,8 +1,8 @@
 # TODO
+- `#·88`. Authentication
 - `#·87`. Figure out certbot
 - `#·86`. Remove static state from the client -- search for "([^']|\n)static ". Ambient ctx on spawn_local, events, timers
 - `#·85`. Terrazzo-gateway works with multiple agents
-- `#·84`. Run the gateway and terrazzo server on same host:port. Gateway shared code goes in trz-gw.
 - `#·82`. Create a new Reddit account.
 - `#·81`. Announce open source autoclone.
 - `#·79`. Announce open source named.
@@ -21,7 +21,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#·83`.
+Next: `#·89`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -95,3 +95,4 @@ Next: `#·83`.
 - `#·79`. Create a new Github account and repo.
 - `#·80`. Move terrazzo client and aux crates to the new repo.
 - `#·83`. Fix signed extension validation
+- `#·84`. Run the gateway and terrazzo server on same host:port. Gateway shared code goes in trz-gw.
