@@ -40,5 +40,7 @@ fn main() {
     })
     .unwrap();
 
-    terrazzo_build::build_css();
+    if env::var("DOCS_RS") == Err(env::VarError::NotPresent) {
+        terrazzo_build::build_css();
+    }
 }
