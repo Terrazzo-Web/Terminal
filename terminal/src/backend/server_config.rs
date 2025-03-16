@@ -55,14 +55,14 @@ impl GatewayConfig for TerminalBackendServer {
     }
 
     fn app_config(&self) -> impl AppConfig {
-        |router: Router| {
+        |server, router: Router| {
             let router = router
                 .route("/", get(|| static_assets::get("index.html")))
                 .route(
                     "/static/{*file}",
                     get(|Path(path): Path<String>| static_assets::get(&path)),
                 )
-                .nest_service("/api", api::server::route());
+                .nest_service("/api", api::server::route(server));
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {
                 router.layer(TraceLayer::new_for_http())

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use terrazzo::axum::Router;
 use terrazzo::axum::response::IntoResponse as _;
 use terrazzo::axum::response::Response;
@@ -6,6 +8,7 @@ use terrazzo::axum::routing::post;
 use terrazzo::http::HeaderMap;
 use terrazzo::http::HeaderName;
 use terrazzo::http::StatusCode;
+use trz_gateway_server::server::Server;
 
 mod correlation_id;
 mod list;
@@ -18,7 +21,7 @@ mod write;
 
 const ERROR_HEADER: HeaderName = HeaderName::from_static(super::ERROR_HEADER);
 
-pub fn route() -> Router {
+pub fn route(_server: Arc<Server>) -> Router {
     Router::new()
         .route("/list", get(list::list))
         .route("/new_id", post(new_id::new_id))
