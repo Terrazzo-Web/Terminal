@@ -43,7 +43,6 @@ impl TabsDescriptor for TerminalTabs {
                     let this = this.clone();
                     let state = state.clone();
                     wasm_bindgen_futures::spawn_local(async move {
-                        // TODO: allocate a terminal_def connected to a certain client
                         let terminal_def = match api::client::new_id::new_id().await {
                             Ok(id) => id,
                             Err(error) => {

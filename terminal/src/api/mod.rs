@@ -32,7 +32,6 @@ pub struct TerminalDefImpl<T> {
     pub id: TerminalId,
     pub title: T,
     pub order: i32,
-    // TODO: pub client_id: Option<ClientId>
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
