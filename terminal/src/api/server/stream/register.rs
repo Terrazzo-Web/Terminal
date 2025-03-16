@@ -22,6 +22,7 @@ pub async fn register(request: RegisterTerminalRequest) -> Result<(), RegisterSt
         let terminal_id = request.def.id.clone();
         let lease = processes::stream::open_stream(request.def, |_| async {
             match request.mode {
+                // TODO: if it's a remote terminal, open a ProcessIO connected to a remote client
                 RegisterTerminalMode::Create => ProcessIO::open().await,
                 RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
             }
