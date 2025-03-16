@@ -1,4 +1,8 @@
 name: Set up
+inputs:
+  github-token:
+    description: "GitHub token for authentication"
+    required: true
 runs:
   using: "composite"
   steps:
@@ -25,4 +29,9 @@ runs:
 
     - name: Install stylance
       shell: bash
-      run: cargo install stylance-cli --version 0.5.4
+      run: cargo install stylance-cli --version 0.5.5
+
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v3
+      with:
+        repo-token: ${{ inputs.github-token }}

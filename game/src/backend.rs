@@ -33,7 +33,7 @@ pub async fn run_server() {
     let router = Router::new()
         .route("/", get(|| static_assets::get("index.html")))
         .route(
-            "/static/*file",
+            "/static/{*file}",
             get(|Path(path): Path<String>| static_assets::get(&path)),
         );
     let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));

@@ -26,14 +26,15 @@ dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
+openssl = { workspace = true, optional = true }
 pin-project = { workspace = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 stylance = { workspace = true, optional = true }
-thiserror = { workspace = true }
 terrazzo = { workspace = true }
 terrazzo-pty = { workspace = true, optional = true }
+thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
 tower-http = { workspace = true, optional = true, features = [
     "fs",
@@ -44,9 +45,8 @@ tracing = { workspace = true }
 tracing-futures = { workspace = true, features = [
     "futures-03",
 ], optional = true }
-tracing-subscriber = { workspace = true, optional = true, features = [
-    "env-filter",
-] }
+trz-gateway-common = { workspace = true, optional = true }
+trz-gateway-server = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true, features = ["v4", "fast-rng"] }
 wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { workspace = true, optional = true }
@@ -86,11 +86,13 @@ server = [
     "dep:clap",
     "dep:dashmap",
     "dep:nix",
+    "dep:openssl",
     "dep:terrazzo-pty",
     "dep:tokio",
     "dep:tower-http",
     "dep:tracing-futures",
-    "dep:tracing-subscriber",
+    "dep:trz-gateway-common",
+    "dep:trz-gateway-server",
     "dep:uuid",
     "terrazzo/server",
 ]

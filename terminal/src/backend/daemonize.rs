@@ -1,36 +1,42 @@
 use std::fs::OpenOptions;
-use std::io::ErrorKind;
 use std::num::NonZeroI32;
 use std::os::fd::IntoRawFd as _;
 
-use super::cli::Cli;
+use nameth::NamedEnumValues as _;
+use nameth::nameth;
 
-pub fn daemonize(cli: Cli) -> std::io::Result<()> {
+use super::cli::Cli;
+use super::cli::pidfile::ReadPidfileError;
+use super::cli::pidfile::SavePidfileError;
+
+pub fn daemonize(cli: Cli) -> Result<(), DaemonizeServerError> {
     if let Some(pid) = cli.read_pid()? {
-        return Err(std::io::Error::new(
-            ErrorKind::AddrInUse,
-            format!("Already running PID = {pid}"),
-        ));
+        return Err(DaemonizeServerError::AlreadyRunning { pid });
     }
 
-    match fork()? {
+    match fork().map_err(DaemonizeServerError::Fork)? {
         Some(_pid) => std::process::exit(0),
         None => { /* in the child process */ }
     }
 
-    check_err(unsafe { nix::libc::setsid() }, |r| r != 1)?;
+    check_err(unsafe { nix::libc::setsid() }, |r| r != 1).map_err(DaemonizeServerError::Setsid)?;
 
-    match fork()? {
+    match fork().map_err(DaemonizeServerError::Fork)? {
         Some(pid) => {
-            println!("Server running in the background. PID = {pid}");
             cli.save_pidfile(pid)?;
             std::process::exit(0);
         }
         None => { /* in the child process */ }
     }
 
-    redirect_to_null(nix::libc::STDOUT_FILENO)?;
-    redirect_to_null(nix::libc::STDERR_FILENO)?;
+    redirect_to_null(nix::libc::STDOUT_FILENO).map_err(|error| DaemonizeServerError::IO {
+        io: "stdout",
+        error,
+    })?;
+    redirect_to_null(nix::libc::STDERR_FILENO).map_err(|error| DaemonizeServerError::IO {
+        io: "stderr",
+        error,
+    })?;
 
     Ok(())
 }
@@ -59,4 +65,29 @@ fn check_err<IsOk: FnOnce(R) -> bool, R: Copy>(result: R, is_ok: IsOk) -> std::i
     } else {
         Err(std::io::Error::last_os_error())
     }
+}
+
+#[nameth]
+#[derive(thiserror::Error, Debug)]
+pub enum DaemonizeServerError {
+    #[error("[{n}] {0}", n = self.name())]
+    ReadPidfile(#[from] ReadPidfileError),
+
+    #[error("[{n}] Already running PID = {pid}", n = self.name())]
+    AlreadyRunning { pid: i32 },
+
+    #[error("[{n}] {0}", n = self.name())]
+    Fork(std::io::Error),
+
+    #[error("[{n}] {0}", n = self.name())]
+    Setsid(std::io::Error),
+
+    #[error("[{n}] {0}", n = self.name())]
+    SavePidfile(#[from] SavePidfileError),
+
+    #[error("[{n}] failed to redirect {io}", n = self.name())]
+    IO {
+        io: &'static str,
+        error: std::io::Error,
+    },
 }
