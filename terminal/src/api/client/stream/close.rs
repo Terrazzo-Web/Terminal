@@ -6,7 +6,6 @@ use terrazzo::prelude::OrElseLog as _;
 use tracing::Instrument as _;
 use tracing::debug;
 use tracing::info_span;
-use web_sys::Headers;
 use web_sys::Response;
 
 use super::super::send_request;
@@ -16,6 +15,7 @@ use super::Method;
 use super::SendRequestError;
 use super::warn;
 use crate::api::CORRELATION_ID;
+use crate::api::client::set_headers;
 use crate::terminal_id::TerminalId;
 
 /// Sends a request to close the process.
@@ -27,11 +27,11 @@ pub fn close(terminal_id: TerminalId, correlation_id: Option<String>) -> impl Fu
         move |request| {
             debug!("Start");
             if let Some(correlation_id) = correlation_id {
-                let headers = Headers::new().or_throw("Headers::new()");
-                headers
-                    .set(CORRELATION_ID, &correlation_id)
-                    .or_throw(CORRELATION_ID);
-                request.set_headers(headers.as_ref());
+                set_headers(request, |headers| {
+                    headers
+                        .set(CORRELATION_ID, &correlation_id)
+                        .or_throw(CORRELATION_ID);
+                });
             }
         },
     )

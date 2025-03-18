@@ -15,7 +15,6 @@ use tracing::warn;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::Headers;
 use web_sys::Response;
 use web_sys::js_sys::Uint8Array;
 
@@ -27,6 +26,7 @@ use super::SendRequestError;
 use super::ShutdownPipe;
 use super::dispatch::dispatch;
 use crate::api::CORRELATION_ID;
+use crate::api::client::set_headers;
 
 /// Spawns the pipe in the background.
 #[nameth]
@@ -37,11 +37,11 @@ pub async fn pipe(correlation_id: &str) -> Result<oneshot::Sender<()>, PipeError
             Method::POST,
             format!("{BASE_URL}/stream/{PIPE}"),
             move |request| {
-                let headers = Headers::new().or_throw("Headers::new()");
-                headers
-                    .set(CORRELATION_ID, correlation_id)
-                    .or_throw(CORRELATION_ID);
-                request.set_headers(headers.as_ref());
+                set_headers(request, |headers| {
+                    headers
+                        .set(CORRELATION_ID, correlation_id)
+                        .or_throw(CORRELATION_ID);
+                });
             },
         )
         .await?;
@@ -150,11 +150,11 @@ pub fn close_pipe(correlation_id: String) -> impl Future<Output = ()> {
         format!("{BASE_URL}/stream/{PIPE}/close"),
         move |request| {
             debug!("Start");
-            let headers = Headers::new().or_throw("Headers::new()");
-            headers
-                .set(CORRELATION_ID, &correlation_id)
-                .or_throw(CORRELATION_ID);
-            request.set_headers(headers.as_ref());
+            set_headers(request, |headers| {
+                headers
+                    .set(CORRELATION_ID, &correlation_id)
+                    .or_throw(CORRELATION_ID);
+            });
         },
     )
     .map(|response| {
