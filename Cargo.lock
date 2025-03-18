@@ -187,6 +187,17 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 [[package]]
 name = "autoclone"
 version = "0.1.6"
+dependencies = [
+ "darling",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "autoclone"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c2682e9311a6b0ac255f3a05f87488ab5846b3c6daad63956feaf945fe28986"
 dependencies = [
@@ -1584,10 +1595,26 @@ checksum = "defc4c55412d89136f966bbb339008b474350e5e6e78d2714439c386b3137a03"
 [[package]]
 name = "nameth"
 version = "0.1.6"
+dependencies = [
+ "nameth-macro 0.1.6",
+]
+
+[[package]]
+name = "nameth"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8a1252f8d64497a3d7a490004155a258438a976b6338174ef40a82e48a8088c"
 dependencies = [
- "nameth-macro",
+ "nameth-macro 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "nameth-macro"
+version = "0.1.6"
+dependencies = [
+ "darling",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -2524,13 +2551,13 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63c5f1aba1c94bf8a09e480b482b8ef015a27550f606901e5d11c3cbb72706ce"
 dependencies = [
- "autoclone",
+ "autoclone 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "axum 0.8.1",
  "http 1.3.1",
  "include_directory",
  "mime",
  "mime_guess",
- "nameth",
+ "nameth 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rsass-macros",
  "scopeguard",
  "stylance",
@@ -2549,7 +2576,7 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57d8d06e09b99bea3c48bd44a7f4f547ce406b8566c3b6ad61a3bf164066bc74"
 dependencies = [
- "nameth",
+ "nameth 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror 2.0.12",
 ]
 
@@ -2559,8 +2586,8 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cbd4ade0b6ab6a31978b4d70e5c5285b37de31e5826329715fae2e465cf9b4ea"
 dependencies = [
- "autoclone",
- "nameth",
+ "autoclone 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nameth 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "scopeguard",
  "thiserror 2.0.12",
  "tracing",
@@ -2589,7 +2616,7 @@ version = "0.1.5"
 dependencies = [
  "futures",
  "libc",
- "nameth",
+ "nameth 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "pin-project",
  "rustix 1.0.2",
  "scopeguard",
@@ -2606,7 +2633,7 @@ dependencies = [
  "clap",
  "dashmap",
  "futures",
- "nameth",
+ "nameth 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "nix",
  "openssl",
  "pin-project",
@@ -3046,14 +3073,12 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "trz-gateway-common"
 version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59ffdd6765857534d589489574e1e6e1e70990f1a97f0922dd4d222929309541"
 dependencies = [
  "axum 0.8.1",
  "bytes",
  "cms",
  "futures",
- "nameth",
+ "nameth 0.1.6",
  "oid-registry",
  "openssl",
  "prost",
@@ -3075,17 +3100,15 @@ dependencies = [
 [[package]]
 name = "trz-gateway-server"
 version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "014bea4bb99cb25e3715d93c7be7fedcac694477842f4a3f0804b676cabc8bdd"
 dependencies = [
- "autoclone",
+ "autoclone 0.1.6",
  "axum 0.8.1",
  "axum-server",
  "bytes",
  "dashmap",
  "futures",
  "hyper-util",
- "nameth",
+ "nameth 0.1.6",
  "openssl",
  "pem",
  "pin-project",
@@ -3498,3 +3521,7 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
+
+[[patch.unused]]
+name = "trz-gateway-client"
+version = "0.1.6"
