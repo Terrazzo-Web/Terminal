@@ -21,6 +21,7 @@ use crate::api::ERROR_HEADER;
 
 pub mod list;
 pub mod new_id;
+pub mod remotes;
 pub mod resize;
 pub mod set_order;
 pub mod set_title;
