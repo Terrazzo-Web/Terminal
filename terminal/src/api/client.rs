@@ -1,5 +1,6 @@
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use serde::Serialize;
 use terrazzo::prelude::OrElseLog;
 use terrazzo::prelude::XSignal;
 use terrazzo::prelude::XString;
@@ -99,3 +100,16 @@ fn set_content_type_json(headers: &mut Headers) {
 }
 
 pub type LiveTerminalDef = TerminalDefImpl<XSignal<TabTitle<XString>>>;
+
+fn set_json_body<T>(body: &T) -> serde_json::Result<impl Fn(&RequestInit)>
+where
+    T: ?Sized + Serialize,
+{
+    let body = serde_json::to_string(body)?;
+    Ok(move |request: &RequestInit| {
+        let mut headers = Headers::new().or_throw("Headers::new()");
+        set_content_type_json(&mut headers);
+        request.set_headers(headers.as_ref());
+        request.set_body(&JsValue::from_str(&body));
+    })
+}

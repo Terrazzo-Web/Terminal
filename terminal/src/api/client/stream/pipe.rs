@@ -19,13 +19,13 @@ use web_sys::Headers;
 use web_sys::Response;
 use web_sys::js_sys::Uint8Array;
 
+use super::super::send_request;
 use super::BASE_URL;
 use super::DISPATCHERS;
 use super::Method;
 use super::SendRequestError;
 use super::ShutdownPipe;
 use super::dispatch::dispatch;
-use super::send_request;
 use crate::api::CORRELATION_ID;
 
 /// Spawns the pipe in the background.

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use terrazzo::autoclone;
 use terrazzo::axum::Router;
 use terrazzo::axum::response::IntoResponse as _;
 use terrazzo::axum::response::Response;
@@ -21,13 +22,20 @@ mod write;
 
 const ERROR_HEADER: HeaderName = HeaderName::from_static(super::ERROR_HEADER);
 
-pub fn route(_server: Arc<Server>) -> Router {
+#[autoclone]
+pub fn route(server: Arc<Server>) -> Router {
     Router::new()
         .route("/list", get(list::list))
         .route("/new_id", post(new_id::new_id))
         .route("/stream/pipe", post(stream::pipe))
         .route("/stream/pipe/close", post(stream::close_pipe))
-        .route("/stream/register", post(stream::register))
+        .route(
+            "/stream/register",
+            post(|request| {
+                autoclone!(server);
+                stream::register(server, request)
+            }),
+        )
         .route("/stream/close/{terminal_id}", post(stream::close))
         .route("/resize/{terminal_id}", post(resize::resize))
         .route("/set_title/{terminal_id}", post(set_title::set_title))

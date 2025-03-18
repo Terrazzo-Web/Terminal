@@ -2,6 +2,7 @@ use nameth::nameth;
 use serde::Deserialize;
 use serde::Serialize;
 
+use self::client_id::ClientId;
 use crate::terminal_id::TerminalId;
 
 #[cfg(feature = "client")]
@@ -9,6 +10,8 @@ pub mod client;
 
 #[cfg(feature = "server")]
 pub mod server;
+
+pub mod client_id;
 
 const ERROR_HEADER: &str = "terrazzo-error";
 const CORRELATION_ID: &str = "terrazzo-correlation-id";
@@ -32,6 +35,7 @@ pub struct TerminalDefImpl<T> {
     pub id: TerminalId,
     pub title: T,
     pub order: i32,
+    pub client_id: Option<ClientId>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

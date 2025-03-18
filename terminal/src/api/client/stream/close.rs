@@ -9,11 +9,11 @@ use tracing::info_span;
 use web_sys::Headers;
 use web_sys::Response;
 
+use super::super::send_request;
 use super::BASE_URL;
 use super::DISPATCHERS;
 use super::Method;
 use super::SendRequestError;
-use super::send_request;
 use super::warn;
 use crate::api::CORRELATION_ID;
 use crate::terminal_id::TerminalId;

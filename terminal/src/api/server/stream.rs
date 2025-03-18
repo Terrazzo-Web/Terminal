@@ -1,4 +1,5 @@
 use std::future::ready;
+use std::sync::Arc;
 
 use terrazzo::axum::Json;
 use terrazzo::axum::body::Body;
@@ -6,6 +7,7 @@ use terrazzo::axum::response::Response;
 use terrazzo::http::StatusCode;
 use tracing::Instrument as _;
 use tracing::info_span;
+use trz_gateway_server::server::Server;
 
 use super::correlation_id::CorrelationId;
 use super::into_error;
@@ -23,9 +25,12 @@ pub fn pipe(correlation_id: CorrelationId) -> impl Future<Output = Body> {
     ready(pipe::pipe(correlation_id))
 }
 
-pub async fn register(Json(request): Json<RegisterTerminalRequest>) -> Result<(), Response> {
+pub async fn register(
+    server: Arc<Server>,
+    Json(request): Json<RegisterTerminalRequest>,
+) -> Result<(), Response> {
     let span = info_span!("Register", terminal_id = %request.def.id);
-    register::register(request)
+    register::register(&server, request)
         .instrument(span)
         .await
         .map_err(into_error(StatusCode::BAD_REQUEST))

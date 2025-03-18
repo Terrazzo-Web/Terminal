@@ -1,11 +1,12 @@
-use terrazzo::axum::Json;
+use terrazzo::axum::extract::Json;
 use uuid::Uuid;
 
 use crate::api::TabTitle;
 use crate::api::TerminalDef;
+use crate::api::client_id::ClientId;
 use crate::processes::next_terminal_id;
 
-pub async fn new_id() -> Json<TerminalDef> {
+pub async fn new_id(Json(client_id): Json<Option<ClientId>>) -> Json<TerminalDef> {
     let next = next_terminal_id();
     let title = format!("Terminal {next}");
     let id = if cfg!(feature = "concise_traces") {
@@ -20,6 +21,7 @@ pub async fn new_id() -> Json<TerminalDef> {
             override_title: None,
         },
         order: next,
+        client_id,
     }
     .into()
 }

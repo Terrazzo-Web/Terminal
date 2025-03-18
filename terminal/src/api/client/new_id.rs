@@ -7,12 +7,18 @@ use super::BASE_URL;
 use super::Method;
 use super::SendRequestError;
 use super::send_request;
+use super::set_json_body;
 use crate::api::TerminalDef;
+use crate::api::client_id::ClientId;
 
 #[nameth]
-pub async fn new_id() -> Result<TerminalDef, NewIdError> {
-    let response: Response =
-        send_request(Method::POST, format!("{BASE_URL}/{NEW_ID}"), |_| {}).await?;
+pub async fn new_id(client_id: Option<ClientId>) -> Result<TerminalDef, NewIdError> {
+    let response: Response = send_request(
+        Method::POST,
+        format!("{BASE_URL}/{NEW_ID}"),
+        set_json_body(&client_id)?,
+    )
+    .await?;
     let result = response
         .text()
         .map_err(|_| NewIdError::MissingResponseBody)?;

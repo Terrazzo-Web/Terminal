@@ -29,7 +29,6 @@ use self::register::RegisterError;
 use super::BASE_URL;
 use super::Method;
 use super::SendRequestError;
-use super::send_request;
 use crate::api::RegisterTerminalMode;
 use crate::api::RegisterTerminalRequest;
 use crate::api::TerminalDef;
