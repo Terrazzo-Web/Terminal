@@ -45,6 +45,7 @@ tracing = { workspace = true }
 tracing-futures = { workspace = true, features = [
     "futures-03",
 ], optional = true }
+trz-gateway-client = { workspace = true, optional = true }
 trz-gateway-common = { workspace = true, optional = true }
 trz-gateway-server = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true, features = ["v4", "fast-rng"] }
@@ -91,6 +92,7 @@ server = [
     "dep:tokio",
     "dep:tower-http",
     "dep:tracing-futures",
+    "dep:trz-gateway-client",
     "dep:trz-gateway-common",
     "dep:trz-gateway-server",
     "dep:uuid",
