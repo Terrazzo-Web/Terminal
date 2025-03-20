@@ -9,7 +9,7 @@ use super::cli::Cli;
 use super::cli::pidfile::ReadPidfileError;
 use super::cli::pidfile::SavePidfileError;
 
-pub fn daemonize(cli: Cli) -> Result<(), DaemonizeServerError> {
+pub fn daemonize(cli: &Cli) -> Result<(), DaemonizeServerError> {
     if let Some(pid) = cli.read_pid()? {
         return Err(DaemonizeServerError::AlreadyRunning { pid });
     }

@@ -44,7 +44,7 @@ pub fn route(server: Arc<Server>) -> Router {
         .route("/write/{terminal_id}", post(write::write))
         .route(
             "/remotes",
-            get(|request| {
+            get(|| {
                 autoclone!(server);
                 remotes::remotes(server)
             }),
