@@ -71,14 +71,15 @@ pub fn run_server() -> Result<(), RunServerError> {
 async fn run_server_async(cli: Cli, config: TerminalBackendServer) -> Result<(), RunServerError> {
     set_current_dir(std::env::var("HOME").expect("HOME")).map_err(RunServerError::SetCurrentDir)?;
 
+    assets::install_assets();
+    let (server, server_handle) = Server::run(config).await?;
+
     let client_handle = match run_client_async(cli).await {
         Ok(client_handle) => Some(client_handle),
         Err(RunClientError::ClientNotEnabled) => None,
         Err(error) => return Err(error)?,
     };
 
-    assets::install_assets();
-    let (server, server_handle) = Server::run(config).await?;
     signal(SignalKind::terminate())
         .map_err(RunServerError::Signal)?
         .recv()

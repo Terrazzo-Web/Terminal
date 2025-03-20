@@ -32,8 +32,8 @@ pub struct AgentClientConfig {
 }
 
 const CLIENT_CERTIFICATE_FILE_SUFFIX: CertificateInfo<&str> = CertificateInfo {
-    certificate: ".cert",
-    private_key: ".key",
+    certificate: "cert",
+    private_key: "key",
 };
 
 impl AgentTunnelConfig {
@@ -51,7 +51,7 @@ impl AgentTunnelConfig {
                 &client_config,
                 cli.auth_code.as_str().into(),
                 CLIENT_CERTIFICATE_FILE_SUFFIX
-                    .map(|suffix| format!("{}.{suffix})", cli.client_certificate)),
+                    .map(|suffix| format!("{}.{suffix}", cli.client_certificate)),
             )
             .await
             .inspect_err(|error| warn!("Failed to load Client Certificate: {error}"))
