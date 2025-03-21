@@ -36,6 +36,7 @@ terrazzo = { workspace = true }
 terrazzo-pty = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
+tonic = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = [
     "fs",
     "sensitive-headers",
@@ -90,6 +91,7 @@ server = [
     "dep:openssl",
     "dep:terrazzo-pty",
     "dep:tokio",
+    "dep:tonic",
     "dep:tower-http",
     "dep:tracing-futures",
     "dep:trz-gateway-client",

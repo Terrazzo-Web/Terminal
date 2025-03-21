@@ -13,7 +13,8 @@ use server_config::TerminalBackendServer;
 use tls_config::TlsConfigError;
 use tokio::signal::unix::SignalKind;
 use tokio::signal::unix::signal;
-use tracing::debug;
+use tracing::info;
+use tracing::info_span;
 use trz_gateway_client::client::Client;
 use trz_gateway_client::client::NewClientError;
 use trz_gateway_client::client::connect::ConnectError;
@@ -126,11 +127,12 @@ pub enum RunServerError {
 }
 
 async fn run_client_async(cli: Cli) -> Result<ServerHandle<()>, RunClientError> {
+    let _span = info_span!("Client").entered();
     let Some(agent_config) = AgentTunnelConfig::new(&cli).await else {
-        debug!("Gateway client disabled");
+        info!("Gateway client disabled");
         return Err(RunClientError::ClientNotEnabled);
     };
-    debug!(?agent_config, "Gateway client enabled");
+    info!(?agent_config, "Gateway client enabled");
     let client = Client::new(agent_config)?;
     Ok(client.run().await?)
 }
