@@ -2,7 +2,9 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use nameth::nameth;
+use tonic::service::Routes;
 use tracing::info;
+use tracing::info_span;
 use tracing::warn;
 use trz_gateway_client::client_config::ClientConfig;
 use trz_gateway_client::client_service::ClientService;
@@ -38,9 +40,10 @@ const CLIENT_CERTIFICATE_FILE_SUFFIX: CertificateInfo<&str> = CertificateInfo {
 
 impl AgentTunnelConfig {
     pub async fn new(cli: &Cli) -> Option<Self> {
+        let _span = info_span!("Agent tunnel config").entered();
         let client_config = AgentClientConfig {
             gateway_url: cli.gateway_url.clone()?,
-            gateway_pki: LoadTrustedStore::PEM(cli.gateway_pki.clone()?)
+            gateway_pki: LoadTrustedStore::File(cli.gateway_pki.as_ref()?)
                 .load()
                 .inspect_err(|error| warn!("Failed to load Gateway PKI: {error}"))
                 .ok()?,
@@ -87,8 +90,9 @@ impl TunnelConfig for AgentTunnelConfig {
     }
 
     fn client_service(&self) -> impl ClientService {
-        |_server| {
+        |mut server: tonic::transport::Server| {
             info!("Configuring Client gRPC service");
+            server.add_routes(Routes::builder().routes());
             todo!()
         }
     }
