@@ -46,17 +46,20 @@ impl TabsDescriptor for TerminalTabs {
     fn after_titles(&self, state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
         let this = self.clone();
         let state = state.clone();
-        let client_names: XSignal<Option<Vec<ClientName>>> = XSignal::new("client_names", None);
-        let show_clients = std::time::Duration::from_millis(1000).cancellable();
+        let client_names = XSignal::new("client_names", None);
+        let show_clients = std::time::Duration::from_millis(250).cancellable();
         [div(
-            class = super::style::add_tab_icon,
+            class = style::add_tab_icon,
             key = "add-tab-icon",
             div(
+                class %= move |t| {
+                    autoclone!(client_names);
+                    active(t, client_names.clone())
+                },
                 img(src = "/static/icons/plus-square.svg"),
                 click = move |_ev| {
-                    let this = this.clone();
-                    let state = state.clone();
                     wasm_bindgen_futures::spawn_local(async move {
+                        autoclone!(this, state);
                         let terminal_def = match api::client::new_id::new_id(None).await {
                             Ok(id) => id,
                             Err(error) => {
@@ -70,23 +73,23 @@ impl TabsDescriptor for TerminalTabs {
                         state.terminal_tabs.force(this.clone().add_tab(new_tab));
                     });
                 },
-                show_clients_dropdown(show_clients.clone(), client_names.clone()),
-                mouseenter = move |_ev| {
-                    autoclone!(client_names, show_clients);
-                    show_clients.cancel();
-                    wasm_bindgen_futures::spawn_local(async move {
-                        autoclone!(client_names);
-                        let new_client_names = remotes::remotes()
-                            .await
-                            .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
-                        client_names.set(Some(new_client_names));
-                    });
-                },
-                mouseleave = show_clients.wrap(move |_: MouseEvent| {
-                    autoclone!(client_names);
-                    client_names.set(None);
-                }),
             ),
+            show_clients_dropdown(show_clients.clone(), client_names.clone()),
+            mouseenter = move |_ev| {
+                autoclone!(client_names, show_clients);
+                show_clients.cancel();
+                wasm_bindgen_futures::spawn_local(async move {
+                    autoclone!(client_names);
+                    let new_client_names = remotes::remotes()
+                        .await
+                        .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
+                    client_names.set(Some(new_client_names));
+                });
+            },
+            mouseleave = show_clients.wrap(move |_: MouseEvent| {
+                autoclone!(client_names);
+                client_names.set(None);
+            }),
         )]
     }
 }
@@ -192,4 +195,9 @@ fn show_clients_dropdown(
     } else {
         tag(style::visibility = "hidden", style::display = "none")
     }
+}
+
+#[template]
+pub fn active(#[signal] client_names: Option<Vec<ClientName>>) -> XAttributeValue {
+    client_names.map(|_| style::active)
 }

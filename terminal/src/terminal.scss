@@ -80,42 +80,6 @@
         visibility: visible;
     }
 
-    .add-tab-icon {
-        position: relative;
-        display: inline flex;
-        flex-direction: column;
-        align-items: flex-end;
-        align-self: center;
-        flex-grow: 1;
-
-        border: 0;
-        margin: 0px;
-        padding: 0px;
-
-        div {
-            padding: 3px;
-            margin-right: 2px;
-
-            img {
-                display: block;
-                height: 15px;
-                border: 0;
-                margin: 0px;
-                padding: 0px;
-                filter: invert(1);
-            }
-
-            &:hover {
-                img {
-                    filter: invert(0);
-                }
-
-                background-color: var(--link-color);
-                cursor: pointer;
-            }
-        }
-    }
-
     .items {
         height: 100%;
 
