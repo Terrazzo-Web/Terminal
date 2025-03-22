@@ -1,11 +1,15 @@
 use std::rc::Rc;
+use std::time::Duration;
 
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
+use terrazzo::template;
+use terrazzo::widgets::cancellable::Cancellable;
 use terrazzo::widgets::debounce::DoDebounce as _;
 use terrazzo::widgets::tabs::TabsDescriptor;
 use terrazzo::widgets::tabs::TabsState;
+use tracing::info;
 use tracing::warn;
 use web_sys::MouseEvent;
 
@@ -15,6 +19,8 @@ use crate::api;
 use crate::api::client::remotes;
 use crate::api::client_name::ClientName;
 use crate::terminal_id::TerminalId;
+
+stylance::import_crate_style!(style, "src/terminal/terminal_tabs.scss");
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TerminalTabs {
@@ -64,6 +70,7 @@ impl TabsDescriptor for TerminalTabs {
                         state.terminal_tabs.force(this.clone().add_tab(new_tab));
                     });
                 },
+                show_clients_dropdown(show_clients.clone(), client_names.clone()),
                 mouseenter = move |_ev| {
                     autoclone!(client_names, show_clients);
                     show_clients.cancel();
@@ -161,4 +168,28 @@ fn move_tab(state: TerminalsState, after_tab: Option<TerminalTab>, moved_tab_key
             .await
             .unwrap_or_else(|error| warn!("Failed to set order: {error}"));
     });
+}
+
+#[autoclone]
+#[html]
+#[template(tag = ul)]
+fn show_clients_dropdown(
+    show_clients: Cancellable<Duration>,
+    #[signal] client_names: Option<Vec<ClientName>>,
+) -> XElement {
+    info!("Render client names");
+    if let Some(client_names) = client_names {
+        let client_names = client_names.into_iter().map(|client_name| {
+            li(
+                "{client_name}",
+                mouseenter = move |_ev| {
+                    autoclone!(show_clients);
+                    show_clients.cancel();
+                },
+            )
+        });
+        tag(class = style::add_client_tab, client_names..)
+    } else {
+        tag(style::visibility = "hidden", style::display = "none")
+    }
 }
