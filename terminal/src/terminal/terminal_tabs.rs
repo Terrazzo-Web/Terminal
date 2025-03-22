@@ -73,23 +73,23 @@ impl TabsDescriptor for TerminalTabs {
                         state.terminal_tabs.force(this.clone().add_tab(new_tab));
                     });
                 },
+                mouseenter = move |_ev| {
+                    autoclone!(client_names, show_clients);
+                    show_clients.cancel();
+                    wasm_bindgen_futures::spawn_local(async move {
+                        autoclone!(client_names);
+                        let new_client_names = remotes::remotes()
+                            .await
+                            .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
+                        client_names.set(Some(new_client_names));
+                    });
+                },
             ),
-            show_clients_dropdown(show_clients.clone(), client_names.clone()),
-            mouseenter = move |_ev| {
-                autoclone!(client_names, show_clients);
-                show_clients.cancel();
-                wasm_bindgen_futures::spawn_local(async move {
-                    autoclone!(client_names);
-                    let new_client_names = remotes::remotes()
-                        .await
-                        .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
-                    client_names.set(Some(new_client_names));
-                });
-            },
             mouseleave = show_clients.wrap(move |_: MouseEvent| {
                 autoclone!(client_names);
                 client_names.set(None);
             }),
+            show_clients_dropdown(show_clients.clone(), client_names.clone()),
         )]
     }
 }
