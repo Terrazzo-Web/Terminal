@@ -91,6 +91,7 @@ too_many_arguments = "allow"
 type_complexity = "allow"
 
 [patch.crates-io]
+terrazzo = { path = "../Terrazzo/framework/terrazzo" }
 trz-gateway-client = { path = "../Terrazzo/remote/client" }
 trz-gateway-common = { path = "../Terrazzo/remote/common" }
 trz-gateway-server = { path = "../Terrazzo/remote/server" }
