@@ -1,14 +1,19 @@
 use std::rc::Rc;
 
+use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
+use terrazzo::widgets::debounce::DoDebounce as _;
 use terrazzo::widgets::tabs::TabsDescriptor;
 use terrazzo::widgets::tabs::TabsState;
 use tracing::warn;
+use web_sys::MouseEvent;
 
 use super::TerminalsState;
 use super::terminal_tab::TerminalTab;
 use crate::api;
+use crate::api::client::remotes;
+use crate::api::client_name::ClientName;
 use crate::terminal_id::TerminalId;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -30,10 +35,13 @@ impl TabsDescriptor for TerminalTabs {
         &self.terminal_tabs
     }
 
+    #[autoclone]
     #[html]
     fn after_titles(&self, state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
         let this = self.clone();
         let state = state.clone();
+        let client_names: XSignal<Option<Vec<ClientName>>> = XSignal::new("client_names", None);
+        let show_clients = std::time::Duration::from_millis(1000).cancellable();
         [div(
             class = super::style::add_tab_icon,
             key = "add-tab-icon",
@@ -43,7 +51,7 @@ impl TabsDescriptor for TerminalTabs {
                     let this = this.clone();
                     let state = state.clone();
                     wasm_bindgen_futures::spawn_local(async move {
-                        let terminal_def = match api::client::new_id::new_id().await {
+                        let terminal_def = match api::client::new_id::new_id(None).await {
                             Ok(id) => id,
                             Err(error) => {
                                 warn!("Failed to allocate new ID: {error}");
@@ -56,6 +64,21 @@ impl TabsDescriptor for TerminalTabs {
                         state.terminal_tabs.force(this.clone().add_tab(new_tab));
                     });
                 },
+                mouseenter = move |_ev| {
+                    autoclone!(client_names, show_clients);
+                    show_clients.cancel();
+                    wasm_bindgen_futures::spawn_local(async move {
+                        autoclone!(client_names);
+                        let new_client_names = remotes::remotes()
+                            .await
+                            .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
+                        client_names.set(Some(new_client_names));
+                    });
+                },
+                mouseleave = show_clients.wrap(move |_: MouseEvent| {
+                    autoclone!(client_names);
+                    client_names.set(None);
+                }),
             ),
         )]
     }
