@@ -5,6 +5,7 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::cancellable::Cancellable;
+use terrazzo::widgets::debounce::DoDebounce as _;
 use tracing::info;
 use tracing::warn;
 use web_sys::MouseEvent;
@@ -15,6 +16,21 @@ use crate::api::client::remotes;
 use crate::api::client_name::ClientName;
 use crate::terminal::TerminalsState;
 use crate::terminal::terminal_tab::TerminalTab;
+
+#[derive(Clone)]
+pub struct ClientNamesState {
+    pub client_names: XSignal<Option<Vec<ClientName>>>,
+    pub show_clients: Cancellable<Duration>,
+}
+
+impl ClientNamesState {
+    pub fn new() -> Self {
+        Self {
+            client_names: XSignal::new("client_names", None),
+            show_clients: Duration::from_millis(250).cancellable(),
+        }
+    }
+}
 
 #[autoclone]
 #[html]
@@ -40,23 +56,37 @@ pub fn show_clients_dropdown(
     }
 }
 
-#[autoclone]
-pub fn mouseenter(
-    client_names: &XSignal<Option<Vec<ClientName>>>,
-    show_clients: &Cancellable<Duration>,
-) {
-    show_clients.cancel();
-    wasm_bindgen_futures::spawn_local(async move {
-        autoclone!(client_names);
-        let new_client_names = remotes::remotes()
-            .await
-            .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
-        client_names.set(Some(new_client_names));
-    });
-}
+impl ClientNamesState {
+    #[autoclone]
+    pub fn mouseenter(&self) -> impl Fn(MouseEvent) + 'static {
+        let client_names_state = self.clone();
+        move |_| {
+            let Self {
+                client_names,
+                show_clients,
+            } = &client_names_state;
+            show_clients.cancel();
+            wasm_bindgen_futures::spawn_local(async move {
+                autoclone!(client_names);
+                let new_client_names = remotes::remotes()
+                    .await
+                    .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
+                client_names.set(Some(new_client_names));
+            });
+        }
+    }
 
-pub fn mouseleave(client_names: &XSignal<Option<Vec<ClientName>>>) {
-    client_names.set(None);
+    #[autoclone]
+    pub fn mouseleave(&self) -> impl Fn(MouseEvent) + 'static {
+        let Self {
+            client_names,
+            show_clients,
+        } = self;
+        show_clients.wrap(move |_| {
+            autoclone!(client_names);
+            client_names.set(None);
+        })
+    }
 }
 
 #[template]

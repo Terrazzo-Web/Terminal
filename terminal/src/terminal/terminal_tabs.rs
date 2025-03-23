@@ -3,10 +3,10 @@ use std::rc::Rc;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
-use terrazzo::widgets::debounce::DoDebounce as _;
 use terrazzo::widgets::tabs::TabsDescriptor;
 use terrazzo::widgets::tabs::TabsState;
 
+use self::add_tab::ClientNamesState;
 use super::TerminalsState;
 use super::terminal_tab::TerminalTab;
 use crate::terminal_id::TerminalId;
@@ -40,28 +40,24 @@ impl TabsDescriptor for TerminalTabs {
     fn after_titles(&self, state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
         let this = self.clone();
         let state = state.clone();
-        let client_names = XSignal::new("client_names", None);
-        let show_clients = std::time::Duration::from_millis(250).cancellable();
+        let client_names_state = ClientNamesState::new();
         [div(
             class = style::add_tab_icon,
             key = "add-tab-icon",
             div(
                 class %= move |t| {
-                    autoclone!(client_names);
-                    add_tab::active(t, client_names.clone())
+                    autoclone!(client_names_state);
+                    add_tab::active(t, client_names_state.client_names.clone())
                 },
                 img(src = "/static/icons/plus-square.svg"),
                 click = add_tab::create_terminal(this.clone(), state.clone(), None),
-                mouseenter = move |_| {
-                    autoclone!(client_names, show_clients);
-                    add_tab::mouseenter(&client_names, &show_clients);
-                },
+                mouseenter = client_names_state.mouseenter(),
             ),
-            mouseleave = show_clients.wrap(move |_| {
-                autoclone!(client_names);
-                add_tab::mouseleave(&client_names);
-            }),
-            add_tab::show_clients_dropdown(client_names.clone(), show_clients.clone()),
+            mouseleave = client_names_state.mouseleave(),
+            add_tab::show_clients_dropdown(
+                client_names_state.client_names.clone(),
+                client_names_state.show_clients.clone(),
+            ),
         )]
     }
 }
