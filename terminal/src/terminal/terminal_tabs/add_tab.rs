@@ -19,14 +19,21 @@ use crate::terminal::terminal_tab::TerminalTab;
 
 #[derive(Clone)]
 pub struct ClientNamesState {
-    pub client_names: XSignal<Option<Vec<ClientName>>>,
+    pub client_names: XSignal<ClientNames>,
     pub show_clients: Cancellable<Duration>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ClientNames {
+    None,
+    Pending,
+    Some(Vec<ClientName>),
 }
 
 impl ClientNamesState {
     pub fn new() -> Self {
         Self {
-            client_names: XSignal::new("client_names", None),
+            client_names: XSignal::new("client_names", ClientNames::None),
             show_clients: Duration::from_millis(250).cancellable(),
         }
     }
@@ -36,11 +43,11 @@ impl ClientNamesState {
 #[html]
 #[template(tag = ul)]
 pub fn show_clients_dropdown(
-    #[signal] client_names: Option<Vec<ClientName>>,
+    #[signal] client_names: ClientNames,
     show_clients: Cancellable<Duration>,
 ) -> XElement {
     info!("Render client names");
-    if let Some(client_names) = client_names {
+    if let ClientNames::Some(client_names) = client_names {
         let client_names = client_names.into_iter().map(|client_name| {
             li(
                 "{client_name}",
@@ -66,12 +73,19 @@ impl ClientNamesState {
                 show_clients,
             } = &client_names_state;
             show_clients.cancel();
+            client_names.set(ClientNames::Pending);
             wasm_bindgen_futures::spawn_local(async move {
                 autoclone!(client_names);
                 let new_client_names = remotes::remotes()
                     .await
                     .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
-                client_names.set(Some(new_client_names));
+                client_names.update(|old| {
+                    if let ClientNames::Pending = old {
+                        Some(ClientNames::Some(new_client_names))
+                    } else {
+                        None
+                    }
+                })
             });
         }
     }
@@ -84,14 +98,18 @@ impl ClientNamesState {
         } = self;
         show_clients.wrap(move |_| {
             autoclone!(client_names);
-            client_names.set(None);
+            client_names.set(ClientNames::None);
         })
     }
 }
 
 #[template]
-pub fn active(#[signal] client_names: Option<Vec<ClientName>>) -> XAttributeValue {
-    client_names.map(|_| super::style::active)
+pub fn active(#[signal] client_names: ClientNames) -> XAttributeValue {
+    if let ClientNames::Some { .. } = client_names {
+        Some(super::style::active)
+    } else {
+        None
+    }
 }
 
 #[autoclone]
