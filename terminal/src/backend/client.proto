@@ -2,7 +2,23 @@ syntax = "proto3";
 
 package terrazzo.gateway.client;
 
-service ClientService { rpc NewId(NewIdRequest) returns (NewIdResponse); }
+service ClientService {
+  rpc NewId(NewIdRequest) returns (NewIdResponse);
+  rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
+}
 
 message NewIdRequest {}
 message NewIdResponse { int32 next = 1; }
+
+message ListTerminalsRequest { repeated string visited = 1; }
+message ListTerminalsResponse { repeated TerminalDef terminals = 1; }
+
+message TerminalDef {
+  string id = 1;
+  string shell_title = 2;
+  MaybeString override_title = 3;
+  int32 order = 4;
+  repeated string via = 5;
+}
+
+message MaybeString { string s = 1; }

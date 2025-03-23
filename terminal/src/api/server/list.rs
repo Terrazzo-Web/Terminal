@@ -1,10 +1,30 @@
+use std::sync::Arc;
+
 use terrazzo::axum::Json;
+use tracing::Instrument as _;
 use tracing::info_span;
+use trz_gateway_common::id::ClientName;
+use trz_gateway_server::server::Server;
 
+use crate::api::TabTitle;
 use crate::api::TerminalDef;
-use crate::processes;
+use crate::backend::client_service::list_terminals;
 
-pub async fn list() -> Json<Vec<TerminalDef>> {
-    let _span = info_span!("List").entered();
-    processes::list::list().into()
+pub async fn list(server: Arc<Server>) -> Json<Vec<TerminalDef>> {
+    Json(
+        list_terminals(&server, &[])
+            .instrument(info_span!("List"))
+            .await
+            .into_iter()
+            .map(|terminal_def| TerminalDef {
+                id: terminal_def.id.into(),
+                title: TabTitle {
+                    shell_title: terminal_def.shell_title,
+                    override_title: terminal_def.override_title.map(|s| s.s),
+                },
+                order: terminal_def.order,
+                via: terminal_def.via.into_iter().map(ClientName::from).collect(),
+            })
+            .collect(),
+    )
 }

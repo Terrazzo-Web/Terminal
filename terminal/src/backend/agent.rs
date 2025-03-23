@@ -15,6 +15,7 @@ use trz_gateway_common::id::ClientName;
 use trz_gateway_common::security_configuration::certificate::pem::PemCertificate;
 use trz_gateway_common::security_configuration::trusted_store::cache::CachedTrustedStoreConfig;
 use trz_gateway_common::security_configuration::trusted_store::load::LoadTrustedStore;
+use trz_gateway_server::server::Server;
 
 use super::cli::Cli;
 use crate::backend::client_service::ClientServiceImpl;
@@ -25,13 +26,14 @@ pub struct AgentTunnelConfig {
     client_config: AgentClientConfig,
     client_certificate: Arc<PemCertificate>,
     retry_strategy: RetryStrategy,
+    server: Arc<Server>,
 }
 
 #[nameth]
 pub struct AgentClientConfig {
+    client_name: ClientName,
     gateway_url: String,
     gateway_pki: CachedTrustedStoreConfig,
-    client_name: ClientName,
 }
 
 const CLIENT_CERTIFICATE_FILE_SUFFIX: CertificateInfo<&str> = CertificateInfo {
@@ -40,16 +42,27 @@ const CLIENT_CERTIFICATE_FILE_SUFFIX: CertificateInfo<&str> = CertificateInfo {
 };
 
 impl AgentTunnelConfig {
-    pub async fn new(cli: &Cli) -> Option<Self> {
+    pub async fn new(cli: &Cli, server: Arc<Server>) -> Option<Self> {
         let _span = info_span!("Agent tunnel config").entered();
+
+        let client_name = cli.client_name.as_deref()?.into();
+        let gateway_url = cli.gateway_url.clone()?;
+
+        let gateway_pki = cli
+            .gateway_pki
+            .as_deref()
+            .map(LoadTrustedStore::File)
+            .unwrap_or(LoadTrustedStore::Native);
+
         let client_config = AgentClientConfig {
-            gateway_url: cli.gateway_url.clone()?,
-            gateway_pki: LoadTrustedStore::File(cli.gateway_pki.as_ref()?)
+            gateway_url,
+            gateway_pki: gateway_pki
                 .load()
                 .inspect_err(|error| warn!("Failed to load Gateway PKI: {error}"))
                 .ok()?,
-            client_name: cli.client_name.as_deref()?.into(),
+            client_name,
         };
+
         let client_certificate = Arc::new(
             load_client_certificate(
                 &client_config,
@@ -61,10 +74,12 @@ impl AgentTunnelConfig {
             .inspect_err(|error| warn!("Failed to load Client Certificate: {error}"))
             .ok()?,
         );
+
         Some(Self {
             client_config,
             client_certificate,
             retry_strategy: RetryStrategy::default(),
+            server,
         })
     }
 }
@@ -91,9 +106,14 @@ impl TunnelConfig for AgentTunnelConfig {
     }
 
     fn client_service(&self) -> impl ClientService {
-        |mut server: tonic::transport::Server| {
+        let client_name = self.client_name();
+        let gateway_server = self.server.clone();
+        move |mut server: tonic::transport::Server| {
             info!("Configuring Client gRPC service");
-            server.add_service(ClientServiceServer::new(ClientServiceImpl))
+            server.add_service(ClientServiceServer::new(ClientServiceImpl::new(
+                client_name.clone(),
+                gateway_server.clone(),
+            )))
         }
     }
 

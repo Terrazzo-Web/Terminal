@@ -1,6 +1,7 @@
 #![cfg(feature = "server")]
 
 use std::env::set_current_dir;
+use std::sync::Arc;
 
 use agent::AgentTunnelConfig;
 use clap::Parser as _;
@@ -21,6 +22,7 @@ use trz_gateway_client::client::connect::ConnectError;
 use trz_gateway_common::crypto_provider::crypto_provider;
 use trz_gateway_common::handle::ServerHandle;
 use trz_gateway_common::handle::ServerStopError;
+use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::GatewayError;
 use trz_gateway_server::server::Server;
 
@@ -57,6 +59,7 @@ pub fn run_server() -> Result<(), RunServerError> {
     let root_ca = PrivateRootCa::load(&cli)?;
     let tls_config = make_tls_config(&root_ca)?;
     let config = TerminalBackendServer {
+        client_name: cli.client_name.clone().map(ClientName::from),
         host: cli.host.clone(),
         port: cli.port,
         root_ca,
@@ -77,7 +80,7 @@ async fn run_server_async(cli: Cli, config: TerminalBackendServer) -> Result<(),
     assets::install_assets();
     let (server, server_handle) = Server::run(config).await?;
 
-    let client_handle = match run_client_async(cli).await {
+    let client_handle = match run_client_async(cli, server.clone()).await {
         Ok(client_handle) => Some(client_handle),
         Err(RunClientError::ClientNotEnabled) => None,
         Err(error) => return Err(error)?,
@@ -128,9 +131,12 @@ pub enum RunServerError {
     RunClient(#[from] RunClientError),
 }
 
-async fn run_client_async(cli: Cli) -> Result<ServerHandle<()>, RunClientError> {
+async fn run_client_async(
+    cli: Cli,
+    server: Arc<Server>,
+) -> Result<ServerHandle<()>, RunClientError> {
     let _span = info_span!("Client").entered();
-    let Some(agent_config) = AgentTunnelConfig::new(&cli).await else {
+    let Some(agent_config) = AgentTunnelConfig::new(&cli, server).await else {
         info!("Gateway client disabled");
         return Err(RunClientError::ClientNotEnabled);
     };

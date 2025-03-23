@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::vec;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -17,6 +18,7 @@ use crate::backend::protos::terrazzo::gateway::client::client_service_client::Cl
 use crate::processes::next_terminal_id;
 
 pub async fn new_id(
+    my_client_name: Option<ClientName>,
     server: Arc<Server>,
     Json(client_name): Json<Option<ClientName>>,
 ) -> Result<Json<TerminalDef>, HttpError<NewIdError>> {
@@ -35,12 +37,19 @@ pub async fn new_id(
         }
         None => next_terminal_id(),
     };
-    let title = format!("Terminal {next}");
-    let id = if cfg!(feature = "concise_traces") {
-        Uuid::new_v4().to_string().into()
+    let title = if let Some(my_client_name) = &my_client_name {
+        format!("Terminal {my_client_name}:{next}")
     } else {
-        format!("T-{next}").into()
+        format!("Terminal {next}")
     };
+    let id = if cfg!(feature = "concise_traces") {
+        Uuid::new_v4().to_string()
+    } else if let Some(my_client_name) = &my_client_name {
+        format!("T-{my_client_name}-{next}")
+    } else {
+        format!("T-{next}")
+    }
+    .into();
     Ok(Json(TerminalDef {
         id,
         title: TabTitle {
@@ -48,7 +57,7 @@ pub async fn new_id(
             override_title: None,
         },
         order: next,
-        client_name,
+        via: vec![],
     }))
 }
 

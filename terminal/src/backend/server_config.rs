@@ -10,6 +10,7 @@ use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
 use tower_http::trace::TraceLayer;
 use tracing::Level;
 use tracing::enabled;
+use trz_gateway_common::id::ClientName;
 use trz_gateway_common::security_configuration::SecurityConfig;
 use trz_gateway_common::security_configuration::certificate::cache::CachedCertificate;
 use trz_gateway_server::server::gateway_config::GatewayConfig;
@@ -20,6 +21,7 @@ use crate::api;
 
 #[nameth]
 pub struct TerminalBackendServer {
+    pub client_name: Option<ClientName>,
     pub host: String,
     pub port: u16,
     pub root_ca: PrivateRootCa,
@@ -55,14 +57,15 @@ impl GatewayConfig for TerminalBackendServer {
     }
 
     fn app_config(&self) -> impl AppConfig {
-        |server, router: Router| {
+        let client_name = self.client_name.clone();
+        move |server, router: Router| {
             let router = router
                 .route("/", get(|| static_assets::get("index.html")))
                 .route(
                     "/static/{*file}",
                     get(|Path(path): Path<String>| static_assets::get(&path)),
                 )
-                .nest_service("/api", api::server::route(&server));
+                .nest_service("/api", api::server::route(&client_name, &server));
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {
                 router.layer(TraceLayer::new_for_http())

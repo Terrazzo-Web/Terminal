@@ -52,7 +52,7 @@ fn build_client() {
 }
 
 fn build_protos() {
-    if env::var(CLIENT_FEATURE).is_ok() {
+    if env::var(SERVER_FEATURE).is_err() {
         return;
     };
     tonic_build::configure()

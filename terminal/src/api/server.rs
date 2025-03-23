@@ -9,6 +9,7 @@ use terrazzo::axum::routing::post;
 use terrazzo::http::HeaderMap;
 use terrazzo::http::HeaderName;
 use terrazzo::http::StatusCode;
+use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
 mod correlation_id;
@@ -24,14 +25,20 @@ mod write;
 const ERROR_HEADER: HeaderName = HeaderName::from_static(super::ERROR_HEADER);
 
 #[autoclone]
-pub fn route(server: &Arc<Server>) -> Router {
+pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
     Router::new()
-        .route("/list", get(list::list))
+        .route(
+            "/list",
+            get(|| {
+                autoclone!(server);
+                list::list(server)
+            }),
+        )
         .route(
             "/new_id",
             post(|request| {
-                autoclone!(server);
-                new_id::new_id(server, request)
+                autoclone!(client_name, server);
+                new_id::new_id(client_name, server, request)
             }),
         )
         .route("/stream/pipe", post(stream::pipe))

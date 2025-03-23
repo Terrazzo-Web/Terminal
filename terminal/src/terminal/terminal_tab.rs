@@ -47,7 +47,7 @@ impl TerminalTab {
             id: terminal_id,
             title,
             order,
-            client_name,
+            via,
         } = terminal_definition;
         let selected = {
             let name: XString = if tracing::enabled!(Level::DEBUG) {
@@ -91,7 +91,7 @@ impl TerminalTab {
                 id: terminal_id,
                 title,
                 order,
-                client_name,
+                via,
             },
             selected,
             xtermjs: Mutex::new(None),
@@ -190,7 +190,7 @@ impl TerminalTabInner {
             id: self.id.clone(),
             title: self.title.get_value_untracked().map(|t| t.to_string()),
             order: self.order,
-            client_name: self.client_name.clone(),
+            via: self.via.clone(),
         }
     }
 }

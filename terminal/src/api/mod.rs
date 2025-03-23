@@ -40,7 +40,7 @@ pub struct TerminalDefImpl<T> {
     pub id: TerminalId,
     pub title: T,
     pub order: i32,
-    pub client_name: Option<ClientName>,
+    pub via: Vec<ClientName>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
