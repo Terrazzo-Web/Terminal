@@ -20,7 +20,7 @@ use crate::terminal::terminal_tab::TerminalTab;
 #[derive(Clone)]
 pub struct ClientNamesState {
     pub client_names: XSignal<ClientNames>,
-    pub show_clients: Cancellable<Duration>,
+    pub hide_clients: Cancellable<Duration>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -34,7 +34,7 @@ impl ClientNamesState {
     pub fn new() -> Self {
         Self {
             client_names: XSignal::new("client_names", ClientNames::None),
-            show_clients: Duration::from_millis(250).cancellable(),
+            hide_clients: Duration::from_millis(250).cancellable(),
         }
     }
 }
@@ -44,7 +44,7 @@ impl ClientNamesState {
 #[template(tag = ul)]
 pub fn show_clients_dropdown(
     #[signal] client_names: ClientNames,
-    show_clients: Cancellable<Duration>,
+    hide_clients: Cancellable<Duration>,
 ) -> XElement {
     info!("Render client names");
     if let ClientNames::Some(client_names) = client_names {
@@ -52,8 +52,8 @@ pub fn show_clients_dropdown(
             li(
                 "{client_name}",
                 mouseenter = move |_ev| {
-                    autoclone!(show_clients);
-                    show_clients.cancel();
+                    autoclone!(hide_clients);
+                    hide_clients.cancel();
                 },
             )
         });
@@ -70,9 +70,9 @@ impl ClientNamesState {
         move |_| {
             let Self {
                 client_names,
-                show_clients,
+                hide_clients,
             } = &client_names_state;
-            show_clients.cancel();
+            hide_clients.cancel();
             client_names.set(ClientNames::Pending);
             wasm_bindgen_futures::spawn_local(async move {
                 autoclone!(client_names);
@@ -94,9 +94,9 @@ impl ClientNamesState {
     pub fn mouseleave(&self) -> impl Fn(MouseEvent) + 'static {
         let Self {
             client_names,
-            show_clients,
+            hide_clients,
         } = self;
-        show_clients.wrap(move |_| {
+        hide_clients.wrap(move |_| {
             autoclone!(client_names);
             client_names.set(ClientNames::None);
         })

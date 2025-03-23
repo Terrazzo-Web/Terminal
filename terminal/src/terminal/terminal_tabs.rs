@@ -56,7 +56,7 @@ impl TabsDescriptor for TerminalTabs {
             mouseleave = client_names_state.mouseleave(),
             add_tab::show_clients_dropdown(
                 client_names_state.client_names.clone(),
-                client_names_state.show_clients.clone(),
+                client_names_state.hide_clients.clone(),
             ),
         )]
     }
