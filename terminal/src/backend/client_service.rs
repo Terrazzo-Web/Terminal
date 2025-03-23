@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use std::sync::Arc;
 
 use scopeguard::defer;
