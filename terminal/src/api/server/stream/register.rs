@@ -8,6 +8,7 @@ use terrazzo_pty::lease::ProcessOutputLease;
 use tracing::debug;
 use tracing::warn;
 use tracing_futures as _;
+use trz_gateway_server::server::Server;
 
 use super::registration::Registration;
 use crate::api::RegisterTerminalMode;
@@ -15,13 +16,17 @@ use crate::api::RegisterTerminalRequest;
 use crate::processes;
 use crate::terminal_id::TerminalId;
 
-pub async fn register(request: RegisterTerminalRequest) -> Result<(), RegisterStreamError> {
+pub async fn register(
+    server: &Server,
+    request: RegisterTerminalRequest,
+) -> Result<(), RegisterStreamError> {
     defer!(debug!("End"));
     debug!("Start");
     async {
         let terminal_id = request.def.id.clone();
-        let lease = processes::stream::open_stream(request.def, |_| async {
+        let lease = processes::stream::open_stream(server, request.def, |_| async {
             match request.mode {
+                // TODO: if it's a remote terminal, open a ProcessIO connected to a remote client
                 RegisterTerminalMode::Create => ProcessIO::open().await,
                 RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
             }

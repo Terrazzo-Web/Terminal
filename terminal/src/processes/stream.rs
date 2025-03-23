@@ -5,12 +5,14 @@ use terrazzo_pty::lease::ProcessIoEntry;
 use terrazzo_pty::lease::ProcessOutputLease;
 use tracing::error;
 use tracing::info;
+use trz_gateway_server::server::Server;
 
 use super::get_processes;
 use crate::api::TerminalDef;
 use crate::terminal_id::TerminalId;
 
 pub async fn open_stream<F>(
+    _server: &Server,
     terminal_def: TerminalDef,
     open_process: impl Fn(&TerminalId) -> F,
 ) -> Result<ProcessOutputLease, GetOrCreateProcessError>
