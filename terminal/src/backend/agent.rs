@@ -2,7 +2,6 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use nameth::nameth;
-use tonic::service::Routes;
 use tracing::info;
 use tracing::info_span;
 use tracing::warn;
@@ -18,6 +17,8 @@ use trz_gateway_common::security_configuration::trusted_store::cache::CachedTrus
 use trz_gateway_common::security_configuration::trusted_store::load::LoadTrustedStore;
 
 use super::cli::Cli;
+use crate::backend::client_service::ClientServiceImpl;
+use crate::backend::protos::terrazzo::gateway::client::client_service_server::ClientServiceServer;
 
 #[nameth]
 pub struct AgentTunnelConfig {
@@ -92,8 +93,7 @@ impl TunnelConfig for AgentTunnelConfig {
     fn client_service(&self) -> impl ClientService {
         |mut server: tonic::transport::Server| {
             info!("Configuring Client gRPC service");
-            server.add_routes(Routes::builder().routes());
-            todo!()
+            server.add_service(ClientServiceServer::new(ClientServiceImpl))
         }
     }
 

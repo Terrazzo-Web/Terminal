@@ -64,6 +64,9 @@ thiserror = { version = "2.0.12" }
 tokio = { version = "1.44.1" }
 tokio-util = { version = "0.7.14" }
 tonic = { version = "0.12.3" }
+tonic-build = { version = "0.12.3" }
+prost = { version = "0.13.5" }
+prost-types = { version = "0.13.5" }
 tower-http = { version = "0.6.2" }
 tracing = { version = "0.1.41" }
 tracing-futures = { version = "0.2.5" }

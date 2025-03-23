@@ -32,7 +32,9 @@ use crate::assets;
 
 mod agent;
 mod cli;
+pub mod client_service;
 mod daemonize;
+pub mod protos;
 mod root_ca_config;
 mod server_config;
 mod tls_config;

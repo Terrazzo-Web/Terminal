@@ -2,7 +2,6 @@ use nameth::nameth;
 use serde::Deserialize;
 use serde::Serialize;
 
-use self::client_name::ClientName;
 use crate::terminal_id::TerminalId;
 
 #[cfg(feature = "client")]
@@ -10,6 +9,12 @@ pub mod client;
 
 #[cfg(feature = "server")]
 pub mod server;
+
+#[cfg(feature = "server")]
+use trz_gateway_common::id::ClientName;
+
+#[cfg(all(feature = "client", not(feature = "server")))]
+use self::client_name::ClientName;
 
 pub mod client_name;
 

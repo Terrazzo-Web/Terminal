@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package terrazzo.gateway.client;
+
+service ClientService { rpc NewId(NewIdRequest) returns (NewIdResponse); }
+
+message NewIdRequest {}
+message NewIdResponse { int32 next = 1; }

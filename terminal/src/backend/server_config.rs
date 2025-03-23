@@ -62,7 +62,7 @@ impl GatewayConfig for TerminalBackendServer {
                     "/static/{*file}",
                     get(|Path(path): Path<String>| static_assets::get(&path)),
                 )
-                .nest_service("/api", api::server::route(server));
+                .nest_service("/api", api::server::route(&server));
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {
                 router.layer(TraceLayer::new_for_http())

@@ -28,6 +28,8 @@ nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 openssl = { workspace = true, optional = true }
 pin-project = { workspace = true }
+prost = { workspace = true, optional = true }
+prost-types = { workspace = true, optional = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -73,6 +75,7 @@ web-sys = { workspace = true, optional = true, features = [
 [build-dependencies]
 scopeguard = { workspace = true }
 terrazzo-build = { workspace = true }
+tonic-build = { workspace = true, features = ["prost"] }
 
 [features]
 default = ["server", "max_level_info"]
@@ -89,6 +92,8 @@ server = [
     "dep:dashmap",
     "dep:nix",
     "dep:openssl",
+    "dep:prost",
+    "dep:prost-types",
     "dep:terrazzo-pty",
     "dep:tokio",
     "dep:tonic",

@@ -10,6 +10,11 @@ const MAX_LEVEL_INFO: &str = "CARGO_FEATURE_MAX_LEVEL_INFO";
 const MAX_LEVEL_DEBUG: &str = "CARGO_FEATURE_MAX_LEVEL_DEBUG";
 
 fn main() {
+    build_client();
+    build_protos();
+}
+
+fn build_client() {
     if env::var("DOCS_RS") != Err(env::VarError::NotPresent) {
         return;
     }
@@ -44,4 +49,14 @@ fn main() {
     })
     .unwrap();
     terrazzo_build::build_css();
+}
+
+fn build_protos() {
+    if env::var(CLIENT_FEATURE).is_ok() {
+        return;
+    };
+    tonic_build::configure()
+        .build_client(true)
+        .compile_protos(&["src/backend/client.proto"], &["src/"])
+        .unwrap();
 }
