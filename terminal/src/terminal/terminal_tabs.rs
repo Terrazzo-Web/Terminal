@@ -38,8 +38,6 @@ impl TabsDescriptor for TerminalTabs {
     #[autoclone]
     #[html]
     fn after_titles(&self, state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
-        let this = self.clone();
-        let state = state.clone();
         let client_names_state = ClientNamesState::new();
         [div(
             class = style::add_tab_icon,
@@ -50,11 +48,12 @@ impl TabsDescriptor for TerminalTabs {
                     add_tab::active(t, client_names_state.client_names.clone())
                 },
                 img(src = "/static/icons/plus-square.svg"),
-                click = add_tab::create_terminal(this.clone(), state.clone(), None),
+                click = add_tab::create_terminal(state.clone(), None),
                 mouseenter = client_names_state.mouseenter(),
             ),
             mouseleave = client_names_state.mouseleave(),
             add_tab::show_clients_dropdown(
+                state.clone(),
                 client_names_state.client_names.clone(),
                 client_names_state.hide_clients.clone(),
             ),

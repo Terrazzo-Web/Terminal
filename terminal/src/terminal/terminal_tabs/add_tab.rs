@@ -11,7 +11,6 @@ use tracing::info;
 use tracing::warn;
 use web_sys::MouseEvent;
 
-use super::TerminalTabs;
 use crate::api;
 use crate::api::client::remotes;
 use crate::api::client_name::ClientName;
@@ -20,9 +19,9 @@ use crate::terminal::terminal_tab::TerminalTab;
 
 #[derive(Clone)]
 pub struct ClientNamesState {
-    pub client_names: XSignal<ClientNames>,
-    pub show_clients: Cancellable<()>,
-    pub hide_clients: Cancellable<Duration>,
+    pub(super) client_names: XSignal<ClientNames>,
+    pub(super) show_clients: Cancellable<()>,
+    pub(super) hide_clients: Cancellable<Duration>,
 }
 
 pub type ClientNames = Option<Vec<ClientName>>;
@@ -41,6 +40,7 @@ impl ClientNamesState {
 #[html]
 #[template(tag = ul)]
 pub fn show_clients_dropdown(
+    state: TerminalsState,
     #[signal] client_names: ClientNames,
     hide_clients: Cancellable<Duration>,
 ) -> XElement {
@@ -48,11 +48,12 @@ pub fn show_clients_dropdown(
     if let ClientNames::Some(client_names) = client_names {
         let client_names = client_names.into_iter().map(|client_name| {
             li(
-                "{client_name}",
+                "{client_name} ⏎",
                 mouseenter = move |_ev| {
                     autoclone!(hide_clients);
                     hide_clients.cancel();
                 },
+                click = create_terminal(state.clone(), Some(client_name)),
             )
         });
         tag(class = super::style::add_client_tab, client_names..)
@@ -114,13 +115,12 @@ pub fn active(#[signal] client_names: ClientNames) -> XAttributeValue {
 
 #[autoclone]
 pub fn create_terminal(
-    tabs: TerminalTabs,
     state: TerminalsState,
     client_name: Option<ClientName>,
 ) -> impl Fn(MouseEvent) {
     move |_| {
         wasm_bindgen_futures::spawn_local(async move {
-            autoclone!(tabs, state, client_name);
+            autoclone!(state, client_name);
             let terminal_def = match api::client::new_id::new_id(client_name.clone()).await {
                 Ok(id) => id,
                 Err(error) => {
@@ -131,7 +131,9 @@ pub fn create_terminal(
             let new_tab = TerminalTab::new(terminal_def, &state.selected_tab);
             let _batch = Batch::use_batch("add-tab");
             state.selected_tab.force(new_tab.id.clone());
-            state.terminal_tabs.force(tabs.clone().add_tab(new_tab));
+            state
+                .terminal_tabs
+                .update(|tabs| Some(tabs.clone().add_tab(new_tab)));
         });
     }
 }
