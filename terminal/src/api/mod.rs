@@ -16,6 +16,7 @@ use trz_gateway_common::id::ClientName;
 #[cfg(all(feature = "client", not(feature = "server")))]
 use self::client_name::ClientName;
 
+pub mod client_address;
 pub mod client_name;
 
 const ERROR_HEADER: &str = "terrazzo-error";

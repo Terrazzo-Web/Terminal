@@ -3,9 +3,14 @@ syntax = "proto3";
 package terrazzo.gateway.client;
 
 service ClientService {
+  rpc ListRemotes(ListRemotesRequest) returns (ListRemotesResponse);
   rpc NewId(NewIdRequest) returns (NewIdResponse);
   rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
 }
+
+message ListRemotesRequest { repeated string visited = 1; }
+message ListRemotesResponse { repeated ClientAddress clients = 1; }
+message ClientAddress { repeated string via = 1; }
 
 message NewIdRequest {}
 message NewIdResponse { int32 next = 1; }
