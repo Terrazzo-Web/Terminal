@@ -50,7 +50,7 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
                     };
                     match map.entry(remote_name) {
                         hash_map::Entry::Occupied(mut entry) => {
-                            if entry.get().via.len() >= remote.via.len() + 1 {
+                            if entry.get().via.len() > remote.via.len() + 1 {
                                 remote.via.push(client_name.to_string());
                                 entry.insert(remote);
                             }

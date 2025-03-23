@@ -31,7 +31,7 @@ pub async fn new_id(
                 Ok(ClientServiceClient::new(channel)
                     .new_id(NewIdRequest {
                         address: Some(ClientAddress {
-                            via: rest.into_iter().map(|x| x.as_ref().to_owned()).collect(),
+                            via: rest.iter().map(|x| x.as_ref().to_owned()).collect(),
                         }),
                     })
                     .await
