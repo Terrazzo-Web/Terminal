@@ -11,7 +11,7 @@ use tracing::info_span;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
-// use self::remotes::list_remotes;
+use self::remotes::list_remotes;
 use self::terminals::list_terminals;
 use super::protos::terrazzo::gateway::client::ListRemotesRequest;
 use super::protos::terrazzo::gateway::client::ListRemotesResponse;
@@ -22,7 +22,7 @@ use super::protos::terrazzo::gateway::client::NewIdResponse;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
 use crate::processes::next_terminal_id;
 
-//pub mod remotes;
+pub mod remotes;
 pub mod terminals;
 
 pub struct ClientServiceImpl {

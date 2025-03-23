@@ -3,6 +3,7 @@ use std::ops::DerefMut;
 
 use super::ClientName;
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ClientAddress(Vec<ClientName>);
 
 impl Deref for ClientAddress {

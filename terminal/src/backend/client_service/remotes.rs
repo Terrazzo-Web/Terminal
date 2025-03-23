@@ -62,7 +62,7 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
                 }
             }
             .instrument(info_span!("Client", %client_name));
-            check_sync(&task);
+            // check_sync(&task);
             task.await;
         }
 

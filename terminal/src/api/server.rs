@@ -55,13 +55,13 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
         .route("/set_title/{terminal_id}", post(set_title::set_title))
         .route("/set_order", post(set_order::set_order))
         .route("/write/{terminal_id}", post(write::write))
-    // .route(
-    //     "/remotes",
-    //     get(|| {
-    //         autoclone!(server);
-    //         remotes::list(server)
-    //     }),
-    // )
+        .route(
+            "/remotes",
+            get(|| {
+                autoclone!(server);
+                remotes::list(server)
+            }),
+        )
 }
 
 fn into_error<E: std::error::Error>(status_code: StatusCode) -> impl FnMut(E) -> Response {
