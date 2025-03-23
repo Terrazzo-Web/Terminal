@@ -75,9 +75,3 @@ fn into_error<E: std::error::Error>(status_code: StatusCode) -> impl FnMut(E) ->
         }
     }
 }
-
-#[allow(unused)]
-fn check_send<T: Send>(t: &T) {}
-
-#[allow(unused)]
-fn check_sync<T: Sync>(t: &T) {}

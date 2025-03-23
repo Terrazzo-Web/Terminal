@@ -38,10 +38,10 @@ pub async fn list_terminals(server: &Server, visited: &[String]) -> Vec<Terminal
                     return;
                 };
                 let mut client = ClientServiceClient::new(client);
-                let Ok(mut terminals) = client
-                    .list_terminals(ListTerminalsRequest {
-                        visited: visited.to_vec(),
-                    })
+                let terminals = client.list_terminals(ListTerminalsRequest {
+                    visited: visited.to_vec(),
+                });
+                let Ok(mut terminals) = terminals
                     .await
                     .inspect_err(|error| warn!("Failed: {error}"))
                 else {

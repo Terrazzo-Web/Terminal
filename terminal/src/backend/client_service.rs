@@ -45,11 +45,10 @@ impl ClientService for ClientServiceImpl {
         &self,
         mut request: Request<ListRemotesRequest>,
     ) -> Result<Response<ListRemotesResponse>, Status> {
-        todo!()
-        // let mut visited = std::mem::take(&mut request.get_mut().visited);
-        // visited.push(self.client_name.to_string());
-        // let clients = list_remotes(&self.server, &visited).await;
-        // Ok(Response::new(ListRemotesResponse { clients }))
+        let mut visited = std::mem::take(&mut request.get_mut().visited);
+        visited.push(self.client_name.to_string());
+        let clients = list_remotes(&self.server, &visited).await;
+        Ok(Response::new(ListRemotesResponse { clients }))
     }
 
     async fn new_id(&self, _: Request<NewIdRequest>) -> Result<Response<NewIdResponse>, Status> {

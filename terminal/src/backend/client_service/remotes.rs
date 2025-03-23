@@ -26,7 +26,7 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
                     via: vec![client_name.to_string()],
                 },
             );
-            let task = async {
+            async {
                 if visited.iter().any(|v| v.as_str() == client_name.as_ref()) {
                     debug!("Already visited");
                     return;
@@ -36,12 +36,10 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
                     return;
                 };
                 let mut client = ClientServiceClient::new(client);
-                let Ok(mut remotes) = client
-                    .list_remotes(ListRemotesRequest {
-                        visited: visited.to_vec(),
-                    })
-                    .await
-                    .inspect_err(|error| warn!("Failed: {error}"))
+                let remotes = client.list_remotes(ListRemotesRequest {
+                    visited: visited.to_vec(),
+                });
+                let Ok(mut remotes) = remotes.await.inspect_err(|error| warn!("Failed: {error}"))
                 else {
                     return;
                 };
@@ -61,9 +59,8 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
                     }
                 }
             }
-            .instrument(info_span!("Client", %client_name));
-            // check_sync(&task);
-            task.await;
+            .instrument(info_span!("Client", %client_name))
+            .await
         }
 
         let response = map.into_values().collect();
@@ -73,9 +70,3 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
     .instrument(info_span!("List remotes"))
     .await
 }
-
-#[allow(unused)]
-fn check_send<T: Send>(t: &T) {}
-
-#[allow(unused)]
-fn check_sync<T: Sync>(t: &T) {}
