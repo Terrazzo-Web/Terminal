@@ -6,6 +6,7 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::cancellable::Cancellable;
 use terrazzo::widgets::debounce::DoDebounce as _;
+use tracing::debug;
 use tracing::info;
 use tracing::warn;
 use web_sys::MouseEvent;
@@ -20,20 +21,17 @@ use crate::terminal::terminal_tab::TerminalTab;
 #[derive(Clone)]
 pub struct ClientNamesState {
     pub client_names: XSignal<ClientNames>,
+    pub show_clients: Cancellable<()>,
     pub hide_clients: Cancellable<Duration>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ClientNames {
-    None,
-    Pending,
-    Some(Vec<ClientName>),
-}
+pub type ClientNames = Option<Vec<ClientName>>;
 
 impl ClientNamesState {
     pub fn new() -> Self {
         Self {
             client_names: XSignal::new("client_names", ClientNames::None),
+            show_clients: Cancellable::new(),
             hide_clients: Duration::from_millis(250).cancellable(),
         }
     }
@@ -70,22 +68,23 @@ impl ClientNamesState {
         move |_| {
             let Self {
                 client_names,
+                show_clients,
                 hide_clients,
             } = &client_names_state;
-            hide_clients.cancel();
-            client_names.set(ClientNames::Pending);
-            wasm_bindgen_futures::spawn_local(async move {
+            show_clients.cancel();
+
+            let update_clients = show_clients.capture(move |new_client_names| {
                 autoclone!(client_names);
+                client_names.set(new_client_names)
+            });
+            hide_clients.cancel();
+            wasm_bindgen_futures::spawn_local(async move {
                 let new_client_names = remotes::remotes()
                     .await
                     .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
-                client_names.update(|old| {
-                    if let ClientNames::Pending = old {
-                        Some(ClientNames::Some(new_client_names))
-                    } else {
-                        None
-                    }
-                })
+                if update_clients(new_client_names).is_none() {
+                    debug!("Updating client names was canceled")
+                }
             });
         }
     }
@@ -95,6 +94,7 @@ impl ClientNamesState {
         let Self {
             client_names,
             hide_clients,
+            ..
         } = self;
         hide_clients.wrap(move |_| {
             autoclone!(client_names);
