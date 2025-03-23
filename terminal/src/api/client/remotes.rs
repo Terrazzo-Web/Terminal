@@ -7,10 +7,10 @@ use super::BASE_URL;
 use super::Method;
 use super::SendRequestError;
 use super::send_request;
-use crate::api::client_name::ClientName;
+use crate::api::client_address::ClientAddress;
 
 #[nameth]
-pub async fn remotes() -> Result<Vec<ClientName>, RemotesError> {
+pub async fn remotes() -> Result<Vec<ClientAddress>, RemotesError> {
     let response: Response =
         send_request(Method::GET, format!("{BASE_URL}/{REMOTES}"), |_| {}).await?;
     let result = response

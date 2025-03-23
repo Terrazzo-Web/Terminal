@@ -12,26 +12,25 @@ use tracing::warn;
 use web_sys::MouseEvent;
 
 use crate::api;
-use crate::api::client::remotes;
-use crate::api::client_name::ClientName;
+use crate::api::client_address::ClientAddress;
 use crate::terminal::TerminalsState;
 use crate::terminal::terminal_tab::TerminalTab;
 
 #[derive(Clone)]
-pub struct ClientNamesState {
-    pub(super) client_names: XSignal<ClientNames>,
-    pub(super) show_clients: Cancellable<()>,
-    pub(super) hide_clients: Cancellable<Duration>,
+pub struct RemotesState {
+    pub(super) remotes: XSignal<Remotes>,
+    pub(super) show_remotes: Cancellable<()>,
+    pub(super) hide_remotes: Cancellable<Duration>,
 }
 
-pub type ClientNames = Option<Vec<ClientName>>;
+pub type Remotes = Option<Vec<ClientAddress>>;
 
-impl ClientNamesState {
+impl RemotesState {
     pub fn new() -> Self {
         Self {
-            client_names: XSignal::new("client_names", ClientNames::None),
-            show_clients: Cancellable::new(),
-            hide_clients: Duration::from_millis(250).cancellable(),
+            remotes: XSignal::new("remotes", None),
+            show_remotes: Cancellable::new(),
+            hide_remotes: Duration::from_millis(250).cancellable(),
         }
     }
 }
@@ -41,19 +40,19 @@ impl ClientNamesState {
 #[template(tag = ul)]
 pub fn show_clients_dropdown(
     state: TerminalsState,
-    #[signal] client_names: ClientNames,
+    #[signal] remotes: Remotes,
     hide_clients: Cancellable<Duration>,
 ) -> XElement {
     info!("Render client names");
-    if let ClientNames::Some(client_names) = client_names {
-        let client_names = client_names.into_iter().map(|client_name| {
+    if let Remotes::Some(remotes) = remotes {
+        let client_names = remotes.into_iter().map(|client_address| {
             li(
-                "{client_name} ⏎",
+                "{client_address} ⏎",
                 mouseenter = move |_ev| {
                     autoclone!(hide_clients);
                     hide_clients.cancel();
                 },
-                click = create_terminal(state.clone(), Some(client_name)),
+                click = create_terminal(state.clone(), client_address),
             )
         });
         tag(class = super::style::add_client_tab, client_names..)
@@ -62,29 +61,29 @@ pub fn show_clients_dropdown(
     }
 }
 
-impl ClientNamesState {
+impl RemotesState {
     #[autoclone]
     pub fn mouseenter(&self) -> impl Fn(MouseEvent) + 'static {
         let client_names_state = self.clone();
         move |_| {
             let Self {
-                client_names,
-                show_clients,
-                hide_clients,
+                remotes,
+                show_remotes,
+                hide_remotes,
             } = &client_names_state;
-            show_clients.cancel();
+            show_remotes.cancel();
 
-            let update_clients = show_clients.capture(move |new_client_names| {
-                autoclone!(client_names);
-                client_names.set(new_client_names)
+            let update_remotes = show_remotes.capture(move |new_remotes| {
+                autoclone!(remotes);
+                remotes.set(new_remotes)
             });
-            hide_clients.cancel();
+            hide_remotes.cancel();
             wasm_bindgen_futures::spawn_local(async move {
-                let new_client_names = remotes::remotes()
+                let remotes = api::client::remotes::remotes()
                     .await
                     .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
-                if update_clients(new_client_names).is_none() {
-                    debug!("Updating client names was canceled")
+                if update_remotes(remotes).is_none() {
+                    debug!("Updating remotes was canceled");
                 }
             });
         }
@@ -93,20 +92,20 @@ impl ClientNamesState {
     #[autoclone]
     pub fn mouseleave(&self) -> impl Fn(MouseEvent) + 'static {
         let Self {
-            client_names,
-            hide_clients,
+            remotes,
+            hide_remotes,
             ..
         } = self;
-        hide_clients.wrap(move |_| {
-            autoclone!(client_names);
-            client_names.set(ClientNames::None);
+        hide_remotes.wrap(move |_| {
+            autoclone!(remotes);
+            remotes.set(Remotes::None);
         })
     }
 }
 
 #[template]
-pub fn active(#[signal] client_names: ClientNames) -> XAttributeValue {
-    if let ClientNames::Some { .. } = client_names {
+pub fn active(#[signal] remotes: Remotes) -> XAttributeValue {
+    if let Remotes::Some { .. } = remotes {
         Some(super::style::active)
     } else {
         None
@@ -116,12 +115,12 @@ pub fn active(#[signal] client_names: ClientNames) -> XAttributeValue {
 #[autoclone]
 pub fn create_terminal(
     state: TerminalsState,
-    client_name: Option<ClientName>,
+    client_address: ClientAddress,
 ) -> impl Fn(MouseEvent) {
     move |_| {
         wasm_bindgen_futures::spawn_local(async move {
-            autoclone!(state, client_name);
-            let terminal_def = match api::client::new_id::new_id(client_name.clone()).await {
+            autoclone!(state, client_address);
+            let terminal_def = match api::client::new_id::new_id(client_address.clone()).await {
                 Ok(id) => id,
                 Err(error) => {
                     warn!("Failed to allocate new ID: {error}");

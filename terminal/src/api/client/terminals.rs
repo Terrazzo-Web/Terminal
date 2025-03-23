@@ -12,11 +12,11 @@ use super::send_request;
 use crate::api::TerminalDef;
 
 #[nameth]
-pub async fn list() -> Result<Vec<TerminalDef>, ListError> {
+pub async fn terminals() -> Result<Vec<TerminalDef>, ListTerminalsError> {
     let response: Response =
-        send_request(Method::GET, format!("{BASE_URL}/{LIST}"), |_| {}).await?;
+        send_request(Method::GET, format!("{BASE_URL}/{TERMINALS}"), |_| {}).await?;
     let Some(body) = response.body() else {
-        return Err(ListError::MissingResponseBody);
+        return Err(ListTerminalsError::MissingResponseBody);
     };
     let mut reader = wasm_streams::ReadableStream::from_raw(body);
     let mut reader = reader.get_reader();
@@ -24,11 +24,11 @@ pub async fn list() -> Result<Vec<TerminalDef>, ListError> {
     let mut data = vec![];
     loop {
         let next = reader.read().await;
-        let Some(next) = next.map_err(ListError::ReadError)? else {
+        let Some(next) = next.map_err(ListTerminalsError::ReadError)? else {
             break;
         };
         let Some(next) = next.dyn_ref::<Uint8Array>() else {
-            return Err(ListError::InvalidChunk(next));
+            return Err(ListTerminalsError::InvalidChunk(next));
         };
 
         let count = next.length() as usize;
@@ -39,13 +39,13 @@ pub async fn list() -> Result<Vec<TerminalDef>, ListError> {
     }
 
     let terminal_ids: Vec<TerminalDef> =
-        serde_json::from_slice(&data).map_err(ListError::InvalidJson)?;
+        serde_json::from_slice(&data).map_err(ListTerminalsError::InvalidJson)?;
     Ok(terminal_ids)
 }
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-pub enum ListError {
+pub enum ListTerminalsError {
     #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 

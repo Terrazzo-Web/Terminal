@@ -1,3 +1,4 @@
+use client_address::ClientAddress;
 use nameth::nameth;
 use serde::Deserialize;
 use serde::Serialize;
@@ -41,7 +42,7 @@ pub struct TerminalDefImpl<T> {
     pub id: TerminalId,
     pub title: T,
     pub order: i32,
-    pub via: Vec<ClientName>,
+    pub via: ClientAddress,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

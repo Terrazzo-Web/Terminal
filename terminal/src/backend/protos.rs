@@ -9,12 +9,8 @@ pub mod terrazzo {
             include!(concat!(env!("OUT_DIR"), "/terrazzo.gateway.client.rs"));
 
             impl ClientAddress {
-                pub fn leaf(&self) -> ClientName {
-                    self.via
-                        .last()
-                        .expect("ClientAddress leaf")
-                        .to_owned()
-                        .into()
+                pub fn leaf(&self) -> Option<ClientName> {
+                    self.via.last().map(|s| ClientName::from(s.as_str()))
                 }
             }
         }

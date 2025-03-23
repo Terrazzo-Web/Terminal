@@ -19,13 +19,13 @@ use super::TabTitle;
 use super::TerminalDefImpl;
 use crate::api::ERROR_HEADER;
 
-pub mod list;
 pub mod new_id;
 pub mod remotes;
 pub mod resize;
 pub mod set_order;
 pub mod set_title;
 pub mod stream;
+pub mod terminals;
 pub mod write;
 
 const BASE_URL: &str = "/api";

@@ -45,7 +45,10 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
                 };
                 let remotes = std::mem::take(&mut remotes.get_mut().clients);
                 for mut remote in remotes {
-                    match map.entry(remote.leaf()) {
+                    let Some(remote_name) = remote.leaf() else {
+                        continue;
+                    };
+                    match map.entry(remote_name) {
                         hash_map::Entry::Occupied(mut entry) => {
                             if entry.get().via.len() >= remote.via.len() + 1 {
                                 remote.via.push(client_name.to_string());

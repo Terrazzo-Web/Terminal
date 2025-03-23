@@ -1,13 +1,10 @@
 use std::sync::Arc;
 
-use scopeguard::defer;
+use new_id::NewIdError;
 use tonic::Request;
 use tonic::Response;
 use tonic::Status;
 use tonic::async_trait;
-use tracing::Instrument;
-use tracing::info;
-use tracing::info_span;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
@@ -20,8 +17,8 @@ use super::protos::terrazzo::gateway::client::ListTerminalsResponse;
 use super::protos::terrazzo::gateway::client::NewIdRequest;
 use super::protos::terrazzo::gateway::client::NewIdResponse;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
-use crate::processes::next_terminal_id;
 
+pub mod new_id;
 pub mod remotes;
 pub mod terminals;
 
@@ -51,18 +48,6 @@ impl ClientService for ClientServiceImpl {
         Ok(Response::new(ListRemotesResponse { clients }))
     }
 
-    async fn new_id(&self, _: Request<NewIdRequest>) -> Result<Response<NewIdResponse>, Status> {
-        async {
-            info!("Start");
-            defer!(info!("Done"));
-            let next = next_terminal_id();
-            info!("ID={next}");
-            Ok(Response::new(NewIdResponse { next }))
-        }
-        .instrument(info_span!("New ID"))
-        .await
-    }
-
     async fn list_terminals(
         &self,
         mut request: Request<ListTerminalsRequest>,
@@ -71,5 +56,26 @@ impl ClientService for ClientServiceImpl {
         visited.push(self.client_name.to_string());
         let terminals = list_terminals(&self.server, &visited).await;
         Ok(Response::new(ListTerminalsResponse { terminals }))
+    }
+
+    async fn new_id(
+        &self,
+        request: Request<NewIdRequest>,
+    ) -> Result<Response<NewIdResponse>, Status> {
+        let next = new_id::new_id(
+            &self.server,
+            request
+                .get_ref()
+                .address
+                .as_ref()
+                .map(|a| a.via.as_slice())
+                .unwrap_or(&[]),
+        )
+        .await
+        .map_err(|error| match error {
+            NewIdError::RemoteClientError(status) => status,
+            NewIdError::RemoteClientNotFound { .. } => Status::not_found(error.to_string()),
+        })?;
+        Ok(Response::new(NewIdResponse { next }))
     }
 }

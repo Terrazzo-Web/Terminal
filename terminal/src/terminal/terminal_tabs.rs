@@ -6,9 +6,10 @@ use terrazzo::prelude::*;
 use terrazzo::widgets::tabs::TabsDescriptor;
 use terrazzo::widgets::tabs::TabsState;
 
-use self::add_tab::ClientNamesState;
+use self::add_tab::RemotesState;
 use super::TerminalsState;
 use super::terminal_tab::TerminalTab;
+use crate::api::client_address::ClientAddress;
 use crate::terminal_id::TerminalId;
 
 mod add_tab;
@@ -38,24 +39,24 @@ impl TabsDescriptor for TerminalTabs {
     #[autoclone]
     #[html]
     fn after_titles(&self, state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
-        let client_names_state = ClientNamesState::new();
+        let client_names_state = RemotesState::new();
         [div(
             class = style::add_tab_icon,
             key = "add-tab-icon",
             div(
                 class %= move |t| {
                     autoclone!(client_names_state);
-                    add_tab::active(t, client_names_state.client_names.clone())
+                    add_tab::active(t, client_names_state.remotes.clone())
                 },
                 img(src = "/static/icons/plus-square.svg"),
-                click = add_tab::create_terminal(state.clone(), None),
+                click = add_tab::create_terminal(state.clone(), ClientAddress::default()),
                 mouseenter = client_names_state.mouseenter(),
             ),
             mouseleave = client_names_state.mouseleave(),
             add_tab::show_clients_dropdown(
                 state.clone(),
-                client_names_state.client_names.clone(),
-                client_names_state.hide_clients.clone(),
+                client_names_state.remotes.clone(),
+                client_names_state.hide_remotes.clone(),
             ),
         )]
     }

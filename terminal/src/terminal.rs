@@ -68,7 +68,7 @@ pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: Terminal
 
 fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSignal<TerminalTabs>) {
     spawn_local(async move {
-        let terminal_defs = match api::client::list::list().await {
+        let terminal_defs = match api::client::terminals::terminals().await {
             Ok(terminal_defs) => terminal_defs,
             Err(error) => {
                 warn!("Failed to load terminal definitions: {error}");

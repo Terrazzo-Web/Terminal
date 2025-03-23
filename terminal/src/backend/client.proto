@@ -4,19 +4,20 @@ package terrazzo.gateway.client;
 
 service ClientService {
   rpc ListRemotes(ListRemotesRequest) returns (ListRemotesResponse);
-  rpc NewId(NewIdRequest) returns (NewIdResponse);
   rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
+  rpc NewId(NewIdRequest) returns (NewIdResponse);
 }
 
 message ListRemotesRequest { repeated string visited = 1; }
 message ListRemotesResponse { repeated ClientAddress clients = 1; }
-message ClientAddress { repeated string via = 1; }
 
-message NewIdRequest {}
+message NewIdRequest { ClientAddress address = 1; }
 message NewIdResponse { int32 next = 1; }
 
 message ListTerminalsRequest { repeated string visited = 1; }
 message ListTerminalsResponse { repeated TerminalDef terminals = 1; }
+
+message ClientAddress { repeated string via = 1; }
 
 message TerminalDef {
   string id = 1;
