@@ -33,7 +33,7 @@ pub struct ProcessIoEntry<W = OwnedWritePty, R = ReaderStream<OwnedReadPty>> {
     output: Mutex<Option<ProcessOutputExchange<R>>>,
 }
 
-impl<W, R: IsDataStream + Unpin> ProcessIoEntry<W, R> {
+impl<W, R: IsDataStream> ProcessIoEntry<W, R> {
     pub fn new(process_io: ProcessIO<W, R>) -> Arc<Self> {
         info!("Create {}", Self::type_name());
         let (input, output) = process_io.split();
@@ -79,7 +79,7 @@ struct ProcessOutputExchange<R = ReaderStream<OwnedReadPty>> {
     process_output_rx: oneshot::Receiver<ProcessOutput<R>>,
 }
 
-impl<R: IsDataStream + Unpin> ProcessOutputExchange<R> {
+impl<R: IsDataStream> ProcessOutputExchange<R> {
     fn new(process_output: ProcessOutput<R>) -> Self {
         let (_lease, signal_tx, process_output_rx) = ProcessOutputLease::new(process_output);
         Self {
@@ -115,8 +115,7 @@ pub enum LeaseError {
 }
 
 #[nameth]
-//#[pin_project(project = ProcessOutputLeaseProj)]
-pub enum ProcessOutputLease<R: IsDataStream + Unpin = ReaderStream<OwnedReadPty>> {
+pub enum ProcessOutputLease<R: IsDataStream = ReaderStream<OwnedReadPty>> {
     /// The process is active and this is the current lease.
     Leased(TakeUntil<ReleaseOnDrop<ProcessOutput<R>>, oneshot::Receiver<()>>),
 
@@ -127,7 +126,7 @@ pub enum ProcessOutputLease<R: IsDataStream + Unpin = ReaderStream<OwnedReadPty>
     Closed,
 }
 
-impl<R: IsDataStream + Unpin> ProcessOutputLease<R> {
+impl<R: IsDataStream> ProcessOutputLease<R> {
     fn new(
         process_output: ProcessOutput<R>,
     ) -> (
@@ -150,7 +149,7 @@ impl<R: IsDataStream + Unpin> ProcessOutputLease<R> {
     }
 }
 
-impl<R: IsDataStream + Unpin> Stream for ProcessOutputLease<R> {
+impl<R: IsDataStream> Stream for ProcessOutputLease<R> {
     type Item = LeaseItem;
 
     fn poll_next(
@@ -209,7 +208,7 @@ pub enum LeaseItem {
     Error(std::io::Error),
 }
 
-impl<R: IsDataStream + Unpin> Stream for ReleaseOnDrop<ProcessOutput<R>> {
+impl<R: IsDataStream> Stream for ReleaseOnDrop<ProcessOutput<R>> {
     type Item = <ProcessOutput<R> as Stream>::Item;
 
     fn poll_next(

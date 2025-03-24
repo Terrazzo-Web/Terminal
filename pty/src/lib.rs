@@ -156,11 +156,15 @@ pub trait IsData {
     fn into_vec(self) -> Vec<u8>;
 }
 
-pub trait IsDataStream: Stream<Item = std::io::Result<Self::Data>> {
+pub trait IsDataStream: Stream<Item = std::io::Result<Self::Data>> + Unpin {
     type Data: IsData;
 }
 
-impl<S: Stream<Item = std::io::Result<D>>, D: IsData> IsDataStream for S {
+impl<S, D> IsDataStream for S
+where
+    S: Stream<Item = std::io::Result<D>> + Unpin,
+    D: IsData,
+{
     type Data = D;
 }
 
