@@ -12,26 +12,30 @@ use nameth::NamedEnumValues as _;
 use nameth::NamedType as _;
 use nameth::nameth;
 use scopeguard::defer;
+use tokio_util::io::ReaderStream;
 use tracing::debug;
 use tracing::debug_span;
 use tracing::error;
 use tracing::info;
 use tracing::trace;
 
+use crate::IsDataStream;
 use crate::ProcessIO;
 use crate::ProcessInput;
 use crate::ProcessOutput;
+use crate::pty::OwnedReadPty;
+use crate::pty::OwnedWritePty;
 use crate::release_on_drop::ReleaseOnDrop;
 
 #[nameth]
-pub struct ProcessIoEntry {
-    input: Mutex<ProcessInput>,
-    output: Mutex<Option<ProcessOutputExchange>>,
+pub struct ProcessIoEntry<W = OwnedWritePty, R = ReaderStream<OwnedReadPty>> {
+    input: Mutex<ProcessInput<W>>,
+    output: Mutex<Option<ProcessOutputExchange<R>>>,
 }
 
-impl ProcessIoEntry {
-    pub fn new(process_io: ProcessIO) -> Arc<Self> {
-        info!("Create {}", ProcessIoEntry::type_name());
+impl<W, R: IsDataStream + Unpin> ProcessIoEntry<W, R> {
+    pub fn new(process_io: ProcessIO<W, R>) -> Arc<Self> {
+        info!("Create {}", Self::type_name());
         let (input, output) = process_io.split();
         Arc::new(Self {
             input: Mutex::new(input),
@@ -41,7 +45,7 @@ impl ProcessIoEntry {
 
     pub async fn lease_output(
         self: &Arc<Self>,
-    ) -> Result<ProcessOutputLease, LeaseProcessOutputError> {
+    ) -> Result<ProcessOutputLease<R>, LeaseProcessOutputError> {
         let mut lock = self.output.lock().await;
         let exchange = lock.take().ok_or(LeaseProcessOutputError::OutputNotSet)?;
         let (lease, exchange) = exchange.lease().await?;
@@ -49,12 +53,12 @@ impl ProcessIoEntry {
         return Ok(lease);
     }
 
-    pub async fn input(&self) -> futures::lock::MutexGuard<ProcessInput> {
+    pub async fn input(&self) -> futures::lock::MutexGuard<ProcessInput<W>> {
         self.input.lock().await
     }
 }
 
-impl Drop for ProcessIoEntry {
+impl<W, R> Drop for ProcessIoEntry<W, R> {
     fn drop(&mut self) {
         info!("Drop {}", Self::type_name());
     }
@@ -70,13 +74,13 @@ pub enum LeaseProcessOutputError {
     LeaseError(#[from] LeaseError),
 }
 
-struct ProcessOutputExchange {
+struct ProcessOutputExchange<R = ReaderStream<OwnedReadPty>> {
     signal_tx: oneshot::Sender<()>,
-    process_output_rx: oneshot::Receiver<ProcessOutput>,
+    process_output_rx: oneshot::Receiver<ProcessOutput<R>>,
 }
 
-impl ProcessOutputExchange {
-    fn new(process_output: ProcessOutput) -> Self {
+impl<R: IsDataStream + Unpin> ProcessOutputExchange<R> {
+    fn new(process_output: ProcessOutput<R>) -> Self {
         let (_lease, signal_tx, process_output_rx) = ProcessOutputLease::new(process_output);
         Self {
             signal_tx,
@@ -84,7 +88,7 @@ impl ProcessOutputExchange {
         }
     }
 
-    async fn lease(self) -> Result<(ProcessOutputLease, Self), LeaseError> {
+    async fn lease(self) -> Result<(ProcessOutputLease<R>, Self), LeaseError> {
         match self.signal_tx.send(()) {
             Ok(()) => debug!("Current lease was stopped"),
             Err(()) => debug!("The process was not leased"),
@@ -111,9 +115,10 @@ pub enum LeaseError {
 }
 
 #[nameth]
-pub enum ProcessOutputLease {
+//#[pin_project(project = ProcessOutputLeaseProj)]
+pub enum ProcessOutputLease<R: IsDataStream + Unpin = ReaderStream<OwnedReadPty>> {
     /// The process is active and this is the current lease.
-    Leased(TakeUntil<ReleaseOnDrop<ProcessOutput>, oneshot::Receiver<()>>),
+    Leased(TakeUntil<ReleaseOnDrop<ProcessOutput<R>>, oneshot::Receiver<()>>),
 
     /// The process is still active but another client is consuming the stream.
     Revoked,
@@ -122,10 +127,14 @@ pub enum ProcessOutputLease {
     Closed,
 }
 
-impl ProcessOutputLease {
+impl<R: IsDataStream + Unpin> ProcessOutputLease<R> {
     fn new(
-        process_output: ProcessOutput,
-    ) -> (Self, oneshot::Sender<()>, oneshot::Receiver<ProcessOutput>) {
+        process_output: ProcessOutput<R>,
+    ) -> (
+        Self,
+        oneshot::Sender<()>,
+        oneshot::Receiver<ProcessOutput<R>>,
+    ) {
         let (process_output, process_output_rx) = ReleaseOnDrop::new(process_output);
         let (signal_tx, signal_rx) = oneshot::channel();
         let process_output = process_output.take_until(signal_rx);
@@ -141,7 +150,7 @@ impl ProcessOutputLease {
     }
 }
 
-impl Stream for ProcessOutputLease {
+impl<R: IsDataStream + Unpin> Stream for ProcessOutputLease<R> {
     type Item = LeaseItem;
 
     fn poll_next(
@@ -200,8 +209,8 @@ pub enum LeaseItem {
     Error(std::io::Error),
 }
 
-impl Stream for ReleaseOnDrop<ProcessOutput> {
-    type Item = <ProcessOutput as Stream>::Item;
+impl<R: IsDataStream + Unpin> Stream for ReleaseOnDrop<ProcessOutput<R>> {
+    type Item = <ProcessOutput<R> as Stream>::Item;
 
     fn poll_next(
         self: Pin<&mut Self>,

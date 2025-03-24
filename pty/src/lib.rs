@@ -3,10 +3,11 @@
 use std::task::Poll;
 use std::task::ready;
 
+use futures::Stream;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use pin_project::pin_project;
-use tokio::io::AsyncWrite;
+use tokio_util::bytes::Bytes;
 use tokio_util::io::ReaderStream;
 
 use self::command::Command;
@@ -27,18 +28,18 @@ mod size;
 
 const BUFFER_SIZE: usize = 1024;
 
-pub struct ProcessIO {
-    input: OwnedWritePty,
-    output: ReaderStream<OwnedReadPty>,
+pub struct ProcessIO<W = OwnedWritePty, R = ReaderStream<OwnedReadPty>> {
+    input: W,
+    output: R,
     #[expect(unused)]
     child_process: tokio::process::Child,
 }
 
 #[pin_project]
-pub struct ProcessInput(#[pin] OwnedWritePty);
+pub struct ProcessInput<W = OwnedWritePty>(#[pin] W);
 
 #[pin_project]
-pub struct ProcessOutput(#[pin] ReaderStream<OwnedReadPty>);
+pub struct ProcessOutput<R = ReaderStream<OwnedReadPty>>(#[pin] R);
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
@@ -53,7 +54,7 @@ pub enum OpenProcessError {
     NotFound,
 }
 
-impl ProcessIO {
+impl ProcessIO<OwnedWritePty, ReaderStream<OwnedReadPty>> {
     pub async fn open() -> Result<Self, OpenProcessError> {
         let pty = Pty::new()?;
         let mut command =
@@ -76,13 +77,15 @@ impl ProcessIO {
             child_process,
         }
     }
+}
 
-    pub fn split(self) -> (ProcessInput, ProcessOutput) {
+impl<W, R> ProcessIO<W, R> {
+    pub fn split(self) -> (ProcessInput<W>, ProcessOutput<R>) {
         (ProcessInput(self.input), ProcessOutput(self.output))
     }
 }
 
-impl ProcessInput {
+impl ProcessInput<OwnedWritePty> {
     pub async fn resize(&self, rows: u16, cols: u16) -> Result<(), ResizeTerminalError> {
         self.0.resize(Size::new(rows, cols))?;
         Ok(())
@@ -96,7 +99,7 @@ pub enum ResizeTerminalError {
     PtyError(#[from] PtyError),
 }
 
-impl AsyncWrite for ProcessInput {
+impl<W: tokio::io::AsyncWrite> tokio::io::AsyncWrite for ProcessInput<W> {
     fn poll_write(
         self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
@@ -132,7 +135,7 @@ impl AsyncWrite for ProcessInput {
     }
 }
 
-impl futures::Stream for ProcessOutput {
+impl<R: Stream<Item = std::io::Result<D>>, D: IsData> Stream for ProcessOutput<R> {
     type Item = std::io::Result<Vec<u8>>;
 
     fn poll_next(
@@ -140,11 +143,44 @@ impl futures::Stream for ProcessOutput {
         cx: &mut std::task::Context<'_>,
     ) -> Poll<Option<Self::Item>> {
         match ready!(self.project().0.poll_next(cx)) {
-            Some(Ok(bytes)) if !bytes.is_empty() => Some(Ok(bytes.to_vec())),
+            Some(Ok(bytes)) if bytes.has_data() => Some(Ok(bytes.into_vec())),
             Some(Err(error)) => Some(Err(error)),
             _ => None,
         }
         .into()
+    }
+}
+
+pub trait IsData {
+    fn has_data(&self) -> bool;
+    fn into_vec(self) -> Vec<u8>;
+}
+
+pub trait IsDataStream: Stream<Item = std::io::Result<Self::Data>> {
+    type Data: IsData;
+}
+
+impl<S: Stream<Item = std::io::Result<D>>, D: IsData> IsDataStream for S {
+    type Data = D;
+}
+
+impl IsData for Bytes {
+    fn has_data(&self) -> bool {
+        !Bytes::is_empty(self)
+    }
+
+    fn into_vec(self) -> Vec<u8> {
+        self.into()
+    }
+}
+
+impl IsData for Vec<u8> {
+    fn has_data(&self) -> bool {
+        !self.is_empty()
+    }
+
+    fn into_vec(self) -> Vec<u8> {
+        self
     }
 }
 

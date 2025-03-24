@@ -1803,32 +1803,12 @@ checksum = "defc4c55412d89136f966bbb339008b474350e5e6e78d2714439c386b3137a03"
 name = "nameth"
 version = "0.1.6"
 dependencies = [
- "nameth-macro 0.1.6",
-]
-
-[[package]]
-name = "nameth"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8a1252f8d64497a3d7a490004155a258438a976b6338174ef40a82e48a8088c"
-dependencies = [
- "nameth-macro 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nameth-macro",
 ]
 
 [[package]]
 name = "nameth-macro"
 version = "0.1.6"
-dependencies = [
- "darling",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "nameth-macro"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d421fd65f9736cac8fc8439f8cf4c7187d90d831c04222106e28d177e50b1d58"
 dependencies = [
  "darling",
  "quote",
@@ -2872,7 +2852,7 @@ dependencies = [
  "include_directory",
  "mime",
  "mime_guess",
- "nameth 0.1.6",
+ "nameth",
  "rsass-macros",
  "scopeguard",
  "stylance",
@@ -2889,7 +2869,7 @@ dependencies = [
 name = "terrazzo-build"
 version = "0.1.6"
 dependencies = [
- "nameth 0.1.6",
+ "nameth",
  "thiserror 2.0.12",
 ]
 
@@ -2899,7 +2879,7 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57d8d06e09b99bea3c48bd44a7f4f547ce406b8566c3b6ad61a3bf164066bc74"
 dependencies = [
- "nameth 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nameth",
  "thiserror 2.0.12",
 ]
 
@@ -2908,7 +2888,7 @@ name = "terrazzo-client"
 version = "0.1.6"
 dependencies = [
  "autoclone",
- "nameth 0.1.6",
+ "nameth",
  "scopeguard",
  "thiserror 2.0.12",
  "tracing",
@@ -2935,7 +2915,7 @@ version = "0.1.5"
 dependencies = [
  "futures",
  "libc",
- "nameth 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nameth",
  "pin-project",
  "rustix 1.0.3",
  "scopeguard",
@@ -2952,7 +2932,7 @@ dependencies = [
  "clap",
  "dashmap",
  "futures",
- "nameth 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nameth",
  "nix",
  "openssl",
  "pin-project",
@@ -3427,7 +3407,7 @@ dependencies = [
  "http 1.3.1",
  "humantime",
  "mime",
- "nameth 0.1.6",
+ "nameth",
  "openssl",
  "pin-project",
  "prost-types",
@@ -3453,7 +3433,7 @@ dependencies = [
  "bytes",
  "cms",
  "futures",
- "nameth 0.1.6",
+ "nameth",
  "oid-registry",
  "openssl",
  "prost",
@@ -3483,7 +3463,7 @@ dependencies = [
  "dashmap",
  "futures",
  "hyper-util",
- "nameth 0.1.6",
+ "nameth",
  "openssl",
  "pem",
  "pin-project",
