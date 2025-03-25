@@ -36,7 +36,7 @@ impl<S: Send + Sync> FromRequestParts<S> for CorrelationId {
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum CorrelationIdError {
-    #[error("[{n}] Missing header '{CORRELATION_ID}'", n = self.name() )]
+    #[error("[{n}] Missing header '{CORRELATION_ID}'", n = self.name())]
     MissingCorrelationId,
 
     #[error("[{n}] Invalid string: {0}", n = self.name())]

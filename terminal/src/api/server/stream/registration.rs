@@ -5,9 +5,10 @@ use terrazzo_pty::lease::ProcessOutputLease;
 use tracing::debug;
 
 use crate::api::server::correlation_id::CorrelationId;
+use crate::processes::io::PtyReader;
 use crate::terminal_id::TerminalId;
 
-type OutputStreamBase = ProcessOutputLease;
+type OutputStreamBase = ProcessOutputLease<PtyReader>;
 
 #[cfg(debug_assertions)]
 type OutputStream = tracing_futures::Instrumented<OutputStreamBase>;

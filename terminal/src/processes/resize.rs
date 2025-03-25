@@ -1,10 +1,13 @@
 use std::time::Duration;
 
-use terrazzo_pty::ResizeTerminalError;
+use terrazzo_pty::ProcessInput;
+use terrazzo_pty::pty::PtyError;
+use terrazzo_pty::size::Size;
 use tracing::debug;
 use tracing::error;
 
 use super::get_processes;
+use crate::processes::io::PtyWriter;
 use crate::terminal_id::TerminalId;
 
 pub async fn resize(
@@ -24,12 +27,15 @@ pub async fn resize(
         entry.value().1.clone()
     };
     let input = entry.input().await;
+    let ProcessInput(PtyWriter::Local(input)) = &*input else {
+        todo!()
+    };
     if force {
         debug!("Forcing resize");
-        let () = input.resize(rows as u16 - 1, cols as u16 - 1).await?;
+        let () = input.resize(Size::new(rows as u16 - 1, cols as u16 - 1))?;
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
-    let () = input.resize(rows as u16, cols as u16).await?;
+    let () = input.resize(Size::new(rows as u16, cols as u16))?;
     debug!("Done");
     Ok(())
 }
@@ -37,7 +43,7 @@ pub async fn resize(
 #[derive(thiserror::Error, Debug)]
 pub enum ResizeOperationError {
     #[error("ResizeTerminalError: {0}")]
-    ResizeTerminalError(#[from] ResizeTerminalError),
+    PtyError(#[from] PtyError),
 
     #[error("TerminalNotFound: {terminal_id}")]
     TerminalNotFound { terminal_id: TerminalId },

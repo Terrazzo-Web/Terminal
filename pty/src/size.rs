@@ -8,14 +8,14 @@ pub struct Size {
 }
 
 impl Size {
-    /// Returns a [`Size`](Size) instance with the given number of rows and
+    /// Returns a [`Size`] instance with the given number of rows and
     /// columns.
     #[must_use]
     pub fn new(row: u16, col: u16) -> Self {
         Self::new_with_pixel(row, col, 0, 0)
     }
 
-    /// Returns a [`Size`](Size) instance with the given number of rows and
+    /// Returns a [`Size`] instance with the given number of rows and
     /// columns, as well as the given pixel dimensions.
     #[must_use]
     pub fn new_with_pixel(row: u16, col: u16, xpixel: u16, ypixel: u16) -> Self {

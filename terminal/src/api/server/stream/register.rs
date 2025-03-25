@@ -14,6 +14,7 @@ use super::registration::Registration;
 use crate::api::RegisterTerminalMode;
 use crate::api::RegisterTerminalRequest;
 use crate::processes;
+use crate::processes::io::PtyReader;
 use crate::terminal_id::TerminalId;
 
 pub async fn register(
@@ -39,7 +40,10 @@ pub async fn register(
     .inspect_err(|err| warn!("{err}"))
 }
 
-fn push_lease(terminal_id: TerminalId, lease: ProcessOutputLease) -> Result<(), PushLeaseError> {
+fn push_lease(
+    terminal_id: TerminalId,
+    lease: ProcessOutputLease<PtyReader>,
+) -> Result<(), PushLeaseError> {
     #[cfg(debug_assertions)]
     let lease = tracing_futures::Instrument::instrument(lease, tracing::debug_span!("Lease"));
 
@@ -59,11 +63,12 @@ pub enum RegisterStreamError {
     PushLeaseError(#[from] PushLeaseError),
 }
 
+#[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum PushLeaseError {
-    #[error("NoClientRegisteredError")]
+    #[error("[{n}] Expected a client to be registered", n = self.name())]
     NoClientRegisteredError,
 
-    #[error("SendError: {0}")]
+    #[error("[{n}] Failed to send lease: {0}", n = self.name())]
     SendError(#[from] mpsc::SendError),
 }

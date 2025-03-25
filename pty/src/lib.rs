@@ -3,6 +3,7 @@
 use std::task::Poll;
 use std::task::ready;
 
+use self::pty::{OwnedReadPty, OwnedWritePty};
 use futures::Stream;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -12,34 +13,30 @@ use tokio_util::io::ReaderStream;
 
 use self::command::Command;
 use self::command::SpawnError;
-use self::pty::OwnedReadPty;
-use self::pty::OwnedWritePty;
 use self::pty::Pty;
 use self::pty::PtyError;
-use self::size::Size;
 
 mod command;
 pub mod lease;
-mod pty;
+pub mod pty;
 mod raw_pts;
 mod raw_pty;
 mod release_on_drop;
-mod size;
+pub mod size;
 
 const BUFFER_SIZE: usize = 1024;
 
 pub struct ProcessIO<W = OwnedWritePty, R = ReaderStream<OwnedReadPty>> {
     input: W,
     output: R,
-    #[expect(unused)]
     child_process: tokio::process::Child,
 }
 
 #[pin_project]
-pub struct ProcessInput<W = OwnedWritePty>(#[pin] W);
+pub struct ProcessInput<W = OwnedWritePty>(#[pin] pub W);
 
 #[pin_project]
-pub struct ProcessOutput<R = ReaderStream<OwnedReadPty>>(#[pin] R);
+pub struct ProcessOutput<R = ReaderStream<OwnedReadPty>>(#[pin] pub R);
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
@@ -83,20 +80,32 @@ impl<W, R> ProcessIO<W, R> {
     pub fn split(self) -> (ProcessInput<W>, ProcessOutput<R>) {
         (ProcessInput(self.input), ProcessOutput(self.output))
     }
-}
 
-impl ProcessInput<OwnedWritePty> {
-    pub async fn resize(&self, rows: u16, cols: u16) -> Result<(), ResizeTerminalError> {
-        self.0.resize(Size::new(rows, cols))?;
-        Ok(())
+    pub fn map_input<WW>(self, f: impl Fn(W) -> WW) -> ProcessIO<WW, R> {
+        let Self {
+            input,
+            output,
+            child_process,
+        } = self;
+        ProcessIO {
+            input: f(input),
+            output,
+            child_process,
+        }
     }
-}
 
-#[nameth]
-#[derive(thiserror::Error, Debug)]
-pub enum ResizeTerminalError {
-    #[error("[{n}] {0}", n = self.name())]
-    PtyError(#[from] PtyError),
+    pub fn map_output<RR>(self, f: impl Fn(R) -> RR) -> ProcessIO<W, RR> {
+        let Self {
+            input,
+            output,
+            child_process,
+        } = self;
+        ProcessIO {
+            input,
+            output: f(output),
+            child_process,
+        }
+    }
 }
 
 impl<W: tokio::io::AsyncWrite> tokio::io::AsyncWrite for ProcessInput<W> {
