@@ -4,7 +4,8 @@ use std::task::Poll;
 
 use futures::Stream;
 use pin_project::pin_project;
-use terrazzo_pty::pty::{OwnedReadPty, OwnedWritePty};
+use terrazzo_pty::pty::OwnedReadPty;
+use terrazzo_pty::pty::OwnedWritePty;
 use tokio_util::io::ReaderStream;
 
 #[pin_project(project = PtyWriterProj)]

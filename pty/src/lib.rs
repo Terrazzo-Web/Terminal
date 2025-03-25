@@ -3,7 +3,6 @@
 use std::task::Poll;
 use std::task::ready;
 
-use self::pty::{OwnedReadPty, OwnedWritePty};
 use futures::Stream;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -13,6 +12,8 @@ use tokio_util::io::ReaderStream;
 
 use self::command::Command;
 use self::command::SpawnError;
+use self::pty::OwnedReadPty;
+use self::pty::OwnedWritePty;
 use self::pty::Pty;
 use self::pty::PtyError;
 
