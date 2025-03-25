@@ -32,6 +32,7 @@ terrazzo-pty = { version = "0.1.5", path = "pty" }
 async-trait = { version = "0.1.88" }
 autoclone = { version = "0.1.6" }
 axum = { version = "0.8.1" }
+bytes = { version = "1.10.1" }
 clap = { version = "4.5.32", features = ["derive"] }
 darling = { version = "0.20.10" }
 dashmap = { version = "6.1.0" }

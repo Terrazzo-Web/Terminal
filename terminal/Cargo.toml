@@ -21,6 +21,7 @@ path = "src/server.rs"
 required-features = ["server"]
 
 [dependencies]
+bytes = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
@@ -89,6 +90,7 @@ client = [
     "terrazzo/client",
 ]
 server = [
+    "dep:bytes",
     "dep:clap",
     "dep:dashmap",
     "dep:nix",

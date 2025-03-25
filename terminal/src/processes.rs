@@ -4,10 +4,10 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 
 use dashmap::DashMap;
-use io::PtyReader;
-use io::PtyWriter;
 use terrazzo_pty::lease::ProcessIoEntry;
 
+use self::io::PtyReader;
+use self::io::PtyWriter;
 use super::terminal_id::TerminalId;
 use crate::api::TerminalDef;
 

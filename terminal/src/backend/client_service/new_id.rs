@@ -1,14 +1,21 @@
+use std::convert::Infallible;
+use std::future::ready;
+
+use bytes::Bytes;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
-use terrazzo::http::StatusCode;
+use tonic::body::BoxBody;
+use tonic::client::GrpcService;
+use tonic::transport::Body;
 use tracing::Instrument;
 use tracing::info;
 use tracing::info_span;
-use trz_gateway_common::http_error::IsHttpError;
-use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
+use super::routing::DistributedCallback;
+use super::routing::DistributedCallbackError;
+use super::routing::StdError;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::NewIdRequest;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
@@ -21,46 +28,50 @@ pub async fn new_id(
     async {
         info!("Start");
         defer!(info!("Done"));
-        match client_address {
-            [rest @ .., client_address_leaf] => {
-                let client_address_leaf = ClientName::from(client_address_leaf.as_ref());
-                let channel = server
-                    .connections()
-                    .get_client(&client_address_leaf)
-                    .ok_or_else(|| NewIdError::RemoteClientNotFound(client_address_leaf))?;
-                Ok(ClientServiceClient::new(channel)
-                    .new_id(NewIdRequest {
-                        address: Some(ClientAddress {
-                            via: rest.iter().map(|x| x.as_ref().to_owned()).collect(),
-                        }),
-                    })
-                    .await
-                    .map_err(NewIdError::RemoteClientError)?
-                    .get_ref()
-                    .next)
-            }
-            [] => Ok(next_terminal_id()),
-        }
+        Ok(NewIdCallback::process(server, client_address, ()).await?)
     }
     .instrument(info_span!("New ID"))
     .await
+}
+
+struct NewIdCallback;
+
+impl DistributedCallback for NewIdCallback {
+    type Request = ();
+    type Response = i32;
+    type LocalError = Infallible;
+    type RemoteError = tonic::Status;
+
+    fn local((): ()) -> impl Future<Output = Result<i32, Infallible>> {
+        ready(Ok(next_terminal_id()))
+    }
+
+    fn remote<T>(
+        mut client: ClientServiceClient<T>,
+        client_address: &[impl AsRef<str>],
+        (): (),
+    ) -> impl Future<Output = Result<i32, tonic::Status>>
+    where
+        T: GrpcService<BoxBody>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
+    {
+        let request = NewIdRequest {
+            address: Some(ClientAddress {
+                via: client_address
+                    .iter()
+                    .map(|x| x.as_ref().to_owned())
+                    .collect(),
+            }),
+        };
+        async move { Ok(client.new_id(request).await?.get_ref().next) }
+    }
 }
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum NewIdError {
     #[error("[{n}] {0}", n = self.name())]
-    RemoteClientError(tonic::Status),
-
-    #[error("[{n}] Client not found: {0}", n = self.name())]
-    RemoteClientNotFound(ClientName),
-}
-
-impl IsHttpError for NewIdError {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            NewIdError::RemoteClientError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
-            NewIdError::RemoteClientNotFound { .. } => StatusCode::NOT_FOUND,
-        }
-    }
+    NewIdError(#[from] DistributedCallbackError<Infallible, tonic::Status>),
 }
