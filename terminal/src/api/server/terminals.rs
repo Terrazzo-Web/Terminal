@@ -24,6 +24,8 @@ pub async fn list(server: Arc<Server>) -> Json<Vec<TerminalDef>> {
                 via: ClientAddress::from(
                     terminal_def
                         .via
+                        .unwrap_or_default()
+                        .via
                         .into_iter()
                         .map(ClientName::from)
                         .collect::<Vec<_>>(),

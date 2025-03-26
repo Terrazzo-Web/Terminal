@@ -24,7 +24,7 @@ pub async fn list_terminals(server: &Server, visited: &[String]) -> Vec<Terminal
                 shell_title: title.shell_title.clone(),
                 override_title: title.override_title.clone().map(|s| MaybeString { s }),
                 order: terminal.order,
-                via: vec![],
+                via: None,
             }
         }));
         for client_name in server.connections().clients() {
@@ -49,7 +49,8 @@ pub async fn list_terminals(server: &Server, visited: &[String]) -> Vec<Terminal
                 };
                 let mut terminals = std::mem::take(&mut terminals.get_mut().terminals);
                 for terminal in &mut terminals {
-                    terminal.via.push(client_name.to_string());
+                    let client_address = terminal.via.get_or_insert_default();
+                    client_address.via.push(client_name.to_string());
                 }
                 response.extend(terminals);
             }

@@ -7,7 +7,6 @@ use tracing::debug;
 use tracing::error;
 
 use super::get_processes;
-use crate::processes::io::PtyWriter;
 use crate::terminal_id::TerminalId;
 
 pub async fn resize(
@@ -27,9 +26,7 @@ pub async fn resize(
         entry.value().1.clone()
     };
     let input = entry.input().await;
-    let ProcessInput(PtyWriter::Local(input)) = &*input else {
-        todo!()
-    };
+    let ProcessInput(input) = &*input;
     if force {
         debug!("Forcing resize");
         let () = input.resize(Size::new(rows as u16 - 1, cols as u16 - 1))?;

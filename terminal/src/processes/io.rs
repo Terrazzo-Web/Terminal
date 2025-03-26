@@ -1,82 +1,80 @@
+use std::io::ErrorKind;
 use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
+use std::task::ready;
 
 use futures::Stream;
 use pin_project::pin_project;
-use terrazzo_pty::pty::OwnedReadPty;
-use terrazzo_pty::pty::OwnedWritePty;
-use tokio_util::io::ReaderStream;
+use terrazzo_pty::lease::LeaseItem;
+use terrazzo_pty::lease::ProcessOutputLease;
+use tonic::Status;
+use tonic::Streaming;
 
-#[pin_project(project = PtyWriterProj)]
-pub enum PtyWriter {
-    Local(#[pin] OwnedWritePty),
+use crate::backend::protos::terrazzo::gateway::client::LeaseItem as LeaseItemProto;
+use crate::backend::protos::terrazzo::gateway::client::lease_item;
+
+#[pin_project(project = HybridReaderProj)]
+pub enum HybridReader {
+    Local(#[pin] ProcessOutputLease),
     #[expect(unused)]
-    Remote(#[pin] OwnedWritePty),
+    Remote(#[pin] Streaming<LeaseItemProto>),
 }
 
-impl tokio::io::AsyncWrite for PtyWriter {
-    fn poll_write(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<Result<usize, std::io::Error>> {
-        match self.project() {
-            PtyWriterProj::Local(writer) => writer.poll_write(cx, buf),
-            PtyWriterProj::Remote(writer) => writer.poll_write(cx, buf),
-        }
-    }
+#[pin_project(project = LocalReaderProj)]
+pub struct LocalReader(#[pin] pub HybridReader);
 
-    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), std::io::Error>> {
-        match self.project() {
-            PtyWriterProj::Local(writer) => writer.poll_flush(cx),
-            PtyWriterProj::Remote(writer) => writer.poll_flush(cx),
-        }
-    }
+#[pin_project(project = RemoteReaderProj)]
+pub struct RemoteReader(#[pin] pub HybridReader);
 
-    fn poll_shutdown(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Result<(), std::io::Error>> {
-        match self.project() {
-            PtyWriterProj::Local(writer) => writer.poll_shutdown(cx),
-            PtyWriterProj::Remote(writer) => writer.poll_shutdown(cx),
-        }
-    }
-
-    fn poll_write_vectored(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        bufs: &[std::io::IoSlice<'_>],
-    ) -> Poll<Result<usize, std::io::Error>> {
-        match self.project() {
-            PtyWriterProj::Local(writer) => writer.poll_write_vectored(cx, bufs),
-            PtyWriterProj::Remote(writer) => writer.poll_write_vectored(cx, bufs),
-        }
-    }
-
-    fn is_write_vectored(&self) -> bool {
-        match self {
-            Self::Local(writer) => writer.is_write_vectored(),
-            Self::Remote(writer) => writer.is_write_vectored(),
-        }
-    }
-}
-
-#[pin_project(project = PtyReaderProj)]
-pub enum PtyReader {
-    Local(#[pin] ReaderStream<OwnedReadPty>),
-    #[expect(unused)]
-    Remote(#[pin] ReaderStream<OwnedReadPty>),
-}
-
-impl Stream for PtyReader {
-    type Item = <ReaderStream<OwnedReadPty> as Stream>::Item;
+impl Stream for LocalReader {
+    type Item = <ProcessOutputLease as Stream>::Item;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        match self.project() {
-            PtyReaderProj::Local(reader) => reader.poll_next(cx),
-            PtyReaderProj::Remote(reader) => reader.poll_next(cx),
+        let LocalReaderProj(reader) = self.project();
+        match reader.project() {
+            HybridReaderProj::Local(reader) => reader.poll_next(cx),
+            HybridReaderProj::Remote(reader) => Poll::Ready(match ready!(reader.poll_next(cx)) {
+                Some(Ok(LeaseItemProto {
+                    kind: Some(lease_item::Kind::Data(data)),
+                })) => Some(LeaseItem::Data(data)),
+
+                Some(Ok(LeaseItemProto { kind: None })) => Some(LeaseItem::EOS),
+                Some(Ok(LeaseItemProto {
+                    kind: Some(lease_item::Kind::Eos { .. }),
+                })) => Some(LeaseItem::EOS),
+
+                Some(Err(error)) => Some(LeaseItem::Error(std::io::Error::new(
+                    ErrorKind::ConnectionAborted,
+                    error,
+                ))),
+
+                None => None,
+            }),
+        }
+    }
+}
+
+impl Stream for RemoteReader {
+    type Item = <Streaming<LeaseItemProto> as Stream>::Item;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let RemoteReaderProj(reader) = self.project();
+        match reader.project() {
+            HybridReaderProj::Local(reader) => Poll::Ready(match ready!(reader.poll_next(cx)) {
+                Some(LeaseItem::EOS) => Some(Ok(LeaseItemProto {
+                    kind: Some(lease_item::Kind::Eos(true)),
+                })),
+
+                Some(LeaseItem::Data(data)) => Some(Ok(LeaseItemProto {
+                    kind: Some(lease_item::Kind::Data(data)),
+                })),
+
+                Some(LeaseItem::Error(data)) => Some(Err(Status::aborted(data.to_string()))),
+
+                None => None,
+            }),
+            HybridReaderProj::Remote(reader) => reader.poll_next(cx),
         }
     }
 }

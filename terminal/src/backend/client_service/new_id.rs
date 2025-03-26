@@ -42,7 +42,7 @@ impl DistributedCallback for NewIdCallback {
     type LocalError = Infallible;
     type RemoteError = tonic::Status;
 
-    fn local((): ()) -> impl Future<Output = Result<i32, Infallible>> {
+    fn local(_: &Server, (): ()) -> impl Future<Output = Result<i32, Infallible>> {
         ready(Ok(next_terminal_id()))
     }
 

@@ -4,7 +4,6 @@ use nameth::nameth;
 use scopeguard::defer;
 use terrazzo_pty::OpenProcessError;
 use terrazzo_pty::ProcessIO;
-use terrazzo_pty::lease::ProcessOutputLease;
 use tracing::debug;
 use tracing::warn;
 use tracing_futures as _;
@@ -14,7 +13,8 @@ use super::registration::Registration;
 use crate::api::RegisterTerminalMode;
 use crate::api::RegisterTerminalRequest;
 use crate::processes;
-use crate::processes::io::PtyReader;
+use crate::processes::io::HybridReader;
+use crate::processes::io::LocalReader;
 use crate::terminal_id::TerminalId;
 
 pub async fn register(
@@ -25,7 +25,7 @@ pub async fn register(
     debug!("Start");
     async {
         let terminal_id = request.def.id.clone();
-        let lease = processes::stream::open_stream(server, request.def, |_| async {
+        let stream = processes::stream::open_stream(server, request.def, |_| async {
             match request.mode {
                 // TODO: if it's a remote terminal, open a ProcessIO connected to a remote client
                 RegisterTerminalMode::Create => ProcessIO::open().await,
@@ -33,23 +33,21 @@ pub async fn register(
             }
         })
         .await?;
-        push_lease(terminal_id, lease)?;
+        let stream = LocalReader(HybridReader::Local(stream));
+        push_lease(terminal_id, stream)?;
         Ok(())
     }
     .await
     .inspect_err(|err| warn!("{err}"))
 }
 
-fn push_lease(
-    terminal_id: TerminalId,
-    lease: ProcessOutputLease<PtyReader>,
-) -> Result<(), PushLeaseError> {
+fn push_lease(terminal_id: TerminalId, stream: LocalReader) -> Result<(), PushLeaseError> {
     #[cfg(debug_assertions)]
-    let lease = tracing_futures::Instrument::instrument(lease, tracing::debug_span!("Lease"));
+    let stream = tracing_futures::Instrument::instrument(stream, tracing::debug_span!("Lease"));
 
     Ok(Registration::current()
         .ok_or(PushLeaseError::NoClientRegisteredError)?
-        .try_send((terminal_id, lease))
+        .try_send((terminal_id, stream))
         .map_err(|err| err.into_send_error())?)
 }
 

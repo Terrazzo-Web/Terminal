@@ -9,15 +9,13 @@ use trz_gateway_server::server::Server;
 
 use super::get_processes;
 use crate::api::TerminalDef;
-use crate::processes::io::PtyReader;
-use crate::processes::io::PtyWriter;
 use crate::terminal_id::TerminalId;
 
 pub async fn open_stream<F>(
     _server: &Server,
     terminal_def: TerminalDef,
     open_process: impl Fn(&TerminalId) -> F,
-) -> Result<ProcessOutputLease<PtyReader>, GetOrCreateProcessError>
+) -> Result<ProcessOutputLease, GetOrCreateProcessError>
 where
     F: Future<Output = Result<ProcessIO, OpenProcessError>>,
 {
@@ -33,9 +31,6 @@ where
             }
             info!("Can't get a lease");
             let process = open_process(terminal_id).await?;
-            let process = process
-                .map_input(PtyWriter::Local)
-                .map_output(PtyReader::Local);
             let entry = ProcessIoEntry::new(process);
             processes.insert(terminal_id.clone(), (terminal_def, entry.clone()));
             return Ok(entry.lease_output().await?);
@@ -43,9 +38,6 @@ where
         dashmap::Entry::Vacant(vacant_entry) => {
             info!("Not found");
             let process = open_process(terminal_id).await?;
-            let process = process
-                .map_input(PtyWriter::Local)
-                .map_output(PtyReader::Local);
             let entry = ProcessIoEntry::new(process);
             vacant_entry.insert((terminal_def, entry.clone()));
             return Ok(entry.lease_output().await?);

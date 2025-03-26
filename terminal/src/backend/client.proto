@@ -6,6 +6,7 @@ service ClientService {
   rpc ListRemotes(ListRemotesRequest) returns (ListRemotesResponse);
   rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
   rpc NewId(NewIdRequest) returns (NewIdResponse);
+  rpc Register(RegisterTerminalRequest) returns (stream LeaseItem);
 }
 
 message ListRemotesRequest { repeated string visited = 1; }
@@ -24,7 +25,25 @@ message TerminalDef {
   string shell_title = 2;
   MaybeString override_title = 3;
   int32 order = 4;
-  repeated string via = 5;
+  ClientAddress via = 5;
 }
 
 message MaybeString { string s = 1; }
+
+message RegisterTerminalRequest {
+  RegisterTerminalMode mode = 1;
+  TerminalDef def = 2;
+}
+
+enum RegisterTerminalMode {
+  REGISTER_TERMINAL_MODE_UNSPECIFIED = 0;
+  CREATE = 1;
+  REOPEN = 2;
+}
+
+message LeaseItem {
+  oneof kind {
+    bool eos = 1;
+    bytes data = 2;
+  }
+}

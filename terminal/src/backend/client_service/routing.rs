@@ -44,7 +44,7 @@ pub trait DistributedCallback {
                         .await
                         .map_err(DistributedCallbackError::RemoteError)?)
                 }
-                [] => Ok(Self::local(request)
+                [] => Ok(Self::local(server, request)
                     .await
                     .map_err(DistributedCallbackError::LocalError)?),
             }
@@ -52,8 +52,10 @@ pub trait DistributedCallback {
     }
 
     fn local(
+        server: &Server,
         request: Self::Request,
     ) -> impl Future<Output = Result<Self::Response, Self::LocalError>>;
+
     fn remote<T>(
         client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
