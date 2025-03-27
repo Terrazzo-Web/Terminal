@@ -4,11 +4,14 @@ use scopeguard::defer;
 use terrazzo_pty::OpenProcessError;
 use terrazzo_pty::ProcessIO;
 use tonic::Status;
-use tonic::transport::Channel;
+use tonic::body::BoxBody;
+use tonic::client::GrpcService;
+use tonic::codegen::Bytes;
+use tonic::codegen::StdError;
+use tonic::transport::Body;
 use tracing::Instrument;
 use tracing::info;
 use tracing::info_span;
-use trz_gateway_server::connection::pending_requests::PendingRequests;
 use trz_gateway_server::server::Server;
 
 use super::routing::DistributedCallback;
@@ -91,11 +94,17 @@ impl DistributedCallback for RegisterCallback {
         return Ok(HybridReader::Local(stream));
     }
 
-    async fn remote(
-        mut client: ClientServiceClient<PendingRequests<Channel>>,
-        client_address: &[impl AsRef<str> + Send + Sync],
+    async fn remote<T>(
+        mut client: ClientServiceClient<T>,
+        client_address: &[impl AsRef<str>],
         mut request: RegisterTerminalRequest,
-    ) -> Result<HybridReader, Status> {
+    ) -> Result<HybridReader, Status>
+    where
+        T: GrpcService<BoxBody>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
+    {
         let def = request
             .def
             .as_mut()

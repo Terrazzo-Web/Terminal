@@ -14,7 +14,7 @@ use crate::api::CORRELATION_ID;
 pub struct CorrelationId(Arc<str>);
 
 /// [CorrelationId] can be provided as a header.
-impl<S: Send + Sync> FromRequestParts<S> for CorrelationId {
+impl<S: Sync> FromRequestParts<S> for CorrelationId {
     type Rejection = HttpError<CorrelationIdError>;
 
     async fn from_request_parts(
