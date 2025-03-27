@@ -21,7 +21,6 @@ path = "src/server.rs"
 required-features = ["server"]
 
 [dependencies]
-bytes = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
@@ -39,7 +38,6 @@ terrazzo = { workspace = true }
 terrazzo-pty = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
-tokio-util = { workspace = true, optional = true, features = ["io"] }
 tonic = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = [
     "fs",
@@ -90,7 +88,6 @@ client = [
     "terrazzo/client",
 ]
 server = [
-    "dep:bytes",
     "dep:clap",
     "dep:dashmap",
     "dep:nix",
@@ -98,7 +95,6 @@ server = [
     "dep:prost-types",
     "dep:prost",
     "dep:terrazzo-pty",
-    "dep:tokio-util",
     "dep:tokio",
     "dep:tonic",
     "dep:tower-http",

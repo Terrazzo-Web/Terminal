@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use terrazzo::autoclone;
+use terrazzo::axum::Json;
 use terrazzo::axum::Router;
 use terrazzo::axum::response::IntoResponse as _;
 use terrazzo::axum::response::Response;
@@ -26,6 +27,8 @@ const ERROR_HEADER: HeaderName = HeaderName::from_static(super::ERROR_HEADER);
 
 #[autoclone]
 pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
+    let client_name = client_name.clone();
+    let server = server.clone();
     Router::new()
         .route(
             "/terminals",
@@ -36,9 +39,11 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
         )
         .route(
             "/new_id",
-            post(|request| {
+            post(move |request: ()| {
                 autoclone!(client_name, server);
-                new_id::new_id(client_name, server, request)
+                let _args = (client_name, server, request);
+                return async { Json("".to_owned()) };
+                // new_id::new_id(client_name, server, request)
             }),
         )
         .route("/stream/pipe", post(stream::pipe))

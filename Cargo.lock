@@ -2929,7 +2929,6 @@ dependencies = [
 name = "terrazzo-terminal"
 version = "0.1.5"
 dependencies = [
- "bytes",
  "clap",
  "dashmap",
  "futures",
@@ -2948,7 +2947,6 @@ dependencies = [
  "terrazzo-pty",
  "thiserror 2.0.12",
  "tokio",
- "tokio-util",
  "tonic",
  "tonic-build",
  "tower-http",

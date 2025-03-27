@@ -1,21 +1,18 @@
-use bytes::Bytes;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
 use terrazzo_pty::OpenProcessError;
 use terrazzo_pty::ProcessIO;
 use tonic::Status;
-use tonic::body::BoxBody;
-use tonic::client::GrpcService;
-use tonic::transport::Body;
+use tonic::transport::Channel;
 use tracing::Instrument;
 use tracing::info;
 use tracing::info_span;
+use trz_gateway_server::connection::pending_requests::PendingRequests;
 use trz_gateway_server::server::Server;
 
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
-use super::routing::StdError;
 use crate::api::RegisterTerminalMode;
 use crate::api::TabTitle;
 use crate::api::TerminalDef;
@@ -56,71 +53,61 @@ impl DistributedCallback for RegisterCallback {
     type LocalError = Status;
     type RemoteError = Status;
 
-    fn local(
+    async fn local(
         server: &Server,
         request: RegisterTerminalRequest,
-    ) -> impl Future<Output = Result<HybridReader, Status>> {
-        async {
-            let mode = match request.mode() {
-                RegisterTerminalModeProto::Unspecified => {
-                    return Err(Status::invalid_argument("mode"));
+    ) -> Result<HybridReader, Status> {
+        let mode = match request.mode() {
+            RegisterTerminalModeProto::Unspecified => {
+                return Err(Status::invalid_argument("mode"));
+            }
+            RegisterTerminalModeProto::Create => RegisterTerminalMode::Create,
+            RegisterTerminalModeProto::Reopen => RegisterTerminalMode::Reopen,
+        };
+        let def = request.def.ok_or_else(|| Status::invalid_argument("def"))?;
+        let stream = processes::stream::open_stream(
+            server,
+            TerminalDef {
+                id: def.id.into(),
+                title: TabTitle {
+                    shell_title: def.shell_title,
+                    override_title: def.override_title.map(|s: MaybeString| s.s),
+                },
+                order: def.order,
+                via: def
+                    .via
+                    .ok_or_else(|| Status::invalid_argument("via"))?
+                    .into(),
+            },
+            |_| async {
+                match mode {
+                    RegisterTerminalMode::Create => ProcessIO::open().await,
+                    RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
                 }
-                RegisterTerminalModeProto::Create => RegisterTerminalMode::Create,
-                RegisterTerminalModeProto::Reopen => RegisterTerminalMode::Reopen,
-            };
-            let def = request.def.ok_or_else(|| Status::invalid_argument("def"))?;
-            let stream = processes::stream::open_stream(
-                server,
-                TerminalDef {
-                    id: def.id.into(),
-                    title: TabTitle {
-                        shell_title: def.shell_title,
-                        override_title: def.override_title.map(|s: MaybeString| s.s),
-                    },
-                    order: def.order,
-                    via: def
-                        .via
-                        .ok_or_else(|| Status::invalid_argument("via"))?
-                        .into(),
-                },
-                |_| async {
-                    match mode {
-                        RegisterTerminalMode::Create => ProcessIO::open().await,
-                        RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
-                    }
-                },
-            )
-            .await;
-            let stream = stream.map_err(|error| Status::internal(error.to_string()))?;
-            return Ok(HybridReader::Local(stream));
-        }
+            },
+        )
+        .await;
+        let stream = stream.map_err(|error| Status::internal(error.to_string()))?;
+        return Ok(HybridReader::Local(stream));
     }
 
-    fn remote<T>(
-        mut client: ClientServiceClient<T>,
-        client_address: &[impl AsRef<str>],
+    async fn remote(
+        mut client: ClientServiceClient<PendingRequests<Channel>>,
+        client_address: &[impl AsRef<str> + Send + Sync],
         mut request: RegisterTerminalRequest,
-    ) -> impl Future<Output = Result<HybridReader, Status>>
-    where
-        T: GrpcService<BoxBody>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
-    {
-        async move {
-            let def = request
-                .def
-                .as_mut()
-                .ok_or_else(|| Status::invalid_argument("def"))?;
-            def.via = Some(ClientAddress {
-                via: client_address
-                    .iter()
-                    .map(|x| x.as_ref().to_owned())
-                    .collect(),
-            });
-            let stream = client.register(request).await?.into_inner();
-            Ok(HybridReader::Remote(stream))
-        }
+    ) -> Result<HybridReader, Status> {
+        let def = request
+            .def
+            .as_mut()
+            .ok_or_else(|| Status::invalid_argument("def"))?;
+        def.via = Some(ClientAddress {
+            via: client_address
+                .iter()
+                .map(|x| x.as_ref().to_owned())
+                .collect(),
+        });
+        let stream = client.register(request).await?.into_inner();
+        Ok(HybridReader::Remote(stream))
     }
 }
 

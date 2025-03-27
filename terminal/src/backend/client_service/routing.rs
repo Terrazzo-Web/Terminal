@@ -1,14 +1,10 @@
-#![allow(unused)]
-
-use bytes::Bytes;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::http::StatusCode;
-use tonic::body::BoxBody;
-use tonic::client::GrpcService;
-use tonic::transport::Body;
+use tonic::transport::Channel;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
+use trz_gateway_server::connection::pending_requests::PendingRequests;
 use trz_gateway_server::server::Server;
 
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
@@ -21,7 +17,7 @@ pub trait DistributedCallback {
 
     fn process(
         server: &Server,
-        client_address: &[impl AsRef<str>],
+        client_address: &[impl AsRef<str> + Send + Sync],
         request: Self::Request,
     ) -> impl Future<
         Output = Result<
@@ -56,16 +52,11 @@ pub trait DistributedCallback {
         request: Self::Request,
     ) -> impl Future<Output = Result<Self::Response, Self::LocalError>>;
 
-    fn remote<T>(
-        client: ClientServiceClient<T>,
-        client_address: &[impl AsRef<str>],
+    fn remote(
+        client: ClientServiceClient<PendingRequests<Channel>>,
+        client_address: &[impl AsRef<str> + Send + Sync],
         request: Self::Request,
-    ) -> impl Future<Output = Result<Self::Response, Self::RemoteError>>
-    where
-        T: GrpcService<BoxBody>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + Send;
+    ) -> impl Future<Output = Result<Self::Response, Self::RemoteError>>;
 }
 
 #[nameth]
@@ -90,5 +81,3 @@ impl<L: IsHttpError, R: IsHttpError> IsHttpError for DistributedCallbackError<L,
         }
     }
 }
-
-pub type StdError = Box<dyn std::error::Error + Send + Sync + 'static>;

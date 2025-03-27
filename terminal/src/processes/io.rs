@@ -17,7 +17,6 @@ use crate::backend::protos::terrazzo::gateway::client::lease_item;
 #[pin_project(project = HybridReaderProj)]
 pub enum HybridReader {
     Local(#[pin] ProcessOutputLease),
-    #[expect(unused)]
     Remote(#[pin] Streaming<LeaseItemProto>),
 }
 
