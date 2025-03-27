@@ -21,11 +21,10 @@ message ListTerminalsResponse { repeated TerminalDef terminals = 1; }
 message ClientAddress { repeated string via = 1; }
 
 message TerminalDef {
-  string id = 1;
+  TerminalAddress address = 1;
   string shell_title = 2;
   MaybeString override_title = 3;
   int32 order = 4;
-  ClientAddress via = 5;
 }
 
 message MaybeString { string s = 1; }
@@ -46,4 +45,9 @@ message LeaseItem {
     bool eos = 1;
     bytes data = 2;
   }
+}
+
+message TerminalAddress {
+  string terminal_id = 1;
+  ClientAddress via = 5;
 }

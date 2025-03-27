@@ -10,18 +10,20 @@ use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAd
 use crate::backend::protos::terrazzo::gateway::client::MaybeString;
 use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalMode as RegisterTerminalModeProto;
 use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalRequest as RegisterTerminalRequestProto;
+use crate::backend::protos::terrazzo::gateway::client::TerminalAddress as TerminalAddressProto;
 use crate::backend::protos::terrazzo::gateway::client::TerminalDef as TerminalDefProto;
 
 impl From<TerminalDefProto> for TerminalDef {
     fn from(proto: TerminalDefProto) -> Self {
+        let address = proto.address.unwrap_or_default();
         Self {
-            id: proto.id.into(),
+            id: address.terminal_id.into(),
             title: TabTitle {
                 shell_title: proto.shell_title,
                 override_title: proto.override_title.map(|s| s.s),
             },
             order: proto.order,
-            via: ClientAddress::from(proto.via.unwrap_or_default()),
+            via: ClientAddress::from(address.via.unwrap_or_default()),
         }
     }
 }
@@ -29,17 +31,19 @@ impl From<TerminalDefProto> for TerminalDef {
 impl From<TerminalDef> for TerminalDefProto {
     fn from(terminal_def: TerminalDef) -> Self {
         Self {
-            id: terminal_def.id.to_string(),
+            address: Some(TerminalAddressProto {
+                terminal_id: terminal_def.id.to_string(),
+                via: (!terminal_def.via.is_empty()).then(|| ClientAddressProto {
+                    via: terminal_def
+                        .via
+                        .iter()
+                        .map(|client_name| client_name.to_string())
+                        .collect(),
+                }),
+            }),
             shell_title: terminal_def.title.shell_title,
             override_title: terminal_def.title.override_title.map(|s| MaybeString { s }),
             order: terminal_def.order,
-            via: (!terminal_def.via.is_empty()).then(|| ClientAddressProto {
-                via: terminal_def
-                    .via
-                    .iter()
-                    .map(|client_name| client_name.to_string())
-                    .collect(),
-            }),
         }
     }
 }

@@ -30,7 +30,8 @@ pub async fn register(
     let client_address = request
         .def
         .as_ref()
-        .and_then(|def| def.via.as_ref())
+        .and_then(|def| def.address.as_ref())
+        .and_then(|address| address.via.as_ref())
         .map(|client_address| client_address.via.as_slice())
         .unwrap_or_default()
         .to_vec();
@@ -84,7 +85,11 @@ impl DistributedCallback for RegisterCallback {
             .def
             .as_mut()
             .ok_or_else(|| Status::invalid_argument("def"))?;
-        def.via = Some(ClientAddress {
+        let address = def
+            .address
+            .as_mut()
+            .ok_or_else(|| Status::invalid_argument("address"))?;
+        address.via = Some(ClientAddress {
             via: client_address
                 .iter()
                 .map(|x| x.as_ref().to_owned())

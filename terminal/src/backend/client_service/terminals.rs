@@ -8,6 +8,7 @@ use trz_gateway_server::server::Server;
 
 use crate::backend::protos::terrazzo::gateway::client::ListTerminalsRequest;
 use crate::backend::protos::terrazzo::gateway::client::MaybeString;
+use crate::backend::protos::terrazzo::gateway::client::TerminalAddress;
 use crate::backend::protos::terrazzo::gateway::client::TerminalDef;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 use crate::processes;
@@ -20,11 +21,13 @@ pub async fn list_terminals(server: &Server, visited: &[String]) -> Vec<Terminal
         response.extend(processes::list::list().iter().map(|terminal| {
             let title = &terminal.title;
             TerminalDef {
-                id: terminal.id.to_string(),
+                address: Some(TerminalAddress {
+                    terminal_id: terminal.id.to_string(),
+                    via: None,
+                }),
                 shell_title: title.shell_title.clone(),
                 override_title: title.override_title.clone().map(|s| MaybeString { s }),
                 order: terminal.order,
-                via: None,
             }
         }));
         for client_name in server.connections().clients() {
@@ -44,12 +47,16 @@ pub async fn list_terminals(server: &Server, visited: &[String]) -> Vec<Terminal
                 let Ok(mut terminals) = terminals
                     .await
                     .inspect_err(|error| warn!("Failed: {error}"))
+                    .map(|response| response.into_inner().terminals)
                 else {
                     return;
                 };
-                let mut terminals = std::mem::take(&mut terminals.get_mut().terminals);
                 for terminal in &mut terminals {
-                    let client_address = terminal.via.get_or_insert_default();
+                    let client_address = terminal
+                        .address
+                        .get_or_insert_default()
+                        .via
+                        .get_or_insert_default();
                     client_address.via.push(client_name.to_string());
                 }
                 response.extend(terminals);
