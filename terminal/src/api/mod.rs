@@ -20,7 +20,6 @@ use self::client_name::ClientName;
 pub mod client_address;
 pub mod client_name;
 
-const ERROR_HEADER: &str = "terrazzo-error";
 const CORRELATION_ID: &str = "terrazzo-correlation-id";
 
 const NEWLINE: u8 = b'\n';

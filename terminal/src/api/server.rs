@@ -1,15 +1,9 @@
 use std::sync::Arc;
 
 use terrazzo::autoclone;
-use terrazzo::axum::Json;
 use terrazzo::axum::Router;
-use terrazzo::axum::response::IntoResponse as _;
-use terrazzo::axum::response::Response;
 use terrazzo::axum::routing::get;
 use terrazzo::axum::routing::post;
-use terrazzo::http::HeaderMap;
-use terrazzo::http::HeaderName;
-use terrazzo::http::StatusCode;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
@@ -22,8 +16,6 @@ mod set_title;
 mod stream;
 mod terminals;
 mod write;
-
-const ERROR_HEADER: HeaderName = HeaderName::from_static(super::ERROR_HEADER);
 
 #[autoclone]
 pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
@@ -39,11 +31,9 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
         )
         .route(
             "/new_id",
-            post(move |request: Json<super::client_address::ClientAddress>| {
+            post(move |request| {
                 autoclone!(client_name, server);
-                let _args = (client_name, server, request);
-                return async { Json("".to_owned()) };
-                // new_id::new_id(client_name, server, request)
+                new_id::new_id(client_name, server, request)
             }),
         )
         .route("/stream/pipe", post(stream::pipe))
@@ -67,16 +57,4 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
                 remotes::list(server)
             }),
         )
-}
-
-fn into_error<E: std::error::Error>(status_code: StatusCode) -> impl FnMut(E) -> Response {
-    move |error| {
-        if let Ok(error_header) = error.to_string().parse() {
-            let mut headers = HeaderMap::new();
-            headers.insert(ERROR_HEADER, error_header);
-            (status_code, headers).into_response()
-        } else {
-            (status_code, error.to_string()).into_response()
-        }
-    }
 }

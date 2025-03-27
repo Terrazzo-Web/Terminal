@@ -17,7 +17,6 @@ use web_sys::Response;
 use super::APPLICATION_JSON;
 use super::TabTitle;
 use super::TerminalDefImpl;
-use crate::api::ERROR_HEADER;
 
 pub mod new_id;
 pub mod remotes;
@@ -51,15 +50,16 @@ async fn send_request(
         .map_err(|error| SendRequestError::UnexpectedResponseObject { error })?;
     if !response.ok() {
         warn!("Request failed: {}", response.status());
-        return Err(match response.headers().get(ERROR_HEADER) {
-            Ok(Some(header)) => SendRequestError::Header { header },
-            Ok(None) => SendRequestError::MissingErrorHeader,
-            Err(error) => SendRequestError::InvalidHeader {
-                details: error
-                    .as_string()
-                    .unwrap_or_else(|| "Unknown error".to_string()),
-            },
-        });
+        let message = response
+            .text()
+            .map_err(|_| SendRequestError::MissingErrorBody)?;
+        let message = JsFuture::from(message)
+            .await
+            .map_err(|_| SendRequestError::FailedErrorBody)?;
+        let message = message
+            .as_string()
+            .ok_or(SendRequestError::InvalidErrorBody)?;
+        return Err(SendRequestError::Message { message });
     }
     return Ok(response);
 }
@@ -84,14 +84,17 @@ pub enum SendRequestError {
     #[error("[{}] Unexpected {error:?}", self.name())]
     UnexpectedResponseObject { error: JsValue },
 
-    #[error("[{}] {header}", self.name())]
-    Header { header: String },
+    #[error("[{}] Missing error message", self.name() )]
+    MissingErrorBody,
 
-    #[error("[{}] Missing error header", self.name() )]
-    MissingErrorHeader,
+    #[error("[{}] Failed to download error message", self.name() )]
+    FailedErrorBody,
 
-    #[error("[{}] {details}", self.name())]
-    InvalidHeader { details: String },
+    #[error("[{}] Failed to parse error message", self.name() )]
+    InvalidErrorBody,
+
+    #[error("[{}] {message}", self.name())]
+    Message { message: String },
 }
 
 pub type LiveTerminalDef = TerminalDefImpl<XSignal<TabTitle<XString>>>;

@@ -8,6 +8,7 @@ use tonic::transport::Channel;
 use tracing::Instrument;
 use tracing::info;
 use tracing::info_span;
+use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_server::connection::pending_requests::PendingRequests;
 use trz_gateway_server::server::Server;
 
@@ -59,7 +60,6 @@ impl DistributedCallback for NewIdCallback {
             let response = client.new_id(request).await;
             Ok(response?.get_ref().next)
         };
-        check_send(&t);
         t.await
     }
 }
@@ -71,5 +71,10 @@ pub enum NewIdError {
     NewIdError(#[from] DistributedCallbackError<Infallible, tonic::Status>),
 }
 
-fn check_send<T: Send>(_: &T) {}
-fn check_sync<T: Sync>(_: &T) {}
+impl IsHttpError for NewIdError {
+    fn status_code(&self) -> terrazzo::http::StatusCode {
+        match self {
+            Self::NewIdError(error) => error.status_code(),
+        }
+    }
+}

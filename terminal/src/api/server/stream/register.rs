@@ -2,11 +2,13 @@ use futures::channel::mpsc;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
+use terrazzo::http::StatusCode;
 use terrazzo_pty::OpenProcessError;
 use terrazzo_pty::ProcessIO;
 use tracing::debug;
 use tracing::warn;
 use tracing_futures as _;
+use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_server::server::Server;
 
 use super::registration::Registration;
@@ -61,6 +63,15 @@ pub enum RegisterStreamError {
     PushLeaseError(#[from] PushLeaseError),
 }
 
+impl IsHttpError for RegisterStreamError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::GetOrCreateProcessError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::PushLeaseError(error) => error.status_code(),
+        }
+    }
+}
+
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum PushLeaseError {
@@ -69,4 +80,13 @@ pub enum PushLeaseError {
 
     #[error("[{n}] Failed to send lease: {0}", n = self.name())]
     SendError(#[from] mpsc::SendError),
+}
+
+impl IsHttpError for PushLeaseError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::NoClientRegisteredError => StatusCode::BAD_REQUEST,
+            Self::SendError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
 }
