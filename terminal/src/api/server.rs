@@ -39,7 +39,7 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
         )
         .route(
             "/new_id",
-            post(move |request: ()| {
+            post(move |request: Json<super::client_address::ClientAddress>| {
                 autoclone!(client_name, server);
                 let _args = (client_name, server, request);
                 return async { Json("".to_owned()) };
