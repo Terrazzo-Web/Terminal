@@ -20,6 +20,7 @@ use super::protos::terrazzo::gateway::client::RegisterTerminalRequest;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
 use crate::processes::io::RemoteReader;
 
+pub mod convert;
 pub mod new_id;
 pub mod register;
 pub mod remotes;

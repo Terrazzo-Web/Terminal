@@ -17,11 +17,7 @@ use trz_gateway_server::server::Server;
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
 use crate::api::RegisterTerminalMode;
-use crate::api::TabTitle;
-use crate::api::TerminalDef;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
-use crate::backend::protos::terrazzo::gateway::client::MaybeString;
-use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalMode as RegisterTerminalModeProto;
 use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalRequest;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 use crate::processes;
@@ -60,35 +56,14 @@ impl DistributedCallback for RegisterCallback {
         server: &Server,
         request: RegisterTerminalRequest,
     ) -> Result<HybridReader, Status> {
-        let mode = match request.mode() {
-            RegisterTerminalModeProto::Unspecified => {
-                return Err(Status::invalid_argument("mode"));
-            }
-            RegisterTerminalModeProto::Create => RegisterTerminalMode::Create,
-            RegisterTerminalModeProto::Reopen => RegisterTerminalMode::Reopen,
-        };
+        let mode = request.mode().try_into()?;
         let def = request.def.ok_or_else(|| Status::invalid_argument("def"))?;
-        let stream = processes::stream::open_stream(
-            server,
-            TerminalDef {
-                id: def.id.into(),
-                title: TabTitle {
-                    shell_title: def.shell_title,
-                    override_title: def.override_title.map(|s: MaybeString| s.s),
-                },
-                order: def.order,
-                via: def
-                    .via
-                    .ok_or_else(|| Status::invalid_argument("via"))?
-                    .into(),
-            },
-            |_| async {
-                match mode {
-                    RegisterTerminalMode::Create => ProcessIO::open().await,
-                    RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
-                }
-            },
-        )
+        let stream = processes::stream::open_stream(server, def.into(), |_| async {
+            match mode {
+                RegisterTerminalMode::Create => ProcessIO::open().await,
+                RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
+            }
+        })
         .await;
         let stream = stream.map_err(|error| Status::internal(error.to_string()))?;
         return Ok(HybridReader::Local(stream));

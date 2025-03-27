@@ -25,24 +25,6 @@ impl From<Vec<ClientName>> for ClientAddress {
     }
 }
 
-#[cfg(feature = "server")]
-mod server {
-    use super::ClientAddress;
-    use super::ClientName;
-    use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
-    impl From<ClientAddressProto> for ClientAddress {
-        fn from(proto: ClientAddressProto) -> Self {
-            Self(
-                proto
-                    .via
-                    .into_iter()
-                    .map(ClientName::from)
-                    .collect::<Vec<_>>(),
-            )
-        }
-    }
-}
-
 mod display {
     use std::fmt::Display;
 
