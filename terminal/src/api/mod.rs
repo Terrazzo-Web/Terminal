@@ -88,7 +88,7 @@ fn application_json_test() {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct WriteRequest<T> {
+pub struct WriteRequest<T = TerminalAddress> {
     terminal: T,
     data: String,
 }

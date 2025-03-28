@@ -7,6 +7,7 @@ service ClientService {
   rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
   rpc NewId(NewIdRequest) returns (NewIdResponse);
   rpc Register(RegisterTerminalRequest) returns (stream LeaseItem);
+  rpc Write(WriteRequest) returns (WriteResponse);
 }
 
 message ListRemotesRequest { repeated string visited = 1; }
@@ -51,3 +52,9 @@ message TerminalAddress {
   string terminal_id = 1;
   ClientAddress via = 5;
 }
+
+message WriteRequest {
+  TerminalAddress terminal = 1;
+  string data = 2;
+}
+message WriteResponse {}

@@ -57,19 +57,16 @@ impl DistributedCallback for NewIdCallback {
         T::ResponseBody: Body<Data = Bytes> + Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
-        let t = async move {
-            let request = NewIdRequest {
-                address: Some(ClientAddress {
-                    via: client_address
-                        .iter()
-                        .map(|x| x.as_ref().to_owned())
-                        .collect(),
-                }),
-            };
-            let response = client.new_id(request).await;
-            Ok(response?.get_ref().next)
+        let request = NewIdRequest {
+            address: Some(ClientAddress {
+                via: client_address
+                    .iter()
+                    .map(|x| x.as_ref().to_owned())
+                    .collect(),
+            }),
         };
-        t.await
+        let response = client.new_id(request).await;
+        Ok(response?.get_ref().next)
     }
 }
 

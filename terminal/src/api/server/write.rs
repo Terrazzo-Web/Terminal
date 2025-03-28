@@ -1,25 +1,26 @@
-use scopeguard::defer;
-use terrazzo::axum::Json;
-use tracing::Instrument as _;
-use tracing::debug_span;
-use tracing::trace;
-use trz_gateway_common::http_error::HttpError;
+use std::sync::Arc;
 
-use crate::api::TerminalAddress;
+use terrazzo::axum::Json;
+use trz_gateway_common::http_error::HttpError;
+use trz_gateway_server::server::Server;
+
 use crate::api::WriteRequest;
-use crate::processes;
-use crate::processes::write::WriteError;
+use crate::backend::client_service::write;
+use crate::backend::client_service::write::WriteError;
+use crate::backend::protos::terrazzo::gateway::client::WriteRequest as WriteRequestProto;
 
 pub async fn write(
-    Json(request): Json<WriteRequest<TerminalAddress>>,
+    server: Arc<Server>,
+    Json(request): Json<WriteRequest>,
 ) -> Result<(), HttpError<WriteError>> {
-    let terminal_id = &request.terminal.id;
-    let span = debug_span!("Write", %terminal_id);
-    async {
-        trace!("Start");
-        defer!(trace!("End"));
-        Ok(processes::write::write(terminal_id, request.data.as_bytes()).await?)
-    }
-    .instrument(span)
-    .await
+    let client_address = request.terminal.via.as_slice().to_vec();
+    Ok(write::write(
+        &server,
+        &client_address,
+        WriteRequestProto {
+            terminal: Some(request.terminal.into()),
+            data: request.data,
+        },
+    )
+    .await?)
 }

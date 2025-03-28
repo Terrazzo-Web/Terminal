@@ -1,6 +1,4 @@
-use futures::FutureExt as _;
 use futures::StreamExt as _;
-use futures::TryFutureExt as _;
 use futures::channel::oneshot;
 use futures::select;
 use nameth::NamedEnumValues as _;
@@ -15,7 +13,6 @@ use tracing::warn;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::Response;
 use web_sys::js_sys::Uint8Array;
 
 use super::super::send_request;
@@ -142,7 +139,7 @@ pub async fn close_pipe(correlation_id: String) {
     async {
         debug!("Start");
         defer!(debug!("End"));
-        send_request(
+        let _response = send_request(
             Method::POST,
             format!("{BASE_URL}/stream/{PIPE}/close"),
             set_headers(set_correlation_id(correlation_id.as_str())),

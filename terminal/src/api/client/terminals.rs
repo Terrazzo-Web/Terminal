@@ -1,10 +1,6 @@
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use wasm_bindgen::JsCast as _;
-use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::Response;
-use web_sys::js_sys::Uint8Array;
 
 use super::BASE_URL;
 use super::Method;

@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 mod api;
 mod assets;
 mod backend;
