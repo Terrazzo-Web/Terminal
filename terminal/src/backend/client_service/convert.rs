@@ -4,6 +4,7 @@ use trz_gateway_common::id::ClientName;
 use crate::api::RegisterTerminalMode;
 use crate::api::RegisterTerminalRequest;
 use crate::api::TabTitle;
+use crate::api::TerminalAddress;
 use crate::api::TerminalDef;
 use crate::api::client_address::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
@@ -15,15 +16,13 @@ use crate::backend::protos::terrazzo::gateway::client::TerminalDef as TerminalDe
 
 impl From<TerminalDefProto> for TerminalDef {
     fn from(proto: TerminalDefProto) -> Self {
-        let address = proto.address.unwrap_or_default();
         Self {
-            id: address.terminal_id.into(),
+            address: proto.address.unwrap_or_default().into(),
             title: TabTitle {
                 shell_title: proto.shell_title,
                 override_title: proto.override_title.map(|s| s.s),
             },
             order: proto.order,
-            via: ClientAddress::from(address.via.unwrap_or_default()),
         }
     }
 }
@@ -31,19 +30,30 @@ impl From<TerminalDefProto> for TerminalDef {
 impl From<TerminalDef> for TerminalDefProto {
     fn from(terminal_def: TerminalDef) -> Self {
         Self {
-            address: Some(TerminalAddressProto {
-                terminal_id: terminal_def.id.to_string(),
-                via: (!terminal_def.via.is_empty()).then(|| ClientAddressProto {
-                    via: terminal_def
-                        .via
-                        .iter()
-                        .map(|client_name| client_name.to_string())
-                        .collect(),
-                }),
-            }),
+            address: Some(terminal_def.address.into()),
             shell_title: terminal_def.title.shell_title,
             override_title: terminal_def.title.override_title.map(|s| MaybeString { s }),
             order: terminal_def.order,
+        }
+    }
+}
+
+impl From<TerminalAddressProto> for TerminalAddress {
+    fn from(proto: TerminalAddressProto) -> Self {
+        Self {
+            id: proto.terminal_id.into(),
+            via: ClientAddress::from(proto.via.unwrap_or_default()),
+        }
+    }
+}
+
+impl From<TerminalAddress> for TerminalAddressProto {
+    fn from(address: TerminalAddress) -> Self {
+        Self {
+            terminal_id: address.id.to_string(),
+            via: (!address.via.is_empty()).then(|| ClientAddressProto {
+                via: address.via.iter().map(ClientName::to_string).collect(),
+            }),
         }
     }
 }

@@ -7,6 +7,7 @@ use trz_gateway_server::server::Server;
 use uuid::Uuid;
 
 use crate::api::TabTitle;
+use crate::api::TerminalAddress;
 use crate::api::TerminalDef;
 use crate::api::client_address::ClientAddress;
 use crate::backend::client_service::new_id;
@@ -35,12 +36,14 @@ pub async fn new_id(
     }
     .into();
     Ok(Json(TerminalDef {
-        id,
+        address: TerminalAddress {
+            id,
+            via: client_address,
+        },
         title: TabTitle {
             shell_title: title,
             override_title: None,
         },
         order: next,
-        via: client_address,
     }))
 }

@@ -1,8 +1,7 @@
-use client_address::ClientAddress;
-use nameth::nameth;
 use serde::Deserialize;
 use serde::Serialize;
 
+use self::client_address::ClientAddress;
 use crate::terminal_id::TerminalId;
 
 #[cfg(feature = "client")]
@@ -37,11 +36,16 @@ pub struct Chunk {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TerminalDefImpl<T> {
+pub struct TerminalAddress {
     pub id: TerminalId,
+    pub via: ClientAddress,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TerminalDefImpl<T> {
+    pub address: TerminalAddress,
     pub title: T,
     pub order: i32,
-    pub via: ClientAddress,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -62,7 +66,6 @@ impl<T> TabTitle<T> {
 
 pub type TerminalDef = TerminalDefImpl<TabTitle<String>>;
 
-#[nameth]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RegisterTerminalRequest {
     pub mode: RegisterTerminalMode,

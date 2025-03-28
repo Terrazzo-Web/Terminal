@@ -23,7 +23,7 @@ pub async fn register(
     defer!(debug!("End"));
     debug!("Start");
     async {
-        let terminal_id = request.def.id.clone();
+        let terminal_id = request.def.address.id.clone();
         let stream = register::register(server, request.into()).await.unwrap();
         let stream = LocalReader(stream);
         push_lease(terminal_id, stream)?;

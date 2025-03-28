@@ -13,23 +13,25 @@ pub fn move_tab(state: TerminalsState, after_tab: Option<TerminalTab>, moved_tab
         .terminal_tabs
         .update(|TerminalTabs { terminal_tabs }| {
             let after_tab = if let Some(after_tab) = after_tab {
-                terminal_tabs.iter().find(|tab| tab.id == after_tab.id)
+                terminal_tabs
+                    .iter()
+                    .find(|tab| tab.address.id == after_tab.address.id)
             } else {
                 None
             };
             let moved_tab = terminal_tabs
                 .iter()
-                .find(|tab| tab.id.as_str() == moved_tab_key)
+                .find(|tab| tab.address.id.as_str() == moved_tab_key)
                 .or_throw("'moved_tab' not found");
             let tabs = terminal_tabs
                 .iter()
                 .enumerate()
                 .flat_map(|(i, tab)| {
-                    if after_tab.is_some_and(|t| tab.id == t.id) {
+                    if after_tab.is_some_and(|t| tab.address.id == t.address.id) {
                         [Some(tab), Some(moved_tab)]
                     } else if after_tab.is_none() && i == 0 {
                         [Some(moved_tab), Some(tab)]
-                    } else if tab.id == moved_tab.id {
+                    } else if tab.address.id == moved_tab.address.id {
                         Default::default()
                     } else {
                         [Some(tab), None]
@@ -40,14 +42,14 @@ pub fn move_tab(state: TerminalsState, after_tab: Option<TerminalTab>, moved_tab
                     // Handle move to same position
                     let mut last = None;
                     move |tab| {
-                        let result = Some(&tab.id) != last.as_ref();
-                        last = Some(tab.id.clone());
+                        let result = Some(&tab.address.id) != last.as_ref();
+                        last = Some(tab.address.id.clone());
                         return result;
                     }
                 })
                 .cloned()
                 .collect();
-            state.selected_tab.set(moved_tab.id.clone());
+            state.selected_tab.set(moved_tab.address.id.clone());
             let tabs = TerminalTabs {
                 terminal_tabs: Rc::new(tabs),
             };
@@ -56,7 +58,7 @@ pub fn move_tab(state: TerminalsState, after_tab: Option<TerminalTab>, moved_tab
     let tabs = tabs
         .terminal_tabs
         .iter()
-        .map(|tab| tab.id.clone())
+        .map(|tab| tab.address.id.clone())
         .collect();
     wasm_bindgen_futures::spawn_local(async move {
         let () = api::client::set_order::set_order(tabs)

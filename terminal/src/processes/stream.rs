@@ -20,7 +20,7 @@ where
     F: Future<Output = Result<ProcessIO, OpenProcessError>>,
 {
     let processes = get_processes();
-    let terminal_id = &terminal_def.id;
+    let terminal_id = &terminal_def.address.id;
     match processes.entry(terminal_id.clone()) {
         dashmap::Entry::Occupied(occupied_entry) => {
             let entry = occupied_entry.get().1.clone();

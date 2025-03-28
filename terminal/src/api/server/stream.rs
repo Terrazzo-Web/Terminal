@@ -28,7 +28,7 @@ pub async fn register(
     server: Arc<Server>,
     Json(request): Json<RegisterTerminalRequest>,
 ) -> Result<(), HttpError<RegisterStreamError>> {
-    let span = info_span!("Register", terminal_id = %request.def.id);
+    let span = info_span!("Register", terminal_id = %request.def.address.id);
     let response = register::register(&server, request).instrument(span).await;
     Ok(response?)
 }

@@ -71,7 +71,7 @@ impl TerminalTabs {
 
     pub fn remove_tab(mut self, id: &TerminalId) -> Self {
         let terminal_tabs = Rc::make_mut(&mut self.terminal_tabs);
-        terminal_tabs.retain(|tab| tab.id != *id);
+        terminal_tabs.retain(|tab| tab.address.id != *id);
         self
     }
 }

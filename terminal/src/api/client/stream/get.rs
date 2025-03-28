@@ -24,7 +24,7 @@ use crate::terminal_id::TerminalId;
 
 pub async fn get(request: RegisterTerminalRequest) -> Result<StreamReader, RegisterError> {
     async {
-        let terminal_id = &request.def.id;
+        let terminal_id = &request.def.address.id;
         let stream_reader = add_dispatcher(terminal_id).await?;
         register(request).await?;
         return Ok(stream_reader);

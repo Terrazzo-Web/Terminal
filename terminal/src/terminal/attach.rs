@@ -31,7 +31,7 @@ const XTERMJS_ATTR: &str = "data-xtermjs";
 const IS_ATTACHED: &str = "Y";
 
 pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: TerminalTab) -> Consumers {
-    let terminal_id = terminal_tab.id.clone();
+    let terminal_id = terminal_tab.address.id.clone();
     let terminal_def = terminal_tab.to_terminal_def();
     let _span = info_span!("XTermJS", %terminal_id).entered();
     let element = template.element();

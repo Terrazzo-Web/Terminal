@@ -70,7 +70,7 @@ where
     F: Future<Output = ()>,
     F0: Future<Output = ()>,
 {
-    let terminal_id = terminal_def.id.clone();
+    let terminal_id = terminal_def.address.id.clone();
     defer! { state.on_eos(&terminal_id); }
     let query = RegisterTerminalRequest {
         mode: RegisterTerminalMode::Create,

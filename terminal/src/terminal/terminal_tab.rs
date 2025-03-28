@@ -44,11 +44,11 @@ impl TerminalTab {
     #[autoclone]
     pub fn of(terminal_definition: TerminalDef, selected: &XSignal<TerminalId>) -> Self {
         let TerminalDef {
-            id: terminal_id,
+            address,
             title,
             order,
-            via,
         } = terminal_definition;
+        let terminal_id = &address.id;
         let selected = {
             let name: XString = if tracing::enabled!(Level::DEBUG) {
                 format!("is_selected_tab:{terminal_id}").into()
@@ -88,10 +88,9 @@ impl TerminalTab {
         });
         Self(Rc::new(TerminalTabInner {
             def: LiveTerminalDef {
-                id: terminal_id,
+                address,
                 title,
                 order,
-                via,
             },
             selected,
             xtermjs: Mutex::new(None),
@@ -104,13 +103,13 @@ impl TabDescriptor for TerminalTab {
     type State = TerminalsState;
 
     fn key(&self) -> XString {
-        self.id.clone().into()
+        self.address.id.clone().into()
     }
 
     #[autoclone]
     #[html]
     fn title(&self, state: &TerminalsState) -> impl Into<XNode> {
-        let id = &self.id;
+        let id = &self.address.id;
         let title = self.title.derive(
             "resolve_title",
             |t| t.override_title.as_ref().unwrap_or(&t.shell_title).clone(),
@@ -187,10 +186,9 @@ impl Deref for TerminalTabInner {
 impl TerminalTabInner {
     pub fn to_terminal_def(&self) -> TerminalDef {
         TerminalDef {
-            id: self.id.clone(),
+            address: self.address.clone(),
             title: self.title.get_value_untracked().map(|t| t.to_string()),
             order: self.order,
-            via: self.via.clone(),
         }
     }
 }
@@ -243,14 +241,14 @@ fn print_title(#[signal] title: XString) -> XElement {
 impl std::fmt::Debug for TerminalTab {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple(TerminalTab::type_name())
-            .field(&self.id.as_str())
+            .field(&self.address.id.as_str())
             .finish()
     }
 }
 
 impl PartialEq for TerminalTabInner {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.address.id == other.address.id
     }
 }
 

@@ -129,7 +129,7 @@ pub fn create_terminal(
             };
             let new_tab = TerminalTab::new(terminal_def, &state.selected_tab);
             let _batch = Batch::use_batch("add-tab");
-            state.selected_tab.force(new_tab.id.clone());
+            state.selected_tab.force(new_tab.address.id.clone());
             state
                 .terminal_tabs
                 .update(|tabs| Some(tabs.clone().add_tab(new_tab)));

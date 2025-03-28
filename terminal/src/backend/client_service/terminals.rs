@@ -8,7 +8,6 @@ use trz_gateway_server::server::Server;
 
 use crate::backend::protos::terrazzo::gateway::client::ListTerminalsRequest;
 use crate::backend::protos::terrazzo::gateway::client::MaybeString;
-use crate::backend::protos::terrazzo::gateway::client::TerminalAddress;
 use crate::backend::protos::terrazzo::gateway::client::TerminalDef;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 use crate::processes;
@@ -21,10 +20,7 @@ pub async fn list_terminals(server: &Server, visited: &[String]) -> Vec<Terminal
         response.extend(processes::list::list().iter().map(|terminal| {
             let title = &terminal.title;
             TerminalDef {
-                address: Some(TerminalAddress {
-                    terminal_id: terminal.id.to_string(),
-                    via: None,
-                }),
+                address: Some(terminal.address.clone().into()),
                 shell_title: title.shell_title.clone(),
                 override_title: title.override_title.clone().map(|s| MaybeString { s }),
                 order: terminal.order,
