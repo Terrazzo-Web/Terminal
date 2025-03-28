@@ -86,3 +86,9 @@ pub static APPLICATION_JSON: &str = "application/json";
 fn application_json_test() {
     assert_eq!(APPLICATION_JSON, terrazzo::mime::APPLICATION_JSON);
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WriteRequest {
+    terminal: TerminalAddress,
+    data: String,
+}

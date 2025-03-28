@@ -24,6 +24,7 @@ use super::javascript::TerminalJs;
 use super::terminal_tab::TerminalTab;
 use crate::api;
 use crate::api::TabTitle;
+use crate::api::TerminalAddress;
 use crate::api::TerminalDef;
 use crate::terminal_id::TerminalId;
 
@@ -31,7 +32,8 @@ const XTERMJS_ATTR: &str = "data-xtermjs";
 const IS_ATTACHED: &str = "Y";
 
 pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: TerminalTab) -> Consumers {
-    let terminal_id = terminal_tab.address.id.clone();
+    let terminal = terminal_tab.address.to_owned();
+    let terminal_id = terminal.id.clone();
     let terminal_def = terminal_tab.to_terminal_def();
     let _span = info_span!("XTermJS", %terminal_id).entered();
     let element = template.element();
@@ -68,7 +70,7 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
         let _on_resize = on_resize;
         let _on_title_change = on_title_change;
         let stream_loop = xtermjs.stream_loop(state, terminal_def, element);
-        let write_loop = write_loop(&terminal_id, input_rx);
+        let write_loop = write_loop(&terminal, input_rx);
         let unsubscribe_resize_event = ResizeEvent::signal().add_subscriber({
             let xtermjs = xtermjs.clone();
             move |_| xtermjs.fit()
@@ -173,14 +175,14 @@ impl TerminalJs {
     }
 }
 
-async fn write_loop(terminal_id: &TerminalId, input_rx: mpsc::UnboundedReceiver<String>) {
+async fn write_loop(terminal: &TerminalAddress, input_rx: mpsc::UnboundedReceiver<String>) {
     async {
         defer!(debug!("End"));
         debug!("Start");
         let mut input_rx = input_rx.ready_chunks(10);
         while let Some(data) = &input_rx.next().await {
             let data = data.join("");
-            if let Err(error) = api::client::write::write(terminal_id, data).await {
+            if let Err(error) = api::client::write::write(terminal, data).await {
                 error!("Failed to write to the terminal: {error}");
                 return;
             }
