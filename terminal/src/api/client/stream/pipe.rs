@@ -25,7 +25,7 @@ use super::Method;
 use super::SendRequestError;
 use super::ShutdownPipe;
 use super::dispatch::dispatch;
-use crate::api::CORRELATION_ID;
+use crate::api::client::set_correlation_id;
 use crate::api::client::set_headers;
 
 /// Spawns the pipe in the background.
@@ -36,13 +36,7 @@ pub async fn pipe(correlation_id: &str) -> Result<oneshot::Sender<()>, PipeError
         let response = send_request(
             Method::POST,
             format!("{BASE_URL}/stream/{PIPE}"),
-            move |request| {
-                set_headers(request, |headers| {
-                    headers
-                        .set(CORRELATION_ID, correlation_id)
-                        .or_throw(CORRELATION_ID);
-                });
-            },
+            set_headers(set_correlation_id(correlation_id)),
         )
         .await?;
         let Some(stream) = response.body() else {
@@ -143,25 +137,19 @@ fn close_dispatchers(correlation_id: &str) {
 
 /// Sends a request to close the pipe.
 #[nameth]
-pub fn close_pipe(correlation_id: String) -> impl Future<Output = ()> {
+pub async fn close_pipe(correlation_id: String) {
     let span = info_span!("ClosePipe", %correlation_id);
-    send_request(
-        Method::POST,
-        format!("{BASE_URL}/stream/{PIPE}/close"),
-        move |request| {
-            debug!("Start");
-            set_headers(request, |headers| {
-                headers
-                    .set(CORRELATION_ID, &correlation_id)
-                    .or_throw(CORRELATION_ID);
-            });
-        },
-    )
-    .map(|response| {
-        debug!("End");
-        let _: Response = response?;
-        Ok(())
-    })
-    .unwrap_or_else(|error: PipeError| warn!("Failed to close the pipe: {error}"))
+    async {
+        debug!("Start");
+        defer!(debug!("End"));
+        send_request(
+            Method::POST,
+            format!("{BASE_URL}/stream/{PIPE}/close"),
+            set_headers(set_correlation_id(correlation_id.as_str())),
+        )
+        .await
+        .inspect_err(|error| warn!("Failed to close the pipe: {error}"));
+    }
     .instrument(span)
+    .await
 }

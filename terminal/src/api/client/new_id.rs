@@ -12,11 +12,11 @@ use crate::api::TerminalDef;
 use crate::api::client_address::ClientAddress;
 
 #[nameth]
-pub async fn new_id(client_address: ClientAddress) -> Result<TerminalDef, NewIdError> {
+pub async fn new_id(address: ClientAddress) -> Result<TerminalDef, NewIdError> {
     let response: Response = send_request(
         Method::POST,
         format!("{BASE_URL}/{NEW_ID}"),
-        set_json_body(&client_address)?,
+        set_json_body(&address)?,
     )
     .await?;
     let result = response

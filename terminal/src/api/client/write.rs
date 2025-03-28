@@ -15,10 +15,7 @@ pub async fn write(terminal: &TerminalAddress, data: String) -> Result<(), Write
     let _: Response = send_request(
         Method::POST,
         format!("{BASE_URL}/{WRITE}"),
-        set_json_body(&WriteRequest {
-            terminal: terminal.clone(),
-            data,
-        })?,
+        set_json_body(&WriteRequest { terminal, data })?,
     )
     .await?;
     return Ok(());

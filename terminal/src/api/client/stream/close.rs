@@ -14,26 +14,17 @@ use super::DISPATCHERS;
 use super::Method;
 use super::SendRequestError;
 use super::warn;
-use crate::api::CORRELATION_ID;
+use crate::api::client::set_correlation_id;
 use crate::api::client::set_headers;
 use crate::terminal_id::TerminalId;
 
 /// Sends a request to close the process.
 #[nameth]
-pub fn close(terminal_id: TerminalId, correlation_id: Option<String>) -> impl Future<Output = ()> {
+pub async fn close(terminal_id: TerminalId, correlation_id: Option<String>) {
     send_request(
         Method::POST,
         format!("{BASE_URL}/stream/{CLOSE}/{terminal_id}"),
-        move |request| {
-            debug!("Start");
-            if let Some(correlation_id) = correlation_id {
-                set_headers(request, |headers| {
-                    headers
-                        .set(CORRELATION_ID, &correlation_id)
-                        .or_throw(CORRELATION_ID);
-                });
-            }
-        },
+        set_headers(set_correlation_id(correlation_id.as_deref())),
     )
     .map(|response| {
         debug!("End");
@@ -42,6 +33,7 @@ pub fn close(terminal_id: TerminalId, correlation_id: Option<String>) -> impl Fu
     })
     .unwrap_or_else(|error: CloseError| warn!("Failed to close the terminal: {error}"))
     .instrument(info_span!("Close", %terminal_id))
+    .await
 }
 
 #[nameth]

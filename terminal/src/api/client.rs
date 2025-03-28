@@ -15,6 +15,7 @@ use web_sys::RequestMode;
 use web_sys::Response;
 
 use super::APPLICATION_JSON;
+use super::CORRELATION_ID;
 use super::TabTitle;
 use super::TerminalDefImpl;
 
@@ -99,25 +100,37 @@ pub enum SendRequestError {
 
 pub type LiveTerminalDef = TerminalDefImpl<XSignal<TabTitle<XString>>>;
 
-fn set_json_body<T>(body: &T) -> serde_json::Result<impl Fn(&RequestInit)>
+fn set_headers(f: impl FnOnce(&mut Headers)) -> impl FnOnce(&RequestInit) {
+    move |request| {
+        let mut headers = Headers::new().or_throw("Headers::new()");
+        f(&mut headers);
+        request.set_headers(headers.as_ref());
+    }
+}
+
+fn set_json_body<T>(body: &T) -> serde_json::Result<impl FnOnce(&RequestInit)>
 where
     T: ?Sized + Serialize,
 {
     let body = serde_json::to_string(body)?;
     Ok(move |request: &RequestInit| {
-        set_headers(request, set_content_type_json);
+        set_headers(set_content_type_json)(request);
         request.set_body(&JsValue::from_str(&body));
     })
-}
-
-fn set_headers(request: &RequestInit, f: impl FnOnce(&mut Headers)) {
-    let mut headers = Headers::new().or_throw("Headers::new()");
-    f(&mut headers);
-    request.set_headers(headers.as_ref());
 }
 
 fn set_content_type_json(headers: &mut Headers) {
     headers
         .set("content-type", APPLICATION_JSON)
         .or_throw("Set 'content-type'");
+}
+
+fn set_correlation_id<'a>(correlation_id: impl Into<Option<&'a str>>) -> impl FnOnce(&mut Headers) {
+    move |headers| {
+        if let Some(correlation_id) = correlation_id.into() {
+            headers
+                .set(CORRELATION_ID, correlation_id)
+                .or_throw(CORRELATION_ID);
+        }
+    }
 }
