@@ -53,11 +53,14 @@ pub enum OpenProcessError {
 }
 
 impl ProcessIO<OwnedWritePty, ReaderStream<OwnedReadPty>> {
-    pub async fn open() -> Result<Self, OpenProcessError> {
+    pub async fn open(client_name: Option<impl AsRef<str>>) -> Result<Self, OpenProcessError> {
         let pty = Pty::new()?;
         let mut command =
             std::env::var("SHELL").map_or_else(|_| Command::new("/bin/bash"), Command::new);
         command.arg("-i");
+        if let Some(client_name) = client_name {
+            command.env("TERRAZZO_CLIENT_NAME", client_name.as_ref());
+        }
         let child = command.spawn(&pty.pts()?)?;
 
         // https://forums.developer.apple.com/forums/thread/734230
@@ -202,6 +205,8 @@ impl IsData for Vec<u8> {
 mod tests {
     #[tokio::test]
     async fn open() {
-        super::ProcessIO::open().await.unwrap();
+        super::ProcessIO::open(Option::<String>::None)
+            .await
+            .unwrap();
     }
 }
