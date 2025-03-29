@@ -16,6 +16,8 @@ use super::protos::terrazzo::gateway::client::ListTerminalsResponse;
 use super::protos::terrazzo::gateway::client::NewIdRequest;
 use super::protos::terrazzo::gateway::client::NewIdResponse;
 use super::protos::terrazzo::gateway::client::RegisterTerminalRequest;
+use super::protos::terrazzo::gateway::client::ResizeRequest;
+use super::protos::terrazzo::gateway::client::ResizeResponse;
 use super::protos::terrazzo::gateway::client::WriteRequest;
 use super::protos::terrazzo::gateway::client::WriteResponse;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
@@ -25,6 +27,7 @@ pub mod convert;
 pub mod new_id;
 pub mod register;
 pub mod remotes;
+pub mod resize;
 mod routing;
 pub mod terminals;
 pub mod write;
@@ -97,5 +100,16 @@ impl ClientService for ClientServiceImpl {
         let client_address = terminal.client_address().to_vec();
         let () = write::write(&self.server, &client_address, request).await?;
         Ok(Response::new(WriteResponse {}))
+    }
+
+    async fn resize(
+        &self,
+        request: Request<ResizeRequest>,
+    ) -> Result<Response<ResizeResponse>, Status> {
+        let mut request = request.into_inner();
+        let terminal = request.terminal.get_or_insert_default();
+        let client_address = terminal.client_address().to_vec();
+        let () = resize::resize(&self.server, &client_address, request).await?;
+        Ok(Response::new(ResizeResponse {}))
     }
 }

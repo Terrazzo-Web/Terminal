@@ -92,3 +92,10 @@ pub struct WriteRequest<T = TerminalAddress> {
     terminal: T,
     data: String,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ResizeRequest<T = TerminalAddress> {
+    terminal: T,
+    size: Size,
+    force: bool,
+}

@@ -26,7 +26,6 @@ use crate::api;
 use crate::api::TabTitle;
 use crate::api::TerminalAddress;
 use crate::api::TerminalDef;
-use crate::terminal_id::TerminalId;
 
 const XTERMJS_ATTR: &str = "data-xtermjs";
 const IS_ATTACHED: &str = "Y";
@@ -63,7 +62,7 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
     xtermjs.open(&element);
     let (input_tx, input_rx) = mpsc::unbounded();
     let on_data = xtermjs.do_on_data(input_tx);
-    let on_resize = xtermjs.do_on_resize(terminal_id.clone());
+    let on_resize = xtermjs.do_on_resize(terminal.clone());
     let on_title_change = xtermjs.do_on_title_change(terminal_tab.title.clone());
     let io = async move {
         let _on_data = on_data;
@@ -108,7 +107,7 @@ impl TerminalJs {
         return on_data;
     }
 
-    fn do_on_resize(&self, terminal_id: TerminalId) -> Closure<dyn FnMut(JsValue)> {
+    fn do_on_resize(&self, terminal: TerminalAddress) -> Closure<dyn FnMut(JsValue)> {
         let span = Span::current();
         let this = self.clone();
         let mut first_resize = true;
@@ -116,19 +115,19 @@ impl TerminalJs {
             let _span = span.enter();
             let first_resize = std::mem::replace(&mut first_resize, false);
             debug!("Resize: {data:?} first_resize:{first_resize}");
-            let resize = this.clone().do_resize(terminal_id.clone(), first_resize);
+            let resize = this.clone().do_resize(terminal.clone(), first_resize);
             wasm_bindgen_futures::spawn_local(resize.in_current_span());
         });
         self.on_resize(&on_resize);
         return on_resize;
     }
 
-    async fn do_resize(self, terminal_id: TerminalId, first_resize: bool) {
+    async fn do_resize(self, terminal: TerminalAddress, force: bool) {
         let size = api::Size {
             rows: self.rows().as_f64().or_throw("rows") as i32,
             cols: self.cols().as_f64().or_throw("cols") as i32,
         };
-        if let Err(error) = api::client::resize::resize(&terminal_id, size, first_resize).await {
+        if let Err(error) = api::client::resize::resize(&terminal, size, force).await {
             warn!("Failed to resize: {error}");
         }
     }

@@ -8,6 +8,7 @@ service ClientService {
   rpc NewId(NewIdRequest) returns (NewIdResponse);
   rpc Register(RegisterTerminalRequest) returns (stream LeaseItem);
   rpc Write(WriteRequest) returns (WriteResponse);
+  rpc Resize(ResizeRequest) returns (ResizeResponse);
 }
 
 message ListRemotesRequest { repeated string visited = 1; }
@@ -58,3 +59,14 @@ message WriteRequest {
   string data = 2;
 }
 message WriteResponse {}
+
+message ResizeRequest {
+  TerminalAddress terminal = 1;
+  Size size = 2;
+  bool force = 3;
+}
+message Size {
+  int32 rows = 1;
+  int32 cols = 2;
+}
+message ResizeResponse {}

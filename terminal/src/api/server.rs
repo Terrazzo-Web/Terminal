@@ -46,7 +46,13 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
             }),
         )
         .route("/stream/close/{terminal_id}", post(stream::close))
-        .route("/resize/{terminal_id}", post(resize::resize))
+        .route(
+            "/resize",
+            post(|request| {
+                autoclone!(server);
+                resize::resize(server, request)
+            }),
+        )
         .route("/set_title/{terminal_id}", post(set_title::set_title))
         .route("/set_order", post(set_order::set_order))
         .route(

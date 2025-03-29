@@ -7,19 +7,24 @@ use super::Method;
 use super::SendRequestError;
 use super::send_request;
 use super::set_json_body;
+use crate::api::ResizeRequest;
 use crate::api::Size;
-use crate::terminal_id::TerminalId;
+use crate::api::TerminalAddress;
 
 #[nameth]
 pub async fn resize(
-    terminal_id: &TerminalId,
+    terminal: &TerminalAddress,
     size: Size,
-    first_resize: bool,
+    force: bool,
 ) -> Result<(), ResizeError> {
     let _: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/{RESIZE}/{terminal_id}"),
-        set_json_body(&(size, first_resize))?,
+        format!("{BASE_URL}/{RESIZE} "),
+        set_json_body(&ResizeRequest {
+            terminal,
+            size,
+            force,
+        })?,
     )
     .await?;
     return Ok(());

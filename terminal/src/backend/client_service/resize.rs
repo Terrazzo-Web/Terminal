@@ -16,40 +16,44 @@ use trz_gateway_server::server::Server;
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
-use crate::backend::protos::terrazzo::gateway::client::WriteRequest;
-use crate::backend::protos::terrazzo::gateway::client::WriteResponse;
+use crate::backend::protos::terrazzo::gateway::client::ResizeRequest;
+use crate::backend::protos::terrazzo::gateway::client::ResizeResponse;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 use crate::processes;
-use crate::processes::write::WriteError as WriteErrorImpl;
+use crate::processes::resize::ResizeError as ResizeErrorImpl;
 
-pub fn write(
+pub fn resize(
     server: &Server,
     client_address: &[impl AsRef<str>],
-    request: WriteRequest,
-) -> impl Future<Output = Result<(), WriteError>> {
+    request: ResizeRequest,
+) -> impl Future<Output = Result<(), ResizeError>> {
     async {
         debug!("Start");
         defer!(debug!("Done"));
-        Ok(WriteCallback::process(server, client_address, request).await?)
+        Ok(ResizeCallback::process(server, client_address, request).await?)
     }
     .instrument(debug_span!("Write"))
 }
 
-struct WriteCallback;
+struct ResizeCallback;
 
-impl DistributedCallback for WriteCallback {
-    type Request = WriteRequest;
+impl DistributedCallback for ResizeCallback {
+    type Request = ResizeRequest;
     type Response = ();
-    type LocalError = WriteErrorImpl;
+    type LocalError = ResizeErrorImpl;
     type RemoteError = tonic::Status;
 
-    async fn local(_: &Server, request: WriteRequest) -> Result<(), WriteErrorImpl> {
+    async fn local(_: &Server, request: ResizeRequest) -> Result<(), ResizeErrorImpl> {
         let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
         let span = debug_span!("Write", %terminal_id);
+        let size = request.size.unwrap_or_default(); // TODO
         async {
             debug!("Start");
             defer!(debug!("End"));
-            Ok(processes::write::write(&terminal_id, request.data.as_bytes()).await?)
+            Ok(
+                processes::resize::resize(&terminal_id, size.rows, size.cols, request.force)
+                    .await?,
+            )
         }
         .instrument(span)
         .await
@@ -58,7 +62,7 @@ impl DistributedCallback for WriteCallback {
     async fn remote<T>(
         mut client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
-        mut request: WriteRequest,
+        mut request: ResizeRequest,
     ) -> Result<(), tonic::Status>
     where
         T: GrpcService<BoxBody>,
@@ -67,39 +71,41 @@ impl DistributedCallback for WriteCallback {
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         request.terminal.get_or_insert_default().via = Some(ClientAddress::of(client_address));
-        let WriteResponse {} = client.write(request).await?.into_inner();
+        let ResizeResponse {} = client.resize(request).await?.into_inner();
         Ok(())
     }
 }
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-pub enum WriteError {
+pub enum ResizeError {
     #[error("[{n}] {0}", n = self.name())]
-    WriteError(#[from] DistributedCallbackError<WriteErrorImpl, tonic::Status>),
+    ResizeError(#[from] DistributedCallbackError<ResizeErrorImpl, tonic::Status>),
 }
 
-impl IsHttpError for WriteError {
+impl IsHttpError for ResizeError {
     fn status_code(&self) -> terrazzo::http::StatusCode {
         match self {
-            Self::WriteError(error) => error.status_code(),
+            Self::ResizeError(error) => error.status_code(),
         }
     }
 }
 
-impl From<WriteError> for Status {
-    fn from(error: WriteError) -> Self {
+impl From<ResizeError> for Status {
+    fn from(error: ResizeError) -> Self {
         match error {
-            WriteError::WriteError(error) => error.into(),
+            ResizeError::ResizeError(error) => error.into(),
         }
     }
 }
 
-impl From<WriteErrorImpl> for Status {
-    fn from(error: WriteErrorImpl) -> Self {
+impl From<ResizeErrorImpl> for Status {
+    fn from(error: ResizeErrorImpl) -> Self {
         match error {
-            error @ WriteErrorImpl::TerminalNotFound { .. } => Status::not_found(error.to_string()),
-            WriteErrorImpl::Write(error) => Status::internal(error.to_string()),
+            error @ ResizeErrorImpl::TerminalNotFound { .. } => {
+                Status::not_found(error.to_string())
+            }
+            ResizeErrorImpl::Resize(error) => Status::internal(error.to_string()),
         }
     }
 }

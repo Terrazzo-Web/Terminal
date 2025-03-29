@@ -18,12 +18,12 @@ pub async fn resize(
     rows: i32,
     cols: i32,
     force: bool,
-) -> Result<(), ResizeOperationError> {
+) -> Result<(), ResizeError> {
     debug!(rows, cols, "Size");
     let processes = get_processes();
     let entry = {
         let Some(entry) = processes.get(terminal_id) else {
-            return Err(ResizeOperationError::TerminalNotFound {
+            return Err(ResizeError::TerminalNotFound {
                 terminal_id: terminal_id.clone(),
             });
         };
@@ -35,19 +35,19 @@ pub async fn resize(
         debug!("Forcing resize");
         let () = input
             .resize(Size::new(rows as u16 - 1, cols as u16 - 1))
-            .map_err(ResizeOperationError::Resize)?;
+            .map_err(ResizeError::Resize)?;
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
     let () = input
         .resize(Size::new(rows as u16, cols as u16))
-        .map_err(ResizeOperationError::Resize)?;
+        .map_err(ResizeError::Resize)?;
     debug!("Done");
     Ok(())
 }
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-pub enum ResizeOperationError {
+pub enum ResizeError {
     #[error("[{n}] Failed to resize: {0}", n = self.name())]
     Resize(PtyError),
 
@@ -55,7 +55,7 @@ pub enum ResizeOperationError {
     TerminalNotFound { terminal_id: TerminalId },
 }
 
-impl IsHttpError for ResizeOperationError {
+impl IsHttpError for ResizeError {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::Resize { .. } => StatusCode::INTERNAL_SERVER_ERROR,
