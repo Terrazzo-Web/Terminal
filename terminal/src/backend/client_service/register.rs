@@ -4,7 +4,7 @@ use scopeguard::defer;
 use terrazzo_pty::OpenProcessError;
 use terrazzo_pty::ProcessIO;
 use tonic::Status;
-use tonic::body::BoxBody;
+use tonic::body::Body as BoxBody;
 use tonic::client::GrpcService;
 use tonic::codegen::Bytes;
 use tonic::codegen::StdError;

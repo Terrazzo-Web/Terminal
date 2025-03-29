@@ -4,7 +4,7 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
 use tonic::Status;
-use tonic::body::BoxBody;
+use tonic::body::Body as BoxBody;
 use tonic::client::GrpcService;
 use tonic::codegen::Bytes;
 use tonic::codegen::StdError;
