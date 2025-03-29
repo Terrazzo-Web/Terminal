@@ -92,7 +92,12 @@ impl ClientService for ClientServiceImpl {
         &self,
         request: Request<RegisterTerminalRequest>,
     ) -> Result<Response<Self::RegisterStream>, Status> {
-        let stream = register::register(&self.server, request.into_inner()).await?;
+        let stream = register::register(
+            Some(self.client_name.clone()),
+            &self.server,
+            request.into_inner(),
+        )
+        .await?;
         Ok(Response::new(RemoteReader(stream)))
     }
 

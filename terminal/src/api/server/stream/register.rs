@@ -7,6 +7,7 @@ use tracing::debug;
 use tracing::warn;
 use tracing_futures as _;
 use trz_gateway_common::http_error::IsHttpError;
+use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
 use super::registration::Registration;
@@ -17,6 +18,7 @@ use crate::processes::io::LocalReader;
 use crate::terminal_id::TerminalId;
 
 pub async fn register(
+    my_client_name: Option<ClientName>,
     server: &Server,
     request: RegisterTerminalRequest,
 ) -> Result<(), RegisterStreamError> {
@@ -24,7 +26,9 @@ pub async fn register(
     debug!("Start");
     async {
         let terminal_id = request.def.address.id.clone();
-        let stream = register::register(server, request.into()).await.unwrap();
+        let stream = register::register(my_client_name, server, request.into())
+            .await
+            .unwrap();
         let stream = LocalReader(stream);
         push_lease(terminal_id, stream)?;
         Ok(())

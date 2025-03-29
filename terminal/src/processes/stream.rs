@@ -14,7 +14,7 @@ use crate::terminal_id::TerminalId;
 pub async fn open_stream<F>(
     _server: &Server,
     terminal_def: TerminalDef,
-    open_process: impl Fn(&TerminalId) -> F,
+    open_process: impl FnOnce(&TerminalId) -> F,
 ) -> Result<ProcessOutputLease, GetOrCreateProcessError>
 where
     F: Future<Output = Result<ProcessIO, OpenProcessError>>,

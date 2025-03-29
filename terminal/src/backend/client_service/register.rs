@@ -12,6 +12,7 @@ use tonic::transport::Body;
 use tracing::Instrument;
 use tracing::info;
 use tracing::info_span;
+use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
 use super::routing::DistributedCallback;
@@ -24,6 +25,7 @@ use crate::processes;
 use crate::processes::io::HybridReader;
 
 pub async fn register(
+    my_client_name: Option<ClientName>,
     server: &Server,
     mut request: RegisterTerminalRequest,
 ) -> Result<HybridReader, Status> {
@@ -32,7 +34,8 @@ pub async fn register(
     async move {
         info!("Start");
         defer!(info!("Done"));
-        let stream = RegisterCallback::process(server, &client_address, request).await?;
+        let stream =
+            RegisterCallback::process(server, &client_address, (my_client_name, request)).await?;
         Ok(stream)
     }
     .instrument(info_span!("Register"))
@@ -42,20 +45,22 @@ pub async fn register(
 struct RegisterCallback;
 
 impl DistributedCallback for RegisterCallback {
-    type Request = RegisterTerminalRequest;
+    type Request = (Option<ClientName>, RegisterTerminalRequest);
     type Response = HybridReader;
     type LocalError = Status;
     type RemoteError = Status;
 
     async fn local(
         server: &Server,
-        request: RegisterTerminalRequest,
+        (my_client_name, request): (Option<ClientName>, RegisterTerminalRequest),
     ) -> Result<HybridReader, Status> {
         let mode = request.mode().try_into()?;
         let def = request.def.ok_or_else(|| Status::invalid_argument("def"))?;
-        let stream = processes::stream::open_stream(server, def.into(), |_| async {
+        let stream = processes::stream::open_stream(server, def.into(), |_| async move {
             match mode {
-                RegisterTerminalMode::Create => ProcessIO::open().await,
+                RegisterTerminalMode::Create => {
+                    ProcessIO::open(my_client_name.map(|s| s.to_string())).await
+                }
                 RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
             }
         })
@@ -67,7 +72,7 @@ impl DistributedCallback for RegisterCallback {
     async fn remote<T>(
         mut client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
-        mut request: RegisterTerminalRequest,
+        (_, mut request): (Option<ClientName>, RegisterTerminalRequest),
     ) -> Result<HybridReader, Status>
     where
         T: GrpcService<BoxBody>,

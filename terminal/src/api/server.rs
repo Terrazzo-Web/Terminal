@@ -41,8 +41,8 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
         .route(
             "/stream/register",
             post(|request| {
-                autoclone!(server);
-                stream::register(server, request)
+                autoclone!(client_name, server);
+                stream::register(client_name, server, request)
             }),
         )
         .route(
