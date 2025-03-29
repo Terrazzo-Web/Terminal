@@ -7,11 +7,8 @@ use tonic::async_trait;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
-use self::new_id::NewIdError;
 use self::remotes::list_remotes;
-use self::routing::DistributedCallbackError;
 use self::terminals::list_terminals;
-use self::write::WriteError;
 use super::protos::terrazzo::gateway::client::ListRemotesRequest;
 use super::protos::terrazzo::gateway::client::ListRemotesResponse;
 use super::protos::terrazzo::gateway::client::ListTerminalsRequest;
@@ -23,7 +20,6 @@ use super::protos::terrazzo::gateway::client::WriteRequest;
 use super::protos::terrazzo::gateway::client::WriteResponse;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
 use crate::processes::io::RemoteReader;
-use crate::processes::write::WriteError as WriteErrorImpl;
 
 pub mod convert;
 pub mod new_id;
@@ -73,22 +69,12 @@ impl ClientService for ClientServiceImpl {
         &self,
         request: Request<NewIdRequest>,
     ) -> Result<Response<NewIdResponse>, Status> {
+        let address = request.into_inner().address;
         let next = new_id::new_id(
             &self.server,
-            request
-                .get_ref()
-                .address
-                .as_ref()
-                .map(|a| a.via.as_slice())
-                .unwrap_or(&[]),
+            address.as_ref().map(|a| a.via.as_slice()).unwrap_or(&[]),
         )
-        .await
-        .map_err(|NewIdError::NewIdError(error)| match error {
-            DistributedCallbackError::RemoteError(status) => status,
-            error @ DistributedCallbackError::RemoteClientNotFound { .. } => {
-                Status::not_found(error.to_string())
-            }
-        })?;
+        .await?;
         Ok(Response::new(NewIdResponse { next }))
     }
 
@@ -106,28 +92,10 @@ impl ClientService for ClientServiceImpl {
         &self,
         request: Request<WriteRequest>,
     ) -> Result<Response<WriteResponse>, Status> {
-        let request = request.into_inner();
-        let client_address = request
-            .terminal
-            .as_ref()
-            .and_then(|t| t.via.as_ref())
-            .map(|a| a.via.as_slice())
-            .unwrap_or(&[])
-            .to_vec();
-        let () = write::write(&self.server, &client_address, request)
-            .await
-            .map_err(|WriteError::WriteError(error)| match error {
-                DistributedCallbackError::RemoteError(status) => status,
-                DistributedCallbackError::LocalError(error) => match error {
-                    error @ WriteErrorImpl::TerminalNotFound { .. } => {
-                        Status::not_found(error.to_string())
-                    }
-                    error @ WriteErrorImpl::Write { .. } => Status::internal(error.to_string()),
-                },
-                error @ DistributedCallbackError::RemoteClientNotFound { .. } => {
-                    Status::not_found(error.to_string())
-                }
-            })?;
+        let mut request = request.into_inner();
+        let terminal = request.terminal.get_or_insert_default();
+        let client_address = terminal.client_address().to_vec();
+        let () = write::write(&self.server, &client_address, request).await?;
         Ok(Response::new(WriteResponse {}))
     }
 }

@@ -1,9 +1,9 @@
-use std::convert::Infallible;
 use std::future::ready;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
+use tonic::Status;
 use tonic::body::BoxBody;
 use tonic::client::GrpcService;
 use tonic::codegen::Bytes;
@@ -15,6 +15,7 @@ use tracing::info_span;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_server::server::Server;
 
+use super::convert::Impossible;
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
@@ -39,10 +40,10 @@ struct NewIdCallback;
 impl DistributedCallback for NewIdCallback {
     type Request = ();
     type Response = i32;
-    type LocalError = Infallible;
-    type RemoteError = tonic::Status;
+    type LocalError = Impossible;
+    type RemoteError = Status;
 
-    fn local(_: &Server, (): ()) -> impl Future<Output = Result<i32, Infallible>> {
+    fn local(_: &Server, (): ()) -> impl Future<Output = Result<i32, Impossible>> {
         ready(Ok(next_terminal_id()))
     }
 
@@ -50,7 +51,7 @@ impl DistributedCallback for NewIdCallback {
         mut client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
         (): (),
-    ) -> Result<i32, tonic::Status>
+    ) -> Result<i32, Status>
     where
         T: GrpcService<BoxBody>,
         T::Error: Into<StdError>,
@@ -58,12 +59,7 @@ impl DistributedCallback for NewIdCallback {
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         let request = NewIdRequest {
-            address: Some(ClientAddress {
-                via: client_address
-                    .iter()
-                    .map(|x| x.as_ref().to_owned())
-                    .collect(),
-            }),
+            address: Some(ClientAddress::of(client_address)),
         };
         let response = client.new_id(request).await;
         Ok(response?.get_ref().next)
@@ -74,13 +70,21 @@ impl DistributedCallback for NewIdCallback {
 #[derive(thiserror::Error, Debug)]
 pub enum NewIdError {
     #[error("[{n}] {0}", n = self.name())]
-    NewIdError(#[from] DistributedCallbackError<Infallible, tonic::Status>),
+    NewIdError(#[from] DistributedCallbackError<Impossible, Status>),
 }
 
 impl IsHttpError for NewIdError {
     fn status_code(&self) -> terrazzo::http::StatusCode {
         match self {
             Self::NewIdError(error) => error.status_code(),
+        }
+    }
+}
+
+impl From<NewIdError> for Status {
+    fn from(error: NewIdError) -> Self {
+        match error {
+            NewIdError::NewIdError(error) => error.into(),
         }
     }
 }

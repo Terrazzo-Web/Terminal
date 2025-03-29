@@ -1,6 +1,7 @@
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::http::StatusCode;
+use tonic::Status;
 use tonic::body::BoxBody;
 use tonic::client::GrpcService;
 use tonic::codegen::Bytes;
@@ -86,6 +87,20 @@ impl<L: IsHttpError, R: IsHttpError> IsHttpError for DistributedCallbackError<L,
             DistributedCallbackError::RemoteError(error) => error.status_code(),
             DistributedCallbackError::LocalError(error) => error.status_code(),
             DistributedCallbackError::RemoteClientNotFound { .. } => StatusCode::NOT_FOUND,
+        }
+    }
+}
+
+impl<L: std::error::Error + Into<Status>, R: std::error::Error + Into<Status>>
+    From<DistributedCallbackError<L, R>> for Status
+{
+    fn from(error: DistributedCallbackError<L, R>) -> Self {
+        match error {
+            DistributedCallbackError::RemoteError(error) => error.into(),
+            DistributedCallbackError::LocalError(error) => error.into(),
+            error @ DistributedCallbackError::RemoteClientNotFound { .. } => {
+                Status::not_found(error.to_string())
+            }
         }
     }
 }

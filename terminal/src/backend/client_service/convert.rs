@@ -1,4 +1,5 @@
 use tonic::Status;
+use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
 
 use crate::api::RegisterTerminalMode;
@@ -38,6 +39,16 @@ impl From<TerminalDef> for TerminalDefProto {
     }
 }
 
+impl TerminalDefProto {
+    pub fn client_address(&self) -> &[String] {
+        fn aux(proto: &TerminalDefProto) -> Option<&[String]> {
+            let address = proto.address.as_ref()?;
+            Some(address.client_address())
+        }
+        aux(self).unwrap_or(&[])
+    }
+}
+
 impl From<TerminalAddressProto> for TerminalAddress {
     fn from(proto: TerminalAddressProto) -> Self {
         Self {
@@ -55,6 +66,16 @@ impl From<TerminalAddress> for TerminalAddressProto {
                 via: address.via.iter().map(ClientName::to_string).collect(),
             }),
         }
+    }
+}
+
+impl TerminalAddressProto {
+    pub fn client_address(&self) -> &[String] {
+        fn aux(proto: &TerminalAddressProto) -> Option<&[String]> {
+            let via = proto.via.as_ref()?;
+            Some(via.via.as_slice())
+        }
+        aux(self).unwrap_or(&[])
     }
 }
 
@@ -80,6 +101,17 @@ impl From<ClientAddressProto> for ClientAddress {
     }
 }
 
+impl ClientAddressProto {
+    pub fn of(client_address: &[impl AsRef<str>]) -> Self {
+        Self {
+            via: client_address
+                .iter()
+                .map(|x| x.as_ref().to_owned())
+                .collect(),
+        }
+    }
+}
+
 impl TryFrom<RegisterTerminalModeProto> for RegisterTerminalMode {
     type Error = Status;
 
@@ -100,5 +132,20 @@ impl From<RegisterTerminalMode> for RegisterTerminalModeProto {
             RegisterTerminalMode::Create => Self::Create,
             RegisterTerminalMode::Reopen => Self::Reopen,
         }
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum Impossible {}
+
+impl From<Impossible> for Status {
+    fn from(_: Impossible) -> Self {
+        unreachable!()
+    }
+}
+
+impl IsHttpError for Impossible {
+    fn status_code(&self) -> terrazzo::http::StatusCode {
+        unreachable!()
     }
 }

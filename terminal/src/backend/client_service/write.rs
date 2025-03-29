@@ -1,6 +1,7 @@
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
+use tonic::Status;
 use tonic::body::BoxBody;
 use tonic::client::GrpcService;
 use tonic::codegen::Bytes;
@@ -69,12 +70,7 @@ impl DistributedCallback for WriteCallback {
         let request = WriteRequest {
             terminal: Some(TerminalAddress {
                 terminal_id: request.terminal.unwrap_or_default().terminal_id,
-                via: Some(ClientAddress {
-                    via: client_address
-                        .iter()
-                        .map(|x| x.as_ref().to_owned())
-                        .collect(),
-                }),
+                via: Some(ClientAddress::of(client_address)),
             }),
             data: request.data,
         };
@@ -94,6 +90,23 @@ impl IsHttpError for WriteError {
     fn status_code(&self) -> terrazzo::http::StatusCode {
         match self {
             Self::WriteError(error) => error.status_code(),
+        }
+    }
+}
+
+impl From<WriteError> for Status {
+    fn from(error: WriteError) -> Self {
+        match error {
+            WriteError::WriteError(error) => error.into(),
+        }
+    }
+}
+
+impl From<WriteErrorImpl> for Status {
+    fn from(error: WriteErrorImpl) -> Self {
+        match error {
+            error @ WriteErrorImpl::TerminalNotFound { .. } => Status::not_found(error.to_string()),
+            WriteErrorImpl::Write(error) => Status::internal(error.to_string()),
         }
     }
 }
