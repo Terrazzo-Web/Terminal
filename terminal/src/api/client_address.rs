@@ -2,8 +2,14 @@ use std::ops::Deref;
 
 use super::ClientName;
 
+#[cfg(all(feature = "client", not(feature = "server")))]
+type Ptr<T> = std::rc::Rc<T>;
+
+#[cfg(feature = "server")]
+type Ptr<T> = std::sync::Arc<T>;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct ClientAddress(Vec<ClientName>);
+pub struct ClientAddress(Ptr<Vec<ClientName>>);
 
 impl Deref for ClientAddress {
     type Target = Vec<ClientName>;
@@ -15,13 +21,13 @@ impl Deref for ClientAddress {
 
 impl From<ClientName> for ClientAddress {
     fn from(client_name: ClientName) -> Self {
-        Self(vec![client_name])
+        Self(vec![client_name].into())
     }
 }
 
 impl From<Vec<ClientName>> for ClientAddress {
     fn from(client_names: Vec<ClientName>) -> Self {
-        Self(client_names)
+        Self(client_names.into())
     }
 }
 
