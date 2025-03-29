@@ -1,20 +1,21 @@
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use wasm_bindgen::JsValue;
 use web_sys::Response;
 
-use super::BASE_URL;
-use super::Method;
-use super::SendRequestError;
-use super::send_request;
-use crate::terminal_id::TerminalId;
+use super::request::BASE_URL;
+use super::request::Method;
+use super::request::SendRequestError;
+use super::request::send_request;
+use super::request::set_json_body;
+use crate::api::TerminalAddress;
+use crate::api::WriteRequest;
 
 #[nameth]
-pub async fn write(terminal_id: &TerminalId, data: String) -> Result<(), WriteError> {
+pub async fn write(terminal: &TerminalAddress, data: String) -> Result<(), WriteError> {
     let _: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/{WRITE}/{terminal_id}"),
-        |request| request.set_body(&JsValue::from_str(&data)),
+        format!("{BASE_URL}/{WRITE}"),
+        set_json_body(&WriteRequest { terminal, data })?,
     )
     .await?;
     return Ok(());
@@ -25,4 +26,7 @@ pub async fn write(terminal_id: &TerminalId, data: String) -> Result<(), WriteEr
 pub enum WriteError {
     #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
+
+    #[error("[{n}] {0}", n = self.name())]
+    JsonSerializationError(#[from] serde_json::Error),
 }

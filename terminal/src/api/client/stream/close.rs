@@ -1,47 +1,42 @@
-use futures::FutureExt as _;
-use futures::TryFutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::prelude::OrElseLog as _;
 use tracing::Instrument as _;
 use tracing::debug;
 use tracing::info_span;
-use web_sys::Headers;
+use tracing::warn;
 use web_sys::Response;
 
-use super::BASE_URL;
 use super::DISPATCHERS;
-use super::Method;
-use super::SendRequestError;
-use super::send_request;
-use super::warn;
-use crate::api::CORRELATION_ID;
+use crate::api::TerminalAddress;
+use crate::api::client::request::BASE_URL;
+use crate::api::client::request::Method;
+use crate::api::client::request::SendRequestError;
+use crate::api::client::request::ThenRequest as _;
+use crate::api::client::request::send_request;
+use crate::api::client::request::set_correlation_id;
+use crate::api::client::request::set_headers;
+use crate::api::client::request::set_json_body;
 use crate::terminal_id::TerminalId;
 
 /// Sends a request to close the process.
 #[nameth]
-pub fn close(terminal_id: TerminalId, correlation_id: Option<String>) -> impl Future<Output = ()> {
-    send_request(
-        Method::POST,
-        format!("{BASE_URL}/stream/{CLOSE}/{terminal_id}"),
-        move |request| {
-            debug!("Start");
-            if let Some(correlation_id) = correlation_id {
-                let headers = Headers::new().or_throw("Headers::new()");
-                headers
-                    .set(CORRELATION_ID, &correlation_id)
-                    .or_throw(CORRELATION_ID);
-                request.set_headers(headers.as_ref());
-            }
-        },
-    )
-    .map(|response| {
+pub async fn close(terminal: &TerminalAddress, correlation_id: Option<String>) {
+    let terminal_id = &terminal.id;
+    async move {
+        let _: Response = send_request(
+            Method::POST,
+            format!("{BASE_URL}/stream/{CLOSE}"),
+            set_headers(set_correlation_id(correlation_id.as_deref()))
+                .then(set_json_body(terminal)?),
+        )
+        .await?;
         debug!("End");
-        let _: Response = response?;
         Ok(())
-    })
-    .unwrap_or_else(|error: CloseError| warn!("Failed to close the terminal: {error}"))
+    }
     .instrument(info_span!("Close", %terminal_id))
+    .await
+    .unwrap_or_else(|error: CloseError| warn!("Failed to close the terminal: {error}"))
 }
 
 #[nameth]
@@ -49,6 +44,9 @@ pub fn close(terminal_id: TerminalId, correlation_id: Option<String>) -> impl Fu
 pub enum CloseError {
     #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
+
+    #[error("[{n}] {0}", n = self.name())]
+    JsonSerializationError(#[from] serde_json::Error),
 }
 
 pub fn drop_dispatcher(terminal_id: &TerminalId) -> Option<String> {

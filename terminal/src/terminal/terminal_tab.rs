@@ -44,10 +44,11 @@ impl TerminalTab {
     #[autoclone]
     pub fn of(terminal_definition: TerminalDef, selected: &XSignal<TerminalId>) -> Self {
         let TerminalDef {
-            id: terminal_id,
+            address,
             title,
             order,
         } = terminal_definition;
+        let terminal_id = &address.id;
         let selected = {
             let name: XString = if tracing::enabled!(Level::DEBUG) {
                 format!("is_selected_tab:{terminal_id}").into()
@@ -75,11 +76,11 @@ impl TerminalTab {
             XSignal::new(signal_name, title.map(XString::from))
         };
         let registrations = title.add_subscriber(move |title: TabTitle<XString>| {
-            autoclone!(terminal_id);
+            autoclone!(address);
             wasm_bindgen_futures::spawn_local(async move {
-                autoclone!(terminal_id);
+                autoclone!(address);
                 let result =
-                    api::client::set_title::set_title(&terminal_id, title.map(|t| t.to_string()));
+                    api::client::set_title::set_title(&address, title.map(|t| t.to_string()));
                 if let Err(error) = result.await {
                     warn!("Failed to update title: {error}")
                 }
@@ -87,7 +88,7 @@ impl TerminalTab {
         });
         Self(Rc::new(TerminalTabInner {
             def: LiveTerminalDef {
-                id: terminal_id,
+                address,
                 title,
                 order,
             },
@@ -102,13 +103,14 @@ impl TabDescriptor for TerminalTab {
     type State = TerminalsState;
 
     fn key(&self) -> XString {
-        self.id.clone().into()
+        self.address.id.clone().into()
     }
 
     #[autoclone]
     #[html]
     fn title(&self, state: &TerminalsState) -> impl Into<XNode> {
-        let id = &self.id;
+        let terminal = &self.address;
+        let id = &terminal.id;
         let title = self.title.derive(
             "resolve_title",
             |t| t.override_title.as_ref().unwrap_or(&t.shell_title).clone(),
@@ -138,12 +140,12 @@ impl TabDescriptor for TerminalTab {
             class = super::style::close_icon,
             src = "/static/icons/x-lg.svg",
             click = move |ev: web_sys::MouseEvent| {
-                autoclone!(id);
+                autoclone!(terminal);
                 ev.stop_propagation();
                 wasm_bindgen_futures::spawn_local(async move {
-                    autoclone!(id);
+                    autoclone!(terminal);
                     api::client::stream::try_restart_pipe();
-                    api::client::stream::close(id, None).await;
+                    api::client::stream::close(&terminal, None).await;
                 });
             },
         );
@@ -185,7 +187,7 @@ impl Deref for TerminalTabInner {
 impl TerminalTabInner {
     pub fn to_terminal_def(&self) -> TerminalDef {
         TerminalDef {
-            id: self.id.clone(),
+            address: self.address.clone(),
             title: self.title.get_value_untracked().map(|t| t.to_string()),
             order: self.order,
         }
@@ -240,14 +242,14 @@ fn print_title(#[signal] title: XString) -> XElement {
 impl std::fmt::Debug for TerminalTab {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple(TerminalTab::type_name())
-            .field(&self.id.as_str())
+            .field(&self.address.id.as_str())
             .finish()
     }
 }
 
 impl PartialEq for TerminalTabInner {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.address.id == other.address.id
     }
 }
 

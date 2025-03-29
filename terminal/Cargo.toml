@@ -28,6 +28,8 @@ nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 openssl = { workspace = true, optional = true }
 pin-project = { workspace = true }
+prost = { workspace = true, optional = true }
+prost-types = { workspace = true, optional = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -36,6 +38,7 @@ terrazzo = { workspace = true }
 terrazzo-pty = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
+tonic = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = [
     "fs",
     "sensitive-headers",
@@ -45,6 +48,7 @@ tracing = { workspace = true }
 tracing-futures = { workspace = true, features = [
     "futures-03",
 ], optional = true }
+trz-gateway-client = { workspace = true, optional = true }
 trz-gateway-common = { workspace = true, optional = true }
 trz-gateway-server = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true, features = ["v4", "fast-rng"] }
@@ -71,6 +75,7 @@ web-sys = { workspace = true, optional = true, features = [
 [build-dependencies]
 scopeguard = { workspace = true }
 terrazzo-build = { workspace = true }
+tonic-build = { workspace = true, features = ["prost"] }
 
 [features]
 default = ["server", "max_level_info"]
@@ -87,10 +92,14 @@ server = [
     "dep:dashmap",
     "dep:nix",
     "dep:openssl",
+    "dep:prost-types",
+    "dep:prost",
     "dep:terrazzo-pty",
     "dep:tokio",
+    "dep:tonic",
     "dep:tower-http",
     "dep:tracing-futures",
+    "dep:trz-gateway-client",
     "dep:trz-gateway-common",
     "dep:trz-gateway-server",
     "dep:uuid",

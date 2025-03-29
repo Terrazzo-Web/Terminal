@@ -5,6 +5,7 @@ use trz_gateway_common::security_configuration::certificate::CertificateConfig a
 use trz_gateway_common::security_configuration::certificate::cache::CachedCertificate;
 use trz_gateway_common::security_configuration::certificate::pem::PemCertificate;
 use trz_gateway_common::security_configuration::certificate::pem::PemCertificateError;
+use trz_gateway_common::unwrap_infallible::UnwrapInfallible as _;
 use trz_gateway_common::x509::PemAsStringError;
 use trz_gateway_common::x509::PemString as _;
 use trz_gateway_common::x509::ca::MakeCaError;
@@ -18,7 +19,6 @@ use trz_gateway_common::x509::time::Asn1ToSystemTimeError;
 use trz_gateway_common::x509::validity::ValidityError;
 
 use super::root_ca_config::PrivateRootCa;
-use crate::utils::unwrap_infallible::UnwrapInfallible as _;
 
 pub fn make_tls_config(
     root_ca: &PrivateRootCa,

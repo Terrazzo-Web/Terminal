@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package terrazzo.gateway.client;
+
+service ClientService {
+  rpc ListRemotes(ListRemotesRequest) returns (ListRemotesResponse);
+  rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
+  rpc NewId(NewIdRequest) returns (NewIdResponse);
+  rpc Register(RegisterTerminalRequest) returns (stream LeaseItem);
+  rpc Write(WriteRequest) returns (Empty);
+  rpc Resize(ResizeRequest) returns (Empty);
+  rpc Close(TerminalAddress) returns (Empty);
+  rpc SetTitle(SetTitleRequest) returns (Empty);
+  rpc SetOrder(SetOrderRequest) returns (Empty);
+}
+
+message ListRemotesRequest { repeated string visited = 1; }
+message ListRemotesResponse { repeated ClientAddress clients = 1; }
+
+message NewIdRequest { ClientAddress address = 1; }
+message NewIdResponse { int32 next = 1; }
+
+message ListTerminalsRequest { repeated string visited = 1; }
+message ListTerminalsResponse { repeated TerminalDef terminals = 1; }
+
+message ClientAddress { repeated string via = 1; }
+
+message TerminalDef {
+  TerminalAddress address = 1;
+  string shell_title = 2;
+  MaybeString override_title = 3;
+  int32 order = 4;
+}
+
+message MaybeString { string s = 1; }
+message Empty {}
+
+message RegisterTerminalRequest {
+  RegisterTerminalMode mode = 1;
+  TerminalDef def = 2;
+}
+
+enum RegisterTerminalMode {
+  REGISTER_TERMINAL_MODE_UNSPECIFIED = 0;
+  CREATE = 1;
+  REOPEN = 2;
+}
+
+message LeaseItem {
+  oneof kind {
+    bool eos = 1;
+    bytes data = 2;
+  }
+}
+
+message TerminalAddress {
+  string terminal_id = 1;
+  ClientAddress via = 5;
+}
+
+message WriteRequest {
+  TerminalAddress terminal = 1;
+  string data = 2;
+}
+
+message ResizeRequest {
+  TerminalAddress terminal = 1;
+  Size size = 2;
+  bool force = 3;
+}
+message Size {
+  int32 rows = 1;
+  int32 cols = 2;
+}
+
+message SetTitleRequest {
+  TerminalAddress address = 1;
+  string shell_title = 2;
+  MaybeString override_title = 3;
+}
+
+message SetOrderRequest { repeated OrderedTerminal terminals = 1; }
+message OrderedTerminal {
+  TerminalAddress address = 1;
+  int32 order = 2;
+}

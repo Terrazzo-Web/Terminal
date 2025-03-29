@@ -1,13 +1,13 @@
 use std::sync::Mutex;
 
 use futures::channel::mpsc;
-use terrazzo_pty::lease::ProcessOutputLease;
 use tracing::debug;
 
 use crate::api::server::correlation_id::CorrelationId;
+use crate::processes::io::LocalReader;
 use crate::terminal_id::TerminalId;
 
-type OutputStreamBase = ProcessOutputLease;
+type OutputStreamBase = LocalReader;
 
 #[cfg(debug_assertions)]
 type OutputStream = tracing_futures::Instrumented<OutputStreamBase>;

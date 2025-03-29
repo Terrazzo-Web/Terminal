@@ -24,14 +24,15 @@ use super::javascript::TerminalJs;
 use super::terminal_tab::TerminalTab;
 use crate::api;
 use crate::api::TabTitle;
+use crate::api::TerminalAddress;
 use crate::api::TerminalDef;
-use crate::terminal_id::TerminalId;
 
 const XTERMJS_ATTR: &str = "data-xtermjs";
 const IS_ATTACHED: &str = "Y";
 
 pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: TerminalTab) -> Consumers {
-    let terminal_id = terminal_tab.id.clone();
+    let terminal = terminal_tab.address.to_owned();
+    let terminal_id = terminal.id.clone();
     let terminal_def = terminal_tab.to_terminal_def();
     let _span = info_span!("XTermJS", %terminal_id).entered();
     let element = template.element();
@@ -61,14 +62,14 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
     xtermjs.open(&element);
     let (input_tx, input_rx) = mpsc::unbounded();
     let on_data = xtermjs.do_on_data(input_tx);
-    let on_resize = xtermjs.do_on_resize(terminal_id.clone());
+    let on_resize = xtermjs.do_on_resize(terminal.clone());
     let on_title_change = xtermjs.do_on_title_change(terminal_tab.title.clone());
     let io = async move {
         let _on_data = on_data;
         let _on_resize = on_resize;
         let _on_title_change = on_title_change;
         let stream_loop = xtermjs.stream_loop(state, terminal_def, element);
-        let write_loop = write_loop(&terminal_id, input_rx);
+        let write_loop = write_loop(&terminal, input_rx);
         let unsubscribe_resize_event = ResizeEvent::signal().add_subscriber({
             let xtermjs = xtermjs.clone();
             move |_| xtermjs.fit()
@@ -106,7 +107,7 @@ impl TerminalJs {
         return on_data;
     }
 
-    fn do_on_resize(&self, terminal_id: TerminalId) -> Closure<dyn FnMut(JsValue)> {
+    fn do_on_resize(&self, terminal: TerminalAddress) -> Closure<dyn FnMut(JsValue)> {
         let span = Span::current();
         let this = self.clone();
         let mut first_resize = true;
@@ -114,19 +115,19 @@ impl TerminalJs {
             let _span = span.enter();
             let first_resize = std::mem::replace(&mut first_resize, false);
             debug!("Resize: {data:?} first_resize:{first_resize}");
-            let resize = this.clone().do_resize(terminal_id.clone(), first_resize);
+            let resize = this.clone().do_resize(terminal.clone(), first_resize);
             wasm_bindgen_futures::spawn_local(resize.in_current_span());
         });
         self.on_resize(&on_resize);
         return on_resize;
     }
 
-    async fn do_resize(self, terminal_id: TerminalId, first_resize: bool) {
+    async fn do_resize(self, terminal: TerminalAddress, force: bool) {
         let size = api::Size {
             rows: self.rows().as_f64().or_throw("rows") as i32,
             cols: self.cols().as_f64().or_throw("cols") as i32,
         };
-        if let Err(error) = api::client::resize::resize(&terminal_id, size, first_resize).await {
+        if let Err(error) = api::client::resize::resize(&terminal, size, force).await {
             warn!("Failed to resize: {error}");
         }
     }
@@ -173,14 +174,14 @@ impl TerminalJs {
     }
 }
 
-async fn write_loop(terminal_id: &TerminalId, input_rx: mpsc::UnboundedReceiver<String>) {
+async fn write_loop(terminal: &TerminalAddress, input_rx: mpsc::UnboundedReceiver<String>) {
     async {
         defer!(debug!("End"));
         debug!("Start");
         let mut input_rx = input_rx.ready_chunks(10);
         while let Some(data) = &input_rx.next().await {
             let data = data.join("");
-            if let Err(error) = api::client::write::write(terminal_id, data).await {
+            if let Err(error) = api::client::write::write(terminal, data).await {
                 error!("Failed to write to the terminal: {error}");
                 return;
             }

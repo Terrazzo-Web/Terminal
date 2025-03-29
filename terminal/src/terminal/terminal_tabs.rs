@@ -1,15 +1,21 @@
 use std::rc::Rc;
 
+use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::widgets::tabs::TabsDescriptor;
 use terrazzo::widgets::tabs::TabsState;
-use tracing::warn;
 
+use self::add_tab::RemotesState;
 use super::TerminalsState;
 use super::terminal_tab::TerminalTab;
-use crate::api;
+use crate::api::client_address::ClientAddress;
 use crate::terminal_id::TerminalId;
+
+mod add_tab;
+mod move_tab;
+
+stylance::import_crate_style!(style, "src/terminal/terminal_tabs.scss");
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TerminalTabs {
@@ -30,32 +36,27 @@ impl TabsDescriptor for TerminalTabs {
         &self.terminal_tabs
     }
 
+    #[autoclone]
     #[html]
     fn after_titles(&self, state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
-        let this = self.clone();
-        let state = state.clone();
+        let client_names_state = RemotesState::new();
         [div(
-            class = super::style::add_tab_icon,
+            class = style::add_tab_icon,
             key = "add-tab-icon",
             div(
-                img(src = "/static/icons/plus-square.svg"),
-                click = move |_ev| {
-                    let this = this.clone();
-                    let state = state.clone();
-                    wasm_bindgen_futures::spawn_local(async move {
-                        let terminal_def = match api::client::new_id::new_id().await {
-                            Ok(id) => id,
-                            Err(error) => {
-                                warn!("Failed to allocate new ID: {error}");
-                                return;
-                            }
-                        };
-                        let new_tab = TerminalTab::new(terminal_def, &state.selected_tab);
-                        let _batch = Batch::use_batch("add-tab");
-                        state.selected_tab.force(new_tab.id.clone());
-                        state.terminal_tabs.force(this.clone().add_tab(new_tab));
-                    });
+                class %= move |t| {
+                    autoclone!(client_names_state);
+                    add_tab::active(t, client_names_state.remotes.clone())
                 },
+                img(src = "/static/icons/plus-square.svg"),
+                click = add_tab::create_terminal(state.clone(), ClientAddress::default()),
+                mouseenter = client_names_state.mouseenter(),
+            ),
+            mouseleave = client_names_state.mouseleave(),
+            add_tab::show_clients_dropdown(
+                state.clone(),
+                client_names_state.remotes.clone(),
+                client_names_state.hide_remotes.clone(),
             ),
         )]
     }
@@ -70,7 +71,7 @@ impl TerminalTabs {
 
     pub fn remove_tab(mut self, id: &TerminalId) -> Self {
         let terminal_tabs = Rc::make_mut(&mut self.terminal_tabs);
-        terminal_tabs.retain(|tab| tab.id != *id);
+        terminal_tabs.retain(|tab| tab.address.id != *id);
         self
     }
 }
@@ -79,63 +80,6 @@ impl TabsState for TerminalsState {
     type TabDescriptor = TerminalTab;
 
     fn move_tab(&self, after_tab: Option<TerminalTab>, moved_tab_key: String) {
-        move_tab(self.clone(), after_tab, moved_tab_key)
+        move_tab::move_tab(self.clone(), after_tab, moved_tab_key)
     }
-}
-
-fn move_tab(state: TerminalsState, after_tab: Option<TerminalTab>, moved_tab_key: String) {
-    let tabs = state
-        .terminal_tabs
-        .update(|TerminalTabs { terminal_tabs }| {
-            let after_tab = if let Some(after_tab) = after_tab {
-                terminal_tabs.iter().find(|tab| tab.id == after_tab.id)
-            } else {
-                None
-            };
-            let moved_tab = terminal_tabs
-                .iter()
-                .find(|tab| tab.id.as_str() == moved_tab_key)
-                .or_throw("'moved_tab' not found");
-            let tabs = terminal_tabs
-                .iter()
-                .enumerate()
-                .flat_map(|(i, tab)| {
-                    if after_tab.is_some_and(|t| tab.id == t.id) {
-                        [Some(tab), Some(moved_tab)]
-                    } else if after_tab.is_none() && i == 0 {
-                        [Some(moved_tab), Some(tab)]
-                    } else if tab.id == moved_tab.id {
-                        Default::default()
-                    } else {
-                        [Some(tab), None]
-                    }
-                })
-                .flatten()
-                .filter({
-                    // Handle move to same position
-                    let mut last = None;
-                    move |tab| {
-                        let result = Some(&tab.id) != last.as_ref();
-                        last = Some(tab.id.clone());
-                        return result;
-                    }
-                })
-                .cloned()
-                .collect();
-            state.selected_tab.set(moved_tab.id.clone());
-            let tabs = TerminalTabs {
-                terminal_tabs: Rc::new(tabs),
-            };
-            return Some(tabs.clone()).and_return(tabs);
-        });
-    let tabs = tabs
-        .terminal_tabs
-        .iter()
-        .map(|tab| tab.id.clone())
-        .collect();
-    wasm_bindgen_futures::spawn_local(async move {
-        let () = api::client::set_order::set_order(tabs)
-            .await
-            .unwrap_or_else(|error| warn!("Failed to set order: {error}"));
-    });
 }

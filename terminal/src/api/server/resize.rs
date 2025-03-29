@@ -1,21 +1,32 @@
-use terrazzo::axum::Json;
-use terrazzo::axum::extract::Path;
-use terrazzo::axum::response::Response;
-use terrazzo::http::StatusCode;
-use tracing::Instrument as _;
-use tracing::info_span;
+use std::sync::Arc;
 
-use super::into_error;
-use crate::api::Size;
-use crate::processes;
-use crate::terminal_id::TerminalId;
+use terrazzo::axum::Json;
+use trz_gateway_common::http_error::HttpError;
+use trz_gateway_server::server::Server;
+
+use crate::api::ResizeRequest;
+use crate::backend::client_service::resize;
+use crate::backend::client_service::resize::ResizeError;
+use crate::backend::protos::terrazzo::gateway::client::ResizeRequest as ResizeRequestProto;
+use crate::backend::protos::terrazzo::gateway::client::Size;
 
 pub async fn resize(
-    Path(terminal_id): Path<TerminalId>,
-    Json((Size { rows, cols }, first_resize)): Json<(Size, bool)>,
-) -> Result<(), Response> {
-    processes::resize::resize(&terminal_id, rows, cols, first_resize)
-        .instrument(info_span!("Resize", %terminal_id))
-        .await
-        .map_err(into_error(StatusCode::INTERNAL_SERVER_ERROR))
+    server: Arc<Server>,
+    Json(request): Json<ResizeRequest>,
+) -> Result<(), HttpError<ResizeError>> {
+    let client_address = request.terminal.via.as_slice().to_vec();
+    let response = resize::resize(
+        &server,
+        &client_address,
+        ResizeRequestProto {
+            terminal: Some(request.terminal.into()),
+            size: Some(Size {
+                rows: request.size.rows,
+                cols: request.size.cols,
+            }),
+            force: request.force,
+        },
+    )
+    .await;
+    Ok(response?)
 }

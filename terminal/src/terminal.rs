@@ -68,7 +68,7 @@ pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: Terminal
 
 fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSignal<TerminalTabs>) {
     spawn_local(async move {
-        let terminal_defs = match api::client::list::list().await {
+        let terminal_defs = match api::client::terminals::terminals().await {
             Ok(terminal_defs) => terminal_defs,
             Err(error) => {
                 warn!("Failed to load terminal definitions: {error}");
@@ -78,8 +78,11 @@ fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSign
         let batch = Batch::use_batch("refresh_terminal_tabs");
         if let Some(first_terminal) = terminal_defs.first() {
             let selected_tab_value = selected_tab.get_value_untracked();
-            if !terminal_defs.iter().any(|def| def.id == selected_tab_value) {
-                selected_tab.force(first_terminal.id.clone());
+            if !terminal_defs
+                .iter()
+                .any(|def| def.address.id == selected_tab_value)
+            {
+                selected_tab.force(first_terminal.address.id.clone());
             }
         }
         terminal_tabs.set(TerminalTabs::from(Rc::new(
@@ -121,14 +124,14 @@ fn next_selected_tab(
     let mut terminal_tabs = terminal_tabs.tab_descriptors().iter();
     let mut prev = None;
     while let Some(next) = terminal_tabs.next() {
-        if next.id == *closed_terminal_id {
+        if next.address.id == *closed_terminal_id {
             if let Some(tab) = terminal_tabs.next() {
-                return Some(tab.id.clone());
+                return Some(tab.address.id.clone());
             } else {
                 return prev;
             }
         }
-        prev = Some(next.id.clone());
+        prev = Some(next.address.id.clone());
     }
     return prev;
 }

@@ -10,6 +10,9 @@ const MAX_LEVEL_INFO: &str = "CARGO_FEATURE_MAX_LEVEL_INFO";
 const MAX_LEVEL_DEBUG: &str = "CARGO_FEATURE_MAX_LEVEL_DEBUG";
 
 fn main() {
+    if env::var("DOCS_RS") != Err(env::VarError::NotPresent) {
+        return;
+    }
     let Ok(server_feature) = env::var(SERVER_FEATURE) else {
         return;
     };
@@ -39,8 +42,5 @@ fn main() {
         wasm_pack_options,
     })
     .unwrap();
-
-    if env::var("DOCS_RS") == Err(env::VarError::NotPresent) {
-        terrazzo_build::build_css();
-    }
+    terrazzo_build::build_css();
 }

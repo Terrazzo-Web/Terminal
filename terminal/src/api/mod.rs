@@ -1,7 +1,7 @@
-use nameth::nameth;
 use serde::Deserialize;
 use serde::Serialize;
 
+use self::client_address::ClientAddress;
 use crate::terminal_id::TerminalId;
 
 #[cfg(feature = "client")]
@@ -10,7 +10,15 @@ pub mod client;
 #[cfg(feature = "server")]
 pub mod server;
 
-const ERROR_HEADER: &str = "terrazzo-error";
+#[cfg(feature = "server")]
+use trz_gateway_common::id::ClientName;
+
+#[cfg(all(feature = "client", not(feature = "server")))]
+use self::client_name::ClientName;
+
+pub mod client_address;
+pub mod client_name;
+
 const CORRELATION_ID: &str = "terrazzo-correlation-id";
 
 const NEWLINE: u8 = b'\n';
@@ -28,8 +36,14 @@ pub struct Chunk {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TerminalDefImpl<T> {
+pub struct TerminalAddress {
     pub id: TerminalId,
+    pub via: ClientAddress,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TerminalDefImpl<T> {
+    pub address: TerminalAddress,
     pub title: T,
     pub order: i32,
 }
@@ -52,7 +66,6 @@ impl<T> TabTitle<T> {
 
 pub type TerminalDef = TerminalDefImpl<TabTitle<String>>;
 
-#[nameth]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RegisterTerminalRequest {
     pub mode: RegisterTerminalMode,
@@ -72,4 +85,23 @@ pub static APPLICATION_JSON: &str = "application/json";
 #[cfg(all(test, feature = "server"))]
 fn application_json_test() {
     assert_eq!(APPLICATION_JSON, terrazzo::mime::APPLICATION_JSON);
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WriteRequest<T = TerminalAddress> {
+    terminal: T,
+    data: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ResizeRequest<T = TerminalAddress> {
+    terminal: T,
+    size: Size,
+    force: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SetTitleRequest<T = TerminalAddress> {
+    terminal: T,
+    title: TabTitle<String>,
 }

@@ -1,31 +1,26 @@
-use futures::TryStreamExt as _;
-use scopeguard::defer;
-use terrazzo::axum::body::Body;
-use terrazzo::axum::extract::Path;
-use terrazzo::axum::response::Response;
-use terrazzo::http::StatusCode;
-use tracing::Instrument as _;
-use tracing::debug_span;
-use tracing::trace;
+use std::sync::Arc;
 
-use super::into_error;
-use crate::processes;
-use crate::terminal_id::TerminalId;
+use terrazzo::axum::Json;
+use trz_gateway_common::http_error::HttpError;
+use trz_gateway_server::server::Server;
 
-pub async fn write(Path(terminal_id): Path<TerminalId>, data: Body) -> Result<(), Response> {
-    let span = debug_span!("Write", %terminal_id);
-    span.in_scope(|| trace!("Start"));
-    defer!(span.in_scope(|| trace!("End")));
-    data.into_data_stream()
-        .map_err(into_error(StatusCode::BAD_REQUEST))
-        .try_for_each(move |data| {
-            let terminal_id = terminal_id.clone();
-            async move {
-                processes::write::write(&terminal_id, &data)
-                    .await
-                    .map_err(into_error(StatusCode::INTERNAL_SERVER_ERROR))
-            }
-        })
-        .instrument(span.clone())
-        .await
+use crate::api::WriteRequest;
+use crate::backend::client_service::write;
+use crate::backend::client_service::write::WriteError;
+use crate::backend::protos::terrazzo::gateway::client::WriteRequest as WriteRequestProto;
+
+pub async fn write(
+    server: Arc<Server>,
+    Json(request): Json<WriteRequest>,
+) -> Result<(), HttpError<WriteError>> {
+    let client_address = request.terminal.via.as_slice().to_vec();
+    Ok(write::write(
+        &server,
+        &client_address,
+        WriteRequestProto {
+            terminal: Some(request.terminal.into()),
+            data: request.data,
+        },
+    )
+    .await?)
 }

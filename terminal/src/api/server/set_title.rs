@@ -1,23 +1,28 @@
-use scopeguard::defer;
-use terrazzo::axum::Json;
-use terrazzo::axum::extract::Path;
-use terrazzo::axum::response::Response;
-use terrazzo::http::StatusCode;
-use tracing::debug_span;
-use tracing::trace;
+use std::sync::Arc;
 
-use super::into_error;
-use crate::api::TabTitle;
-use crate::processes;
-use crate::terminal_id::TerminalId;
+use terrazzo::axum::Json;
+use trz_gateway_common::http_error::HttpError;
+use trz_gateway_server::server::Server;
+
+use crate::api::SetTitleRequest;
+use crate::backend::client_service::set_title;
+use crate::backend::client_service::set_title::SetTitleError;
+use crate::backend::protos::terrazzo::gateway::client::MaybeString;
+use crate::backend::protos::terrazzo::gateway::client::SetTitleRequest as SetTitleRequestProto;
 
 pub async fn set_title(
-    Path(terminal_id): Path<TerminalId>,
-    Json(new_title): Json<TabTitle<String>>,
-) -> Result<(), Response> {
-    let span = debug_span!("SetTitle", %terminal_id);
-    span.in_scope(|| trace!("Start"));
-    defer!(span.in_scope(|| trace!("End")));
-    processes::set_title::set_title(&terminal_id, new_title)
-        .map_err(into_error(StatusCode::BAD_REQUEST))
+    server: Arc<Server>,
+    Json(request): Json<SetTitleRequest>,
+) -> Result<(), HttpError<SetTitleError>> {
+    let client_address = request.terminal.via.as_slice().to_vec();
+    Ok(set_title::set_title(
+        &server,
+        &client_address,
+        SetTitleRequestProto {
+            address: Some(request.terminal.into()),
+            shell_title: request.title.shell_title,
+            override_title: request.title.override_title.map(|s| MaybeString { s }),
+        },
+    )
+    .await?)
 }

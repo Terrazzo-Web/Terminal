@@ -2,7 +2,6 @@
 - `#·88`. Authentication
 - `#·87`. Figure out certbot
 - `#·86`. Remove static state from the client -- search for "([^']|\n)static ". Ambient ctx on spawn_local, events, timers
-- `#·85`. Terrazzo-gateway works with multiple agents
 - `#·82`. Create a new Reddit account.
 - `#·81`. Announce open source autoclone.
 - `#·79`. Announce open source named.
@@ -96,3 +95,4 @@ Next: `#·89`.
 - `#·80`. Move terrazzo client and aux crates to the new repo.
 - `#·83`. Fix signed extension validation
 - `#·84`. Run the gateway and terrazzo server on same host:port. Gateway shared code goes in trz-gw.
+- `#·85`. Terrazzo-gateway works with multiple agents

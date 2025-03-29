@@ -26,10 +26,7 @@ use web_sys::js_sys::Uint8Array;
 
 use self::get::get;
 use self::register::RegisterError;
-use super::BASE_URL;
-use super::Method;
-use super::SendRequestError;
-use super::send_request;
+use super::request::SendRequestError;
 use crate::api::RegisterTerminalMode;
 use crate::api::RegisterTerminalRequest;
 use crate::api::TerminalDef;
@@ -71,7 +68,7 @@ where
     F: Future<Output = ()>,
     F0: Future<Output = ()>,
 {
-    let terminal_id = terminal_def.id.clone();
+    let terminal_id = terminal_def.address.id.clone();
     defer! { state.on_eos(&terminal_id); }
     let query = RegisterTerminalRequest {
         mode: RegisterTerminalMode::Create,

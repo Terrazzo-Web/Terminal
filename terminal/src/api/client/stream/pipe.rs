@@ -1,6 +1,4 @@
-use futures::FutureExt as _;
 use futures::StreamExt as _;
-use futures::TryFutureExt as _;
 use futures::channel::oneshot;
 use futures::select;
 use nameth::NamedEnumValues as _;
@@ -15,18 +13,17 @@ use tracing::warn;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::Headers;
-use web_sys::Response;
 use web_sys::js_sys::Uint8Array;
 
-use super::BASE_URL;
 use super::DISPATCHERS;
-use super::Method;
-use super::SendRequestError;
 use super::ShutdownPipe;
 use super::dispatch::dispatch;
-use super::send_request;
-use crate::api::CORRELATION_ID;
+use crate::api::client::request::BASE_URL;
+use crate::api::client::request::Method;
+use crate::api::client::request::SendRequestError;
+use crate::api::client::request::send_request;
+use crate::api::client::request::set_correlation_id;
+use crate::api::client::request::set_headers;
 
 /// Spawns the pipe in the background.
 #[nameth]
@@ -36,13 +33,7 @@ pub async fn pipe(correlation_id: &str) -> Result<oneshot::Sender<()>, PipeError
         let response = send_request(
             Method::POST,
             format!("{BASE_URL}/stream/{PIPE}"),
-            move |request| {
-                let headers = Headers::new().or_throw("Headers::new()");
-                headers
-                    .set(CORRELATION_ID, correlation_id)
-                    .or_throw(CORRELATION_ID);
-                request.set_headers(headers.as_ref());
-            },
+            set_headers(set_correlation_id(correlation_id)),
         )
         .await?;
         let Some(stream) = response.body() else {
@@ -143,25 +134,19 @@ fn close_dispatchers(correlation_id: &str) {
 
 /// Sends a request to close the pipe.
 #[nameth]
-pub fn close_pipe(correlation_id: String) -> impl Future<Output = ()> {
+pub async fn close_pipe(correlation_id: String) {
     let span = info_span!("ClosePipe", %correlation_id);
-    send_request(
-        Method::POST,
-        format!("{BASE_URL}/stream/{PIPE}/close"),
-        move |request| {
-            debug!("Start");
-            let headers = Headers::new().or_throw("Headers::new()");
-            headers
-                .set(CORRELATION_ID, &correlation_id)
-                .or_throw(CORRELATION_ID);
-            request.set_headers(headers.as_ref());
-        },
-    )
-    .map(|response| {
-        debug!("End");
-        let _: Response = response?;
-        Ok(())
-    })
-    .unwrap_or_else(|error: PipeError| warn!("Failed to close the pipe: {error}"))
+    async {
+        debug!("Start");
+        defer!(debug!("End"));
+        let _response = send_request(
+            Method::POST,
+            format!("{BASE_URL}/stream/{PIPE}/close"),
+            set_headers(set_correlation_id(correlation_id.as_str())),
+        )
+        .await
+        .inspect_err(|error| warn!("Failed to close the pipe: {error}"));
+    }
     .instrument(span)
+    .await
 }
