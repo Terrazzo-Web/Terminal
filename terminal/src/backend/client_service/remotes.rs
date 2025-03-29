@@ -18,18 +18,28 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
         defer!(debug!("Done"));
         let mut map = HashMap::new();
 
-        for client_name in server.connections().clients() {
+        let clients = {
+            let mut l = server.connections().clients();
+            l.sort();
+            l
+        };
+        let mut next = 0;
+        let mut next_entry = move |entry| {
+            next += 1;
+            (next, entry)
+        };
+        for client_name in clients {
+            if visited.iter().any(|v| v.as_str() == client_name.as_ref()) {
+                debug!("Already visited");
+                continue;
+            }
             map.insert(
                 client_name.clone(),
-                ClientAddress {
+                next_entry(ClientAddress {
                     via: vec![client_name.to_string()],
-                },
+                }),
             );
             async {
-                if visited.iter().any(|v| v.as_str() == client_name.as_ref()) {
-                    debug!("Already visited");
-                    return;
-                }
                 let Some(client) = server.connections().get_client(&client_name) else {
                     warn!("Client connection not found");
                     return;
@@ -49,23 +59,25 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
                     };
                     match map.entry(remote_name) {
                         hash_map::Entry::Occupied(mut entry) => {
-                            if entry.get().via.len() > remote.via.len() + 1 {
+                            if entry.get().1.via.len() > remote.via.len() + 1 {
                                 remote.via.push(client_name.to_string());
-                                entry.insert(remote);
+                                entry.insert(next_entry(remote));
                             }
                         }
                         hash_map::Entry::Vacant(entry) => {
                             remote.via.push(client_name.to_string());
-                            entry.insert(remote);
+                            entry.insert(next_entry(remote));
                         }
                     }
                 }
             }
-            .instrument(debug_span!("Client", %client_name))
+            .instrument(debug_span!("Client", remote_client_name = %client_name))
             .await
         }
 
-        let response = map.into_values().collect();
+        let mut list = map.into_values().collect::<Vec<_>>();
+        list.sort_by_key(|entry| entry.0);
+        let response = list.into_iter().map(|entry| entry.1).collect();
         debug!("Result = {response:?}");
         return response;
     }

@@ -25,8 +25,8 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
         .route(
             "/terminals",
             get(|| {
-                autoclone!(server);
-                terminals::list(server)
+                autoclone!(client_name, server);
+                terminals::list(client_name, server)
             }),
         )
         .route(
@@ -83,8 +83,8 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
         .route(
             "/remotes",
             get(|| {
-                autoclone!(server);
-                remotes::list(server)
+                autoclone!(client_name, server);
+                remotes::list(client_name, server)
             }),
         )
 }

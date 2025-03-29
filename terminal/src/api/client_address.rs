@@ -38,12 +38,9 @@ mod display {
 
     impl Display for ClientAddress {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            self.0
-                .iter()
-                .map(|cn| cn.as_ref())
-                .collect::<Vec<_>>()
-                .join(" ≻ ")
-                .fmt(f)
+            let mut list = self.0.iter().map(|cn| cn.as_ref()).collect::<Vec<_>>();
+            list.reverse();
+            list.join(" ≻ ").fmt(f)
         }
     }
 }

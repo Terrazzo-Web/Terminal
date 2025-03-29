@@ -7,7 +7,7 @@ cargo run \
     -- \
     --port 3101 \
     --client-name Qwerty \
-    --gateway-url https://localhost:3000 \
+    --gateway-url https://localhost:3100 \
     --gateway-pki /home/richard/.terrazzo/root_ca.cert \
     --auth-code 282f3d60-3771-421a-8bb4-7aa225df3aed \
     --client-certificate /home/richard/.terrazzo/client_certificate2
