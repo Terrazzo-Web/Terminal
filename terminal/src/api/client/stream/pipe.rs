@@ -15,15 +15,15 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::js_sys::Uint8Array;
 
-use super::super::send_request;
-use super::BASE_URL;
 use super::DISPATCHERS;
-use super::Method;
-use super::SendRequestError;
 use super::ShutdownPipe;
 use super::dispatch::dispatch;
-use crate::api::client::set_correlation_id;
-use crate::api::client::set_headers;
+use crate::api::client::request::BASE_URL;
+use crate::api::client::request::Method;
+use crate::api::client::request::SendRequestError;
+use crate::api::client::request::send_request;
+use crate::api::client::request::set_correlation_id;
+use crate::api::client::request::set_headers;
 
 /// Spawns the pipe in the background.
 #[nameth]

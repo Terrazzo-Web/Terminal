@@ -4,18 +4,18 @@ use terrazzo::prelude::OrElseLog as _;
 use tracing::Instrument as _;
 use tracing::debug;
 use tracing::info_span;
+use tracing::warn;
 use web_sys::Response;
 
-use super::super::send_request;
-use super::BASE_URL;
 use super::DISPATCHERS;
-use super::Method;
-use super::SendRequestError;
-use super::warn;
 use crate::api::TerminalAddress;
-use crate::api::client::set_correlation_id;
-use crate::api::client::set_headers;
-use crate::api::client::set_json_body;
+use crate::api::client::request::BASE_URL;
+use crate::api::client::request::Method;
+use crate::api::client::request::SendRequestError;
+use crate::api::client::request::send_request;
+use crate::api::client::request::set_correlation_id;
+use crate::api::client::request::set_headers;
+use crate::api::client::request::set_json_body;
 use crate::terminal_id::TerminalId;
 
 /// Sends a request to close the process.

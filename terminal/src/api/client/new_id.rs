@@ -3,11 +3,11 @@ use nameth::nameth;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::Response;
 
-use super::BASE_URL;
-use super::Method;
-use super::SendRequestError;
-use super::send_request;
-use super::set_json_body;
+use super::request::BASE_URL;
+use super::request::Method;
+use super::request::SendRequestError;
+use super::request::send_request;
+use super::request::set_json_body;
 use crate::api::TerminalDef;
 use crate::api::client_address::ClientAddress;
 

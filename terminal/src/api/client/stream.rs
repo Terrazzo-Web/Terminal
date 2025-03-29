@@ -26,9 +26,7 @@ use web_sys::js_sys::Uint8Array;
 
 use self::get::get;
 use self::register::RegisterError;
-use super::BASE_URL;
-use super::Method;
-use super::SendRequestError;
+use super::request::SendRequestError;
 use crate::api::RegisterTerminalMode;
 use crate::api::RegisterTerminalRequest;
 use crate::api::TerminalDef;
