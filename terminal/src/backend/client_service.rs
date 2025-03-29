@@ -112,7 +112,7 @@ impl ClientService for ClientServiceImpl {
         let terminal = request.into_inner();
         let terminal_id = terminal.terminal_id.as_str().into();
         let client_address = terminal.client_address();
-        let () = close::close(&self.server, &client_address, terminal_id).await?;
+        let () = close::close(&self.server, client_address, terminal_id).await?;
         Ok(Response::new(Empty {}))
     }
 }

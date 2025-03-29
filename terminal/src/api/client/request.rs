@@ -121,3 +121,16 @@ pub fn set_correlation_id<'a>(
         }
     }
 }
+
+pub trait ThenRequest {
+    fn then(self, next: impl FnOnce(&RequestInit)) -> impl FnOnce(&RequestInit);
+}
+
+impl<F: FnOnce(&RequestInit)> ThenRequest for F {
+    fn then(self, next: impl FnOnce(&RequestInit)) -> impl FnOnce(&RequestInit) {
+        move |request| {
+            self(request);
+            next(request);
+        }
+    }
+}

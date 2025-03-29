@@ -50,10 +50,7 @@ impl DistributedCallback for ResizeCallback {
         async {
             debug!("Start");
             defer!(debug!("End"));
-            Ok(
-                processes::resize::resize(&terminal_id, size.rows, size.cols, request.force)
-                    .await?,
-            )
+            processes::resize::resize(&terminal_id, size.rows, size.cols, request.force).await
         }
         .instrument(span)
         .await

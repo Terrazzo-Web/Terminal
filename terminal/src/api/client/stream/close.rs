@@ -12,6 +12,7 @@ use crate::api::TerminalAddress;
 use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
+use crate::api::client::request::ThenRequest as _;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
@@ -23,14 +24,11 @@ use crate::terminal_id::TerminalId;
 pub async fn close(terminal: &TerminalAddress, correlation_id: Option<String>) {
     let terminal_id = &terminal.id;
     async move {
-        let set_body = set_json_body(terminal)?;
         let _: Response = send_request(
             Method::POST,
             format!("{BASE_URL}/stream/{CLOSE}"),
-            move |request| {
-                set_headers(set_correlation_id(correlation_id.as_deref()))(request);
-                set_body(request);
-            },
+            set_headers(set_correlation_id(correlation_id.as_deref()))
+                .then(set_json_body(terminal)?),
         )
         .await?;
         debug!("End");

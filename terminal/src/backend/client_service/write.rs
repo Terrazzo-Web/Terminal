@@ -49,7 +49,7 @@ impl DistributedCallback for WriteCallback {
         async {
             debug!("Start");
             defer!(debug!("End"));
-            Ok(processes::write::write(&terminal_id, request.data.as_bytes()).await?)
+            processes::write::write(&terminal_id, request.data.as_bytes()).await
         }
         .instrument(span)
         .await
