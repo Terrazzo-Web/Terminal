@@ -29,15 +29,15 @@ pub async fn set_order(server: &Server, terminals: Vec<OrderedTerminal>) {
             let address = terminal.address.get_or_insert_default();
             let client_address = address.via.get_or_insert_default();
             let terminal_id = address.terminal_id.as_str().into();
-            match &client_address.via.as_slice() {
-                &[] => {
+            match client_address.via.as_slice() {
+                [] => {
                     let Some(mut entry) = processes.get_mut(&terminal_id) else {
                         warn!("Terminal '{terminal_id}' not found");
                         continue;
                     };
                     entry.0.order = terminal.order;
                 }
-                &[rest @ .., leaf] => {
+                [rest @ .., leaf] => {
                     let leaf = leaf.to_owned();
                     client_address.via = rest.to_vec();
                     match next.entry(leaf) {
