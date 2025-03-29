@@ -13,13 +13,12 @@ pub mod close;
 pub mod io;
 pub mod list;
 pub mod resize;
-pub mod set_order;
 pub mod set_title;
 pub mod stream;
 pub mod write;
 
-fn get_processes() -> &'static dashmap::DashMap<TerminalId, (TerminalDef, Arc<ProcessIoEntry>)> {
-    static PROCESSES: OnceLock<dashmap::DashMap<TerminalId, (TerminalDef, Arc<ProcessIoEntry>)>> =
+pub fn get_processes() -> &'static DashMap<TerminalId, (TerminalDef, Arc<ProcessIoEntry>)> {
+    static PROCESSES: OnceLock<DashMap<TerminalId, (TerminalDef, Arc<ProcessIoEntry>)>> =
         OnceLock::new();
     PROCESSES.get_or_init(DashMap::new)
 }

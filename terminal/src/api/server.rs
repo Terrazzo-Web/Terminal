@@ -66,7 +66,13 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
                 set_title::set_title(server, request)
             }),
         )
-        .route("/set_order", post(set_order::set_order))
+        .route(
+            "/set_order",
+            post(|request| {
+                autoclone!(server);
+                set_order::set_order(server, request)
+            }),
+        )
         .route(
             "/write",
             post(|request| {

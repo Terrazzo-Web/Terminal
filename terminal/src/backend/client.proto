@@ -11,6 +11,7 @@ service ClientService {
   rpc Resize(ResizeRequest) returns (Empty);
   rpc Close(TerminalAddress) returns (Empty);
   rpc SetTitle(SetTitleRequest) returns (Empty);
+  rpc SetOrder(SetOrderRequest) returns (Empty);
 }
 
 message ListRemotesRequest { repeated string visited = 1; }
@@ -76,4 +77,10 @@ message SetTitleRequest {
   TerminalAddress address = 1;
   string shell_title = 2;
   MaybeString override_title = 3;
+}
+
+message SetOrderRequest { repeated OrderedTerminal terminals = 1; }
+message OrderedTerminal {
+  TerminalAddress address = 1;
+  int32 order = 2;
 }

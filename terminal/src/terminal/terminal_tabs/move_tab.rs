@@ -58,7 +58,7 @@ pub fn move_tab(state: TerminalsState, after_tab: Option<TerminalTab>, moved_tab
     let tabs = tabs
         .terminal_tabs
         .iter()
-        .map(|tab| tab.address.id.clone())
+        .map(|tab| tab.address.clone())
         .collect();
     wasm_bindgen_futures::spawn_local(async move {
         let () = api::client::set_order::set_order(tabs)

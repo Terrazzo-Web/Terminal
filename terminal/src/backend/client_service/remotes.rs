@@ -4,7 +4,7 @@ use std::collections::hash_map;
 use scopeguard::defer;
 use tracing::Instrument;
 use tracing::debug;
-use tracing::info_span;
+use tracing::debug_span;
 use tracing::warn;
 use trz_gateway_server::server::Server;
 
@@ -61,7 +61,7 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
                     }
                 }
             }
-            .instrument(info_span!("Client", %client_name))
+            .instrument(debug_span!("Client", %client_name))
             .await
         }
 
@@ -69,6 +69,6 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
         debug!("Result = {response:?}");
         return response;
     }
-    .instrument(info_span!("List remotes"))
+    .instrument(debug_span!("List remotes"))
     .await
 }

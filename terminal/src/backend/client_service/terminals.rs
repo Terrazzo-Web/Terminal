@@ -1,6 +1,7 @@
 use scopeguard::defer;
 use tracing::Instrument;
 use tracing::debug;
+use tracing::info;
 use tracing::info_span;
 use tracing::warn;
 use trz_gateway_server::server::Server;
@@ -28,7 +29,7 @@ pub async fn list_terminals(server: &Server, visited: &[String]) -> Vec<Terminal
         for client_name in server.connections().clients() {
             async {
                 if visited.iter().any(|v| v.as_str() == client_name.as_ref()) {
-                    debug!("Already visited");
+                    info!("Already visited");
                     return;
                 }
                 let Some(client) = server.connections().get_client(&client_name) else {

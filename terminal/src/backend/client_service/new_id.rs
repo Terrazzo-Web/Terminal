@@ -11,7 +11,7 @@ use tonic::codegen::StdError;
 use tonic::transport::Body;
 use tracing::Instrument;
 use tracing::debug;
-use tracing::info_span;
+use tracing::debug_span;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_server::server::Server;
 
@@ -32,7 +32,7 @@ pub fn new_id(
         defer!(debug!("Done"));
         Ok(NewIdCallback::process(server, client_address, ()).await?)
     }
-    .instrument(info_span!("New ID"))
+    .instrument(debug_span!("New ID"))
 }
 
 struct NewIdCallback;

@@ -2,6 +2,7 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use serde::Serialize;
 use terrazzo::prelude::OrElseLog;
+use tracing::debug;
 use tracing::warn;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
@@ -98,6 +99,7 @@ where
     T: ?Sized + Serialize,
 {
     let body = serde_json::to_string(body)?;
+    debug!("Request body: {body}");
     Ok(move |request: &RequestInit| {
         set_headers(set_content_type_json)(request);
         request.set_body(&JsValue::from_str(&body));

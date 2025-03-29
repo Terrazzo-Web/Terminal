@@ -8,8 +8,8 @@ use tonic::codegen::Bytes;
 use tonic::codegen::StdError;
 use tonic::transport::Body;
 use tracing::Instrument;
-use tracing::debug;
-use tracing::debug_span;
+use tracing::info;
+use tracing::info_span;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_server::server::Server;
 
@@ -29,11 +29,11 @@ pub fn close(
     terminal_id: TerminalId,
 ) -> impl Future<Output = Result<(), CloseError>> {
     async {
-        debug!("Start");
-        defer!(debug!("Done"));
+        info!("Start");
+        defer!(info!("Done"));
         Ok(CloseCallback::process(server, client_address, terminal_id).await?)
     }
-    .instrument(debug_span!("Write"))
+    .instrument(info_span!("Close"))
 }
 
 struct CloseCallback;
