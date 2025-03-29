@@ -17,48 +17,47 @@ use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::Empty;
-use crate::backend::protos::terrazzo::gateway::client::WriteRequest;
+use crate::backend::protos::terrazzo::gateway::client::TerminalAddress;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 use crate::processes;
-use crate::processes::write::WriteError as WriteErrorImpl;
+use crate::processes::close::CloseProcessError;
+use crate::terminal_id::TerminalId;
 
-pub fn write(
+pub fn close(
     server: &Server,
     client_address: &[impl AsRef<str>],
-    request: WriteRequest,
-) -> impl Future<Output = Result<(), WriteError>> {
+    terminal_id: TerminalId,
+) -> impl Future<Output = Result<(), CloseError>> {
     async {
         debug!("Start");
         defer!(debug!("Done"));
-        Ok(WriteCallback::process(server, client_address, request).await?)
+        Ok(CloseCallback::process(server, client_address, terminal_id).await?)
     }
     .instrument(debug_span!("Write"))
 }
 
-struct WriteCallback;
+struct CloseCallback;
 
-impl DistributedCallback for WriteCallback {
-    type Request = WriteRequest;
+impl DistributedCallback for CloseCallback {
+    type Request = TerminalId;
     type Response = ();
-    type LocalError = WriteErrorImpl;
+    type LocalError = CloseProcessError;
     type RemoteError = tonic::Status;
 
-    async fn local(_: &Server, request: WriteRequest) -> Result<(), WriteErrorImpl> {
-        let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
-        let span = debug_span!("Write", %terminal_id);
+    async fn local(_: &Server, terminal_id: TerminalId) -> Result<(), CloseProcessError> {
         async {
             debug!("Start");
             defer!(debug!("End"));
-            Ok(processes::write::write(&terminal_id, request.data.as_bytes()).await?)
+            processes::close::close(&terminal_id)
         }
-        .instrument(span)
+        .instrument(debug_span!("Close", %terminal_id))
         .await
     }
 
     async fn remote<T>(
         mut client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
-        mut request: WriteRequest,
+        terminal_id: TerminalId,
     ) -> Result<(), tonic::Status>
     where
         T: GrpcService<BoxBody>,
@@ -66,40 +65,46 @@ impl DistributedCallback for WriteCallback {
         T::ResponseBody: Body<Data = Bytes> + Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
-        request.terminal.get_or_insert_default().via = Some(ClientAddress::of(client_address));
-        let Empty {} = client.write(request).await?.into_inner();
+        let Empty {} = client
+            .close(TerminalAddress {
+                terminal_id: terminal_id.to_string(),
+                via: Some(ClientAddress::of(client_address)),
+            })
+            .await?
+            .into_inner();
         Ok(())
     }
 }
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-pub enum WriteError {
+pub enum CloseError {
     #[error("[{n}] {0}", n = self.name())]
-    WriteError(#[from] DistributedCallbackError<WriteErrorImpl, tonic::Status>),
+    CloseError(#[from] DistributedCallbackError<CloseProcessError, tonic::Status>),
 }
 
-impl IsHttpError for WriteError {
+impl IsHttpError for CloseError {
     fn status_code(&self) -> terrazzo::http::StatusCode {
         match self {
-            Self::WriteError(error) => error.status_code(),
+            Self::CloseError(error) => error.status_code(),
         }
     }
 }
 
-impl From<WriteError> for Status {
-    fn from(error: WriteError) -> Self {
+impl From<CloseError> for Status {
+    fn from(error: CloseError) -> Self {
         match error {
-            WriteError::WriteError(error) => error.into(),
+            CloseError::CloseError(error) => error.into(),
         }
     }
 }
 
-impl From<WriteErrorImpl> for Status {
-    fn from(error: WriteErrorImpl) -> Self {
+impl From<CloseProcessError> for Status {
+    fn from(error: CloseProcessError) -> Self {
         match error {
-            error @ WriteErrorImpl::TerminalNotFound { .. } => Status::not_found(error.to_string()),
-            WriteErrorImpl::Write(error) => Status::internal(error.to_string()),
+            error @ CloseProcessError::TerminalNotFound { .. } => {
+                Status::not_found(error.to_string())
+            }
         }
     }
 }

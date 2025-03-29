@@ -9,6 +9,7 @@ use trz_gateway_server::server::Server;
 
 use self::remotes::list_remotes;
 use self::terminals::list_terminals;
+use super::protos::terrazzo::gateway::client::Empty;
 use super::protos::terrazzo::gateway::client::ListRemotesRequest;
 use super::protos::terrazzo::gateway::client::ListRemotesResponse;
 use super::protos::terrazzo::gateway::client::ListTerminalsRequest;
@@ -17,12 +18,12 @@ use super::protos::terrazzo::gateway::client::NewIdRequest;
 use super::protos::terrazzo::gateway::client::NewIdResponse;
 use super::protos::terrazzo::gateway::client::RegisterTerminalRequest;
 use super::protos::terrazzo::gateway::client::ResizeRequest;
-use super::protos::terrazzo::gateway::client::ResizeResponse;
+use super::protos::terrazzo::gateway::client::TerminalAddress;
 use super::protos::terrazzo::gateway::client::WriteRequest;
-use super::protos::terrazzo::gateway::client::WriteResponse;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
 use crate::processes::io::RemoteReader;
 
+pub mod close;
 pub mod convert;
 pub mod new_id;
 pub mod register;
@@ -91,25 +92,27 @@ impl ClientService for ClientServiceImpl {
         Ok(Response::new(RemoteReader(stream)))
     }
 
-    async fn write(
-        &self,
-        request: Request<WriteRequest>,
-    ) -> Result<Response<WriteResponse>, Status> {
+    async fn write(&self, request: Request<WriteRequest>) -> Result<Response<Empty>, Status> {
         let mut request = request.into_inner();
         let terminal = request.terminal.get_or_insert_default();
         let client_address = terminal.client_address().to_vec();
         let () = write::write(&self.server, &client_address, request).await?;
-        Ok(Response::new(WriteResponse {}))
+        Ok(Response::new(Empty {}))
     }
 
-    async fn resize(
-        &self,
-        request: Request<ResizeRequest>,
-    ) -> Result<Response<ResizeResponse>, Status> {
+    async fn resize(&self, request: Request<ResizeRequest>) -> Result<Response<Empty>, Status> {
         let mut request = request.into_inner();
         let terminal = request.terminal.get_or_insert_default();
         let client_address = terminal.client_address().to_vec();
         let () = resize::resize(&self.server, &client_address, request).await?;
-        Ok(Response::new(ResizeResponse {}))
+        Ok(Response::new(Empty {}))
+    }
+
+    async fn close(&self, request: Request<TerminalAddress>) -> Result<Response<Empty>, Status> {
+        let terminal = request.into_inner();
+        let terminal_id = terminal.terminal_id.as_str().into();
+        let client_address = terminal.client_address();
+        let () = close::close(&self.server, &client_address, terminal_id).await?;
+        Ok(Response::new(Empty {}))
     }
 }

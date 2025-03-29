@@ -109,7 +109,8 @@ impl TabDescriptor for TerminalTab {
     #[autoclone]
     #[html]
     fn title(&self, state: &TerminalsState) -> impl Into<XNode> {
-        let id = &self.address.id;
+        let terminal = &self.address;
+        let id = &terminal.id;
         let title = self.title.derive(
             "resolve_title",
             |t| t.override_title.as_ref().unwrap_or(&t.shell_title).clone(),
@@ -139,12 +140,12 @@ impl TabDescriptor for TerminalTab {
             class = super::style::close_icon,
             src = "/static/icons/x-lg.svg",
             click = move |ev: web_sys::MouseEvent| {
-                autoclone!(id);
+                autoclone!(terminal);
                 ev.stop_propagation();
                 wasm_bindgen_futures::spawn_local(async move {
-                    autoclone!(id);
+                    autoclone!(terminal);
                     api::client::stream::try_restart_pipe();
-                    api::client::stream::close(id, None).await;
+                    api::client::stream::close(&terminal, None).await;
                 });
             },
         );

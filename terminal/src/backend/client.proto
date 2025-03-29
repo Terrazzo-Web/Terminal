@@ -7,8 +7,9 @@ service ClientService {
   rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
   rpc NewId(NewIdRequest) returns (NewIdResponse);
   rpc Register(RegisterTerminalRequest) returns (stream LeaseItem);
-  rpc Write(WriteRequest) returns (WriteResponse);
-  rpc Resize(ResizeRequest) returns (ResizeResponse);
+  rpc Write(WriteRequest) returns (Empty);
+  rpc Resize(ResizeRequest) returns (Empty);
+  rpc Close(TerminalAddress) returns (Empty);
 }
 
 message ListRemotesRequest { repeated string visited = 1; }
@@ -30,6 +31,7 @@ message TerminalDef {
 }
 
 message MaybeString { string s = 1; }
+message Empty {}
 
 message RegisterTerminalRequest {
   RegisterTerminalMode mode = 1;
@@ -58,7 +60,6 @@ message WriteRequest {
   TerminalAddress terminal = 1;
   string data = 2;
 }
-message WriteResponse {}
 
 message ResizeRequest {
   TerminalAddress terminal = 1;
@@ -69,4 +70,3 @@ message Size {
   int32 rows = 1;
   int32 cols = 2;
 }
-message ResizeResponse {}

@@ -45,7 +45,13 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
                 stream::register(server, request)
             }),
         )
-        .route("/stream/close/{terminal_id}", post(stream::close))
+        .route(
+            "/close",
+            post(|request| {
+                autoclone!(server);
+                stream::close(server, request)
+            }),
+        )
         .route(
             "/resize",
             post(|request| {

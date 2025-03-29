@@ -1,5 +1,3 @@
-use futures::FutureExt as _;
-use futures::TryFutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::prelude::OrElseLog as _;
@@ -14,26 +12,33 @@ use super::DISPATCHERS;
 use super::Method;
 use super::SendRequestError;
 use super::warn;
+use crate::api::TerminalAddress;
 use crate::api::client::set_correlation_id;
 use crate::api::client::set_headers;
+use crate::api::client::set_json_body;
 use crate::terminal_id::TerminalId;
 
 /// Sends a request to close the process.
 #[nameth]
-pub async fn close(terminal_id: TerminalId, correlation_id: Option<String>) {
-    send_request(
-        Method::POST,
-        format!("{BASE_URL}/stream/{CLOSE}/{terminal_id}"),
-        set_headers(set_correlation_id(correlation_id.as_deref())),
-    )
-    .map(|response| {
+pub async fn close(terminal: &TerminalAddress, correlation_id: Option<String>) {
+    let terminal_id = &terminal.id;
+    async move {
+        let set_body = set_json_body(terminal)?;
+        let _: Response = send_request(
+            Method::POST,
+            format!("{BASE_URL}/stream/{CLOSE}"),
+            move |request| {
+                set_headers(set_correlation_id(correlation_id.as_deref()))(request);
+                set_body(request);
+            },
+        )
+        .await?;
         debug!("End");
-        let _: Response = response?;
         Ok(())
-    })
-    .unwrap_or_else(|error: CloseError| warn!("Failed to close the terminal: {error}"))
+    }
     .instrument(info_span!("Close", %terminal_id))
     .await
+    .unwrap_or_else(|error: CloseError| warn!("Failed to close the terminal: {error}"))
 }
 
 #[nameth]
@@ -41,6 +46,9 @@ pub async fn close(terminal_id: TerminalId, correlation_id: Option<String>) {
 pub enum CloseError {
     #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
+
+    #[error("[{n}] {0}", n = self.name())]
+    JsonSerializationError(#[from] serde_json::Error),
 }
 
 pub fn drop_dispatcher(terminal_id: &TerminalId) -> Option<String> {

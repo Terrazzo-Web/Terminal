@@ -1,18 +1,17 @@
-use scopeguard::defer;
-use terrazzo::axum::extract::Path;
-use tracing::info;
-use tracing::info_span;
-use trz_gateway_common::http_error::HttpError;
+use std::sync::Arc;
 
-use crate::processes;
-use crate::processes::close::CloseProcessError;
-use crate::terminal_id::TerminalId;
+use terrazzo::axum::Json;
+use trz_gateway_common::http_error::HttpError;
+use trz_gateway_server::server::Server;
+
+use crate::api::TerminalAddress;
+use crate::backend::client_service::close;
+use crate::backend::client_service::close::CloseError;
 
 pub async fn close(
-    Path(terminal_id): Path<TerminalId>,
-) -> Result<(), HttpError<CloseProcessError>> {
-    let _span = info_span!("Close", %terminal_id).entered();
-    info!("Start");
-    defer!(info!("End"));
-    return Ok(processes::close::close(&terminal_id)?);
+    server: Arc<Server>,
+    Json(request): Json<TerminalAddress>,
+) -> Result<(), HttpError<CloseError>> {
+    let client_address = request.via.as_slice();
+    Ok(close::close(&server, client_address, request.id).await?)
 }

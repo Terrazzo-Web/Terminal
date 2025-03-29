@@ -16,8 +16,8 @@ use trz_gateway_server::server::Server;
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
+use crate::backend::protos::terrazzo::gateway::client::Empty;
 use crate::backend::protos::terrazzo::gateway::client::ResizeRequest;
-use crate::backend::protos::terrazzo::gateway::client::ResizeResponse;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 use crate::processes;
 use crate::processes::resize::ResizeError as ResizeErrorImpl;
@@ -46,7 +46,7 @@ impl DistributedCallback for ResizeCallback {
     async fn local(_: &Server, request: ResizeRequest) -> Result<(), ResizeErrorImpl> {
         let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
         let span = debug_span!("Write", %terminal_id);
-        let size = request.size.unwrap_or_default(); // TODO
+        let size = request.size.unwrap_or_default();
         async {
             debug!("Start");
             defer!(debug!("End"));
@@ -71,7 +71,7 @@ impl DistributedCallback for ResizeCallback {
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         request.terminal.get_or_insert_default().via = Some(ClientAddress::of(client_address));
-        let ResizeResponse {} = client.resize(request).await?.into_inner();
+        let Empty {} = client.resize(request).await?.into_inner();
         Ok(())
     }
 }
