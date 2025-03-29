@@ -4,7 +4,6 @@ use std::collections::hash_map;
 use scopeguard::defer;
 use tracing::Instrument;
 use tracing::debug;
-use tracing::info;
 use tracing::info_span;
 use tracing::warn;
 use trz_gateway_server::server::Server;
@@ -15,8 +14,8 @@ use crate::backend::protos::terrazzo::gateway::client::client_service_client::Cl
 
 pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddress> {
     async {
-        info!("Start");
-        defer!(info!("Done"));
+        debug!("Start");
+        defer!(debug!("Done"));
         let mut map = HashMap::new();
 
         for client_name in server.connections().clients() {

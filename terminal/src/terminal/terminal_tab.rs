@@ -76,11 +76,11 @@ impl TerminalTab {
             XSignal::new(signal_name, title.map(XString::from))
         };
         let registrations = title.add_subscriber(move |title: TabTitle<XString>| {
-            autoclone!(terminal_id);
+            autoclone!(address);
             wasm_bindgen_futures::spawn_local(async move {
-                autoclone!(terminal_id);
+                autoclone!(address);
                 let result =
-                    api::client::set_title::set_title(&terminal_id, title.map(|t| t.to_string()));
+                    api::client::set_title::set_title(&address, title.map(|t| t.to_string()));
                 if let Err(error) = result.await {
                     warn!("Failed to update title: {error}")
                 }

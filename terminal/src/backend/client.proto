@@ -10,6 +10,7 @@ service ClientService {
   rpc Write(WriteRequest) returns (Empty);
   rpc Resize(ResizeRequest) returns (Empty);
   rpc Close(TerminalAddress) returns (Empty);
+  rpc SetTitle(SetTitleRequest) returns (Empty);
 }
 
 message ListRemotesRequest { repeated string visited = 1; }
@@ -69,4 +70,10 @@ message ResizeRequest {
 message Size {
   int32 rows = 1;
   int32 cols = 2;
+}
+
+message SetTitleRequest {
+  TerminalAddress address = 1;
+  string shell_title = 2;
+  MaybeString override_title = 3;
 }

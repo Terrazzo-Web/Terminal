@@ -45,13 +45,7 @@ impl DistributedCallback for CloseCallback {
     type RemoteError = tonic::Status;
 
     async fn local(_: &Server, terminal_id: TerminalId) -> Result<(), CloseProcessError> {
-        async {
-            debug!("Start");
-            defer!(debug!("End"));
-            processes::close::close(&terminal_id)
-        }
-        .instrument(debug_span!("Close", %terminal_id))
-        .await
+        processes::close::close(&terminal_id)
     }
 
     async fn remote<T>(

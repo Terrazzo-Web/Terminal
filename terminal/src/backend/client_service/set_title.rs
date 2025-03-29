@@ -15,44 +15,50 @@ use trz_gateway_server::server::Server;
 
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
+use crate::api::TabTitle;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::Empty;
-use crate::backend::protos::terrazzo::gateway::client::ResizeRequest;
+use crate::backend::protos::terrazzo::gateway::client::SetTitleRequest;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 use crate::processes;
-use crate::processes::resize::ResizeError as ResizeErrorImpl;
+use crate::processes::set_title::SetTitleError as SetTitleErrorImpl;
 
-pub fn resize(
+pub fn set_title(
     server: &Server,
     client_address: &[impl AsRef<str>],
-    request: ResizeRequest,
-) -> impl Future<Output = Result<(), ResizeError>> {
+    request: SetTitleRequest,
+) -> impl Future<Output = Result<(), SetTitleError>> {
     async {
         debug!("Start");
         defer!(debug!("Done"));
-        Ok(ResizeCallback::process(server, client_address, request).await?)
+        Ok(SetTitleCallback::process(server, client_address, request).await?)
     }
-    .instrument(debug_span!("Resize"))
+    .instrument(debug_span!("SetTitle"))
 }
 
-struct ResizeCallback;
+struct SetTitleCallback;
 
-impl DistributedCallback for ResizeCallback {
-    type Request = ResizeRequest;
+impl DistributedCallback for SetTitleCallback {
+    type Request = SetTitleRequest;
     type Response = ();
-    type LocalError = ResizeErrorImpl;
+    type LocalError = SetTitleErrorImpl;
     type RemoteError = tonic::Status;
 
-    async fn local(_: &Server, request: ResizeRequest) -> Result<(), ResizeErrorImpl> {
-        let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
-        let size = request.size.unwrap_or_default();
-        processes::resize::resize(&terminal_id, size.rows, size.cols, request.force).await
+    async fn local(_: &Server, request: SetTitleRequest) -> Result<(), SetTitleErrorImpl> {
+        let terminal_id = request.address.unwrap_or_default().terminal_id.into();
+        processes::set_title::set_title(
+            &terminal_id,
+            TabTitle {
+                shell_title: request.shell_title,
+                override_title: request.override_title.map(|s| s.s),
+            },
+        )
     }
 
     async fn remote<T>(
         mut client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
-        mut request: ResizeRequest,
+        mut request: SetTitleRequest,
     ) -> Result<(), tonic::Status>
     where
         T: GrpcService<BoxBody>,
@@ -60,42 +66,41 @@ impl DistributedCallback for ResizeCallback {
         T::ResponseBody: Body<Data = Bytes> + Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
-        request.terminal.get_or_insert_default().via = Some(ClientAddress::of(client_address));
-        let Empty {} = client.resize(request).await?.into_inner();
+        request.address.get_or_insert_default().via = Some(ClientAddress::of(client_address));
+        let Empty {} = client.set_title(request).await?.into_inner();
         Ok(())
     }
 }
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-pub enum ResizeError {
+pub enum SetTitleError {
     #[error("[{n}] {0}", n = self.name())]
-    ResizeError(#[from] DistributedCallbackError<ResizeErrorImpl, tonic::Status>),
+    SetTitleError(#[from] DistributedCallbackError<SetTitleErrorImpl, tonic::Status>),
 }
 
-impl IsHttpError for ResizeError {
+impl IsHttpError for SetTitleError {
     fn status_code(&self) -> terrazzo::http::StatusCode {
         match self {
-            Self::ResizeError(error) => error.status_code(),
+            Self::SetTitleError(error) => error.status_code(),
         }
     }
 }
 
-impl From<ResizeError> for Status {
-    fn from(error: ResizeError) -> Self {
+impl From<SetTitleError> for Status {
+    fn from(error: SetTitleError) -> Self {
         match error {
-            ResizeError::ResizeError(error) => error.into(),
+            SetTitleError::SetTitleError(error) => error.into(),
         }
     }
 }
 
-impl From<ResizeErrorImpl> for Status {
-    fn from(error: ResizeErrorImpl) -> Self {
+impl From<SetTitleErrorImpl> for Status {
+    fn from(error: SetTitleErrorImpl) -> Self {
         match error {
-            error @ ResizeErrorImpl::TerminalNotFound { .. } => {
+            error @ SetTitleErrorImpl::TerminalNotFound { .. } => {
                 Status::not_found(error.to_string())
             }
-            ResizeErrorImpl::Resize(error) => Status::internal(error.to_string()),
         }
     }
 }

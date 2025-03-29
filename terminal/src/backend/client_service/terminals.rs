@@ -1,7 +1,6 @@
 use scopeguard::defer;
 use tracing::Instrument;
 use tracing::debug;
-use tracing::info;
 use tracing::info_span;
 use tracing::warn;
 use trz_gateway_server::server::Server;
@@ -14,8 +13,8 @@ use crate::processes;
 
 pub async fn list_terminals(server: &Server, visited: &[String]) -> Vec<TerminalDef> {
     async {
-        info!("Start");
-        defer!(info!("Done"));
+        debug!("Start");
+        defer!(debug!("Done"));
         let mut response = vec![];
         response.extend(processes::list::list().iter().map(|terminal| {
             let title = &terminal.title;

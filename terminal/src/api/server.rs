@@ -59,7 +59,13 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
                 resize::resize(server, request)
             }),
         )
-        .route("/set_title/{terminal_id}", post(set_title::set_title))
+        .route(
+            "/set_title",
+            post(|request| {
+                autoclone!(server);
+                set_title::set_title(server, request)
+            }),
+        )
         .route("/set_order", post(set_order::set_order))
         .route(
             "/write",

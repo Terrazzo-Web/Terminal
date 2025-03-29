@@ -45,14 +45,7 @@ impl DistributedCallback for WriteCallback {
 
     async fn local(_: &Server, request: WriteRequest) -> Result<(), WriteErrorImpl> {
         let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
-        let span = debug_span!("Write", %terminal_id);
-        async {
-            debug!("Start");
-            defer!(debug!("End"));
-            processes::write::write(&terminal_id, request.data.as_bytes()).await
-        }
-        .instrument(span)
-        .await
+        processes::write::write(&terminal_id, request.data.as_bytes()).await
     }
 
     async fn remote<T>(

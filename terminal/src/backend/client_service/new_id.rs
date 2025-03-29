@@ -10,7 +10,7 @@ use tonic::codegen::Bytes;
 use tonic::codegen::StdError;
 use tonic::transport::Body;
 use tracing::Instrument;
-use tracing::info;
+use tracing::debug;
 use tracing::info_span;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_server::server::Server;
@@ -28,8 +28,8 @@ pub fn new_id(
     client_address: &[impl AsRef<str>],
 ) -> impl Future<Output = Result<i32, NewIdError>> {
     async {
-        info!("Start");
-        defer!(info!("Done"));
+        debug!("Start");
+        defer!(debug!("Done"));
         Ok(NewIdCallback::process(server, client_address, ()).await?)
     }
     .instrument(info_span!("New ID"))

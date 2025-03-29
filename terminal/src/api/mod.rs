@@ -99,3 +99,9 @@ pub struct ResizeRequest<T = TerminalAddress> {
     size: Size,
     force: bool,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SetTitleRequest<T = TerminalAddress> {
+    terminal: T,
+    title: TabTitle<String>,
+}

@@ -18,9 +18,9 @@ use super::protos::terrazzo::gateway::client::NewIdRequest;
 use super::protos::terrazzo::gateway::client::NewIdResponse;
 use super::protos::terrazzo::gateway::client::RegisterTerminalRequest;
 use super::protos::terrazzo::gateway::client::ResizeRequest;
-use super::protos::terrazzo::gateway::client::TerminalAddress;
 use super::protos::terrazzo::gateway::client::WriteRequest;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
+use super::protos::terrazzo::gateway::client::*;
 use crate::processes::io::RemoteReader;
 
 pub mod close;
@@ -30,6 +30,7 @@ pub mod register;
 pub mod remotes;
 pub mod resize;
 mod routing;
+pub mod set_title;
 pub mod terminals;
 pub mod write;
 
@@ -113,6 +114,17 @@ impl ClientService for ClientServiceImpl {
         let terminal_id = terminal.terminal_id.as_str().into();
         let client_address = terminal.client_address();
         let () = close::close(&self.server, client_address, terminal_id).await?;
+        Ok(Response::new(Empty {}))
+    }
+
+    async fn set_title(
+        &self,
+        request: Request<SetTitleRequest>,
+    ) -> Result<Response<Empty>, Status> {
+        let mut request = request.into_inner();
+        let terminal = request.address.get_or_insert_default();
+        let client_address = terminal.client_address().to_vec();
+        let () = set_title::set_title(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
     }
 }
