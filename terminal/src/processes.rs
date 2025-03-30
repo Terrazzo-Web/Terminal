@@ -15,6 +15,7 @@ pub mod list;
 pub mod resize;
 pub mod set_title;
 pub mod stream;
+pub mod tail;
 pub mod write;
 
 pub fn get_processes() -> &'static DashMap<TerminalId, (TerminalDef, Arc<ProcessIoEntry>)> {

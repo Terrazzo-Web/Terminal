@@ -68,6 +68,7 @@ tonic = { version = "0.13.0" }
 tonic-build = { version = "0.13.0" }
 prost = { version = "0.13.5" }
 prost-types = { version = "0.13.5" }
+tokio-stream = { version = "0.1.17" }
 tower-http = { version = "0.6.2" }
 tracing = { version = "0.1.41" }
 tracing-futures = { version = "0.2.5" }
