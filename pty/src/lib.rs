@@ -24,6 +24,7 @@ mod raw_pts;
 mod raw_pty;
 mod release_on_drop;
 pub mod size;
+mod tail;
 
 const BUFFER_SIZE: usize = 1024;
 

@@ -2800,8 +2800,10 @@ dependencies = [
  "scopeguard",
  "thiserror 2.0.12",
  "tokio",
+ "tokio-stream",
  "tokio-util",
  "tracing",
+ "trz-gateway-common",
 ]
 
 [[package]]
@@ -2826,7 +2828,6 @@ dependencies = [
  "terrazzo-pty",
  "thiserror 2.0.12",
  "tokio",
- "tokio-stream",
  "tonic",
  "tonic-build",
  "tower-http",

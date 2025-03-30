@@ -77,9 +77,6 @@ scopeguard = { workspace = true }
 terrazzo-build = { workspace = true }
 tonic-build = { workspace = true, features = ["prost"] }
 
-[dev-dependencies]
-tokio-stream = { workspace = true }
-
 [features]
 default = ["server", "max_level_info"]
 client = [

@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use std::collections::VecDeque;
 use std::io::ErrorKind;
 use std::pin::Pin;
@@ -14,12 +12,11 @@ use futures::StreamExt as _;
 use nameth::NamedType as _;
 use nameth::nameth;
 use pin_project::pin_project;
-use terrazzo::prelude::UpdateAndReturn;
-use terrazzo_pty::lease::LeaseItem;
 use tokio::pin;
-use tokio::stream;
 use tokio::sync::oneshot;
 use tracing::warn;
+
+use crate::lease::LeaseItem;
 
 #[pin_project]
 #[nameth]
@@ -50,6 +47,7 @@ where
             let mut lock = state.lock().expect("state");
             match &mut *lock {
                 BufferState::Lines(lines) => {
+                    // There is an off-by-one acceptable issue that the last 'None' element counts as one.
                     if lines.len() == scrollback {
                         lines.drain(..1);
                     }
@@ -59,11 +57,7 @@ where
                     }
                     continue;
                 }
-                BufferState::Pending {
-                    future_rx,
-                    signal_tx,
-                    worker,
-                } => {
+                BufferState::Pending { worker, .. } => {
                     let Some((future_tx, signal_rx)) = worker.take() else {
                         warn! { "The {} is not waiting on the worker", TailStream::type_name() };
                         return;
@@ -182,16 +176,15 @@ enum BufferState {
 #[cfg(test)]
 mod tests {
     use std::future::ready;
-    use std::time::Duration;
 
     use futures::StreamExt;
-    use terrazzo_pty::lease::LeaseItem;
     use tokio::sync::mpsc;
     use tokio::sync::oneshot;
     use tokio_stream::wrappers::UnboundedReceiverStream;
     use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;
 
-    use crate::processes::tail::TailStream;
+    use crate::lease::LeaseItem;
+    use crate::tail::TailStream;
 
     #[tokio::test]
     async fn tail_stream() {
@@ -210,12 +203,11 @@ mod tests {
                 if end {
                     let _ = end_tx.take().unwrap().send(());
                 }
-                ready(end)
+                ready(!end)
             })
             .map(|i| LeaseItem::Data(i.to_string().into_bytes()));
-        let mut tail_stream = TailStream::new(stream, 5);
+        let tail_stream = TailStream::new(stream, 5);
         let _ = end_rx.await;
-        tokio::time::sleep(Duration::from_secs(1)).await;
         let data = tail_stream
             .take(10)
             .map(|item| match item {
