@@ -43,7 +43,9 @@ where
     S: Stream<Item = LeaseItem> + Send + 'static,
 {
     pin!(stream);
-    while let Some(item) = stream.next().await {
+    loop {
+        let item = stream.next().await;
+        let end = item.is_none();
         let signal_rx = {
             let mut lock = state.lock().expect("state");
             match &mut *lock {
@@ -52,6 +54,9 @@ where
                         lines.drain(..1);
                     }
                     lines.push_back(item);
+                    if end {
+                        break;
+                    }
                     continue;
                 }
                 BufferState::Pending {
@@ -73,6 +78,9 @@ where
         };
         // Await after releasing the lock
         let _ = signal_rx.await;
+        if end {
+            break;
+        }
     }
 }
 
@@ -105,7 +113,7 @@ fn process_state(cx: &mut Context<'_>, state: &mut BufferState) -> ProcessResult
             match next {
                 Some(item) => ProcessResult {
                     new_state: None,
-                    result: Some(Poll::Ready(Some(item))),
+                    result: Some(Poll::Ready(item)),
                 },
                 None => {
                     let (future_tx, future_rx) = oneshot::channel();
@@ -137,7 +145,7 @@ fn process_state(cx: &mut Context<'_>, state: &mut BufferState) -> ProcessResult
                 }
                 ProcessResult {
                     new_state: Some(BufferState::Lines(VecDeque::new())),
-                    result: Some(Poll::Ready(Some(data))),
+                    result: Some(Poll::Ready(data)),
                 }
             }
             Poll::Ready(Err(oneshot::error::RecvError { .. })) => ProcessResult {
@@ -161,35 +169,53 @@ struct ProcessResult {
 
 enum BufferState {
     /// There are buffered lines.
-    Lines(VecDeque<LeaseItem>),
+    Lines(VecDeque<Option<LeaseItem>>),
 
     /// Waiting for some lines to be read
     Pending {
-        future_rx: oneshot::Receiver<LeaseItem>,
+        future_rx: oneshot::Receiver<Option<LeaseItem>>,
         signal_tx: Option<oneshot::Sender<()>>,
-        worker: Option<(oneshot::Sender<LeaseItem>, oneshot::Receiver<()>)>,
+        worker: Option<(oneshot::Sender<Option<LeaseItem>>, oneshot::Receiver<()>)>,
     },
 }
 
 #[cfg(test)]
 mod tests {
+    use std::future::ready;
+    use std::time::Duration;
+
     use futures::StreamExt;
     use terrazzo_pty::lease::LeaseItem;
     use tokio::sync::mpsc;
+    use tokio::sync::oneshot;
     use tokio_stream::wrappers::UnboundedReceiverStream;
+    use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;
 
     use crate::processes::tail::TailStream;
 
     #[tokio::test]
     async fn tail_stream() {
+        enable_tracing_for_tests();
         let (tx, rx) = mpsc::unbounded_channel();
-        for i in 1..1000 {
-            let () = tx
-                .send(LeaseItem::Data(i.to_string().into_bytes()))
-                .unwrap();
+        const END: i32 = 1000;
+        for i in 1..=END {
+            let () = tx.send(i).unwrap();
         }
+        let (end_tx, end_rx) = oneshot::channel();
+        let mut end_tx = Some(end_tx);
         let stream = UnboundedReceiverStream::new(rx);
-        let mut tail_stream = TailStream::new(stream, 10);
+        let stream = stream
+            .take_while(move |i| {
+                let end = *i == END;
+                if end {
+                    let _ = end_tx.take().unwrap().send(());
+                }
+                ready(end)
+            })
+            .map(|i| LeaseItem::Data(i.to_string().into_bytes()));
+        let mut tail_stream = TailStream::new(stream, 5);
+        let _ = end_rx.await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
         let data = tail_stream
             .take(10)
             .map(|item| match item {
@@ -199,6 +225,6 @@ mod tests {
             })
             .collect::<Vec<_>>()
             .await;
-        assert_eq!(vec![""], data);
+        assert_eq!(vec!["996", "997", "998", "999"], data);
     }
 }
