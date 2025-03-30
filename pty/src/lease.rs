@@ -202,6 +202,7 @@ impl<R: IsDataStream> Stream for ProcessOutputLease<R> {
 }
 
 #[nameth]
+#[derive(Debug)]
 pub enum LeaseItem {
     EOS,
     Data(Vec<u8>),
