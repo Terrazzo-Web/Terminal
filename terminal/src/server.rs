@@ -1,7 +1,13 @@
 #![allow(unused_crate_dependencies)]
 
-use terrazzo_terminal::RunServerError;
+use tracing::Level;
 
-fn main() -> Result<(), RunServerError> {
-    terrazzo_terminal::run_server()
+fn main() {
+    terrazzo_terminal::run_server().unwrap_or_else(|error| {
+        if tracing::enabled!(Level::ERROR) {
+            tracing::error!("{error}")
+        } else {
+            eprintln!("{error}")
+        }
+    })
 }
