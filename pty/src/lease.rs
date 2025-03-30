@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::task::Poll;
 use std::task::ready;
 
+use bytes::Bytes;
 use futures::Stream;
 use futures::StreamExt as _;
 use futures::channel::oneshot;
@@ -197,7 +198,7 @@ impl Stream for ProcessOutputLease {
 #[derive(Debug)]
 pub enum LeaseItem {
     EOS,
-    Data(Vec<u8>),
+    Data(Bytes),
     Error(std::io::Error),
 }
 

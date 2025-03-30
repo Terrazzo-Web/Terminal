@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use std::collections::VecDeque;
 use std::io::ErrorKind;
 use std::pin::Pin;
@@ -8,6 +6,7 @@ use std::sync::Mutex;
 use std::task::Context;
 use std::task::Poll;
 
+use bytes::Bytes;
 use futures::FutureExt as _;
 use futures::Stream;
 use futures::StreamExt as _;
@@ -27,7 +26,7 @@ pub struct TailStream {
 impl TailStream {
     pub fn new<S>(stream: S, scrollback: usize) -> Self
     where
-        S: Stream<Item = std::io::Result<Vec<u8>>> + Send + 'static,
+        S: Stream<Item = std::io::Result<Bytes>> + Send + 'static,
     {
         let state = Arc::new(Mutex::new(BufferState::Lines(VecDeque::new())));
         tokio::spawn(start_worker(state.clone(), stream, scrollback));
@@ -37,7 +36,7 @@ impl TailStream {
 
 async fn start_worker<S>(state: Arc<Mutex<BufferState>>, stream: S, scrollback: usize)
 where
-    S: Stream<Item = std::io::Result<Vec<u8>>> + Send + 'static,
+    S: Stream<Item = std::io::Result<Bytes>> + Send + 'static,
 {
     pin!(stream);
     loop {
@@ -79,7 +78,7 @@ where
 }
 
 impl Stream for TailStream {
-    type Item = std::io::Result<Vec<u8>>;
+    type Item = std::io::Result<Bytes>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut state = self.state.lock().expect("state");
@@ -156,19 +155,19 @@ fn process_state(cx: &mut Context<'_>, state: &mut BufferState) -> ProcessResult
 
 struct ProcessResult {
     new_state: Option<BufferState>,
-    result: Option<Poll<Option<std::io::Result<Vec<u8>>>>>,
+    result: Option<Poll<Option<std::io::Result<Bytes>>>>,
 }
 
 enum BufferState {
     /// There are buffered lines.
-    Lines(VecDeque<Option<std::io::Result<Vec<u8>>>>),
+    Lines(VecDeque<Option<std::io::Result<Bytes>>>),
 
     /// Waiting for some lines to be read
     Pending {
-        future_rx: oneshot::Receiver<Option<std::io::Result<Vec<u8>>>>,
+        future_rx: oneshot::Receiver<Option<std::io::Result<Bytes>>>,
         signal_tx: Option<oneshot::Sender<()>>,
         worker: Option<(
-            oneshot::Sender<Option<std::io::Result<Vec<u8>>>>,
+            oneshot::Sender<Option<std::io::Result<Bytes>>>,
             oneshot::Receiver<()>,
         )>,
     },
@@ -178,6 +177,7 @@ enum BufferState {
 mod tests {
     use std::future::ready;
 
+    use bytes::Bytes;
     use futures::StreamExt;
     use tokio::sync::mpsc;
     use tokio::sync::oneshot;
@@ -205,13 +205,13 @@ mod tests {
                 }
                 ready(!end)
             })
-            .map(|i| Ok(i.to_string().into_bytes()));
+            .map(|i| Ok(Bytes::from(i.to_string().into_bytes())));
         let tail_stream = TailStream::new(stream, 5);
         let _ = end_rx.await;
         let data = tail_stream
             .take(10)
             .map(|item| match item {
-                Ok(data) => String::from_utf8(data).unwrap(),
+                Ok(data) => String::from_utf8(Vec::from(data)).unwrap(),
                 Err(error) => error.to_string(),
             })
             .collect::<Vec<_>>()

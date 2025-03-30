@@ -2792,6 +2792,7 @@ dependencies = [
 name = "terrazzo-pty"
 version = "0.1.7"
 dependencies = [
+ "bytes",
  "futures",
  "libc",
  "nameth",

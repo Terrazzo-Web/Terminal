@@ -3,6 +3,7 @@
 use std::task::Poll;
 use std::task::ready;
 
+use bytes::Bytes;
 use futures::Stream;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -127,14 +128,14 @@ impl tokio::io::AsyncWrite for ProcessInput {
 }
 
 impl Stream for ProcessOutput {
-    type Item = std::io::Result<Vec<u8>>;
+    type Item = std::io::Result<Bytes>;
 
     fn poll_next(
         self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> Poll<Option<Self::Item>> {
         match ready!(self.project().0.poll_next(cx)) {
-            Some(Ok(bytes)) if !bytes.is_empty() => Some(Ok(bytes.to_vec())),
+            Some(Ok(bytes)) if !bytes.is_empty() => Some(Ok(bytes)),
             Some(Err(error)) => Some(Err(error)),
             _ => None,
         }
