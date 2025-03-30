@@ -84,9 +84,9 @@ pub enum DistributedCallbackError<L: std::error::Error, R: std::error::Error> {
 impl<L: IsHttpError, R: IsHttpError> IsHttpError for DistributedCallbackError<L, R> {
     fn status_code(&self) -> StatusCode {
         match self {
-            DistributedCallbackError::RemoteError(error) => error.status_code(),
-            DistributedCallbackError::LocalError(error) => error.status_code(),
-            DistributedCallbackError::RemoteClientNotFound { .. } => StatusCode::NOT_FOUND,
+            Self::RemoteError(error) => error.status_code(),
+            Self::LocalError(error) => error.status_code(),
+            Self::RemoteClientNotFound { .. } => StatusCode::NOT_FOUND,
         }
     }
 }
