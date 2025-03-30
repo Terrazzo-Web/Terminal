@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::collections::VecDeque;
 use std::io::ErrorKind;
 use std::pin::Pin;
@@ -16,8 +18,6 @@ use tokio::pin;
 use tokio::sync::oneshot;
 use tracing::warn;
 
-use crate::lease::LeaseItem;
-
 #[pin_project]
 #[nameth]
 pub struct TailStream {
@@ -27,7 +27,7 @@ pub struct TailStream {
 impl TailStream {
     pub fn new<S>(stream: S, scrollback: usize) -> Self
     where
-        S: Stream<Item = LeaseItem> + Send + 'static,
+        S: Stream<Item = std::io::Result<Vec<u8>>> + Send + 'static,
     {
         let state = Arc::new(Mutex::new(BufferState::Lines(VecDeque::new())));
         tokio::spawn(start_worker(state.clone(), stream, scrollback));
@@ -37,7 +37,7 @@ impl TailStream {
 
 async fn start_worker<S>(state: Arc<Mutex<BufferState>>, stream: S, scrollback: usize)
 where
-    S: Stream<Item = LeaseItem> + Send + 'static,
+    S: Stream<Item = std::io::Result<Vec<u8>>> + Send + 'static,
 {
     pin!(stream);
     loop {
@@ -79,7 +79,7 @@ where
 }
 
 impl Stream for TailStream {
-    type Item = LeaseItem;
+    type Item = std::io::Result<Vec<u8>>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut state = self.state.lock().expect("state");
@@ -144,9 +144,7 @@ fn process_state(cx: &mut Context<'_>, state: &mut BufferState) -> ProcessResult
             }
             Poll::Ready(Err(oneshot::error::RecvError { .. })) => ProcessResult {
                 new_state: None,
-                result: Some(Poll::Ready(Some(LeaseItem::Error(
-                    ErrorKind::BrokenPipe.into(),
-                )))),
+                result: Some(Poll::Ready(Some(Err(ErrorKind::BrokenPipe.into())))),
             },
             Poll::Pending => ProcessResult {
                 new_state: None,
@@ -158,18 +156,21 @@ fn process_state(cx: &mut Context<'_>, state: &mut BufferState) -> ProcessResult
 
 struct ProcessResult {
     new_state: Option<BufferState>,
-    result: Option<Poll<Option<LeaseItem>>>,
+    result: Option<Poll<Option<std::io::Result<Vec<u8>>>>>,
 }
 
 enum BufferState {
     /// There are buffered lines.
-    Lines(VecDeque<Option<LeaseItem>>),
+    Lines(VecDeque<Option<std::io::Result<Vec<u8>>>>),
 
     /// Waiting for some lines to be read
     Pending {
-        future_rx: oneshot::Receiver<Option<LeaseItem>>,
+        future_rx: oneshot::Receiver<Option<std::io::Result<Vec<u8>>>>,
         signal_tx: Option<oneshot::Sender<()>>,
-        worker: Option<(oneshot::Sender<Option<LeaseItem>>, oneshot::Receiver<()>)>,
+        worker: Option<(
+            oneshot::Sender<Option<std::io::Result<Vec<u8>>>>,
+            oneshot::Receiver<()>,
+        )>,
     },
 }
 
@@ -183,7 +184,6 @@ mod tests {
     use tokio_stream::wrappers::UnboundedReceiverStream;
     use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;
 
-    use crate::lease::LeaseItem;
     use crate::tail::TailStream;
 
     #[tokio::test]
@@ -205,15 +205,14 @@ mod tests {
                 }
                 ready(!end)
             })
-            .map(|i| LeaseItem::Data(i.to_string().into_bytes()));
+            .map(|i| Ok(i.to_string().into_bytes()));
         let tail_stream = TailStream::new(stream, 5);
         let _ = end_rx.await;
         let data = tail_stream
             .take(10)
             .map(|item| match item {
-                LeaseItem::EOS => "EOS".to_string(),
-                LeaseItem::Data(data) => String::from_utf8(data).unwrap(),
-                LeaseItem::Error(error) => format!("Error: {error}"),
+                Ok(data) => String::from_utf8(data).unwrap(),
+                Err(error) => error.to_string(),
             })
             .collect::<Vec<_>>()
             .await;

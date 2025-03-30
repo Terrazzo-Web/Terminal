@@ -15,6 +15,7 @@ use self::pty::OwnedReadPty;
 use self::pty::OwnedWritePty;
 use self::pty::Pty;
 use self::pty::PtyError;
+// use self::tail::TailStream;
 
 mod command;
 pub mod lease;
@@ -26,19 +27,22 @@ pub mod size;
 mod tail;
 
 const BUFFER_SIZE: usize = 1024;
+// const SCROLLBACK: usize = 1000;
 
 pub struct ProcessIO {
     input: OwnedWritePty,
     output: ReaderStream<OwnedReadPty>,
+    // output: TailStream,
     #[expect(unused)]
     child_process: tokio::process::Child,
 }
 
 #[pin_project]
-pub struct ProcessInput<W = OwnedWritePty>(#[pin] pub W);
+pub struct ProcessInput(#[pin] pub OwnedWritePty);
 
 #[pin_project]
-pub struct ProcessOutput<R = ReaderStream<OwnedReadPty>>(#[pin] pub R);
+// pub struct ProcessOutput(#[pin] pub TailStream);
+pub struct ProcessOutput(#[pin] pub ReaderStream<OwnedReadPty>);
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
@@ -73,6 +77,7 @@ impl ProcessIO {
     fn new(pty: Pty, child_process: tokio::process::Child) -> Self {
         let (output, input) = pty.into_split();
         let output = ReaderStream::with_capacity(output, BUFFER_SIZE);
+        // let output = TailStream::new(output, SCROLLBACK);
         Self {
             input,
             output,
