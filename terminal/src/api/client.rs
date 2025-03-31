@@ -4,6 +4,7 @@ use terrazzo::prelude::XString;
 use super::TabTitle;
 use super::TerminalDefImpl;
 
+mod channel;
 pub mod new_id;
 pub mod remotes;
 mod request;
