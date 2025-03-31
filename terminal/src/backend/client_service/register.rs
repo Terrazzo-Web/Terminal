@@ -1,6 +1,7 @@
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
+use terrazzo::http::StatusCode;
 use terrazzo_pty::OpenProcessError;
 use terrazzo_pty::ProcessIO;
 use tonic::Status;
@@ -12,6 +13,7 @@ use tonic::transport::Body;
 use tracing::Instrument;
 use tracing::info;
 use tracing::info_span;
+use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
@@ -28,14 +30,15 @@ pub async fn register(
     my_client_name: Option<ClientName>,
     server: &Server,
     mut request: RegisterTerminalRequest,
-) -> Result<HybridReader, Status> {
+) -> Result<HybridReader, RegisterStreamError> {
     let terminal_def = request.def.get_or_insert_default();
     let client_address = terminal_def.client_address().to_vec();
     async move {
         info!("Start");
         defer!(info!("Done"));
         let stream =
-            RegisterCallback::process(server, &client_address, (my_client_name, request)).await?;
+            RegisterCallback::process(server, &client_address, (my_client_name, request)).await;
+        let stream = stream.map_err(|error| error.map_local(Box::new))?;
         Ok(stream)
     }
     .instrument(info_span!("Register"))
@@ -47,13 +50,13 @@ struct RegisterCallback;
 impl DistributedCallback for RegisterCallback {
     type Request = (Option<ClientName>, RegisterTerminalRequest);
     type Response = HybridReader;
-    type LocalError = Status;
+    type LocalError = RegisterStreamError;
     type RemoteError = Status;
 
     async fn local(
         server: &Server,
         (my_client_name, request): (Option<ClientName>, RegisterTerminalRequest),
-    ) -> Result<HybridReader, Status> {
+    ) -> Result<HybridReader, RegisterStreamError> {
         let mode = request.mode().try_into()?;
         let def = request.def.ok_or_else(|| Status::invalid_argument("def"))?;
         let stream = processes::stream::open_stream(server, def.into(), |_| async move {
@@ -93,5 +96,32 @@ impl DistributedCallback for RegisterCallback {
 #[derive(thiserror::Error, Debug)]
 pub enum RegisterStreamError {
     #[error("[{n}] {0}", n = self.name())]
-    RegisterStreamError(#[from] DistributedCallbackError<Status, Status>),
+    RegisterStreamError(#[from] DistributedCallbackError<Box<RegisterStreamError>, Status>),
+
+    #[error("[{n}] {0}", n = self.name())]
+    Grpc(#[from] Status),
+}
+
+impl IsHttpError for RegisterStreamError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::RegisterStreamError(error) => error.status_code(),
+            Self::Grpc(error) => error.status_code(),
+        }
+    }
+}
+
+impl From<RegisterStreamError> for Status {
+    fn from(error: RegisterStreamError) -> Self {
+        match error {
+            RegisterStreamError::RegisterStreamError(error) => error.into(),
+            RegisterStreamError::Grpc(status) => status,
+        }
+    }
+}
+
+impl From<Box<RegisterStreamError>> for Status {
+    fn from(error: Box<RegisterStreamError>) -> Self {
+        Status::from(*error)
+    }
 }

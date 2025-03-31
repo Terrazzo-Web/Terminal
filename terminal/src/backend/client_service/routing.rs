@@ -104,3 +104,31 @@ impl<L: std::error::Error + Into<Status>, R: std::error::Error + Into<Status>>
         }
     }
 }
+
+impl<L: std::error::Error, R: std::error::Error> DistributedCallbackError<L, R> {
+    pub fn map_local<LL: std::error::Error>(
+        self,
+        f: impl FnOnce(L) -> LL,
+    ) -> DistributedCallbackError<LL, R> {
+        match self {
+            Self::RemoteError(error) => DistributedCallbackError::RemoteError(error),
+            Self::LocalError(error) => DistributedCallbackError::LocalError(f(error)),
+            Self::RemoteClientNotFound(client_name) => {
+                DistributedCallbackError::RemoteClientNotFound(client_name)
+            }
+        }
+    }
+
+    pub fn map_remote<RR: std::error::Error>(
+        self,
+        f: impl FnOnce(R) -> RR,
+    ) -> DistributedCallbackError<L, RR> {
+        match self {
+            Self::RemoteError(error) => DistributedCallbackError::RemoteError(f(error)),
+            Self::LocalError(error) => DistributedCallbackError::LocalError(error),
+            Self::RemoteClientNotFound(client_name) => {
+                DistributedCallbackError::RemoteClientNotFound(client_name)
+            }
+        }
+    }
+}
