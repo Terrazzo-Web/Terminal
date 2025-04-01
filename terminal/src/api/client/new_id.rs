@@ -15,7 +15,7 @@ use crate::api::client_address::ClientAddress;
 pub async fn new_id(address: ClientAddress) -> Result<TerminalDef, NewIdError> {
     let response: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/{NEW_ID}"),
+        &format!("{BASE_URL}/{NEW_ID}"),
         set_json_body(&address)?,
     )
     .await?;

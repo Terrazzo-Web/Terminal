@@ -32,7 +32,7 @@ pub async fn pipe(correlation_id: &str) -> Result<oneshot::Sender<()>, PipeError
         info!("Start");
         let response = send_request(
             Method::POST,
-            format!("{BASE_URL}/stream/{PIPE}"),
+            &format!("{BASE_URL}/stream/{PIPE}"),
             set_headers(set_correlation_id(correlation_id)),
         )
         .await?;
@@ -141,7 +141,7 @@ pub async fn close_pipe(correlation_id: String) {
         defer!(debug!("End"));
         let _response = send_request(
             Method::POST,
-            format!("{BASE_URL}/stream/{PIPE}/close"),
+            &format!("{BASE_URL}/stream/{PIPE}/close"),
             set_headers(set_correlation_id(correlation_id.as_str())),
         )
         .await

@@ -15,7 +15,7 @@ use crate::api::client::request::set_json_body;
 pub async fn register(request: RegisterTerminalRequest) -> Result<(), RegisterError> {
     let _: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/stream/{REGISTER}"),
+        &format!("{BASE_URL}/stream/{REGISTER}"),
         set_json_body(&request)?,
     )
     .await?;

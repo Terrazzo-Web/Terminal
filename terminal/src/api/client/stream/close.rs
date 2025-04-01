@@ -26,7 +26,7 @@ pub async fn close(terminal: &TerminalAddress, correlation_id: Option<String>) {
     async move {
         let _: Response = send_request(
             Method::POST,
-            format!("{BASE_URL}/stream/{CLOSE}"),
+            &format!("{BASE_URL}/stream/{CLOSE}"),
             set_headers(set_correlation_id(correlation_id.as_deref()))
                 .then(set_json_body(terminal)?),
         )

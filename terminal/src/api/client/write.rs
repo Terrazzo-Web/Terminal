@@ -14,7 +14,7 @@ use crate::api::WriteRequest;
 pub async fn write(terminal: &TerminalAddress, data: String) -> Result<(), WriteError> {
     let _: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/{WRITE}"),
+        &format!("{BASE_URL}/{WRITE}"),
         set_json_body(&WriteRequest { terminal, data })?,
     )
     .await?;
