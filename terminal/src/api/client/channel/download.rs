@@ -23,26 +23,26 @@ use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
 
-pub async fn to_json_stream<O, F, FF>(
+pub async fn get_download_stream<O, F, FF>(
     url: &str,
     correlation_id: String,
     on_request: F,
-) -> Result<impl Stream<Item = Result<O, JsonStreamError>> + use<O, F, FF>, DownloadError>
+) -> Result<impl Stream<Item = Result<O, DownloadItemError>> + use<O, F, FF>, DownloadError>
 where
     O: for<'t> Deserialize<'t>,
     F: Fn() -> FF,
     FF: FnOnce(&RequestInit),
 {
-    let response = open_download(url, &correlation_id, on_request).await?;
+    let response = download_request(url, &correlation_id, on_request).await?;
     let body = response.body().ok_or(DownloadError::MissingResponseBody)?;
     let stream = wasm_streams::ReadableStream::from_raw(body).into_stream();
-    let stream = stream.scan(JsonStreamState::default(), |state, chunk| {
+    let stream = stream.scan(DownloadStreamState::default(), |state, chunk| {
         ready(process_chunks(state, chunk))
     });
     return Ok(stream.flatten());
 }
 
-async fn open_download<F, FF>(
+async fn download_request<F, FF>(
     url: &str,
     correlation_id: &str,
     on_request: F,
@@ -85,24 +85,24 @@ where
 }
 
 fn process_chunks<O: for<'t> Deserialize<'t>>(
-    state: &mut JsonStreamState,
+    state: &mut DownloadStreamState,
     chunk: Result<JsValue, JsValue>,
-) -> Option<impl Stream<Item = Result<O, JsonStreamError>> + use<O>> {
+) -> Option<impl Stream<Item = Result<O, DownloadItemError>> + use<O>> {
     let buffer = match state {
-        JsonStreamState::EOS => return None,
-        JsonStreamState::Buffer(buffer) => buffer,
+        DownloadStreamState::EOS => return None,
+        DownloadStreamState::Buffer(buffer) => buffer,
     };
 
     let chunk = match chunk {
         Ok(chunk) => chunk,
         Err(error) => {
-            *state = JsonStreamState::EOS;
-            return Some(once(ready(Err(JsonStreamError::Error(error)))).left_stream());
+            *state = DownloadStreamState::EOS;
+            return Some(once(ready(Err(DownloadItemError::Error(error)))).left_stream());
         }
     };
 
     let Some(chunk) = chunk.dyn_ref::<Uint8Array>() else {
-        return Some(once(ready(Err(JsonStreamError::BadChunk(chunk)))).left_stream());
+        return Some(once(ready(Err(DownloadItemError::BadChunk(chunk)))).left_stream());
     };
 
     let old_len = buffer.len();
@@ -115,7 +115,7 @@ fn process_chunks<O: for<'t> Deserialize<'t>>(
 
 fn process_chunk<O: for<'t> Deserialize<'t>>(
     buffer: &mut Vec<u8>,
-) -> impl Iterator<Item = Result<O, JsonStreamError>> + use<O> {
+) -> impl Iterator<Item = Result<O, DownloadItemError>> + use<O> {
     let mut consumed = 0;
     let mut objects = vec![];
     for chunk in buffer.split_inclusive(|c| *c == NEWLINE) {
@@ -128,16 +128,16 @@ fn process_chunk<O: for<'t> Deserialize<'t>>(
     return objects.into_iter();
 }
 
-fn parse_chunk<O: for<'t> Deserialize<'t>>(chunk: &[u8]) -> Result<O, JsonStreamError> {
+fn parse_chunk<O: for<'t> Deserialize<'t>>(chunk: &[u8]) -> Result<O, DownloadItemError> {
     Ok(serde_json::from_slice(chunk)?)
 }
 
-enum JsonStreamState {
+enum DownloadStreamState {
     EOS,
     Buffer(Vec<u8>),
 }
 
-impl Default for JsonStreamState {
+impl Default for DownloadStreamState {
     fn default() -> Self {
         Self::Buffer(vec![])
     }
@@ -145,7 +145,7 @@ impl Default for JsonStreamState {
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-pub enum JsonStreamError {
+pub enum DownloadItemError {
     #[error("[{n}] JSON Stream failed with: {0:?}", n = self.name())]
     Error(JsValue),
 

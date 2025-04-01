@@ -2,31 +2,33 @@ use std::marker::PhantomData;
 
 use futures::Sink;
 use futures::Stream;
-use json_stream::DownloadError;
-use json_stream::JsonStreamError;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use serde::Deserialize;
+use serde::Serialize;
 use web_sys::RequestInit;
 
-use self::json_sink::to_json_sink;
-use self::json_stream::to_json_stream;
+use self::download::DownloadError;
+use self::download::get_download_stream;
+use self::upload::into_upload_stream;
 
-pub mod json_sink;
-pub mod json_stream;
+pub mod download;
+pub mod upload;
 
 #[allow(unused)]
 pub async fn open_channel<I, O, F, FF>(
     url: String,
-    on_request: F,
+    on_upload_request: impl FnOnce(&RequestInit),
+    on_download_request: F,
 ) -> Result<impl WebChannel<Input = I, Output = O>, WebChannelError>
 where
+    I: Serialize,
     O: for<'t> Deserialize<'t>,
     F: Fn() -> FF,
     FF: FnOnce(&RequestInit),
 {
-    let (correlation_id, input) = to_json_sink::<I>();
-    let output = to_json_stream(&url, correlation_id, on_request).await?;
+    let (correlation_id, input) = into_upload_stream::<I>(&url, None.unwrap()).await;
+    let output = get_download_stream(&url, correlation_id, on_download_request).await?;
     Ok(WebChannelImpl {
         _phantom: PhantomData,
         input,
@@ -43,7 +45,7 @@ pub trait WebChannel: Sized {
         self,
     ) -> (
         impl Sink<Self::Input, Error = std::io::Error>,
-        impl Stream<Item = Result<Self::Output, JsonStreamError>>,
+        impl Stream<Item = Result<Self::Output, DownloadError>>,
     );
 }
 
@@ -53,7 +55,7 @@ struct WebChannelImpl<I, IS: Sink<I, Error = std::io::Error>, OS: Stream> {
     output: OS,
 }
 
-impl<I, IS: Sink<I, Error = std::io::Error>, O, OS: Stream<Item = Result<O, JsonStreamError>>>
+impl<I, IS: Sink<I, Error = std::io::Error>, O, OS: Stream<Item = Result<O, DownloadError>>>
     WebChannel for WebChannelImpl<I, IS, OS>
 {
     type Input = I;
@@ -63,7 +65,7 @@ impl<I, IS: Sink<I, Error = std::io::Error>, O, OS: Stream<Item = Result<O, Json
         self,
     ) -> (
         impl Sink<Self::Input, Error = std::io::Error>,
-        impl Stream<Item = Result<Self::Output, JsonStreamError>>,
+        impl Stream<Item = Result<Self::Output, DownloadError>>,
     ) {
         (self.input, self.output)
     }
