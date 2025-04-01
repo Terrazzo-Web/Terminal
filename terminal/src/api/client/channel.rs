@@ -19,20 +19,21 @@ use super::request::send_request;
 pub mod json_sink;
 pub mod json_stream;
 
-pub async fn open_channel<I, O: for<'t> Deserialize<'t>>(
+pub async fn open_channel<I, O, F, FF>(
     url: String,
-    on_request: impl FnOnce(&RequestInit),
-) -> Result<impl WebChannel<Input = I, Output = O>, WebChannelError> {
-    let response = send_request(Method::POST, url, on_request)
-        .await
-        .map_err(WebChannelError::SendRequestError)?;
-    let body = response
-        .body()
-        .ok_or(WebChannelError::MissingResponseBody)?;
+    on_request: F,
+) -> Result<impl WebChannel<Input = I, Output = O>, WebChannelError>
+where
+    O: for<'t> Deserialize<'t>,
+    F: Fn() -> FF,
+    FF: FnOnce(&RequestInit),
+{
+    let (correlation_id, input) = to_json_sink::<I>();
+    let output = to_json_stream(&url, correlation_id, on_request).await?;
     Ok(WebChannelImpl {
         _phantom: PhantomData,
-        input: to_json_sink::<I>(),
-        output: to_json_stream(body),
+        input,
+        output,
     })
 }
 
@@ -73,6 +74,9 @@ impl<I, IS: Sink<I, Error = std::io::Error>, O, OS: Stream<Item = Result<O, Json
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum WebChannelError {
+    #[error("[{n}] Unknown error", n = self.name())]
+    Unknown,
+
     #[error("[{n}] Failed to open JSON stream: {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 
