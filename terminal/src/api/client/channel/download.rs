@@ -1,9 +1,11 @@
 use std::future::ready;
+use std::rc::Rc;
 use std::time::Duration;
 
 use futures::Stream;
 use futures::StreamExt as _;
 use futures::channel::oneshot;
+use futures::future::Either;
 use futures::stream::once;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -12,7 +14,9 @@ use terrazzo::prelude::Closure;
 use tracing::debug;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
+use wasm_bindgen_futures::spawn_local;
 use web_sys::RequestInit;
+use web_sys::Response;
 use web_sys::js_sys::Uint8Array;
 
 use crate::api::NEWLINE;
@@ -23,23 +27,36 @@ use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
 
-pub async fn get_download_stream<O, F, FF>(
+pub async fn get_download_stream<I, F, FF>(
     url: &str,
     correlation_id: String,
     on_request: F,
-) -> Result<impl Stream<Item = Result<O, DownloadItemError>> + use<O, F, FF>, DownloadError>
+    shutdown: oneshot::Receiver<Result<Response, Rc<SendRequestError>>>,
+) -> Result<impl Stream<Item = Result<I, DownloadItemError>> + use<I, F, FF>, DownloadError>
 where
-    O: for<'t> Deserialize<'t>,
+    I: for<'t> Deserialize<'t>,
     F: Fn() -> FF,
     FF: FnOnce(&RequestInit),
 {
-    let response = download_request(url, &correlation_id, on_request).await?;
+    let response = Box::pin(download_request(url, &correlation_id, on_request));
+    let response = futures::future::select(response, shutdown);
+    let (response, shutdown) = match response.await {
+        Either::Left((response, shutdown)) => (response?, shutdown),
+        Either::Right((_response, _shutdown)) => todo!(),
+    };
+    let _ = Clone::clone(&response);
     let body = response.body().ok_or(DownloadError::MissingResponseBody)?;
     let stream = wasm_streams::ReadableStream::from_raw(body).into_stream();
     let stream = stream.scan(DownloadStreamState::default(), |state, chunk| {
         ready(process_chunks(state, chunk))
     });
-    return Ok(stream.flatten());
+    let stream = stream.flatten();
+    let (stream, abort) = futures::stream::abortable(stream);
+    spawn_local(async move {
+        let _shutdown = shutdown.await;
+        abort.abort();
+    });
+    return Ok(stream);
 }
 
 async fn download_request<F, FF>(
@@ -84,10 +101,10 @@ where
     return Err(last_error);
 }
 
-fn process_chunks<O: for<'t> Deserialize<'t>>(
+fn process_chunks<I: for<'t> Deserialize<'t>>(
     state: &mut DownloadStreamState,
     chunk: Result<JsValue, JsValue>,
-) -> Option<impl Stream<Item = Result<O, DownloadItemError>> + use<O>> {
+) -> Option<impl Stream<Item = Result<I, DownloadItemError>> + use<I>> {
     let buffer = match state {
         DownloadStreamState::EOS => return None,
         DownloadStreamState::Buffer(buffer) => buffer,
@@ -113,9 +130,9 @@ fn process_chunks<O: for<'t> Deserialize<'t>>(
     return Some(futures::stream::iter(process_chunk(buffer)).right_stream());
 }
 
-fn process_chunk<O: for<'t> Deserialize<'t>>(
+fn process_chunk<I: for<'t> Deserialize<'t>>(
     buffer: &mut Vec<u8>,
-) -> impl Iterator<Item = Result<O, DownloadItemError>> + use<O> {
+) -> impl Iterator<Item = Result<I, DownloadItemError>> + use<I> {
     let mut consumed = 0;
     let mut objects = vec![];
     for chunk in buffer.split_inclusive(|c| *c == NEWLINE) {
@@ -128,7 +145,7 @@ fn process_chunk<O: for<'t> Deserialize<'t>>(
     return objects.into_iter();
 }
 
-fn parse_chunk<O: for<'t> Deserialize<'t>>(chunk: &[u8]) -> Result<O, DownloadItemError> {
+fn parse_chunk<I: for<'t> Deserialize<'t>>(chunk: &[u8]) -> Result<I, DownloadItemError> {
     Ok(serde_json::from_slice(chunk)?)
 }
 
