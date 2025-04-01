@@ -1,9 +1,8 @@
-#![allow(unused)]
-
 use std::marker::PhantomData;
 
 use futures::Sink;
 use futures::Stream;
+use json_stream::DownloadError;
 use json_stream::JsonStreamError;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -12,13 +11,11 @@ use web_sys::RequestInit;
 
 use self::json_sink::to_json_sink;
 use self::json_stream::to_json_stream;
-use super::request::Method;
-use super::request::SendRequestError;
-use super::request::send_request;
 
 pub mod json_sink;
 pub mod json_stream;
 
+#[allow(unused)]
 pub async fn open_channel<I, O, F, FF>(
     url: String,
     on_request: F,
@@ -37,6 +34,7 @@ where
     })
 }
 
+#[allow(unused)]
 pub trait WebChannel: Sized {
     type Input;
     type Output;
@@ -74,12 +72,6 @@ impl<I, IS: Sink<I, Error = std::io::Error>, O, OS: Stream<Item = Result<O, Json
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum WebChannelError {
-    #[error("[{n}] Unknown error", n = self.name())]
-    Unknown,
-
-    #[error("[{n}] Failed to open JSON stream: {0}", n = self.name())]
-    SendRequestError(#[from] SendRequestError),
-
-    #[error("[{n}] There is no response body", n = self.name())]
-    MissingResponseBody,
+    #[error("[{n}] {0}", n = self.name())]
+    Download(#[from] DownloadError),
 }

@@ -1,5 +1,4 @@
 use futures::Sink;
-use terrazzo::prelude::OrElseLog as _;
 use web_sys::js_sys;
 
 pub fn to_json_sink<I>() -> (String, impl Sink<I, Error = std::io::Error>) {
