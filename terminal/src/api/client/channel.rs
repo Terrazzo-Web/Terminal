@@ -7,6 +7,7 @@ use futures::Stream;
 use json_stream::JsonStreamError;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use serde::Deserialize;
 use web_sys::RequestInit;
 
 use self::json_sink::to_json_sink;
@@ -18,7 +19,7 @@ use super::request::send_request;
 pub mod json_sink;
 pub mod json_stream;
 
-pub async fn open_channel<I, O: 'static>(
+pub async fn open_channel<I, O: for<'t> Deserialize<'t>>(
     url: String,
     on_request: impl FnOnce(&RequestInit),
 ) -> Result<impl WebChannel<Input = I, Output = O>, WebChannelError> {

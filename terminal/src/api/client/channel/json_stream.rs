@@ -7,13 +7,14 @@ use futures::future;
 use futures::stream::once;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use serde::Deserialize;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use web_sys::js_sys::Uint8Array;
 
 use crate::api::NEWLINE;
 
-pub fn to_json_stream<O>(
+pub fn to_json_stream<O: for<'t> Deserialize<'t>>(
     body: web_sys::ReadableStream,
 ) -> impl Stream<Item = Result<O, JsonStreamError>> {
     let stream = wasm_streams::ReadableStream::from_raw(body).into_stream();
@@ -23,7 +24,7 @@ pub fn to_json_stream<O>(
     return stream.flatten();
 }
 
-fn process_chunks<O>(
+fn process_chunks<O: for<'t> Deserialize<'t>>(
     state: &mut JsonStreamState,
     chunk: Result<JsValue, JsValue>,
 ) -> Option<impl Stream<Item = Result<O, JsonStreamError>> + use<O>> {
@@ -52,7 +53,7 @@ fn process_chunks<O>(
     return Some(futures::stream::iter(process_chunk(buffer)).right_stream());
 }
 
-fn process_chunk<O>(
+fn process_chunk<O: for<'t> Deserialize<'t>>(
     buffer: &mut Vec<u8>,
 ) -> impl Iterator<Item = Result<O, JsonStreamError>> + use<O> {
     let mut consumed = 0;
@@ -67,8 +68,8 @@ fn process_chunk<O>(
     return objects.into_iter();
 }
 
-fn parse_chunk<O>(_chunk: &[u8]) -> Result<O, JsonStreamError> {
-    todo!()
+fn parse_chunk<O: for<'t> Deserialize<'t>>(chunk: &[u8]) -> Result<O, JsonStreamError> {
+    Ok(serde_json::from_slice(chunk)?)
 }
 
 enum JsonStreamState {
@@ -90,4 +91,7 @@ pub enum JsonStreamError {
 
     #[error("[{n}] Chunk is not a string: {0:?}", n = self.name())]
     BadChunk(JsValue),
+
+    #[error("[{n}] {0}", n = self.name())]
+    Json(#[from] serde_json::Error),
 }
