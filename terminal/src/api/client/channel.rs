@@ -27,9 +27,23 @@ where
     F: Fn() -> FF,
     FF: FnOnce(&RequestInit),
 {
-    let (shutdown_tx, shutdown_rx) = oneshot::channel();
-    let correlation_id = into_upload_stream::<O>(url, on_upload_request, upload, shutdown_tx);
-    Ok(get_download_stream(url, correlation_id, on_download_request, shutdown_rx).await?)
+    let (end_of_upload_tx, end_of_upload_rx) = oneshot::channel();
+    let (end_of_download_tx, end_of_download_rx) = oneshot::channel();
+    let correlation_id = into_upload_stream::<O>(
+        url,
+        on_upload_request,
+        upload,
+        end_of_upload_tx,
+        end_of_download_rx,
+    );
+    Ok(get_download_stream(
+        url,
+        correlation_id,
+        on_download_request,
+        end_of_upload_rx,
+        end_of_download_tx,
+    )
+    .await?)
 }
 
 #[nameth]
