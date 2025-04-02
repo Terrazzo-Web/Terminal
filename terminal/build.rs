@@ -8,6 +8,7 @@ const SERVER_FEATURE: &str = "CARGO_FEATURE_SERVER";
 const CLIENT_FEATURE: &str = "CARGO_FEATURE_CLIENT";
 const MAX_LEVEL_INFO: &str = "CARGO_FEATURE_MAX_LEVEL_INFO";
 const MAX_LEVEL_DEBUG: &str = "CARGO_FEATURE_MAX_LEVEL_DEBUG";
+const NO_WASM_BUILD: &str = "CARGO_FEATURE_NO_WASM_BUILD";
 
 fn main() {
     build_client();
@@ -15,6 +16,10 @@ fn main() {
 }
 
 fn build_client() {
+    if env::var(NO_WASM_BUILD).is_ok() {
+        return;
+    }
+
     if env::var("DOCS_RS") != Err(env::VarError::NotPresent) {
         return;
     }

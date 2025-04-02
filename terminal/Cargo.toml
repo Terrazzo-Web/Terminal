@@ -112,6 +112,7 @@ max_level_info = [
     "concise_traces",
 ]
 concise_traces = ["terrazzo/concise_traces"]
+no_wasm_build = []
 
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo-terminal.scss"
