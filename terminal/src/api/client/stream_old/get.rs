@@ -13,13 +13,13 @@ use tracing::info_span;
 use web_sys::js_sys::Math;
 
 use super::DISPATCHERS;
+use super::ShutdownPipe;
 use super::StreamDispatchers;
 use super::pipe::PipeError;
 use super::pipe::pipe;
 use super::register::RegisterError;
 use super::register::register;
 use crate::api::RegisterTerminalRequest;
-use crate::api::client::stream::ShutdownPipe;
 use crate::terminal_id::TerminalId;
 
 pub async fn get(request: RegisterTerminalRequest) -> Result<StreamReader, RegisterError> {
