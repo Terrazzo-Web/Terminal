@@ -1,5 +1,4 @@
 use std::future::ready;
-use std::rc::Rc;
 use std::time::Duration;
 
 use futures::Stream;
@@ -12,8 +11,6 @@ use nameth::nameth;
 use serde::Deserialize;
 use terrazzo::prelude::Closure;
 use tracing::debug;
-use tracing::info;
-use tracing::warn;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use web_sys::RequestInit;
@@ -32,7 +29,7 @@ pub async fn get_download_stream<I, F, FF>(
     url: &str,
     correlation_id: String,
     on_request: F,
-    end_of_upload: oneshot::Receiver<Result<(), Rc<UploadError>>>,
+    end_of_upload: oneshot::Receiver<Result<(), UploadError>>,
     end_of_download: oneshot::Sender<()>,
 ) -> Result<impl Stream<Item = Result<I, DownloadItemError>> + use<I, F, FF>, DownloadError>
 where
@@ -40,21 +37,19 @@ where
     F: Fn() -> FF,
     FF: FnOnce(&RequestInit),
 {
-    let end_of_upload = Box::pin(async move {
-        match end_of_upload.await {
-            Ok(Ok(())) => info!("Upload EOS"),
-            Ok(Err(error)) => warn!("Upload failed: {error}"),
-            Err(oneshot::Canceled) => warn!("Upload canceled"),
-        }
-    });
     let response = Box::pin(download_request(url, &correlation_id, on_request));
     let response = futures::future::select(response, end_of_upload);
     let (response, end_of_upload) = match response.await {
         Either::Left((response, end_of_upload)) => (response?, end_of_upload),
-        Either::Right(((), _response)) => {
-            debug!("Failed to start upload");
+        Either::Right((end_of_upload, _response)) => {
+            debug!("Failed to start upload: {end_of_upload:?}");
+            let error = match end_of_upload {
+                Ok(Ok(())) => UploadError::EOS,
+                Ok(Err(error)) => error,
+                Err(oneshot::Canceled) => UploadError::Canceled,
+            };
             let _ = end_of_download.send(());
-            return Err(DownloadError::UploadStart);
+            return Err(DownloadError::Upload(error));
         }
     };
     let body = response.body().ok_or(DownloadError::MissingResponseBody)?;
@@ -92,7 +87,7 @@ where
         };
         match &error {
             SendRequestError::Message { message } if message == "Unknown channel ID" => (),
-            _ => return Err(error.into()),
+            _ => return Err(DownloadError::SendRequestError(error)),
         }
         debug!("Failed to open channel, retrying...: {error}");
         last_error = Some(error);
@@ -112,7 +107,9 @@ where
         drop(handler);
         retry_delay = 2 * retry_delay;
     }
-    return Err(last_error.map(DownloadError::from).unwrap_or_default());
+    return Err(last_error
+        .map(DownloadError::SendRequestError)
+        .unwrap_or_default());
 }
 
 fn process_chunks<I: for<'t> Deserialize<'t>>(
@@ -190,19 +187,19 @@ pub enum DownloadItemError {
 #[nameth]
 #[derive(thiserror::Error, Debug, Default)]
 pub enum DownloadError {
+    #[error("[{n}] Failed to open JSON stream: {0}", n = self.name())]
+    SendRequestError(SendRequestError),
+
     #[error("[{n}] Unknown error", n = self.name())]
     #[default]
     Unknown,
-
-    #[error("[{n}] Failed to start upload stream", n = self.name())]
-    UploadStart,
-
-    #[error("[{n}] Failed to open JSON stream: {0}", n = self.name())]
-    SendRequestError(#[from] SendRequestError),
 
     #[error("[{n}] There is no response body", n = self.name())]
     MissingResponseBody,
 
     #[error("[{n}] Failed to set the timer for retry: {0:?}", n = self.name())]
     RetryTimer(JsValue),
+
+    #[error("[{n}] Failed to start upload stream: {0}", n = self.name())]
+    Upload(UploadError),
 }

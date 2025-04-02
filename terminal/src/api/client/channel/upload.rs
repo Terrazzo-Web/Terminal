@@ -28,7 +28,7 @@ pub fn into_upload_stream<O: Serialize>(
     url: &str,
     on_request: impl FnOnce(&RequestInit) + 'static,
     upload: impl Stream<Item = O> + 'static,
-    end_of_upload: oneshot::Sender<Result<(), Rc<UploadError>>>,
+    end_of_upload: oneshot::Sender<Result<(), UploadError>>,
     end_of_download: oneshot::Receiver<()>,
 ) -> String {
     let correlation_id = format!("X{}", js_sys::Math::random());
@@ -58,7 +58,7 @@ pub fn into_upload_stream<O: Serialize>(
             set_request_body(upload, end_of_upload.clone()).then(on_request),
         )
         .await;
-        let response = response.map_err(UploadError::from).map_err(Rc::new);
+        let response = response.map_err(Rc::new).map_err(UploadError::Request);
         let response = response.map(|response| {
             info!("Response: {} {}", response.status(), response.status_text());
         });
@@ -70,7 +70,7 @@ pub fn into_upload_stream<O: Serialize>(
 
 fn set_request_body<O: Serialize>(
     upload: impl Stream<Item = O> + 'static,
-    end_of_upload: impl Fn(Result<(), Rc<UploadError>>) + 'static,
+    end_of_upload: impl Fn(Result<(), UploadError>) + 'static,
 ) -> impl FnOnce(&RequestInit) {
     let stream = into_request_stream(upload, end_of_upload);
     move |request| request.set_body(&stream.into_raw())
@@ -78,7 +78,7 @@ fn set_request_body<O: Serialize>(
 
 fn into_request_stream<O: Serialize>(
     stream: impl Stream<Item = O> + 'static,
-    end_of_upload: impl Fn(Result<(), Rc<UploadError>>) + 'static,
+    end_of_upload: impl Fn(Result<(), UploadError>) + 'static,
 ) -> ReadableStream {
     let stream = stream
         .map(|item| {
@@ -92,7 +92,7 @@ fn into_request_stream<O: Serialize>(
         .map(move |chunk| match chunk {
             Ok(chunk) => Ok(chunk),
             Err(error) => {
-                end_of_upload(Err(Rc::new(error.into())));
+                end_of_upload(Err(UploadError::Json(error.into())));
                 Err(JsValue::undefined())
             }
         })
@@ -102,11 +102,17 @@ fn into_request_stream<O: Serialize>(
 }
 
 #[nameth]
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum UploadError {
     #[error("[{n}] Failed to open JSON stream: {0}", n = self.name())]
-    SendRequestError(#[from] SendRequestError),
+    Request(Rc<SendRequestError>),
 
     #[error("[{n}] {0}", n = self.name())]
-    Json(#[from] serde_json::Error),
+    Json(Rc<serde_json::Error>),
+
+    #[error("[{n}] Upload stream finished", n = self.name())]
+    EOS,
+
+    #[error("[{n}] Upload stream canceled", n = self.name())]
+    Canceled,
 }
