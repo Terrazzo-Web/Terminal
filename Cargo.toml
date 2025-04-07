@@ -33,7 +33,7 @@ async-trait = { version = "0.1.88" }
 autoclone = { version = "0.1.7" }
 axum = { version = "0.8.3" }
 bytes = { version = "1.10.1" }
-clap = { version = "4.5.34", features = ["derive"] }
+clap = { version = "4.5.35", features = ["derive"] }
 darling = { version = "0.20.11" }
 dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
@@ -45,14 +45,14 @@ mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.7" }
 nix = { version = "0.29.0" }
-openssl = { version = "0.10.71" }
+openssl = { version = "0.10.72" }
 pin-project = { version = "1.1.10" }
-prettyplease = { version = "0.2.31" }
+prettyplease = { version = "0.2.32" }
 proc-macro2 = { version = "1.0.94" }
 quote = { version = "1.0.40" }
 reqwest-wasm = { version = "0.11.16" }
 rsass-macros = { version = "0.29.0" }
-rustix = { version = "1.0.3" }
+rustix = { version = "1.0.5" }
 scopeguard = { version = "1.2.0" }
 serde = { version = "1.0.219", features = ["derive", "rc"] }
 serde_json = { version = "1.0.140" }
@@ -62,7 +62,7 @@ syn = { version = "2.0.100" }
 terrazzo = { version = "0.1.7", default-features = false }
 terrazzo-build = { version = "0.1.7" }
 thiserror = { version = "2.0.12" }
-tokio = { version = "1.44.1" }
+tokio = { version = "1.44.2" }
 tokio-util = { version = "0.7.14" }
 tonic = { version = "0.13.0" }
 tonic-build = { version = "0.13.0" }
