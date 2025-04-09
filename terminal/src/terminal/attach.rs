@@ -1,3 +1,5 @@
+#![allow(unused)] // TODO
+
 use std::future::ready;
 
 use futures::FutureExt as _;
@@ -68,7 +70,7 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
         let _on_data = on_data;
         let _on_resize = on_resize;
         let _on_title_change = on_title_change;
-        let stream_loop = xtermjs.stream_loop(state, terminal_def, element);
+        let stream_loop = async { todo!() };
         let write_loop = write_loop(&terminal, input_rx);
         let unsubscribe_resize_event = ResizeEvent::signal().add_subscriber({
             let xtermjs = xtermjs.clone();
@@ -156,14 +158,8 @@ impl TerminalJs {
     ) {
         async {
             debug!("Start");
-            let on_init = || {
-                self.fit();
-                ready(())
-            };
-            let eos = api::client::stream::stream(state, terminal_def, element, on_init, |data| {
-                self.send(data)
-            })
-            .await;
+            self.fit();
+            let eos = api::client::stream::stream(terminal_def, |data| self.send(data)).await;
             match eos {
                 Ok(()) => info!("End"),
                 Err(error) => warn!("Failed: {error}"),

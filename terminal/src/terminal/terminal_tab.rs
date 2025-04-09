@@ -144,8 +144,7 @@ impl TabDescriptor for TerminalTab {
                 ev.stop_propagation();
                 wasm_bindgen_futures::spawn_local(async move {
                     autoclone!(terminal);
-                    api::client::stream::try_restart_pipe();
-                    api::client::stream::close(&terminal, None).await;
+                    api::client::stream::close(&terminal).await;
                 });
             },
         );
