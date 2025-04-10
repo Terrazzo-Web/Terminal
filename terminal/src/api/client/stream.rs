@@ -1,37 +1,18 @@
-#![allow(unused)]
-
 use std::collections::HashMap;
-use std::hash::Hash;
-use std::ops::Deref;
-use std::ops::DerefMut;
-use std::rc::Rc;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 
-use futures::Sink;
-use futures::SinkExt;
-use futures::Stream;
 use futures::StreamExt;
 use futures::channel::mpsc;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use scopeguard::defer;
-use tracing::warn;
 use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::spawn_local;
-use web_sys::Element;
 use web_sys::js_sys::Uint8Array;
 
 use super::channel::WebChannelError;
-use super::channel::download::DownloadItemError;
-use super::channel::upload;
-use super::request::BASE_URL;
-use crate::api::Chunk;
 use crate::api::TerminalAddress;
 use crate::api::TerminalDef;
 use crate::api::WriteRequest;
-use crate::api::client::channel::download::get_download_stream;
-use crate::terminal::TerminalsState;
 use crate::terminal_id::TerminalId;
 
 mod init;

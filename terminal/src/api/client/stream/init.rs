@@ -29,7 +29,7 @@ impl Dispatchers {
             }
         }
 
-        let mut inner = {
+        let inner = {
             // The channel is not connected: open it.
             let (upload, download) = open().await?;
             spawn_local(dispatch_download(self, download));
@@ -43,7 +43,7 @@ impl Dispatchers {
             // Return current dispatchers if available
             let mut lock = self.lock();
             if lock.is_some() {
-                return Err(WebChannelError::Race);
+                return Err(WebChannelError::Conflict);
             }
             *lock = Some(inner);
             return Ok(DispatchersLock::new(lock));
@@ -83,8 +83,7 @@ async fn dispatch_download(
             Err(error) => return warn!("Stream failed: {error}"),
         };
 
-        let Some(mut terminal) =
-            get_terminal_download(dispatchers, &mut download_cache, &terminal_id)
+        let Some(terminal) = get_terminal_download(dispatchers, &mut download_cache, &terminal_id)
         else {
             continue;
         };
@@ -111,7 +110,7 @@ async fn dispatch_download(
 
 /// Get and cache a terminal's download channel.
 fn get_terminal_download<'t>(
-    dispatchers: &'static Dispatchers,
+    dispatchers: &Dispatchers,
     download_cache: &'t mut HashMap<TerminalId, mpsc::Sender<Vec<u8>>>,
     terminal_id: &TerminalId,
 ) -> Option<&'t mut mpsc::Sender<Vec<u8>>> {
@@ -131,7 +130,7 @@ fn get_terminal_download<'t>(
 
 /// Close a terminal's download channel.
 fn close_terminal_download<'t>(
-    dispatchers: &'static Dispatchers,
+    dispatchers: &Dispatchers,
     download_cache: &'t mut HashMap<TerminalId, mpsc::Sender<Vec<u8>>>,
     terminal_id: &TerminalId,
 ) {

@@ -58,5 +58,5 @@ pub enum WebChannelError {
     Download(#[from] DownloadError),
 
     #[error("[{n}] The channel was opened twice", n = self.name())]
-    Race,
+    Conflict,
 }
