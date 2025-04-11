@@ -2,7 +2,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::sync::MutexGuard;
 
-use super::DispatchersInner;
+use super::dispatcher::DispatchersInner;
 
 pub struct DispatchersLock<'t>(MutexGuard<'t, Option<DispatchersInner>>);
 

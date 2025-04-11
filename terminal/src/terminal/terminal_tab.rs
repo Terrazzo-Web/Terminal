@@ -144,7 +144,7 @@ impl TabDescriptor for TerminalTab {
                 ev.stop_propagation();
                 wasm_bindgen_futures::spawn_local(async move {
                     autoclone!(terminal);
-                    api::client::stream::close(&terminal).await;
+                    api::client::stream::close::close(&terminal).await;
                 });
             },
         );
@@ -153,12 +153,11 @@ impl TabDescriptor for TerminalTab {
     }
 
     #[html]
-    fn item(&self, state: &TerminalsState) -> impl Into<XNode> {
+    fn item(&self) -> impl Into<XNode> {
         let this = self.clone();
-        let state = state.clone();
         div(
             class = style::terminal,
-            div(move |template| attach::attach(template, state.clone(), this.clone())),
+            div(move |template| attach::attach(template, this.clone())),
         )
     }
 

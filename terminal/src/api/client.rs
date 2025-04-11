@@ -14,6 +14,5 @@ pub mod set_title;
 pub mod stream;
 mod stream_old;
 pub mod terminals;
-pub mod write;
 
 pub type LiveTerminalDef = TerminalDefImpl<XSignal<TabTitle<XString>>>;

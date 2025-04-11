@@ -8,8 +8,8 @@ use scopeguard::defer;
 use tracing::warn;
 use wasm_bindgen_futures::spawn_local;
 
-use super::Dispatchers;
-use super::DispatchersInner;
+use super::dispatcher::Dispatchers;
+use super::dispatcher::DispatchersInner;
 use super::lock::DispatchersLock;
 use crate::api::Chunk;
 use crate::api::WriteRequest;
