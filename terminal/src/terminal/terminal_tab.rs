@@ -153,11 +153,12 @@ impl TabDescriptor for TerminalTab {
     }
 
     #[html]
-    fn item(&self) -> impl Into<XNode> {
+    fn item(&self, state: &TerminalsState) -> impl Into<XNode> {
         let this = self.clone();
+        let state = state.clone();
         div(
             class = style::terminal,
-            div(move |template| attach::attach(template, this.clone())),
+            div(move |template| attach::attach(template, this.clone(), state.clone())),
         )
     }
 
@@ -179,16 +180,6 @@ impl Deref for TerminalTabInner {
 
     fn deref(&self) -> &Self::Target {
         &self.def
-    }
-}
-
-impl TerminalTabInner {
-    pub fn to_terminal_def(&self) -> TerminalDef {
-        TerminalDef {
-            address: self.address.clone(),
-            title: self.title.get_value_untracked().map(|t| t.to_string()),
-            order: self.order,
-        }
     }
 }
 

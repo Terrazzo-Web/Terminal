@@ -1,3 +1,4 @@
+use scopeguard::defer;
 use scopeguard::guard;
 use terrazzo::prelude::*;
 use terrazzo::widgets::resize_event::ResizeEvent;
@@ -10,6 +11,7 @@ use tracing::info_span;
 use tracing::warn;
 use wasm_bindgen::JsValue;
 
+use super::TerminalsState;
 use super::javascript::TerminalJs;
 use super::terminal_tab::TerminalTab;
 use crate::api;
@@ -19,7 +21,7 @@ use crate::api::TerminalAddress;
 const XTERMJS_ATTR: &str = "data-xtermjs";
 const IS_ATTACHED: &str = "Y";
 
-pub fn attach(template: XTemplate, terminal_tab: TerminalTab) -> Consumers {
+pub fn attach(template: XTemplate, terminal_tab: TerminalTab, state: TerminalsState) -> Consumers {
     let terminal = terminal_tab.address.to_owned();
     let terminal_id = terminal.id.clone();
     let _span = info_span!("XTermJS", %terminal_id).entered();
@@ -55,7 +57,7 @@ pub fn attach(template: XTemplate, terminal_tab: TerminalTab) -> Consumers {
         let _on_data = on_data;
         let _on_resize = on_resize;
         let _on_title_change = on_title_change;
-        let read_loop = xtermjs.read_loop(&terminal);
+        let read_loop = xtermjs.read_loop(&terminal, state);
         let unsubscribe_resize_event = ResizeEvent::signal().add_subscriber({
             let xtermjs = xtermjs.clone();
             move |_| xtermjs.fit()
@@ -130,9 +132,10 @@ impl TerminalJs {
         return on_title_change;
     }
 
-    async fn read_loop(&self, terminal: &TerminalAddress) {
+    async fn read_loop(&self, terminal: &TerminalAddress, state: TerminalsState) {
         async {
             debug!("Start");
+            defer! { state.on_eos(&terminal.id); }
             self.fit();
             let eos = api::client::stream::read::read(terminal, |data| self.send(data)).await;
             match eos {

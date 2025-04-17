@@ -9,7 +9,7 @@ use super::dispatcher::DISPATCHERS;
 use crate::api::TerminalAddress;
 use crate::api::client::channel::WebChannelError;
 
-static DISPATCHER_BUFFER_SIZE: usize = 10;
+static DISPATCHER_BUFFER_SIZE: usize = 0;
 
 pub async fn read<F>(
     terminal: &TerminalAddress,
