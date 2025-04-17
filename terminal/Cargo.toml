@@ -27,7 +27,7 @@ futures = { workspace = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 openssl = { workspace = true, optional = true }
-pin-project = { workspace = true }
+pin-project = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
 prost-types = { workspace = true, optional = true }
 scopeguard = { workspace = true }
@@ -92,6 +92,7 @@ server = [
     "dep:dashmap",
     "dep:nix",
     "dep:openssl",
+    "dep:pin-project",
     "dep:prost-types",
     "dep:prost",
     "dep:terrazzo-pty",

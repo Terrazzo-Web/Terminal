@@ -12,7 +12,6 @@ pub mod resize;
 pub mod set_order;
 pub mod set_title;
 pub mod stream;
-mod stream_old;
 pub mod terminals;
 
 pub type LiveTerminalDef = TerminalDefImpl<XSignal<TabTitle<XString>>>;

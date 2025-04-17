@@ -14,7 +14,6 @@ use self::upload::into_upload_stream;
 pub mod download;
 pub mod upload;
 
-#[allow(unused)]
 pub async fn open_channel<I, O, FI, FO, FFO, SO>(
     url: &str,
     on_upload_request: FI,

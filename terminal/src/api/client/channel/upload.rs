@@ -23,7 +23,6 @@ use crate::api::client::request::SendRequestError;
 use crate::api::client::request::ThenRequest as _;
 use crate::api::client::request::send_request;
 
-#[allow(unused)]
 pub fn into_upload_stream<O: Serialize>(
     url: &str,
     on_request: impl FnOnce(&RequestInit) + 'static,
