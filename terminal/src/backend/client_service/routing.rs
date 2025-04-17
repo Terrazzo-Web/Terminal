@@ -1,3 +1,4 @@
+use futures::TryFutureExt;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::http::StatusCode;
@@ -7,6 +8,7 @@ use tonic::client::GrpcService;
 use tonic::codegen::Bytes;
 use tonic::codegen::StdError;
 use tonic::transport::Body;
+use tracing::warn;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
@@ -49,6 +51,7 @@ pub trait DistributedCallback {
                     .map_err(DistributedCallbackError::LocalError)?),
             }
         }
+        .inspect_err(|error| warn!("Failed: {error}"))
     }
 
     fn local(
