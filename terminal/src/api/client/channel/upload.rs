@@ -7,6 +7,7 @@ use futures::channel::oneshot;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use serde::Serialize;
+use terrazzo::autoclone;
 use tracing::Instrument;
 use tracing::info;
 use tracing::info_span;
@@ -22,7 +23,10 @@ use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::ThenRequest as _;
 use crate::api::client::request::send_request;
+use crate::api::client::request::set_correlation_id;
+use crate::api::client::request::set_headers;
 
+#[autoclone]
 pub fn into_upload_stream<O: Serialize>(
     url: &str,
     on_request: impl FnOnce(&RequestInit) + 'static,
@@ -51,10 +55,13 @@ pub fn into_upload_stream<O: Serialize>(
 
     let upload = upload.take_until(end_of_download);
     let upload_task = async move {
+        autoclone!(correlation_id);
         let response = send_request(
             Method::POST,
             &url,
-            set_request_body(upload, end_of_upload.clone()).then(on_request),
+            set_headers(set_correlation_id(correlation_id.as_str()))
+                .then(set_request_body(upload, end_of_upload.clone()))
+                .then(on_request),
         )
         .await;
         let response = response.map_err(Rc::new).map_err(UploadError::Request);
@@ -96,7 +103,6 @@ fn into_request_stream<O: Serialize>(
             }
         })
         .take_while(|chunk| ready(chunk.is_ok()));
-    let stream = stream;
     ReadableStream::from_stream(stream)
 }
 

@@ -31,7 +31,7 @@ impl Dispatchers {
 
         let inner = {
             // The channel is not connected: open it.
-            let (upload, download) = open().await?;
+            let (upload, download) = open_channel().await?;
             spawn_local(dispatch_download(self, download));
             DispatchersInner {
                 download: HashMap::default(),
@@ -40,7 +40,7 @@ impl Dispatchers {
         };
 
         {
-            // Return current dispatchers if available
+            // Return the new dispatchers
             let mut lock = self.lock();
             if lock.is_some() {
                 return Err(WebChannelError::Conflict);
@@ -52,7 +52,7 @@ impl Dispatchers {
 }
 
 /// Opens a full-duplex channel with the backend.
-async fn open() -> Result<
+async fn open_channel() -> Result<
     (
         mpsc::Sender<WriteRequest>,
         impl Stream<Item = Result<Chunk, DownloadItemError>> + Unpin,

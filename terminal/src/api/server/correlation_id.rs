@@ -10,7 +10,7 @@ use trz_gateway_common::http_error::IsHttpError;
 
 use crate::api::CORRELATION_ID;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CorrelationId(Arc<str>);
 
 /// [CorrelationId] can be provided as a header.
