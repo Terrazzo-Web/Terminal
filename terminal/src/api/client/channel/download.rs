@@ -10,7 +10,9 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use serde::Deserialize;
 use terrazzo::prelude::Closure;
+use tracing::Span;
 use tracing::debug;
+use tracing::warn;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use web_sys::RequestInit;
@@ -29,7 +31,7 @@ pub async fn get_download_stream<I, F, FF>(
     url: &str,
     correlation_id: String,
     on_request: F,
-    end_of_upload: oneshot::Receiver<Result<(), UploadError>>,
+    end_of_upload: oneshot::Receiver<UploadError>,
     end_of_download: oneshot::Sender<()>,
 ) -> Result<impl Stream<Item = Result<I, DownloadItemError>> + use<I, F, FF>, DownloadError>
 where
@@ -44,8 +46,7 @@ where
         Either::Right((end_of_upload, _response)) => {
             debug!("Failed to start upload: {end_of_upload:?}");
             let error = match end_of_upload {
-                Ok(Ok(())) => UploadError::EOS,
-                Ok(Err(error)) => error,
+                Ok(error) => error,
                 Err(oneshot::Canceled) => UploadError::Canceled,
             };
             let _ = end_of_download.send(());
@@ -59,9 +60,13 @@ where
     });
     let stream = stream.flatten().take_until(end_of_upload);
     let mut end_of_download = Some(end_of_download);
+    let span = Span::current();
     let stream = stream.chain(futures::stream::poll_fn(move |_cx| {
         if let Some(end_of_download) = end_of_download.take() {
-            let _ = end_of_download.send(());
+            if let Err(()) = end_of_download.send(()) {
+                let _span = span.enter();
+                warn!("Failed to notify end of download");
+            }
         }
         return std::task::Poll::Ready(None);
     }));

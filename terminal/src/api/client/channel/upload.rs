@@ -9,8 +9,10 @@ use nameth::nameth;
 use serde::Serialize;
 use terrazzo::autoclone;
 use tracing::Instrument;
+use tracing::Span;
 use tracing::info;
 use tracing::info_span;
+use tracing::warn;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use wasm_streams::ReadableStream;
@@ -31,18 +33,22 @@ pub fn into_upload_stream<O: Serialize>(
     url: &str,
     on_request: impl FnOnce(&RequestInit) + 'static,
     upload: impl Stream<Item = O> + 'static,
-    end_of_upload: oneshot::Sender<Result<(), UploadError>>,
+    end_of_upload: oneshot::Sender<UploadError>,
     end_of_download: oneshot::Receiver<()>,
 ) -> String {
     let correlation_id = format!("X{}", js_sys::Math::random());
     let url = url.to_owned();
 
     let end_of_upload = {
-        let signal = Rc::new(std::sync::Mutex::new(Some(end_of_upload)));
-        move |result| {
-            signal.lock().expect("end_of_upload").take().map(|signal| {
-                let _ = signal.send(result);
-            });
+        let end_of_upload = Rc::new(std::sync::Mutex::new(Some(end_of_upload)));
+        let span = Span::current();
+        move |error| {
+            if let Some(end_of_upload) = end_of_upload.lock().expect("end_of_upload").take() {
+                if let Err(error) = end_of_upload.send(error) {
+                    let _span = span.enter();
+                    warn!("Failed to notify upload failure: {error}");
+                }
+            }
         }
     };
 
@@ -64,11 +70,10 @@ pub fn into_upload_stream<O: Serialize>(
                 .then(on_request),
         )
         .await;
-        let response = response.map_err(Rc::new).map_err(UploadError::Request);
-        let response = response.map(|response| {
-            info!("Response: {} {}", response.status(), response.status_text());
-        });
-        end_of_upload(response)
+        match response.map_err(Rc::new).map_err(UploadError::Request) {
+            Ok(response) => info!("Response: {} {}", response.status(), response.status_text()),
+            Err(error) => end_of_upload(error),
+        }
     };
     let () = spawn_local(upload_task.instrument(info_span!("Upload", correlation_id)));
     return correlation_id;
@@ -76,7 +81,7 @@ pub fn into_upload_stream<O: Serialize>(
 
 fn set_request_body<O: Serialize>(
     upload: impl Stream<Item = O> + 'static,
-    end_of_upload: impl Fn(Result<(), UploadError>) + 'static,
+    end_of_upload: impl Fn(UploadError) + 'static,
 ) -> impl FnOnce(&RequestInit) {
     let stream = into_request_stream(upload, end_of_upload);
     move |request| request.set_body(&stream.into_raw())
@@ -84,7 +89,7 @@ fn set_request_body<O: Serialize>(
 
 fn into_request_stream<O: Serialize>(
     stream: impl Stream<Item = O> + 'static,
-    end_of_upload: impl Fn(Result<(), UploadError>) + 'static,
+    end_of_upload: impl Fn(UploadError) + 'static,
 ) -> ReadableStream {
     let stream = stream
         .map(|item| {
@@ -98,7 +103,7 @@ fn into_request_stream<O: Serialize>(
         .map(move |chunk| match chunk {
             Ok(chunk) => Ok(chunk),
             Err(error) => {
-                end_of_upload(Err(UploadError::Json(error.into())));
+                end_of_upload(UploadError::Json(error.into()));
                 Err(JsValue::undefined())
             }
         })
@@ -114,9 +119,6 @@ pub enum UploadError {
 
     #[error("[{n}] {0}", n = self.name())]
     Json(Rc<serde_json::Error>),
-
-    #[error("[{n}] Upload stream finished", n = self.name())]
-    EOS,
 
     #[error("[{n}] Upload stream canceled", n = self.name())]
     Canceled,
