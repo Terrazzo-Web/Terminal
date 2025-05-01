@@ -1,7 +1,6 @@
 mod download;
- mod manager;
+mod manager;
 mod upload;
 
-
+pub use download::download;
 pub use upload::upload;
-pub use download::download
