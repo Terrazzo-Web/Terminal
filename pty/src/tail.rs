@@ -12,16 +12,17 @@ use futures::Stream;
 use futures::StreamExt as _;
 use nameth::NamedType as _;
 use nameth::nameth;
-use pin_project::pin_project;
 use tokio::pin;
 use tokio::sync::oneshot;
+use tokio::task::JoinHandle;
 use tracing::warn;
 
 /// A stream that only remembers the last few elements.
-#[pin_project]
 #[nameth]
 pub struct TailStream {
     state: Arc<Mutex<BufferState>>,
+    #[expect(unused)]
+    worker_handle: AbortOnDrop<()>,
 }
 
 impl TailStream {
@@ -30,8 +31,11 @@ impl TailStream {
         S: Stream<Item = std::io::Result<Bytes>> + Send + 'static,
     {
         let state = Arc::new(Mutex::new(BufferState::Lines(VecDeque::new())));
-        tokio::spawn(start_worker(state.clone(), stream, scrollback));
-        TailStream { state }
+        let worker = tokio::spawn(start_worker(state.clone(), stream, scrollback));
+        TailStream {
+            state,
+            worker_handle: AbortOnDrop(worker),
+        }
     }
 }
 
@@ -177,6 +181,14 @@ enum BufferState {
             oneshot::Receiver<()>,
         )>,
     },
+}
+
+struct AbortOnDrop<T>(JoinHandle<T>);
+
+impl<T> Drop for AbortOnDrop<T> {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
 }
 
 #[cfg(test)]
