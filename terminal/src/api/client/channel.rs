@@ -14,6 +14,10 @@ use self::upload::into_upload_stream;
 pub mod download;
 pub mod upload;
 
+/// Opens a full-duplex channel
+///
+/// - `upload` is a stream of serializable structs
+/// - return value is a stream of deserializable structs
 pub async fn open_channel<I, O, FI, FO, FFO, SO>(
     url: &str,
     on_upload_request: FI,
@@ -33,6 +37,8 @@ where
 {
     let (end_of_upload_tx, end_of_upload_rx) = oneshot::channel();
     let (end_of_download_tx, end_of_download_rx) = oneshot::channel();
+
+    // Open the upload stream and registrer it with a unique ID.
     let correlation_id = into_upload_stream::<O>(
         url,
         on_upload_request,
@@ -40,6 +46,9 @@ where
         end_of_upload_tx,
         end_of_download_rx,
     );
+
+    // Open the download stream with the matching correlation ID.
+    // The backen implementation looks up the upload stream and uses it to compute the download stream.
     Ok(get_download_stream(
         url,
         correlation_id,

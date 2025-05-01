@@ -21,5 +21,3 @@ impl Dispatchers {
         self.0.lock().unwrap()
     }
 }
-
-unsafe impl Sync for Dispatchers {}

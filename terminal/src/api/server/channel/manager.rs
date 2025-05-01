@@ -31,6 +31,10 @@ pub async fn add_upload_stream(
     correlation_id: CorrelationId,
     upload_stream: BodyDataStream,
 ) -> Result<(), PendingChannelError> {
+    // Add a delay to simulate upload stream correlation ID not found transient error.
+    #[cfg(debug_assertions)]
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+
     let (tx, rx) = oneshot::channel();
     {
         let mut channels = CHANNELS.lock().unwrap();

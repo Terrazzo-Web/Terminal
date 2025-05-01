@@ -17,6 +17,7 @@ use tokio::pin;
 use tokio::sync::oneshot;
 use tracing::warn;
 
+/// A stream that only remembers the last few elements.
 #[pin_project]
 #[nameth]
 pub struct TailStream {
@@ -34,6 +35,9 @@ impl TailStream {
     }
 }
 
+/// Starts the worker that keeps reading and buffering elements.
+///
+/// When the buffer is full, old elements are discarded.
 async fn start_worker<S>(state: Arc<Mutex<BufferState>>, stream: S, scrollback: usize)
 where
     S: Stream<Item = std::io::Result<Bytes>> + Send + 'static,
@@ -52,6 +56,7 @@ where
                     }
                     lines.push_back(item);
                     if end {
+                        // Stop the worker
                         break;
                     }
                     continue;
@@ -101,6 +106,7 @@ fn process_state(cx: &mut Context<'_>, state: &mut BufferState) -> ProcessResult
             let next = if items.is_empty() {
                 None
             } else {
+                // Drain the first element, which is not a 'None'.
                 items.drain(..1).next()
             };
             match next {

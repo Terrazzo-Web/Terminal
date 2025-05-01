@@ -183,6 +183,16 @@ impl Deref for TerminalTabInner {
     }
 }
 
+impl TerminalTabInner {
+    pub fn to_terminal_def(&self) -> TerminalDef {
+        TerminalDef {
+            address: self.address.clone(),
+            title: self.title.get_value_untracked().map(|t| t.to_string()),
+            order: self.order,
+        }
+    }
+}
+
 #[autoclone]
 #[html]
 #[template]

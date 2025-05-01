@@ -27,6 +27,9 @@ use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
 
+/// Implements the download stream.
+///
+/// The upload stream must be opened first with the matching correlation ID.
 pub async fn get_download_stream<I, F, FF>(
     url: &str,
     correlation_id: String,
@@ -73,6 +76,7 @@ where
     return Ok(stream);
 }
 
+/// Opens the download request, which may need retries until the upload stream is registered.
 async fn download_request<F, FF>(
     url: &str,
     correlation_id: &str,

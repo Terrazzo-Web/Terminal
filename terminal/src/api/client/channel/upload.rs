@@ -28,6 +28,7 @@ use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
 
+/// Implements the upload stream.
 #[autoclone]
 pub fn into_upload_stream<O: Serialize>(
     url: &str,
@@ -39,6 +40,9 @@ pub fn into_upload_stream<O: Serialize>(
     let correlation_id = format!("X{}", js_sys::Math::random());
     let url = url.to_owned();
 
+    // `end_of_upload` is cloneable, it can happen
+    //   - During streaming
+    //   - When opening the request
     let end_of_upload = {
         let end_of_upload = Rc::new(std::sync::Mutex::new(Some(end_of_upload)));
         let span = Span::current();
@@ -87,6 +91,7 @@ fn set_request_body<O: Serialize>(
     move |request| request.set_body(&stream.into_raw())
 }
 
+/// Converts the stream of structs into a stream of JSONs.
 fn into_request_stream<O: Serialize>(
     stream: impl Stream<Item = O> + 'static,
     end_of_upload: impl Fn(UploadError) + 'static,
@@ -103,7 +108,7 @@ fn into_request_stream<O: Serialize>(
         .map(move |chunk| match chunk {
             Ok(chunk) => Ok(chunk),
             Err(error) => {
-                end_of_upload(UploadError::Json(error.into()));
+                end_of_upload(UploadError::Json(Rc::new(error)));
                 Err(JsValue::undefined())
             }
         })

@@ -15,8 +15,11 @@ use super::TerminalsState;
 use super::javascript::TerminalJs;
 use super::terminal_tab::TerminalTab;
 use crate::api;
+use crate::api::RegisterTerminalMode;
+use crate::api::RegisterTerminalRequest;
 use crate::api::TabTitle;
 use crate::api::TerminalAddress;
+use crate::api::TerminalDef;
 
 const XTERMJS_ATTR: &str = "data-xtermjs";
 const IS_ATTACHED: &str = "Y";
@@ -57,7 +60,7 @@ pub fn attach(template: XTemplate, terminal_tab: TerminalTab, state: TerminalsSt
         let _on_data = on_data;
         let _on_resize = on_resize;
         let _on_title_change = on_title_change;
-        let read_loop = xtermjs.read_loop(&terminal, state);
+        let read_loop = xtermjs.read_loop(terminal_tab.to_terminal_def(), state);
         let unsubscribe_resize_event = ResizeEvent::signal().add_subscriber({
             let xtermjs = xtermjs.clone();
             move |_| xtermjs.fit()
@@ -132,12 +135,22 @@ impl TerminalJs {
         return on_title_change;
     }
 
-    async fn read_loop(&self, terminal: &TerminalAddress, state: TerminalsState) {
+    async fn read_loop(&self, terminal: TerminalDef, state: TerminalsState) {
         async {
             debug!("Start");
-            defer! { state.on_eos(&terminal.id); }
+            defer! { state.on_eos(&terminal.address.id); }
             self.fit();
-            let eos = api::client::stream::read::read(terminal, |data| self.send(data)).await;
+            let registration = api::client::stream::register::register(RegisterTerminalRequest {
+                mode: RegisterTerminalMode::Create,
+                def: &terminal,
+            })
+            .await;
+            match registration {
+                Ok(()) => {}
+                Err(error) => warn!("Failed to register: {error}"),
+            }
+            let eos =
+                api::client::stream::read::read(&terminal.address, |data| self.send(data)).await;
             match eos {
                 Ok(()) => info!("End"),
                 Err(error) => warn!("Failed: {error}"),

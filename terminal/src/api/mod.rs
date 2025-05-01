@@ -67,9 +67,9 @@ impl<T> TabTitle<T> {
 pub type TerminalDef = TerminalDefImpl<TabTitle<String>>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct RegisterTerminalRequest {
+pub struct RegisterTerminalRequest<D = TerminalDef> {
     pub mode: RegisterTerminalMode,
-    pub def: TerminalDef,
+    pub def: D,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
