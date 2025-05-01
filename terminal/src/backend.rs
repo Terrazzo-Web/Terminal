@@ -1,17 +1,13 @@
 #![cfg(feature = "server")]
 
 use std::env::set_current_dir;
+use std::future::ready;
 use std::sync::Arc;
 
-use agent::AgentTunnelConfig;
 use clap::Parser as _;
-use cli::kill::KillServerError;
-use daemonize::DaemonizeServerError;
+use futures::FutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use root_ca_config::PrivateRootCaError;
-use server_config::TerminalBackendServer;
-use tls_config::TlsConfigError;
 use tokio::signal::unix::SignalKind;
 use tokio::signal::unix::signal;
 use tracing::info;
@@ -26,9 +22,15 @@ use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::GatewayError;
 use trz_gateway_server::server::Server;
 
+use self::agent::AgentTunnelConfig;
 use self::cli::Action;
 use self::cli::Cli;
+use self::cli::kill::KillServerError;
+use self::daemonize::DaemonizeServerError;
 use self::root_ca_config::PrivateRootCa;
+use self::root_ca_config::PrivateRootCaError;
+use self::server_config::TerminalBackendServer;
+use self::tls_config::TlsConfigError;
 use self::tls_config::make_tls_config;
 use crate::assets;
 
@@ -78,19 +80,37 @@ async fn run_server_async(cli: Cli, config: TerminalBackendServer) -> Result<(),
     set_current_dir(std::env::var("HOME").expect("HOME")).map_err(RunServerError::SetCurrentDir)?;
 
     assets::install_assets();
-    let (server, server_handle) = Server::run(config).await?;
+    let (server, server_handle, crash) = Server::run(config).await?;
+    let crash = crash
+        .then(|crash| {
+            let crash = crash
+                .map(|crash| format!("Crashed: {crash}"))
+                .unwrap_or_else(|_| "Server task dropped".to_owned());
+            ready(crash)
+        })
+        .shared();
 
-    let client_handle = match run_client_async(cli, server.clone()).await {
-        Ok(client_handle) => Some(client_handle),
-        Err(RunClientError::ClientNotEnabled) => None,
-        Err(error) => return Err(error)?,
+    let client_handle = async {
+        match run_client_async(cli, server.clone()).await {
+            Ok(client_handle) => Ok(Some(client_handle)),
+            Err(RunClientError::ClientNotEnabled) => Ok(None),
+            Err(error) => Err(error),
+        }
     };
+    let client_handle = tokio::select! {
+        h = client_handle => h,
+        crash = crash.clone() => Err(RunClientError::Aborted(crash)),
+    }?;
 
-    signal(SignalKind::terminate())
-        .map_err(RunServerError::Signal)?
-        .recv()
-        .await;
-    server_handle.stop("Quit").await?;
+    let mut terminate = signal(SignalKind::terminate()).map_err(RunServerError::Signal)?;
+    tokio::select! {
+        _ = terminate.recv() => {
+            server_handle.stop("Quit").await?;
+        }
+        crash = crash.clone() => {
+            server_handle.stop(crash).await?;
+        }
+    }
     drop(server);
 
     if let Some(client_handle) = client_handle {
@@ -156,4 +176,7 @@ pub enum RunClientError {
 
     #[error("[{n}] {0}", n = self.name())]
     RunClientError(#[from] ConnectError),
+
+    #[error("[{n}] {0}", n = self.name())]
+    Aborted(String),
 }

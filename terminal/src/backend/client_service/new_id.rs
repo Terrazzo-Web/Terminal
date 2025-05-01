@@ -62,7 +62,9 @@ impl DistributedCallback for NewIdCallback {
             address: Some(ClientAddress::of(client_address)),
         };
         let response = client.new_id(request).await;
-        Ok(response?.get_ref().next)
+        let id = response?.get_ref().next;
+        debug!(id, "Allocated ID");
+        Ok(id)
     }
 }
 

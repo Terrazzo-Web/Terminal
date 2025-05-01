@@ -1,3 +1,4 @@
+use futures::TryFutureExt;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::http::StatusCode;
@@ -7,6 +8,7 @@ use tonic::client::GrpcService;
 use tonic::codegen::Bytes;
 use tonic::codegen::StdError;
 use tonic::transport::Body;
+use tracing::warn;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
@@ -49,6 +51,7 @@ pub trait DistributedCallback {
                     .map_err(DistributedCallbackError::LocalError)?),
             }
         }
+        .inspect_err(|error| warn!("Failed: {error}"))
     }
 
     fn local(
@@ -84,9 +87,9 @@ pub enum DistributedCallbackError<L: std::error::Error, R: std::error::Error> {
 impl<L: IsHttpError, R: IsHttpError> IsHttpError for DistributedCallbackError<L, R> {
     fn status_code(&self) -> StatusCode {
         match self {
-            DistributedCallbackError::RemoteError(error) => error.status_code(),
-            DistributedCallbackError::LocalError(error) => error.status_code(),
-            DistributedCallbackError::RemoteClientNotFound { .. } => StatusCode::NOT_FOUND,
+            Self::RemoteError(error) => error.status_code(),
+            Self::LocalError(error) => error.status_code(),
+            Self::RemoteClientNotFound { .. } => StatusCode::NOT_FOUND,
         }
     }
 }
@@ -100,6 +103,34 @@ impl<L: std::error::Error + Into<Status>, R: std::error::Error + Into<Status>>
             DistributedCallbackError::LocalError(error) => error.into(),
             error @ DistributedCallbackError::RemoteClientNotFound { .. } => {
                 Status::not_found(error.to_string())
+            }
+        }
+    }
+}
+
+impl<L: std::error::Error, R: std::error::Error> DistributedCallbackError<L, R> {
+    pub fn map_local<LL: std::error::Error>(
+        self,
+        f: impl FnOnce(L) -> LL,
+    ) -> DistributedCallbackError<LL, R> {
+        match self {
+            Self::RemoteError(error) => DistributedCallbackError::RemoteError(error),
+            Self::LocalError(error) => DistributedCallbackError::LocalError(f(error)),
+            Self::RemoteClientNotFound(client_name) => {
+                DistributedCallbackError::RemoteClientNotFound(client_name)
+            }
+        }
+    }
+
+    pub fn map_remote<RR: std::error::Error>(
+        self,
+        f: impl FnOnce(R) -> RR,
+    ) -> DistributedCallbackError<L, RR> {
+        match self {
+            Self::RemoteError(error) => DistributedCallbackError::RemoteError(f(error)),
+            Self::LocalError(error) => DistributedCallbackError::LocalError(error),
+            Self::RemoteClientNotFound(client_name) => {
+                DistributedCallbackError::RemoteClientNotFound(client_name)
             }
         }
     }

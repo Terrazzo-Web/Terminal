@@ -27,12 +27,18 @@ pub fn resize(
     client_address: &[impl AsRef<str>],
     request: ResizeRequest,
 ) -> impl Future<Output = Result<(), ResizeError>> {
+    let terminal_id = request
+        .terminal
+        .as_ref()
+        .map(|t| t.terminal_id.as_str())
+        .unwrap_or_default();
+    let span = debug_span!("Resize", %terminal_id);
     async {
         debug!("Start");
         defer!(debug!("Done"));
         Ok(ResizeCallback::process(server, client_address, request).await?)
     }
-    .instrument(debug_span!("Resize"))
+    .instrument(span)
 }
 
 struct ResizeCallback;
