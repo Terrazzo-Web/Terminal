@@ -13,7 +13,7 @@ use crate::api::TerminalAddress;
 pub async fn set_order(tabs: Vec<TerminalAddress>) -> Result<(), SetOrderError> {
     let _: Response = send_request(
         Method::POST,
-        &format!("{BASE_URL}/{SET_ORDER}"),
+        format!("{BASE_URL}/{SET_ORDER}"),
         set_json_body(&tabs)?,
     )
     .await?;

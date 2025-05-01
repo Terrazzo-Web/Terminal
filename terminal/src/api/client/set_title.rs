@@ -18,7 +18,7 @@ pub async fn set_title(
 ) -> Result<(), SetTitleError> {
     let _: Response = send_request(
         Method::POST,
-        &format!("{BASE_URL}/{SET_TITLE}"),
+        format!("{BASE_URL}/{SET_TITLE}"),
         set_json_body(&SetTitleRequest { terminal, title })?,
     )
     .await?;

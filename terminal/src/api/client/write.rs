@@ -7,24 +7,15 @@ use super::request::Method;
 use super::request::SendRequestError;
 use super::request::send_request;
 use super::request::set_json_body;
-use crate::api::ResizeRequest;
-use crate::api::Size;
 use crate::api::TerminalAddress;
+use crate::api::WriteRequest;
 
 #[nameth]
-pub async fn resize(
-    terminal: &TerminalAddress,
-    size: Size,
-    force: bool,
-) -> Result<(), ResizeError> {
+pub async fn write(terminal: &TerminalAddress, data: String) -> Result<(), WriteError> {
     let _: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/{RESIZE} "),
-        set_json_body(&ResizeRequest {
-            terminal,
-            size,
-            force,
-        })?,
+        format!("{BASE_URL}/{WRITE}"),
+        set_json_body(&WriteRequest { terminal, data })?,
     )
     .await?;
     return Ok(());
@@ -32,10 +23,10 @@ pub async fn resize(
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-pub enum ResizeError {
+pub enum WriteError {
     #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 
     #[error("[{n}] {0}", n = self.name())]
-    InvalidJson(#[from] serde_json::Error),
+    JsonSerializationError(#[from] serde_json::Error),
 }

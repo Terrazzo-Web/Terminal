@@ -12,7 +12,7 @@ use crate::api::client_address::ClientAddress;
 #[nameth]
 pub async fn remotes() -> Result<Vec<ClientAddress>, RemotesError> {
     let response: Response =
-        send_request(Method::GET, &format!("{BASE_URL}/{REMOTES}"), |_| {}).await?;
+        send_request(Method::GET, format!("{BASE_URL}/{REMOTES}"), |_| {}).await?;
     let result = response
         .text()
         .map_err(|_| RemotesError::MissingResponseBody)?;

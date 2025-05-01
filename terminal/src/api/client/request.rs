@@ -20,18 +20,15 @@ pub const BASE_URL: &str = "/api";
 
 pub async fn send_request(
     method: Method,
-    url: &str,
+    url: String,
     on_request: impl FnOnce(&RequestInit),
 ) -> Result<Response, SendRequestError> {
     let request = RequestInit::new();
     request.set_method(method.name());
     request.set_mode(RequestMode::SameOrigin);
     on_request(&request);
-    let request = Request::new_with_str_and_init(url, &request);
-    let request = request.map_err(|error| SendRequestError::InvalidUrl {
-        url: url.to_owned(),
-        error,
-    })?;
+    let request = Request::new_with_str_and_init(&url, &request);
+    let request = request.map_err(|error| SendRequestError::InvalidUrl { url, error })?;
     let window = web_sys::window().or_throw("window");
     let promise = window.fetch_with_request(&request);
     let response = JsFuture::from(promise)

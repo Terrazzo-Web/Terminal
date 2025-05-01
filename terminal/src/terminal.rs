@@ -110,6 +110,9 @@ impl TerminalsState {
             }
         }
         terminal_tabs.update(|terminal_tabs| Some(terminal_tabs.clone().remove_tab(terminal_id)));
+        if let Some(last_dispatcher) = api::client::stream::drop_dispatcher(terminal_id) {
+            spawn_local(api::client::stream::close_pipe(last_dispatcher));
+        }
     }
 }
 
