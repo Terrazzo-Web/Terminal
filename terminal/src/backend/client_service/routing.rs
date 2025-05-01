@@ -1,4 +1,4 @@
-use futures::TryFutureExt;
+use futures::TryFutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::http::StatusCode;
