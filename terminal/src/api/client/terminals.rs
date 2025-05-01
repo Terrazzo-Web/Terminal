@@ -10,7 +10,7 @@ use crate::api::TerminalDef;
 
 #[nameth]
 pub async fn terminals() -> Result<Vec<TerminalDef>, ListTerminalsError> {
-    let response = send_request(Method::GET, format!("{BASE_URL}/{TERMINALS}"), |_| {}).await?;
+    let response = send_request(Method::GET, &format!("{BASE_URL}/{TERMINALS}"), |_| {}).await?;
     let response = response
         .text()
         .map_err(|_| ListTerminalsError::MissingResponseBody)?;

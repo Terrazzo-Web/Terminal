@@ -1,8 +1,6 @@
-use std::future::ready;
 use std::sync::Arc;
 
 use terrazzo::axum::Json;
-use terrazzo::axum::body::Body;
 use tracing::Instrument as _;
 use tracing::info_span;
 use trz_gateway_common::http_error::HttpError;
@@ -10,7 +8,6 @@ use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
 use self::register::RegisterStreamError;
-use super::correlation_id::CorrelationId;
 use crate::api::RegisterTerminalRequest;
 
 mod close;
@@ -19,11 +16,6 @@ mod register;
 mod registration;
 
 pub use self::close::close;
-pub use self::pipe::close_pipe;
-
-pub fn pipe(correlation_id: CorrelationId) -> impl Future<Output = Body> {
-    ready(pipe::pipe(correlation_id))
-}
 
 pub async fn register(
     my_client_name: Option<ClientName>,

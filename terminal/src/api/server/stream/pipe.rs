@@ -79,21 +79,19 @@ pub fn pipe(correlation_id: CorrelationId) -> Body {
             .ready_chunks(10);
 
         // Concat chunks
-        let lease = lease
-            .flat_map(move |chunks| {
-                debug_assert!(!chunks.is_empty(), "Unexpected empty chunks");
-                let mut data = vec![];
-                for chunk in chunks {
-                    if let LeaseItem::Data(chunk) = chunk {
-                        data.extend(chunk)
-                    } else {
-                        return futures::stream::iter([Some(data), None]);
-                    }
+        let lease = lease.flat_map(move |chunks| {
+            debug_assert!(!chunks.is_empty(), "Unexpected empty chunks");
+            let mut data = vec![];
+            for chunk in chunks {
+                if let LeaseItem::Data(chunk) = chunk {
+                    data.extend(chunk)
+                } else {
+                    return futures::stream::iter([Some(data), None]).left_stream();
                 }
-                trace! { "Streaming {}", String::from_utf8_lossy(&data).escape_default() };
-                return futures::stream::iter([Some(data), Some(vec![])]);
-            })
-            .filter(|chunk| ready(*chunk != Some(vec![])));
+            }
+            trace! { "Streaming {}", String::from_utf8_lossy(&data).escape_default() };
+            return futures::stream::once(ready(Some(data))).right_stream();
+        });
 
         // Serialize as JSON separated by newlines.
         let lease = lease.map(move |data| {

@@ -19,7 +19,7 @@ pub async fn resize(
 ) -> Result<(), ResizeError> {
     let _: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/{RESIZE} "),
+        &format!("{BASE_URL}/{RESIZE} "),
         set_json_body(&ResizeRequest {
             terminal,
             size,

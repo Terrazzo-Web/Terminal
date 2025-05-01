@@ -7,6 +7,7 @@ use terrazzo::axum::routing::post;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
+mod channel;
 mod correlation_id;
 mod new_id;
 mod remotes;
@@ -36,10 +37,22 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
                 new_id::new_id(client_name, server, request)
             }),
         )
-        .route("/stream/pipe", post(stream::pipe))
-        .route("/stream/pipe/close", post(stream::close_pipe))
         .route(
-            "/stream/register",
+            "/channel",
+            post(|correlation_id, request| {
+                autoclone!(client_name, server);
+                channel::upload(client_name, server, correlation_id, request)
+            }),
+        )
+        .route(
+            "/channel",
+            get(|correlation_id| {
+                autoclone!(client_name, server);
+                channel::download(client_name, server, correlation_id)
+            }),
+        )
+        .route(
+            "/register",
             post(|request| {
                 autoclone!(client_name, server);
                 stream::register(client_name, server, request)
