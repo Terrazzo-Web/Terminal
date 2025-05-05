@@ -15,6 +15,7 @@ use nameth::nameth;
 use tokio::pin;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
+use tracing::trace;
 use tracing::warn;
 
 /// A stream that only remembers the last few elements.
@@ -30,7 +31,7 @@ impl TailStream {
     where
         S: Stream<Item = std::io::Result<Bytes>> + Send + 'static,
     {
-        let state = Arc::new(Mutex::new(BufferState::Lines(VecDeque::new())));
+        let state = Arc::new(Mutex::new(BufferState::default()));
         let worker = tokio::spawn(start_worker(state.clone(), stream, scrollback));
         TailStream {
             state,
@@ -50,37 +51,55 @@ where
     loop {
         let item = stream.next().await;
         let end = item.is_none();
-        let signal_rx = {
+        let signal_rx;
+        {
             let mut lock = state.lock().expect("state");
-            match &mut *lock {
-                BufferState::Lines(lines) => {
-                    // There is an off-by-one acceptable issue that the last 'None' element counts as one.
-                    if lines.len() == scrollback {
-                        lines.drain(..1);
-                    }
-                    lines.push_back(item);
-                    if end {
-                        // Stop the worker
-                        break;
-                    }
-                    continue;
-                }
-                BufferState::Pending { worker, .. } => {
-                    let Some((future_tx, signal_rx)) = worker.take() else {
-                        warn! { "The {} is not waiting on the worker", TailStream::type_name() };
-                        return;
-                    };
-                    let Ok(()) = future_tx.send(item) else {
-                        warn! { "The {}'s future_rx was dropped", TailStream::type_name() };
-                        return;
-                    };
-                    signal_rx
+
+            // [ C0 = oldest, C1, C2, ... Cp, ..., C(n-1) ]
+            let BufferState {
+                lines,
+                pos,
+                pending,
+            } = &mut *lock;
+
+            // There is an off-by-one acceptable issue that the last 'None' element counts as one.
+            if lines.len() == scrollback {
+                // [ C1 = new oldest, C2, ... Cp, ..., C(n-1) ]
+                // --> Cp becomes the (p-1) element
+                lines.drain(..1);
+                if *pos > 0 {
+                    *pos -= 1;
+                } else {
+                    // pos was already 0, the item was lost.
                 }
             }
-        };
-        // Await after releasing the lock
+
+            // item becomes Cb
+            // [ C1 = new oldest, C2, ... Cp, ..., C(n-1), Cn = item ]
+            lines.push_back(item);
+
+            if let Some(PendingBufferState { worker, .. }) = pending {
+                // The stream is waiting for the next item.
+                let Some((future_tx, signal_rx2)) = worker.take() else {
+                    warn! { "The {} is not waiting on the worker to produce the next item", TailStream::type_name() };
+                    return;
+                };
+                let Ok(()) = future_tx.send(()) else {
+                    warn! { "The {}'s future_rx was dropped", TailStream::type_name() };
+                    return;
+                };
+                signal_rx = signal_rx2;
+            } else {
+                continue;
+            }
+        }
+
+        // Await after releasing the lock.
         let _ = signal_rx.await;
+        // Now lock.pending should be reset to None.
+
         if end {
+            // return
             break;
         }
     }
@@ -93,10 +112,7 @@ impl Stream for TailStream {
         let mut state = self.state.lock().expect("state");
         loop {
             let state = &mut *state;
-            let ProcessResult { new_state, result } = process_state(cx, state);
-            if let Some(new_state) = new_state {
-                *state = new_state;
-            }
+            let result = process_state(cx, state);
             if let Some(result) = result {
                 return result;
             }
@@ -104,83 +120,87 @@ impl Stream for TailStream {
     }
 }
 
-fn process_state(cx: &mut Context<'_>, state: &mut BufferState) -> ProcessResult {
-    match state {
-        BufferState::Lines(items) => {
-            let next = if items.is_empty() {
-                None
-            } else {
-                // Drain the first element, which is not a 'None'.
-                items.drain(..1).next()
-            };
-            match next {
-                Some(item) => ProcessResult {
-                    new_state: None,
-                    result: Some(Poll::Ready(item)),
-                },
-                None => {
-                    let (future_tx, future_rx) = oneshot::channel();
-                    let (signal_tx, signal_rx) = oneshot::channel();
-                    ProcessResult {
-                        new_state: Some(BufferState::Pending {
-                            future_rx,
-                            signal_tx: Some(signal_tx),
-                            worker: Some((future_tx, signal_rx)),
-                        }),
-                        result: None,
-                    }
-                }
-            }
-        }
-        BufferState::Pending {
-            future_rx,
-            signal_tx,
-            worker,
-        } => match future_rx.poll_unpin(cx) {
-            Poll::Ready(Ok(data)) => {
+fn process_state(
+    cx: &mut Context<'_>,
+    state: &mut BufferState,
+) -> Option<Poll<Option<std::io::Result<Bytes>>>> {
+    let BufferState {
+        lines,
+        pos: _,
+        pending,
+    } = state;
+    if let Some(PendingBufferState {
+        future_rx,
+        signal_tx,
+        worker,
+    }) = pending.as_mut()
+    {
+        // Don't read from lines yet, wait for the worker to produce elements.
+        match future_rx.poll_unpin(cx) {
+            Poll::Ready(Ok(())) => {
+                // An item has just been added to lines.
                 assert!(worker.is_none());
-                if let Some(signal_tx) = signal_tx.take() {
+                let result = if let Some(signal_tx) = signal_tx.take() {
                     if signal_tx.send(()).is_err() {
                         warn! { "The worker has stopped without waiting for signal_tx" };
                     }
+                    None
                 } else {
                     warn! { "The worker is not expecting the {} to continue", TailStream::type_name() };
-                }
-                ProcessResult {
-                    new_state: Some(BufferState::Lines(VecDeque::new())),
-                    result: Some(Poll::Ready(data)),
-                }
+                    Some(Poll::Ready(Some(Err(ErrorKind::BrokenPipe.into()))))
+                };
+                *pending = None;
+                result
             }
-            Poll::Ready(Err(oneshot::error::RecvError { .. })) => ProcessResult {
-                new_state: None,
-                result: Some(Poll::Ready(Some(Err(ErrorKind::BrokenPipe.into())))),
-            },
-            Poll::Pending => ProcessResult {
-                new_state: None,
-                result: Some(Poll::Pending),
-            },
-        },
+            Poll::Ready(Err(oneshot::error::RecvError { .. })) => {
+                warn! { "The worker has stopped without returning a new item" };
+                *pending = None;
+                Some(Poll::Ready(Some(Err(ErrorKind::BrokenPipe.into()))))
+            }
+            Poll::Pending => {
+                trace!("Continue waiting");
+                Some(Poll::Pending)
+            }
+        }
+    } else {
+        if lines.is_empty() {
+            let (future_tx, future_rx) = oneshot::channel();
+            let (signal_tx, signal_rx) = oneshot::channel();
+            state.pending = Some(PendingBufferState {
+                future_rx,
+                signal_tx: Some(signal_tx),
+                worker: Some((future_tx, signal_rx)),
+            });
+            None
+        } else {
+            // Drain the first element, which is not a 'None'.
+            let item = lines.drain(..1).next().unwrap();
+            Some(Poll::Ready(item))
+        }
     }
 }
 
-struct ProcessResult {
-    new_state: Option<BufferState>,
-    result: Option<Poll<Option<std::io::Result<Bytes>>>>,
-}
+#[derive(Default)]
+struct BufferState {
+    lines: VecDeque<Option<std::io::Result<Bytes>>>,
 
-enum BufferState {
-    /// There are buffered lines.
-    Lines(VecDeque<Option<std::io::Result<Bytes>>>),
+    /// The lines that have already been read.
+    pos: usize,
 
     /// Waiting for some lines to be read
-    Pending {
-        future_rx: oneshot::Receiver<Option<std::io::Result<Bytes>>>,
-        signal_tx: Option<oneshot::Sender<()>>,
-        worker: Option<(
-            oneshot::Sender<Option<std::io::Result<Bytes>>>,
-            oneshot::Receiver<()>,
-        )>,
-    },
+    pending: Option<PendingBufferState>,
+}
+
+struct PendingBufferState {
+    /// Signal when the worker has added an item to the list.
+    future_rx: oneshot::Receiver<()>,
+
+    /// Signal that the stream has consumed the item
+    /// and that the worker may continue.
+    signal_tx: Option<oneshot::Sender<()>>,
+
+    /// State of the worker to send the pending buffer and wait for the stream to consume it.
+    worker: Option<(oneshot::Sender<()>, oneshot::Receiver<()>)>,
 }
 
 struct AbortOnDrop<T>(JoinHandle<T>);
