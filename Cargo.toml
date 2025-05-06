@@ -44,7 +44,7 @@ libc = { version = "0.2.172" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.8" }
-nix = { version = "0.30.0" }
+nix = { version = "0.30.1" }
 openssl = { version = "0.10.72" }
 pin-project = { version = "1.1.10" }
 prettyplease = { version = "0.2.32" }
@@ -64,8 +64,8 @@ terrazzo-build = { version = "0.1.8" }
 thiserror = { version = "2.0.12" }
 tokio = { version = "1.44.2" }
 tokio-util = { version = "0.7.15" }
-tonic = { version = "0.13.0" }
-tonic-build = { version = "0.13.0" }
+tonic = { version = "0.13.1" }
+tonic-build = { version = "0.13.1" }
 prost = { version = "0.13.5" }
 prost-types = { version = "0.13.5" }
 tokio-stream = { version = "0.1.17" }
