@@ -20,6 +20,7 @@ mod registration;
 
 pub use self::close::close;
 pub use self::pipe::close_pipe;
+pub use self::pipe::keepalive;
 
 pub fn pipe(correlation_id: CorrelationId) -> impl Future<Output = Body> {
     ready(pipe::pipe(correlation_id))
