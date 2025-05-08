@@ -1,18 +1,24 @@
+#![allow(unused)]
+
+use std::convert::Infallible;
 use std::future::ready;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::SeqCst;
 use std::time::Duration;
 
+use axum::body::Body;
 use futures::Stream;
 use futures::StreamExt as _;
-use futures::channel::mpsc;
 use futures::stream::once;
 use pin_project::pin_project;
 use scopeguard::defer;
 use scopeguard::guard;
 use terrazzo::autoclone;
-use terrazzo::axum::body::Body;
+use terrazzo::axum;
+use terrazzo::axum::extract::FromRequest;
+use terrazzo::axum::extract::FromRequestParts;
+use terrazzo::axum::extract::Request;
 use terrazzo_pty::lease::LeaseItem;
 use tracing::Span;
 use tracing::debug;
@@ -20,10 +26,13 @@ use tracing::info;
 use tracing::info_span;
 use tracing::trace;
 use tracing_futures::Instrument as _;
+use trz_gateway_common::http_error::HttpError;
 
 use crate::api::Chunk;
 use crate::api::NEWLINE;
+use crate::api::server::correlation_id;
 use crate::api::server::correlation_id::CorrelationId;
+use crate::api::server::correlation_id::CorrelationIdError;
 use crate::api::server::stream::registration::Registration;
 use crate::processes;
 
@@ -38,12 +47,11 @@ pub fn pipe(correlation_id: CorrelationId) -> Body {
     let span = info_span!("Pipe", %correlation_id);
     let _span = span.clone().entered();
     info!("Start");
-    let (tx, rx) = mpsc::channel(10);
-    Registration::set(correlation_id.clone(), tx);
+    let (rx, keepalive) = Registration::set(correlation_id.clone());
     struct RxDropped;
     let rx_dropped = Arc::new(guard(RxDropped, move |_| {
         let _span = span.entered();
-        drop(Registration::get_if(&correlation_id));
+        drop(Registration::take_if(&correlation_id));
         info!("End");
     }));
     let rx = rx.flat_map_unordered(None, move |(terminal_id, lease)| {
@@ -110,9 +118,13 @@ pub fn pipe(correlation_id: CorrelationId) -> Body {
         .instrument(span);
     });
     let stream = once(ready(Ok(vec![NEWLINE]))).chain(rx);
-    let stream = timeout_stream(stream);
+    let stream = timeout_stream(stream).take_until(keepalive);
     let stream = stream.in_current_span();
-    return Body::from_stream(stream);
+    if tracing::enabled!(tracing::Level::DEBUG) {
+        Body::from_stream(stream.inspect(|buffer| debug!("Buffer = {buffer:?}")))
+    } else {
+        Body::from_stream(stream)
+    }
 }
 
 #[autoclone]
@@ -164,9 +176,34 @@ impl Drop for LeaseClientStreamDrop {
 }
 
 pub async fn close_pipe(correlation_id: CorrelationId) {
-    let _span = info_span!("ClosePipe").entered();
+    let _span = info_span!("ClosePipe", %correlation_id).entered();
     info!("Start");
     defer!(info!("End"));
-    debug!("Drop the registration {correlation_id}");
-    drop(Registration::get_if(&correlation_id));
+    debug!("Drop the registration");
+    drop(Registration::take_if(&correlation_id));
+}
+
+pub async fn keepalive(request: Request) -> Result<(), Infallible> {
+    let (mut parts, mut body) = request.into_parts();
+    let correlation_id = CorrelationId::from_request_parts(&mut parts, &())
+        .await
+        .unwrap();
+    let span = info_span!("Keepalive", %correlation_id);
+    info!("Start");
+    defer!(info!("End"));
+    async {
+        let mut stream = body.into_data_stream();
+        while let Some(chunk) = stream.next().await {
+            debug!("Keep-alive {chunk:?}");
+            if chunk.is_err() {
+                break;
+            }
+        }
+        Registration::take_keepalive(&correlation_id).map(|keepalive| {
+            let _ = keepalive.send(());
+        });
+        Ok(())
+    }
+    .instrument(span)
+    .await
 }

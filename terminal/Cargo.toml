@@ -24,6 +24,7 @@ required-features = ["server"]
 clap = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
+tower = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 openssl = { workspace = true, optional = true }
@@ -98,6 +99,7 @@ server = [
     "dep:tokio",
     "dep:tonic",
     "dep:tower-http",
+    "dep:tower",
     "dep:tracing-futures",
     "dep:trz-gateway-client",
     "dep:trz-gateway-common",
