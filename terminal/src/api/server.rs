@@ -4,8 +4,6 @@ use terrazzo::autoclone;
 use terrazzo::axum::Router;
 use terrazzo::axum::routing::get;
 use terrazzo::axum::routing::post;
-use terrazzo::axum::routing::post_service;
-use tower::service_fn;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
@@ -39,10 +37,7 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
             }),
         )
         .route("/stream/pipe", post(stream::pipe))
-        .route(
-            "/stream/pipe/keepalive",
-            post_service(service_fn(stream::keepalive)),
-        )
+        .route("/stream/pipe/keepalive", post(stream::keepalive))
         .route("/stream/pipe/close", post(stream::close_pipe))
         .route(
             "/stream/register",

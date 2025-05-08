@@ -1,6 +1,3 @@
-#![allow(unused)]
-
-use std::convert::Infallible;
 use std::future::ready;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -16,8 +13,6 @@ use scopeguard::defer;
 use scopeguard::guard;
 use terrazzo::autoclone;
 use terrazzo::axum;
-use terrazzo::axum::extract::FromRequest;
-use terrazzo::axum::extract::FromRequestParts;
 use terrazzo::axum::extract::Request;
 use terrazzo_pty::lease::LeaseItem;
 use tracing::Span;
@@ -26,13 +21,10 @@ use tracing::info;
 use tracing::info_span;
 use tracing::trace;
 use tracing_futures::Instrument as _;
-use trz_gateway_common::http_error::HttpError;
 
 use crate::api::Chunk;
 use crate::api::NEWLINE;
-use crate::api::server::correlation_id;
 use crate::api::server::correlation_id::CorrelationId;
-use crate::api::server::correlation_id::CorrelationIdError;
 use crate::api::server::stream::registration::Registration;
 use crate::processes;
 
@@ -183,16 +175,12 @@ pub async fn close_pipe(correlation_id: CorrelationId) {
     drop(Registration::take_if(&correlation_id));
 }
 
-pub async fn keepalive(request: Request) -> Result<(), Infallible> {
-    let (mut parts, mut body) = request.into_parts();
-    let correlation_id = CorrelationId::from_request_parts(&mut parts, &())
-        .await
-        .unwrap();
+pub fn keepalive(correlation_id: CorrelationId, request: Request) -> impl Future<Output = ()> {
     let span = info_span!("Keepalive", %correlation_id);
-    info!("Start");
-    defer!(info!("End"));
-    async {
-        let mut stream = body.into_data_stream();
+    let mut stream = request.into_body().into_data_stream();
+    async move {
+        info!("Start");
+        defer!(info!("End"));
         while let Some(chunk) = stream.next().await {
             debug!("Keep-alive {chunk:?}");
             if chunk.is_err() {
@@ -202,8 +190,6 @@ pub async fn keepalive(request: Request) -> Result<(), Infallible> {
         Registration::take_keepalive(&correlation_id).map(|keepalive| {
             let _ = keepalive.send(());
         });
-        Ok(())
     }
     .instrument(span)
-    .await
 }
