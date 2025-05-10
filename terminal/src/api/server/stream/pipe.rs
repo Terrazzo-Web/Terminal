@@ -4,7 +4,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::SeqCst;
 use std::time::Duration;
 
-use axum::Json;
 use axum::body::Body;
 use axum::response::IntoResponse;
 use futures::Stream;
@@ -197,7 +196,6 @@ pub async fn close_pipe(correlation_id: CorrelationId) {
 
 pub fn keepalive(
     correlation_id: CorrelationId,
-    Json(_request): Json<Option<usize>>,
 ) -> impl Future<Output = Result<(), HttpError<PingTimeoutError>>> {
     let span = info_span!("Keepalive", %correlation_id);
     async move {

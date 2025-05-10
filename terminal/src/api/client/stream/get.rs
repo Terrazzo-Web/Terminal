@@ -3,18 +3,20 @@ use std::sync::Arc;
 
 use futures::FutureExt;
 use futures::Stream;
+use futures::StreamExt as _;
 use futures::channel::mpsc;
 use futures::channel::oneshot;
 use pin_project::pin_project;
 use terrazzo::autoclone;
 use terrazzo::prelude::OrElseLog as _;
-use tracing::Instrument as _;
 use tracing::info;
 use tracing::info_span;
+use tracing_futures::Instrument as _;
 use web_sys::js_sys::Math;
 
 use super::DISPATCHERS;
 use super::StreamDispatchers;
+use super::ack;
 use super::pipe::PipeError;
 use super::pipe::pipe;
 use super::register::RegisterError;
@@ -23,14 +25,18 @@ use crate::api::RegisterTerminalRequest;
 use crate::api::client::stream::ShutdownPipe;
 use crate::terminal_id::TerminalId;
 
-pub async fn get(request: RegisterTerminalRequest) -> Result<StreamReader, RegisterError> {
+pub trait TerminalStream: Stream<Item = Vec<Option<Vec<u8>>>> + Unpin {}
+impl<S: Stream<Item = Vec<Option<Vec<u8>>>> + Unpin> TerminalStream for S {}
+
+pub async fn get(request: RegisterTerminalRequest) -> Result<impl TerminalStream, RegisterError> {
+    let span = info_span!("Get", terminal_id = %request.def.address.id);
     async {
-        let terminal_id = &request.def.address.id;
-        let stream_reader = add_dispatcher(terminal_id).await?;
+        let stream_reader = add_dispatcher(&request.def.address.id).await?;
+        let stream_reader = ack::setup_acks(request.def.address.clone(), stream_reader);
         register(request).await?;
-        return Ok(stream_reader);
+        return Ok(stream_reader.ready_chunks(10).in_current_span());
     }
-    .instrument(info_span!("Get"))
+    .instrument(span)
     .await
 }
 
@@ -54,14 +60,10 @@ fn add_dispatcher_sync(
         match &dispatchers.shutdown_pipe {
             ShutdownPipe::Pending(shared) => wasm_bindgen_futures::spawn_local(async move {
                 autoclone!(shared);
-                match shared.clone().await {
-                    Ok(()) => {
-                        let _ = pipe_tx.send(Ok(()));
-                    }
-                    Err(oneshot::Canceled) => {
-                        let _ = pipe_tx.send(Err(PipeError::Canceled));
-                    }
-                }
+                let pipe_status = shared
+                    .await
+                    .map_err(|oneshot::Canceled| PipeError::Canceled);
+                let _ = pipe_tx.send(pipe_status);
             }),
             ShutdownPipe::Signal { .. } => {
                 let _ = pipe_tx.send(Ok(()));

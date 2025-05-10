@@ -7,16 +7,16 @@ use std::task::ready;
 use futures::Stream;
 use pin_project::pin_project;
 use terrazzo_pty::lease::LeaseItem;
-use terrazzo_pty::lease::ProcessOutputLease;
 use tonic::Status;
 use tonic::Streaming;
 
 use crate::backend::protos::terrazzo::gateway::client::LeaseItem as LeaseItemProto;
 use crate::backend::protos::terrazzo::gateway::client::lease_item;
+use crate::backend::throttling_stream::ThrottleProcessOutput;
 
 #[pin_project(project = HybridReaderProj)]
 pub enum HybridReader {
-    Local(#[pin] ProcessOutputLease),
+    Local(#[pin] ThrottleProcessOutput),
     Remote(#[pin] Streaming<LeaseItemProto>),
 }
 
@@ -27,7 +27,7 @@ pub struct LocalReader(#[pin] pub HybridReader);
 pub struct RemoteReader(#[pin] pub HybridReader);
 
 impl Stream for LocalReader {
-    type Item = <ProcessOutputLease as Stream>::Item;
+    type Item = <ThrottleProcessOutput as Stream>::Item;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let LocalReaderProj(reader) = self.project();

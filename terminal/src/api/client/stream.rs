@@ -9,8 +9,7 @@ use futures::StreamExt as _;
 use futures::channel::mpsc;
 use futures::channel::oneshot;
 use futures::future::Shared;
-use futures::stream::ReadyChunks;
-use get::StreamReader;
+use get::TerminalStream;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
@@ -34,6 +33,7 @@ use crate::api::TerminalDef;
 use crate::terminal::TerminalsState;
 use crate::terminal_id::TerminalId;
 
+mod ack;
 mod close;
 mod dispatch;
 mod get;
@@ -76,7 +76,7 @@ where
         mode: RegisterTerminalMode::Create,
         def: terminal_def,
     };
-    let mut reader = get(query.clone()).await?.ready_chunks(10);
+    let mut reader = get(query.clone()).await?;
 
     debug!("On init");
     let () = on_init().await;
@@ -119,7 +119,7 @@ where
             mode: RegisterTerminalMode::Reopen,
             def: query.def.clone(),
         };
-        let Ok(new_reader) = get(query).await.map(|reader| reader.ready_chunks(10)) else {
+        let Ok(new_reader) = get(query).await else {
             warn!("Can't re-open the stream");
             return Ok(());
         };
@@ -129,7 +129,7 @@ where
 }
 
 async fn do_stream<F>(
-    mut reader: ReadyChunks<StreamReader>,
+    mut reader: impl TerminalStream,
     on_data: &impl Fn(JsValue) -> F,
 ) -> StreamStatus
 where

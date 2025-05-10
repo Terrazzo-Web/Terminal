@@ -41,6 +41,7 @@ mod daemonize;
 pub mod protos;
 mod root_ca_config;
 mod server_config;
+pub mod throttling_stream;
 mod tls_config;
 
 const HOST: &str = "localhost";
