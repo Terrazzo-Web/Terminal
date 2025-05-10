@@ -3,7 +3,7 @@ members = ["game", "pty", "terminal"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.7"
+version = "0.1.8"
 authors = ["Lamparo <LamparoS@Pavy.one>"]
 edition = "2024"
 repository = "https://github.com/Terrazzo-Web/Terminal"
@@ -27,11 +27,11 @@ incremental = true       # Incremental compilation.
 opt-level = "s"
 
 [workspace.dependencies]
-terrazzo-pty = { version = "0.1.7", path = "pty" }
+terrazzo-pty = { version = "0.1.8", path = "pty" }
 
 async-trait = { version = "0.1.88" }
-autoclone = { version = "0.1.7" }
-axum = { version = "0.8.3" }
+autoclone = { version = "0.1.8" }
+axum = { version = "0.8.4" }
 bytes = { version = "1.10.1" }
 clap = { version = "4.5.37", features = ["derive"] }
 darling = { version = "0.20.11" }
@@ -43,39 +43,42 @@ include_directory = { version = "0.1.1" }
 libc = { version = "0.2.172" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
-nameth = { version = "0.1.7" }
-nix = { version = "0.29.0" }
+nameth = { version = "0.1.8" }
+nix = { version = "0.30.1" }
 openssl = { version = "0.10.72" }
 pin-project = { version = "1.1.10" }
 prettyplease = { version = "0.2.32" }
 proc-macro2 = { version = "1.0.95" }
+prost = { version = "0.13.5" }
+prost-types = { version = "0.13.5" }
 quote = { version = "1.0.40" }
 reqwest-wasm = { version = "0.11.16" }
 rsass-macros = { version = "0.29.0" }
-rustix = { version = "1.0.5" }
+rustix = { version = "1.0.7" }
 scopeguard = { version = "1.2.0" }
 serde = { version = "1.0.219", features = ["derive", "rc"] }
 serde_json = { version = "1.0.140" }
 serde_urlencoded = { version = "0.7.1" }
-stylance = { version = "0.5.5" }
+static_assertions = { version = "1.1.0" }
+stylance = { version = "0.6.0" }
 syn = { version = "2.0.101" }
-terrazzo = { version = "0.1.7", default-features = false }
-terrazzo-build = { version = "0.1.7" }
+terrazzo = { version = "0.1.8", default-features = false }
+terrazzo-build = { version = "0.1.8" }
 thiserror = { version = "2.0.12" }
 tokio = { version = "1.44.2" }
+tokio-stream = { version = "0.1.17" }
 tokio-util = { version = "0.7.15" }
-tonic = { version = "0.13.0" }
-tonic-build = { version = "0.13.0" }
-prost = { version = "0.13.5" }
-prost-types = { version = "0.13.5" }
+tonic = { version = "0.13.1" }
+tonic-build = { version = "0.13.1" }
+tower = { version = "0.5.2" }
 tower-http = { version = "0.6.2" }
 tracing = { version = "0.1.41" }
 tracing-futures = { version = "0.2.5" }
 tracing-subscriber = { version = "0.3.19" }
 tracing-subscriber-wasm = { version = "0.1.0" }
-trz-gateway-client = { version = "0.1.7" }
-trz-gateway-common = { version = "0.1.7" }
-trz-gateway-server = { version = "0.1.7" }
+trz-gateway-client = { version = "0.1.8" }
+trz-gateway-common = { version = "0.1.8" }
+trz-gateway-server = { version = "0.1.8" }
 uuid = { version = "1.16.0" }
 wasm-bindgen = { version = "0.2.100" }
 wasm-bindgen-futures = { version = "0.4.50" }

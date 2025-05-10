@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::prelude::OrElseLog as _;
@@ -49,7 +51,7 @@ pub enum CloseError {
     JsonSerializationError(#[from] serde_json::Error),
 }
 
-pub fn drop_dispatcher(terminal_id: &TerminalId) -> Option<String> {
+pub fn drop_dispatcher(terminal_id: &TerminalId) -> Option<Arc<str>> {
     debug!("Drop dispatcher");
     let mut dispatchers_lock = DISPATCHERS.lock().or_throw("DISPATCHERS");
     let dispatchers = dispatchers_lock.as_mut()?;

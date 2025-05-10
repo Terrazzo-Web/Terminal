@@ -37,6 +37,7 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
             }),
         )
         .route("/stream/pipe", post(stream::pipe))
+        .route("/stream/pipe/keepalive", post(stream::keepalive))
         .route("/stream/pipe/close", post(stream::close_pipe))
         .route(
             "/stream/register",

@@ -13,6 +13,7 @@ keywords = ["terrazzo", "terminal", "pty", "execute", "process"]
 [lib]
 
 [dependencies]
+bytes = { workspace = true }
 futures = { workspace = true }
 libc = { workspace = true }
 nameth = { workspace = true }
@@ -29,6 +30,10 @@ tokio = { workspace = true, features = [
 ] }
 tokio-util = { workspace = true, features = ["io"] }
 tracing = { workspace = true }
+
+[dev-dependencies]
+tokio-stream = { workspace = true }
+trz-gateway-common = { workspace = true }
 
 [lints]
 workspace = true

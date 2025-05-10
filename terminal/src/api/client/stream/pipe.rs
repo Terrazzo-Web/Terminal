@@ -1,3 +1,6 @@
+use std::sync::Arc;
+use std::time::Duration;
+
 use futures::StreamExt as _;
 use futures::channel::oneshot;
 use futures::select;
@@ -13,11 +16,14 @@ use tracing::warn;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
+use web_sys::Response;
 use web_sys::js_sys::Uint8Array;
 
 use super::DISPATCHERS;
 use super::ShutdownPipe;
 use super::dispatch::dispatch;
+use super::keepalive::keepalive;
+use crate::api::KEEPALIVE_TTL_HEADER;
 use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
@@ -27,25 +33,29 @@ use crate::api::client::request::set_headers;
 
 /// Spawns the pipe in the background.
 #[nameth]
-pub async fn pipe(correlation_id: &str) -> Result<oneshot::Sender<()>, PipeError> {
+pub async fn pipe(correlation_id: Arc<str>) -> Result<oneshot::Sender<()>, PipeError> {
     async move {
         info!("Start");
         let response = send_request(
             Method::POST,
             format!("{BASE_URL}/stream/{PIPE}"),
-            set_headers(set_correlation_id(correlation_id)),
+            set_headers(set_correlation_id(correlation_id.as_ref())),
         )
         .await?;
         let Some(stream) = response.body() else {
             return Err(PipeError::EmptyStream);
         };
+        let keepalive_ttl = get_keepalive_ttl(&response)?;
+
+        let (end_of_pipe_tx, end_of_pipe_rx) = oneshot::channel();
+        keepalive(keepalive_ttl, correlation_id.clone(), end_of_pipe_rx);
 
         info!("Streaming");
         let (tx, rx) = oneshot::channel();
-        let correlation_id = correlation_id.to_owned();
         let streaming_task = async move {
             // Close all the stream dispatchers if the pipe fails.
             defer! { close_dispatchers(&correlation_id); };
+            defer! { let _ = end_of_pipe_tx.send(()); };
             if let Err(error) = pipe_impl(rx, stream).await {
                 warn!("Pipe failed: {error}");
             }
@@ -56,6 +66,16 @@ pub async fn pipe(correlation_id: &str) -> Result<oneshot::Sender<()>, PipeError
     }
     .instrument(info_span!("Pipe"))
     .await
+}
+
+fn get_keepalive_ttl(response: &Response) -> Result<Duration, PipeError> {
+    match response.headers().get(KEEPALIVE_TTL_HEADER) {
+        Ok(Some(ttl)) => ttl
+            .parse()
+            .map(Duration::from_secs)
+            .map_err(|_| PipeError::KeepaliveTtl),
+        _ => Err(PipeError::KeepaliveTtl),
+    }
 }
 
 async fn pipe_impl(
@@ -107,13 +127,16 @@ pub enum PipeError {
 
     #[error("[{n}] Pipe canceled", n = self.name())]
     Canceled,
+
+    #[error("[{n}] Missing header {KEEPALIVE_TTL_HEADER}", n = self.name())]
+    KeepaliveTtl,
 }
 
 fn close_dispatchers(correlation_id: &str) {
     let _span = info_span!("Close Stream Writers").entered();
     let mut dispatchers_lock = DISPATCHERS.lock().or_throw("DISPATCHERS");
     if let Some(dispatchers) = &mut *dispatchers_lock {
-        if *correlation_id != dispatchers.correlation_id {
+        if *correlation_id != *dispatchers.correlation_id {
             debug! { "Owned by {} instead of {correlation_id}", dispatchers.correlation_id };
             return;
         }
@@ -134,7 +157,7 @@ fn close_dispatchers(correlation_id: &str) {
 
 /// Sends a request to close the pipe.
 #[nameth]
-pub async fn close_pipe(correlation_id: String) {
+pub async fn close_pipe(correlation_id: Arc<str>) {
     let span = info_span!("ClosePipe", %correlation_id);
     async {
         debug!("Start");
@@ -142,7 +165,7 @@ pub async fn close_pipe(correlation_id: String) {
         let _response = send_request(
             Method::POST,
             format!("{BASE_URL}/stream/{PIPE}/close"),
-            set_headers(set_correlation_id(correlation_id.as_str())),
+            set_headers(set_correlation_id(correlation_id.as_ref())),
         )
         .await
         .inspect_err(|error| warn!("Failed to close the pipe: {error}"));

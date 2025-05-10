@@ -1,6 +1,7 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::Mutex;
 
 use futures::FutureExt as _;
@@ -36,6 +37,7 @@ use crate::terminal_id::TerminalId;
 mod close;
 mod dispatch;
 mod get;
+mod keepalive;
 mod pipe;
 mod register;
 
@@ -200,7 +202,7 @@ pub enum StreamError {
 }
 
 struct StreamDispatchers {
-    correlation_id: String,
+    correlation_id: Arc<str>,
     map: HashMap<TerminalId, mpsc::Sender<Option<Vec<u8>>>>,
     shutdown_pipe: ShutdownPipe,
 }
