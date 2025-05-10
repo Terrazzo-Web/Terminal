@@ -15,6 +15,7 @@ use pin_project::pin_project;
 use pin_project::pinned_drop;
 use terrazzo_pty::lease::LeaseItem;
 use terrazzo_pty::lease::ProcessOutputLease;
+use tracing::warn;
 
 use crate::api::STREAMING_WINDOW_SIZE;
 use crate::terminal_id::TerminalId;
@@ -29,7 +30,13 @@ pub fn ack(terminal_id: &TerminalId, ack: usize) {
     let Some(throttling_state) = streams().get(terminal_id).cloned() else {
         return;
     };
-    throttling_state.lock().expect("throttling_state").ack += ack;
+    let mut throttling_state = throttling_state.lock().expect("throttling_state");
+    throttling_state.ack -= ack;
+    let Some(signal) = throttling_state.signal.take() else {
+        warn!("Missing signal to ack");
+        return;
+    };
+    let _ = signal.send(());
 }
 
 #[pin_project(PinnedDrop)]
