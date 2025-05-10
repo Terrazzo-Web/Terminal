@@ -73,7 +73,7 @@ pub struct RegisterTerminalRequest {
     pub def: TerminalDef,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RegisterTerminalMode {
     Create,
     Reopen,

@@ -12,15 +12,24 @@ pub async fn sleep(timeout: Duration) -> Result<(), SleepError> {
     let closure = Closure::once(|| {
         let _ = tx.send(());
     });
-    let _handle: i32 = web_sys::window()
-        .expect("window")
+    let window = web_sys::window().expect("window");
+    let handle = window
         .set_timeout_with_callback_and_timeout_and_arguments_0(
             closure.as_ref().unchecked_ref(),
             timeout.as_millis() as i32,
         )
         .map_err(SleepError::SetTimeout)?;
-    let () = rx.await.map_err(SleepError::Canceled)?;
-    drop(closure); // closure must outlive the await.
+    let closure = Some(closure);
+    let mut closure = scopeguard::guard(closure, |closure| {
+        if closure.is_some() {
+            window.clear_timeout_with_handle(handle);
+        }
+    });
+    let () = rx
+        .await
+        .inspect_err(|oneshot::Canceled| window.clear_timeout_with_handle(handle))
+        .map_err(SleepError::Canceled)?;
+    *closure = None; // closure must outlive the await.
     Ok(())
 }
 

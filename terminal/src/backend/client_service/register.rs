@@ -59,14 +59,19 @@ impl DistributedCallback for RegisterCallback {
     ) -> Result<HybridReader, RegisterStreamError> {
         let mode = request.mode().try_into()?;
         let def = request.def.ok_or_else(|| Status::invalid_argument("def"))?;
-        let stream = processes::stream::open_stream(server, def.into(), |_| async move {
-            match mode {
-                RegisterTerminalMode::Create => {
-                    ProcessIO::open(my_client_name.map(|s| s.to_string())).await
+        let stream = processes::stream::open_stream(
+            server,
+            def.into(),
+            mode == RegisterTerminalMode::Create,
+            |_| async move {
+                match mode {
+                    RegisterTerminalMode::Create => {
+                        ProcessIO::open(my_client_name.map(|s| s.to_string())).await
+                    }
+                    RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
                 }
-                RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
-            }
-        })
+            },
+        )
         .await;
         let stream = stream.map_err(|error| Status::internal(error.to_string()))?;
         return Ok(HybridReader::Local(stream));
