@@ -86,11 +86,11 @@ pub fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
                     Ok(()) => debug!("Closed {terminal_id}"),
                     Err(error) => debug!("Closing {terminal_id} returned {error}"),
                 };
-            })
-            .ready_chunks(10);
+            });
 
         // Concat chunks
         let lease = lease
+            .ready_chunks(10)
             .flat_map(move |chunks| {
                 debug_assert!(!chunks.is_empty(), "Unexpected empty chunks");
                 let mut data = vec![];

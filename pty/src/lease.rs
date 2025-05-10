@@ -42,10 +42,11 @@ impl ProcessIoEntry {
 
     pub async fn lease_output(
         self: &Arc<Self>,
+        rewind: bool,
     ) -> Result<ProcessOutputLease, LeaseProcessOutputError> {
         let mut lock = self.output.lock().await;
         let exchange = lock.take().ok_or(LeaseProcessOutputError::OutputNotSet)?;
-        let (lease, exchange) = exchange.lease().await?;
+        let (lease, exchange) = exchange.lease(rewind).await?;
         *lock = Some(exchange);
         return Ok(lease);
     }
@@ -85,14 +86,16 @@ impl ProcessOutputExchange {
         }
     }
 
-    async fn lease(self) -> Result<(ProcessOutputLease, Self), LeaseError> {
+    async fn lease(self, rewind: bool) -> Result<(ProcessOutputLease, Self), LeaseError> {
         match self.signal_tx.send(()) {
             Ok(()) => debug!("Current lease was stopped"),
             Err(()) => debug!("The process was not leased"),
         }
         debug!("Getting new lease...");
         let mut process_output = self.process_output_rx.await?;
-        process_output.0.rewind();
+        if rewind {
+            process_output.0.rewind();
+        }
         debug!("Getting new lease: Done");
         let (lease, signal_tx, process_output_rx) = ProcessOutputLease::new(process_output);
         Ok((
