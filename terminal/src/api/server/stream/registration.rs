@@ -105,18 +105,18 @@ async fn timeout_keepalive(correlation_id: CorrelationId) {
     tokio::time::sleep(PIPE_TTL).await;
     let mut current = REGISTRATION.lock().unwrap();
     let Some(current) = &mut *current else {
-        warn!("No current pipe registration");
+        debug!("No current pipe registration");
         return;
     };
     if current.correlation_id != correlation_id {
-        warn!(
+        debug!(
             "Current pipe registration is for a different current.correlation_id:{}",
             current.correlation_id
         );
         return;
     }
     if let Some(keepalive) = current.timeout_tx.take() {
-        warn!("Timing out the stream");
+        info!("Timing out the stream");
         let _ = keepalive.send(());
     }
 }

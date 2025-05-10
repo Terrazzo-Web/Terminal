@@ -91,7 +91,8 @@ impl ProcessOutputExchange {
             Err(()) => debug!("The process was not leased"),
         }
         debug!("Getting new lease...");
-        let process_output = self.process_output_rx.await?;
+        let mut process_output = self.process_output_rx.await?;
+        process_output.0.rewind();
         debug!("Getting new lease: Done");
         let (lease, signal_tx, process_output_rx) = ProcessOutputLease::new(process_output);
         Ok((
