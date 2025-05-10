@@ -20,7 +20,7 @@ pub async fn sleep(timeout: Duration) -> Result<(), SleepError> {
         )
         .map_err(SleepError::SetTimeout)?;
     let () = rx.await.map_err(SleepError::Canceled)?;
-    drop(closure);
+    drop(closure); // closure must outlive the await.
     Ok(())
 }
 
