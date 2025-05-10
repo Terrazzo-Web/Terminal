@@ -9,6 +9,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::terminal::terminals;
 
+pub mod utils;
+
 #[wasm_bindgen]
 pub fn start() {
     terrazzo::setup_logging();

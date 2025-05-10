@@ -20,6 +20,7 @@ pub mod client_address;
 pub mod client_name;
 
 const CORRELATION_ID: &str = "terrazzo-correlation-id";
+const KEEPALIVE_TTL_HEADER: &str = "terrazzo-keepalive-ttl";
 
 const NEWLINE: u8 = b'\n';
 

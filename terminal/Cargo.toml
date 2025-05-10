@@ -33,6 +33,7 @@ prost-types = { workspace = true, optional = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+static_assertions = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
 terrazzo = { workspace = true }
 terrazzo-pty = { workspace = true, optional = true }
@@ -94,6 +95,7 @@ server = [
     "dep:openssl",
     "dep:prost-types",
     "dep:prost",
+    "dep:static_assertions",
     "dep:terrazzo-pty",
     "dep:tokio",
     "dep:tonic",

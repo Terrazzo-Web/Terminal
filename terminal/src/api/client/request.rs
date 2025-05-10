@@ -88,7 +88,10 @@ pub enum SendRequestError {
 
 pub fn set_headers(f: impl FnOnce(&mut Headers)) -> impl FnOnce(&RequestInit) {
     move |request| {
-        let mut headers = Headers::new().or_throw("Headers::new()");
+        let headers = request.get_headers();
+        let mut headers = headers
+            .dyn_into()
+            .unwrap_or_else(|_| Headers::new().or_throw("Headers::new()"));
         f(&mut headers);
         request.set_headers(headers.as_ref());
     }

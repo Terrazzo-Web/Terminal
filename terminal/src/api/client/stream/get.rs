@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use futures::FutureExt;
 use futures::Stream;
@@ -69,11 +70,11 @@ fn add_dispatcher_sync(
         dispatchers
     } else {
         info!("Allocate new dispatchers");
-        let correlation_id = format!("{:#x}", Math::random().to_bits() % 22633363);
+        let correlation_id: Arc<str> = format!("{:#x}", Math::random().to_bits() % 22633363).into();
         let (pending_tx, pending_rx) = oneshot::channel();
         wasm_bindgen_futures::spawn_local(async move {
             autoclone!(correlation_id);
-            let shutdown_pipe = match pipe(&correlation_id).await {
+            let shutdown_pipe = match pipe(correlation_id).await {
                 Ok(shutdown_pipe) => shutdown_pipe,
                 Err(error) => {
                     let _ = pipe_tx.send(Err(error));

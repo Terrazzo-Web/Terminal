@@ -4,16 +4,18 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::SeqCst;
 use std::time::Duration;
 
+use axum::Json;
 use axum::body::Body;
+use axum::response::IntoResponse;
 use futures::Stream;
 use futures::StreamExt as _;
 use futures::stream::once;
 use pin_project::pin_project;
 use scopeguard::defer;
 use scopeguard::guard;
+use static_assertions::const_assert;
 use terrazzo::autoclone;
 use terrazzo::axum;
-use terrazzo::axum::extract::Request;
 use terrazzo_pty::lease::LeaseItem;
 use tracing::Span;
 use tracing::debug;
@@ -21,21 +23,30 @@ use tracing::info;
 use tracing::info_span;
 use tracing::trace;
 use tracing_futures::Instrument as _;
+use trz_gateway_common::http_error::HttpError;
 
+use super::registration::PingTimeoutError;
 use crate::api::Chunk;
+use crate::api::KEEPALIVE_TTL_HEADER;
 use crate::api::NEWLINE;
 use crate::api::server::correlation_id::CorrelationId;
 use crate::api::server::stream::registration::Registration;
 use crate::processes;
 
-const PIPE_TTL: Duration = if cfg!(feature = "concise_traces") {
+pub const PIPE_TTL: Duration = if cfg!(feature = "concise_traces") {
     Duration::from_secs(3600)
 } else {
     Duration::from_secs(5)
 };
 
+pub const KEEPALIVE_TTL: Duration = if cfg!(feature = "concise_traces") {
+    Duration::from_secs(20)
+} else {
+    Duration::from_secs(3)
+};
+
 #[autoclone]
-pub fn pipe(correlation_id: CorrelationId) -> Body {
+pub fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
     let span = info_span!("Pipe", %correlation_id);
     let _span = span.clone().entered();
     info!("Start");
@@ -112,11 +123,20 @@ pub fn pipe(correlation_id: CorrelationId) -> Body {
     let stream = once(ready(Ok(vec![NEWLINE]))).chain(rx);
     let stream = timeout_stream(stream).take_until(keepalive);
     let stream = stream.in_current_span();
-    if tracing::enabled!(tracing::Level::DEBUG) {
-        Body::from_stream(stream.inspect(|buffer| debug!("Buffer = {buffer:?}")))
+    let body = if tracing::enabled!(tracing::Level::DEBUG) {
+        Body::from_stream(stream.inspect(|buffer| {
+            if let Ok(buffer) = buffer {
+                let str = String::from_utf8_lossy(buffer);
+                debug!("Buffer = '{str}'");
+                return;
+            }
+            debug!("Buffer = {buffer:?}")
+        }))
     } else {
         Body::from_stream(stream)
-    }
+    };
+    const_assert!(KEEPALIVE_TTL.as_millis() < PIPE_TTL.as_millis());
+    return ([(KEEPALIVE_TTL_HEADER, KEEPALIVE_TTL.as_secs())], body);
 }
 
 #[autoclone]
@@ -175,21 +195,16 @@ pub async fn close_pipe(correlation_id: CorrelationId) {
     drop(Registration::take_if(&correlation_id));
 }
 
-pub fn keepalive(correlation_id: CorrelationId, request: Request) -> impl Future<Output = ()> {
+pub fn keepalive(
+    correlation_id: CorrelationId,
+    Json(_request): Json<Option<usize>>,
+) -> impl Future<Output = Result<(), HttpError<PingTimeoutError>>> {
     let span = info_span!("Keepalive", %correlation_id);
-    let mut stream = request.into_body().into_data_stream();
     async move {
-        info!("Start");
-        defer!(info!("End"));
-        while let Some(chunk) = stream.next().await {
-            debug!("Keep-alive {chunk:?}");
-            if chunk.is_err() {
-                break;
-            }
-        }
-        Registration::take_keepalive(&correlation_id).map(|keepalive| {
-            let _ = keepalive.send(());
-        });
+        debug!("Start");
+        defer!(debug!("Done"));
+        let () = Registration::ping_timeout(&correlation_id)?;
+        Ok(())
     }
     .instrument(span)
 }

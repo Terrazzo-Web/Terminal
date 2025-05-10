@@ -1,8 +1,8 @@
-use std::future::ready;
 use std::sync::Arc;
 
-use terrazzo::axum::Json;
-use terrazzo::axum::body::Body;
+use axum::Json;
+use axum::response::IntoResponse;
+use terrazzo::axum;
 use tracing::Instrument as _;
 use tracing::info_span;
 use trz_gateway_common::http_error::HttpError;
@@ -22,8 +22,8 @@ pub use self::close::close;
 pub use self::pipe::close_pipe;
 pub use self::pipe::keepalive;
 
-pub fn pipe(correlation_id: CorrelationId) -> impl Future<Output = Body> {
-    ready(pipe::pipe(correlation_id))
+pub async fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
+    pipe::pipe(correlation_id)
 }
 
 pub async fn register(
