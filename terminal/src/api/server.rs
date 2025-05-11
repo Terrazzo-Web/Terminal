@@ -4,9 +4,11 @@ use terrazzo::autoclone;
 use terrazzo::axum::Router;
 use terrazzo::axum::routing::get;
 use terrazzo::axum::routing::post;
+use tower_http::validate_request::ValidateRequestHeaderLayer;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
+mod auth;
 mod correlation_id;
 mod new_id;
 mod remotes;
@@ -95,4 +97,7 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
                 remotes::list(client_name, server)
             }),
         )
+        .route_layer(ValidateRequestHeaderLayer::custom(auth::validate(
+            server.clone(),
+        )))
 }
