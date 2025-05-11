@@ -20,6 +20,7 @@ use trz_gateway_server::server::Server;
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
 use crate::api::RegisterTerminalMode;
+use crate::api::STREAMING_WINDOW_SIZE;
 use crate::api::TerminalDef;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalRequest;
@@ -70,7 +71,11 @@ impl DistributedCallback for RegisterCallback {
             |_| async move {
                 match mode {
                     RegisterTerminalMode::Create => {
-                        ProcessIO::open(my_client_name.map(|s| s.to_string())).await
+                        ProcessIO::open(
+                            my_client_name.map(|s| s.to_string()),
+                            STREAMING_WINDOW_SIZE,
+                        )
+                        .await
                     }
                     RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
                 }
