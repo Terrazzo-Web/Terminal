@@ -14,9 +14,7 @@
 - `#··7`. Integration with Language Server
 
 # Nice to have
-- `#·51`. Save terminal buffer state before close
 - `#·45`. Lazily load tab
-- `#·43`. Errors should implement a trait that indicates their http status code
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
@@ -96,3 +94,5 @@ Next: `#·89`.
 - `#·83`. Fix signed extension validation
 - `#·84`. Run the gateway and terrazzo server on same host:port. Gateway shared code goes in trz-gw.
 - `#·85`. Terrazzo-gateway works with multiple agents
+- `#·51`. Save terminal buffer state before close
+- `#·43`. Errors should implement a trait that indicates their http status code
