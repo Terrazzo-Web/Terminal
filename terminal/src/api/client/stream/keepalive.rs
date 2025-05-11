@@ -12,11 +12,9 @@ use wasm_bindgen_futures::spawn_local;
 use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
-use crate::api::client::request::ThenRequest as _;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
-use crate::api::client::request::set_json_body;
 use crate::api::client::stream::pipe::PIPE;
 use crate::frontend::utils::sleep;
 
@@ -45,7 +43,7 @@ pub fn keepalive(
                     break;
                 }
             }
-            match send_keepalive(&correlation_id, None).await {
+            match send_keepalive(&correlation_id).await {
                 Ok(()) => {}
                 Err(error) => {
                     warn!("Keep-alive failed: {error}");
@@ -58,12 +56,12 @@ pub fn keepalive(
     spawn_local(task.in_current_span());
 }
 
-pub async fn send_keepalive(correlation_id: &str, id: Option<usize>) -> Result<(), KeepaliveError> {
-    debug!("Send keep-alive {id:?}");
+async fn send_keepalive(correlation_id: &str) -> Result<(), KeepaliveError> {
+    debug!("Send keep-alive");
     let response = send_request(
         Method::POST,
         format!("{BASE_URL}/stream/{PIPE}/{KEEPALIVE}"),
-        set_headers(set_correlation_id(correlation_id)).then(set_json_body(&id)?),
+        set_headers(set_correlation_id(correlation_id)),
     )
     .await?;
     debug! { "Keep-alive returned {} {}", response.status(), response.status_text() };
@@ -73,9 +71,6 @@ pub async fn send_keepalive(correlation_id: &str, id: Option<usize>) -> Result<(
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum KeepaliveError {
-    #[error("[{n}] {0}", n = self.name())]
-    Body(#[from] serde_json::Error),
-
     #[error("[{n}] {0}", n = self.name())]
     SendRequestError(#[from] SendRequestError),
 }

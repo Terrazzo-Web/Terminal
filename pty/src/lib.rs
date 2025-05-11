@@ -26,9 +26,6 @@ mod release_on_drop;
 pub mod size;
 mod tail;
 
-const BUFFER_SIZE: usize = 1024;
-const SCROLLBACK: usize = 1000;
-
 pub struct ProcessIO {
     input: OwnedWritePty,
     output: TailStream,
@@ -56,7 +53,10 @@ pub enum OpenProcessError {
 }
 
 impl ProcessIO {
-    pub async fn open(client_name: Option<impl AsRef<str>>) -> Result<Self, OpenProcessError> {
+    pub async fn open(
+        client_name: Option<impl AsRef<str>>,
+        scrollback: usize,
+    ) -> Result<Self, OpenProcessError> {
         let pty = Pty::new()?;
         let mut command =
             std::env::var("SHELL").map_or_else(|_| Command::new("/bin/bash"), Command::new);
@@ -69,13 +69,13 @@ impl ProcessIO {
         // https://forums.developer.apple.com/forums/thread/734230
         pty.set_nonblocking()?;
 
-        return Ok(Self::new(pty, child));
+        return Ok(Self::new(pty, child, scrollback));
     }
 
-    fn new(pty: Pty, child_process: tokio::process::Child) -> Self {
+    fn new(pty: Pty, child_process: tokio::process::Child, scrollback: usize) -> Self {
         let (output, input) = pty.into_split();
-        let output = ReaderStream::with_capacity(output, BUFFER_SIZE);
-        let output = TailStream::new(output, SCROLLBACK);
+        let output = ReaderStream::with_capacity(output, scrollback);
+        let output = TailStream::new(output, scrollback);
         Self {
             input,
             output,
@@ -144,7 +144,7 @@ impl Stream for ProcessOutput {
 mod tests {
     #[tokio::test]
     async fn open() {
-        super::ProcessIO::open(Option::<String>::None)
+        super::ProcessIO::open(Option::<String>::None, 1000)
             .await
             .unwrap();
     }

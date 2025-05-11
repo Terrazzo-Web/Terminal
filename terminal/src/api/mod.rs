@@ -24,6 +24,8 @@ const KEEPALIVE_TTL_HEADER: &str = "terrazzo-keepalive-ttl";
 
 const NEWLINE: u8 = b'\n';
 
+pub const STREAMING_WINDOW_SIZE: usize = 200 * 1000;
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Size {
     pub rows: i32,
@@ -40,6 +42,16 @@ pub struct Chunk {
 pub struct TerminalAddress {
     pub id: TerminalId,
     pub via: ClientAddress,
+}
+
+mod display_terminal_address {
+    use std::fmt::Display;
+
+    impl Display for super::TerminalAddress {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{} via {}", self.id, self.via)
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -105,4 +117,10 @@ pub struct ResizeRequest<T = TerminalAddress> {
 pub struct SetTitleRequest<T = TerminalAddress> {
     terminal: T,
     title: TabTitle<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AckRequest<T = TerminalAddress> {
+    terminal: T,
+    ack: usize,
 }

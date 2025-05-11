@@ -13,11 +13,13 @@ use self::register::RegisterStreamError;
 use super::correlation_id::CorrelationId;
 use crate::api::RegisterTerminalRequest;
 
+mod ack;
 mod close;
 mod pipe;
 mod register;
 mod registration;
 
+pub use self::ack::ack;
 pub use self::close::close;
 pub use self::pipe::close_pipe;
 pub use self::pipe::keepalive;

@@ -20,9 +20,12 @@ use trz_gateway_server::server::Server;
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
 use crate::api::RegisterTerminalMode;
+use crate::api::STREAMING_WINDOW_SIZE;
+use crate::api::TerminalDef;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalRequest;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::throttling_stream::ThrottleProcessOutput;
 use crate::processes;
 use crate::processes::io::HybridReader;
 
@@ -59,14 +62,20 @@ impl DistributedCallback for RegisterCallback {
     ) -> Result<HybridReader, RegisterStreamError> {
         let mode = request.mode().try_into()?;
         let def = request.def.ok_or_else(|| Status::invalid_argument("def"))?;
+        let def = TerminalDef::from(def);
+        let terminal_id = def.address.id.clone();
         let stream = processes::stream::open_stream(
             server,
-            def.into(),
+            def,
             mode == RegisterTerminalMode::Create,
             |_| async move {
                 match mode {
                     RegisterTerminalMode::Create => {
-                        ProcessIO::open(my_client_name.map(|s| s.to_string())).await
+                        ProcessIO::open(
+                            my_client_name.map(|s| s.to_string()),
+                            STREAMING_WINDOW_SIZE,
+                        )
+                        .await
                     }
                     RegisterTerminalMode::Reopen => Err(OpenProcessError::NotFound),
                 }
@@ -74,6 +83,7 @@ impl DistributedCallback for RegisterCallback {
         )
         .await;
         let stream = stream.map_err(|error| Status::internal(error.to_string()))?;
+        let stream = ThrottleProcessOutput::new(terminal_id, stream);
         return Ok(HybridReader::Local(stream));
     }
 

@@ -46,9 +46,7 @@ tower-http = { workspace = true, optional = true, features = [
     "trace",
 ] }
 tracing = { workspace = true }
-tracing-futures = { workspace = true, features = [
-    "futures-03",
-], optional = true }
+tracing-futures = { workspace = true, features = ["futures-03"] }
 trz-gateway-client = { workspace = true, optional = true }
 trz-gateway-common = { workspace = true, optional = true }
 trz-gateway-server = { workspace = true, optional = true }
@@ -100,7 +98,6 @@ server = [
     "dep:tokio",
     "dep:tonic",
     "dep:tower-http",
-    "dep:tracing-futures",
     "dep:trz-gateway-client",
     "dep:trz-gateway-common",
     "dep:trz-gateway-server",

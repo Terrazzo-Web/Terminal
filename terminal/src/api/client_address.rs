@@ -34,9 +34,7 @@ impl From<Vec<ClientName>> for ClientAddress {
 mod display {
     use std::fmt::Display;
 
-    use super::ClientAddress;
-
-    impl Display for ClientAddress {
+    impl Display for super::ClientAddress {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             let mut list = self.0.iter().map(|cn| cn.as_ref()).collect::<Vec<_>>();
             list.reverse();

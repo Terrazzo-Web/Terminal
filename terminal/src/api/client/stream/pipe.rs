@@ -34,6 +34,7 @@ use crate::api::client::request::set_headers;
 /// Spawns the pipe in the background.
 #[nameth]
 pub async fn pipe(correlation_id: Arc<str>) -> Result<oneshot::Sender<()>, PipeError> {
+    let span = info_span!("Pipe", %correlation_id);
     async move {
         info!("Start");
         let response = send_request(
@@ -64,7 +65,7 @@ pub async fn pipe(correlation_id: Arc<str>) -> Result<oneshot::Sender<()>, PipeE
         spawn_local(streaming_task.in_current_span());
         return Ok(tx);
     }
-    .instrument(info_span!("Pipe"))
+    .instrument(span)
     .await
 }
 

@@ -9,6 +9,7 @@ use trz_gateway_server::server::Server;
 
 use self::remotes::list_remotes;
 use self::terminals::list_terminals;
+use super::protos::terrazzo::gateway::client::AckRequest;
 use super::protos::terrazzo::gateway::client::Empty;
 use super::protos::terrazzo::gateway::client::ListRemotesRequest;
 use super::protos::terrazzo::gateway::client::ListRemotesResponse;
@@ -25,6 +26,7 @@ use super::protos::terrazzo::gateway::client::WriteRequest;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
 use crate::processes::io::RemoteReader;
 
+pub mod ack;
 pub mod close;
 pub mod convert;
 pub mod new_id;
@@ -141,6 +143,14 @@ impl ClientService for ClientServiceImpl {
         request: Request<SetOrderRequest>,
     ) -> Result<Response<Empty>, Status> {
         let () = set_order::set_order(&self.server, request.into_inner().terminals).await;
+        Ok(Response::new(Empty {}))
+    }
+
+    async fn ack(&self, request: Request<AckRequest>) -> Result<Response<Empty>, Status> {
+        let mut request = request.into_inner();
+        let terminal = request.terminal.get_or_insert_default();
+        let client_address = terminal.client_address().to_vec();
+        let () = ack::ack(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
     }
 }

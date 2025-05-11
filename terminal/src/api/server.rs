@@ -36,21 +36,28 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
                 new_id::new_id(client_name, server, request)
             }),
         )
+        .route(
+            "/stream/ack",
+            post(|request| {
+                autoclone!(server);
+                stream::ack(server, request)
+            }),
+        )
+        .route(
+            "/stream/close",
+            post(|request| {
+                autoclone!(server);
+                stream::close(server, request)
+            }),
+        )
         .route("/stream/pipe", post(stream::pipe))
-        .route("/stream/pipe/keepalive", post(stream::keepalive))
         .route("/stream/pipe/close", post(stream::close_pipe))
+        .route("/stream/pipe/keepalive", post(stream::keepalive))
         .route(
             "/stream/register",
             post(|request| {
                 autoclone!(client_name, server);
                 stream::register(client_name, server, request)
-            }),
-        )
-        .route(
-            "/close",
-            post(|request| {
-                autoclone!(server);
-                stream::close(server, request)
             }),
         )
         .route(
