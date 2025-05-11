@@ -9,7 +9,6 @@ use tokio::task::JoinHandle;
 use tracing::Instrument as _;
 use tracing::debug;
 use tracing::info;
-use tracing::warn;
 use trz_gateway_common::http_error::IsHttpError;
 
 use super::pipe::PIPE_TTL;
@@ -90,7 +89,7 @@ impl Registration {
         let keepalive = async move {
             match timeout_rx.await {
                 Ok(()) => info!("Timed out"),
-                Err(oneshot::Canceled) => warn!("Canceled"),
+                Err(oneshot::Canceled) => info!("Canceled"),
             }
         };
         (rx, keepalive)

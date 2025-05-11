@@ -9,7 +9,7 @@ use tonic::codegen::StdError;
 use tonic::transport::Body;
 use tracing::Instrument;
 use tracing::debug;
-use tracing::debug_span;
+use tracing::info_span;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_server::server::Server;
 
@@ -32,7 +32,7 @@ pub fn ack(
         .as_ref()
         .map(|t| t.terminal_id.as_str())
         .unwrap_or_default();
-    let span = debug_span!("Ack", %terminal_id);
+    let span = info_span!("Ack", %terminal_id);
     async {
         debug!("Start");
         defer!(debug!("Done"));
