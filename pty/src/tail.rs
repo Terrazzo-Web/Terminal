@@ -66,6 +66,7 @@ where
     trace!("Start");
     defer!(trace!("Stop"));
     pin!(stream);
+    let mut size = 0;
     loop {
         let item = stream.next().await;
         trace!("Next: {item:?}");
@@ -81,22 +82,38 @@ where
                 pending,
             } = &mut *lock;
 
+            let item_len = if let Some(Ok(bytes)) = &item {
+                bytes.len()
+            } else {
+                0
+            };
+
             // There is an off-by-one acceptable issue that the last 'None' element counts as one.
-            if lines.len() == scrollback {
+            while size + item_len > scrollback {
+                trace!("size:{size} > scrollback:{scrollback}");
                 // [ C1 = new oldest, C2, ... Cp, ..., C(n-1) ]
                 // --> Cp becomes the (p-1) element
-                let mut oldest = lines.drain(..1);
+                let oldest = lines.drain(..1).next().unwrap();
                 if *pos > 0 {
                     *pos -= 1;
                     trace! { pos, "'pos' decremented" }
                 } else {
-                    trace! { pos, "Buffer full, the oldest item was dropped (item={:?})", oldest.next().unwrap() }
+                    trace! { pos, "Buffer full, the oldest item was dropped (item={oldest:?})" }
+                }
+                if let Some(Ok(bytes)) = oldest {
+                    size -= bytes.len();
                 }
             }
 
             // item becomes Cb
             // [ C1 = new oldest, C2, ... Cp, ..., C(n-1), Cn = item ]
+            if let Some(Ok(bytes)) = &item {
+                size += bytes.len();
+            }
             lines.push_back(item);
+
+            trace!("size:{size} <= scrollback:{scrollback} lines={lines:?}");
+            debug_assert!(size <= scrollback);
 
             if let Some(PendingBufferState { worker, .. }) = pending {
                 trace! { "The stream is waiting for the next item" };
@@ -284,7 +301,7 @@ mod tests {
                 ready(!end)
             })
             .map(|i| Ok(Bytes::from(i.to_string().into_bytes())));
-        let tail_stream = TailStream::new(stream, 5);
+        let tail_stream = TailStream::new(stream, 12);
         let _ = end_rx.await;
         let data = tail_stream
             .take(10)
