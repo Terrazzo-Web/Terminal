@@ -12,6 +12,7 @@ service ClientService {
   rpc Close(TerminalAddress) returns (Empty);
   rpc SetTitle(SetTitleRequest) returns (Empty);
   rpc SetOrder(SetOrderRequest) returns (Empty);
+  rpc Ack(AckRequest) returns (Empty);
 }
 
 message ListRemotesRequest { repeated string visited = 1; }
@@ -83,4 +84,9 @@ message SetOrderRequest { repeated OrderedTerminal terminals = 1; }
 message OrderedTerminal {
   TerminalAddress address = 1;
   int32 order = 2;
+}
+
+message AckRequest {
+  TerminalAddress terminal = 1;
+  uint64 ack = 3;
 }
