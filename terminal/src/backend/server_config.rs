@@ -1,4 +1,5 @@
 use std::iter::once;
+use std::sync::Arc;
 
 use nameth::nameth;
 use terrazzo::axum::Router;
@@ -26,6 +27,7 @@ pub struct TerminalBackendServer {
     pub port: u16,
     pub root_ca: PrivateRootCa,
     pub tls_config: SecurityConfig<PrivateRootCa, CachedCertificate>,
+    pub auth_config: Arc<api::server::AuthConfig>,
 }
 
 impl GatewayConfig for TerminalBackendServer {
@@ -58,6 +60,7 @@ impl GatewayConfig for TerminalBackendServer {
 
     fn app_config(&self) -> impl AppConfig {
         let client_name = self.client_name.clone();
+        let auth_config = self.auth_config.clone();
         move |server, router: Router| {
             let router = router
                 .route("/", get(|| static_assets::get("index.html")))
@@ -65,7 +68,10 @@ impl GatewayConfig for TerminalBackendServer {
                     "/static/{*file}",
                     get(|Path(path): Path<String>| static_assets::get(&path)),
                 )
-                .nest_service("/api", api::server::route(&client_name, &server));
+                .nest_service(
+                    "/api",
+                    api::server::route(&client_name, &server, &auth_config),
+                );
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {
                 router.layer(TraceLayer::new_for_http())

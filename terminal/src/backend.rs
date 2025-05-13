@@ -32,6 +32,7 @@ use self::root_ca_config::PrivateRootCaError;
 use self::server_config::TerminalBackendServer;
 use self::tls_config::TlsConfigError;
 use self::tls_config::make_tls_config;
+use crate::api::server::AuthConfig;
 use crate::assets;
 
 mod agent;
@@ -67,6 +68,7 @@ pub fn run_server() -> Result<(), RunServerError> {
         port: cli.port,
         root_ca,
         tls_config,
+        auth_config: AuthConfig::default().into(),
     };
 
     if cli.action == Action::Start {

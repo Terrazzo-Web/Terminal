@@ -19,8 +19,14 @@ mod stream;
 mod terminals;
 mod write;
 
+pub use auth::AuthConfig;
+
 #[autoclone]
-pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
+pub fn route(
+    client_name: &Option<ClientName>,
+    server: &Arc<Server>,
+    auth_config: &Arc<AuthConfig>,
+) -> Router {
     let client_name = client_name.clone();
     let server = server.clone();
     Router::new()
@@ -98,6 +104,6 @@ pub fn route(client_name: &Option<ClientName>, server: &Arc<Server>) -> Router {
             }),
         )
         .route_layer(ValidateRequestHeaderLayer::custom(auth::validate(
-            server.clone(),
+            auth_config.clone(),
         )))
 }
