@@ -7,7 +7,6 @@ use super::PORT;
 pub(in crate::backend) mod kill;
 pub(in crate::backend) mod pidfile;
 
-/// Simple program to greet a person
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Cli {

@@ -61,7 +61,7 @@ impl ClientService for ClientServiceImpl {
     ) -> Result<Response<ListRemotesResponse>, Status> {
         let mut visited = request.into_inner().visited;
         visited.push(self.client_name.to_string());
-        let clients = list_remotes(&self.server, &visited).await;
+        let clients = list_remotes(&self.server, visited).await;
         Ok(Response::new(ListRemotesResponse { clients }))
     }
 
