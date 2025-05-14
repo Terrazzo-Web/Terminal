@@ -2,9 +2,11 @@ use std::iter::once;
 use std::sync::Arc;
 
 use nameth::nameth;
+use terrazzo::autoclone;
 use terrazzo::axum::Router;
 use terrazzo::axum::extract::Path;
 use terrazzo::axum::routing::get;
+use terrazzo::axum::routing::post;
 use terrazzo::http::header::AUTHORIZATION;
 use terrazzo::static_assets;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
@@ -14,6 +16,7 @@ use tracing::enabled;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_common::security_configuration::SecurityConfig;
 use trz_gateway_common::security_configuration::certificate::cache::CachedCertificate;
+use trz_gateway_server::server::Server;
 use trz_gateway_server::server::gateway_config::GatewayConfig;
 use trz_gateway_server::server::gateway_config::app_config::AppConfig;
 
@@ -58,19 +61,27 @@ impl GatewayConfig for TerminalBackendServer {
         self.port
     }
 
+    #[autoclone]
     fn app_config(&self) -> impl AppConfig {
         let client_name = self.client_name.clone();
         let auth_config = self.auth_config.clone();
-        move |server, router: Router| {
+        move |server: Arc<Server>, router: Router| {
             let router = router
                 .route("/", get(|| static_assets::get("index.html")))
                 .route(
                     "/static/{*file}",
                     get(|Path(path): Path<String>| static_assets::get(&path)),
                 )
+                .route(
+                    "/login",
+                    post(|cookies| {
+                        autoclone!(auth_config);
+                        api::server::login(auth_config, cookies)
+                    }),
+                )
                 .nest_service(
                     "/api",
-                    api::server::route(&client_name, &server, &auth_config),
+                    api::server::api_routes(&client_name, &server, &auth_config),
                 );
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {

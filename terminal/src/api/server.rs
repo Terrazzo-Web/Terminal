@@ -1,9 +1,15 @@
 use std::sync::Arc;
 
+use axum::Router;
+use axum::response::IntoResponse;
+use axum::routing::get;
+use axum::routing::post;
+use axum_extra::extract::CookieJar;
+use axum_extra::extract::cookie::Cookie;
+use http::StatusCode;
 use terrazzo::autoclone;
-use terrazzo::axum::Router;
-use terrazzo::axum::routing::get;
-use terrazzo::axum::routing::post;
+use terrazzo::axum;
+use terrazzo::http;
 use tower_http::validate_request::ValidateRequestHeaderLayer;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
@@ -22,7 +28,7 @@ mod write;
 pub use auth::AuthConfig;
 
 #[autoclone]
-pub fn route(
+pub fn api_routes(
     client_name: &Option<ClientName>,
     server: &Arc<Server>,
     auth_config: &Arc<AuthConfig>,
@@ -103,7 +109,17 @@ pub fn route(
                 remotes::list(client_name, server)
             }),
         )
-        .route_layer(ValidateRequestHeaderLayer::custom(auth::validate(
-            auth_config.clone(),
-        )))
+        .route_layer(ValidateRequestHeaderLayer::custom(
+            auth_config.clone().validate(),
+        ))
+}
+
+pub async fn login(
+    auth_config: Arc<AuthConfig>,
+    cookies: CookieJar,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let token = auth_config
+        .make_token()
+        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
+    Ok((cookies.add(Cookie::new("access_token", token)), "OK"))
 }

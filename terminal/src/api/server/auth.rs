@@ -13,6 +13,7 @@ use http::header::AUTHORIZATION;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
+use jsonwebtoken::Header;
 use jsonwebtoken::TokenData;
 use jsonwebtoken::Validation;
 use terrazzo::axum;
@@ -46,10 +47,24 @@ impl Default for AuthConfig {
     }
 }
 
-pub fn validate(
-    auth_config: Arc<AuthConfig>,
-) -> impl for<'a> FnMut(&'a mut Request<Body>) -> Result<(), Response<Body>> + Clone {
-    move |request| validate_impl(&auth_config, request).map_err(|error| error.into_response())
+impl AuthConfig {
+    pub fn make_token(&self) -> Result<std::string::String, jsonwebtoken::errors::Error> {
+        jsonwebtoken::encode(
+            &Header::default(),
+            &Claims {
+                nbf: Duration::from_secs(60),
+                exp: Duration::from_secs(3600),
+            }
+            .into_timestamps(),
+            &self.encoding_key,
+        )
+    }
+
+    pub fn validate(
+        self: Arc<Self>,
+    ) -> impl for<'a> FnMut(&'a mut Request<Body>) -> Result<(), Response<Body>> + Clone {
+        move |request| validate_impl(&self, request).map_err(|error| error.into_response())
+    }
 }
 
 fn validate_impl(

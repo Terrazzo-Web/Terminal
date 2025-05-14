@@ -21,6 +21,7 @@ path = "src/server.rs"
 required-features = ["server"]
 
 [dependencies]
+axum-extra = { workspace = true, optional = true, features = ["cookie"] }
 clap = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
@@ -89,6 +90,7 @@ client = [
     "terrazzo/client",
 ]
 server = [
+    "dep:axum-extra",
     "dep:clap",
     "dep:dashmap",
     "dep:jsonwebtoken",
