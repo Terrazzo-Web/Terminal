@@ -11,8 +11,8 @@ use super::types::RuntimeTypes;
 impl ConfigFile<ConfigFileTypes> {
     pub fn merge(self, cli: &Cli) -> ConfigFile<RuntimeTypes> {
         ConfigFile {
-            server: merge_server_config(self.server, &cli),
-            mesh: merge_mesh_config(self.mesh, &cli),
+            server: merge_server_config(self.server, cli),
+            mesh: merge_mesh_config(self.mesh, cli),
         }
     }
 }
