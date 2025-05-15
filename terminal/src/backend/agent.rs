@@ -18,6 +18,7 @@ use trz_gateway_common::security_configuration::trusted_store::load::LoadTrusted
 use trz_gateway_server::server::Server;
 
 use super::cli::Cli;
+use super::config_file::ConfigFile;
 use crate::backend::client_service::ClientServiceImpl;
 use crate::backend::protos::terrazzo::gateway::client::client_service_server::ClientServiceServer;
 
@@ -42,13 +43,14 @@ const CLIENT_CERTIFICATE_FILE_SUFFIX: CertificateInfo<&str> = CertificateInfo {
 };
 
 impl AgentTunnelConfig {
-    pub async fn new(cli: &Cli, server: Arc<Server>) -> Option<Self> {
+    pub async fn new(cli: &Cli, config_file: &ConfigFile, server: Arc<Server>) -> Option<Self> {
+        let mesh = config_file.mesh.as_ref()?;
         let _span = info_span!("Agent tunnel config").entered();
 
-        let client_name = cli.client_name.as_deref()?.into();
-        let gateway_url = cli.gateway_url.clone()?;
+        let client_name = mesh.client_name.as_str().into();
+        let gateway_url = mesh.gateway_url.clone();
 
-        let gateway_pki = cli
+        let gateway_pki = mesh
             .gateway_pki
             .as_deref()
             .map(LoadTrustedStore::File)
@@ -68,7 +70,7 @@ impl AgentTunnelConfig {
                 &client_config,
                 cli.auth_code.as_str().into(),
                 CLIENT_CERTIFICATE_FILE_SUFFIX
-                    .map(|suffix| format!("{}.{suffix}", cli.client_certificate)),
+                    .map(|suffix| format!("{}.{suffix}", mesh.client_certificate)),
             )
             .await
             .inspect_err(|error| warn!("Failed to load Client Certificate: {error}"))

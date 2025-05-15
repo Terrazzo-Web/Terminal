@@ -29,6 +29,7 @@ jsonwebtoken = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 openssl = { workspace = true, optional = true }
+pbkdf2 = { workspace = true, optional = true }
 pin-project = { workspace = true }
 prost = { workspace = true, optional = true }
 prost-types = { workspace = true, optional = true }
@@ -41,6 +42,7 @@ terrazzo = { workspace = true }
 terrazzo-pty = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
+toml = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = [
     "auth",
@@ -96,11 +98,13 @@ server = [
     "dep:jsonwebtoken",
     "dep:nix",
     "dep:openssl",
+    "dep:pbkdf2",
     "dep:prost-types",
     "dep:prost",
     "dep:static_assertions",
     "dep:terrazzo-pty",
     "dep:tokio",
+    "dep:toml",
     "dep:tonic",
     "dep:tower-http",
     "dep:trz-gateway-client",

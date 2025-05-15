@@ -1,12 +1,6 @@
 use clap::Parser;
 use clap::ValueEnum;
 
-use super::HOST;
-use super::PORT;
-
-pub(in crate::backend) mod kill;
-pub(in crate::backend) mod pidfile;
-
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
@@ -15,20 +9,28 @@ pub struct Cli {
     pub action: Action,
 
     /// The TCP host to listen to.
-    #[arg(long, default_value_t = HOST.to_owned())]
-    pub host: String,
+    #[arg(long)]
+    pub host: Option<String>,
+
+    /// The file to store the config.
+    #[arg(long)]
+    pub config_file: Option<String>,
 
     /// The TCP port to listen to.
-    #[arg(long, default_value_t = PORT)]
-    pub port: u16,
+    #[arg(long)]
+    pub port: Option<u16>,
 
-    /// The file to store the pid of the daemon while it is running
-    #[arg(long, default_value_t = format!("{}/.terrazzo/terminal-$port.pid", std::env::var("HOME").expect("HOME")))]
-    pub pidfile: String,
+    /// The file to store the pid of the daemon while it is running.
+    #[arg(long)]
+    pub pidfile: Option<String>,
 
-    /// The file to the store private Root CA
-    #[arg(long, default_value_t = format!("{}/.terrazzo/root_ca", std::env::var("HOME").expect("HOME")))]
-    pub private_root_ca: String,
+    /// The file to the store private Root CA.
+    #[arg(long)]
+    pub private_root_ca: Option<String>,
+
+    /// The password to login to the UI.
+    #[arg(long)]
+    pub password: Option<String>,
 
     /// If using mesh: the Client name.
     #[arg(long)]
@@ -47,8 +49,8 @@ pub struct Cli {
     pub auth_code: String,
 
     /// If using mesh: the file to store the client certificate
-    #[arg(long, default_value_t = format!("{}/.terrazzo/client_certificate", std::env::var("HOME").expect("HOME")))]
-    pub client_certificate: String,
+    #[arg(long)]
+    pub client_certificate: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]

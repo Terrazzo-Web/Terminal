@@ -6,9 +6,9 @@ use std::io::Write;
 use nameth::NamedType as _;
 use nameth::nameth;
 
-use super::Cli;
+use super::ServerConfig;
 
-impl Cli {
+impl ServerConfig {
     pub fn read_pid(&self) -> Result<Option<i32>, ReadPidfileError> {
         if !self.pid_filepath().exists() {
             return Ok(None);

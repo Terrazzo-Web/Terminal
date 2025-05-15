@@ -48,6 +48,7 @@ mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.8" }
 nix = { version = "0.30.1" }
 openssl = { version = "0.10.72" }
+pbkdf2 = { version = "0.12.2" }
 pin-project = { version = "1.1.10" }
 prettyplease = { version = "0.2.32" }
 proc-macro2 = { version = "1.0.95" }
@@ -70,6 +71,7 @@ thiserror = { version = "2.0.12" }
 tokio = { version = "1.44.2" }
 tokio-stream = { version = "0.1.17" }
 tokio-util = { version = "0.7.15" }
+toml = { version = "0.8.22" }
 tonic = { version = "0.13.1" }
 tonic-build = { version = "0.13.1" }
 tower = { version = "0.5.2" }

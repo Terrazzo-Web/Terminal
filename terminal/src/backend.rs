@@ -5,6 +5,8 @@ use std::future::ready;
 use std::sync::Arc;
 
 use clap::Parser as _;
+use config_file::ConfigFile;
+use config_file::kill::KillServerError;
 use futures::FutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -25,7 +27,6 @@ use trz_gateway_server::server::Server;
 use self::agent::AgentTunnelConfig;
 use self::cli::Action;
 use self::cli::Cli;
-use self::cli::kill::KillServerError;
 use self::daemonize::DaemonizeServerError;
 use self::root_ca_config::PrivateRootCa;
 use self::root_ca_config::PrivateRootCaError;
@@ -38,6 +39,7 @@ use crate::assets;
 mod agent;
 mod cli;
 pub mod client_service;
+mod config_file;
 mod daemonize;
 pub mod protos;
 mod root_ca_config;
@@ -50,36 +52,47 @@ const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
 pub fn run_server() -> Result<(), RunServerError> {
     crypto_provider();
-    let cli = {
-        let mut cli = Cli::parse();
-        cli.pidfile = cli.pidfile.replace("$port", &cli.port.to_string());
-        cli
-    };
+    let cli = Cli::parse();
+
+    let config_file = cli
+        .config_file
+        .as_deref()
+        .and_then(ConfigFile::load)
+        .unwrap_or_default()
+        .merge(&cli);
 
     if cli.action == Action::Stop {
-        return Ok(cli.kill()?);
+        return Ok(config_file.server.kill()?);
     }
 
-    let root_ca = PrivateRootCa::load(&cli)?;
+    let root_ca = PrivateRootCa::load(&config_file)?;
     let tls_config = make_tls_config(&root_ca)?;
     let config = TerminalBackendServer {
-        client_name: cli.client_name.clone().map(ClientName::from),
-        host: cli.host.clone(),
-        port: cli.port,
+        client_name: config_file
+            .mesh
+            .as_ref()
+            .map(|mesh| mesh.client_name.clone())
+            .map(ClientName::from),
+        host: config_file.server.host.clone(),
+        port: config_file.server.port,
         root_ca,
         tls_config,
         auth_config: AuthConfig::default().into(),
     };
 
     if cli.action == Action::Start {
-        self::daemonize::daemonize(&cli)?;
+        self::daemonize::daemonize(&config_file)?;
     }
 
-    return run_server_async(cli, config);
+    return run_server_async(cli, config_file, config);
 }
 
 #[tokio::main]
-async fn run_server_async(cli: Cli, config: TerminalBackendServer) -> Result<(), RunServerError> {
+async fn run_server_async(
+    cli: Cli,
+    config_file: ConfigFile,
+    config: TerminalBackendServer,
+) -> Result<(), RunServerError> {
     set_current_dir(std::env::var("HOME").expect("HOME")).map_err(RunServerError::SetCurrentDir)?;
 
     assets::install_assets();
@@ -94,7 +107,7 @@ async fn run_server_async(cli: Cli, config: TerminalBackendServer) -> Result<(),
         .shared();
 
     let client_handle = async {
-        match run_client_async(cli, server.clone()).await {
+        match run_client_async(cli, config_file, server.clone()).await {
             Ok(client_handle) => Ok(Some(client_handle)),
             Err(RunClientError::ClientNotEnabled) => Ok(None),
             Err(error) => Err(error),
@@ -156,10 +169,11 @@ pub enum RunServerError {
 
 async fn run_client_async(
     cli: Cli,
+    config_file: ConfigFile,
     server: Arc<Server>,
 ) -> Result<ServerHandle<()>, RunClientError> {
     let _span = info_span!("Client").entered();
-    let Some(agent_config) = AgentTunnelConfig::new(&cli, server).await else {
+    let Some(agent_config) = AgentTunnelConfig::new(&cli, &config_file, server).await else {
         info!("Gateway client disabled");
         return Err(RunClientError::ClientNotEnabled);
     };
