@@ -9,6 +9,7 @@ use axum_extra::extract::cookie::Cookie;
 use http::StatusCode;
 use terrazzo::autoclone;
 use terrazzo::axum;
+use terrazzo::axum::Json;
 use terrazzo::http;
 use tower_http::validate_request::ValidateRequestHeaderLayer;
 use trz_gateway_common::id::ClientName;
@@ -26,6 +27,8 @@ mod terminals;
 mod write;
 
 pub use auth::AuthConfig;
+
+use crate::backend::config_file::ConfigFile;
 
 #[autoclone]
 pub fn api_routes(
@@ -116,8 +119,16 @@ pub fn api_routes(
 
 pub async fn login(
     auth_config: Arc<AuthConfig>,
+    config_file: Arc<ConfigFile>,
     cookies: CookieJar,
+    Json(password): Json<String>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
+    if config_file.server.password.is_some() {
+        let () = config_file
+            .server
+            .verify_password(&password)
+            .map_err(|error| (StatusCode::UNAUTHORIZED, error.to_string()))?;
+    }
     let token = auth_config
         .make_token()
         .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;

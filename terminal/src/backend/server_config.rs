@@ -20,6 +20,7 @@ use trz_gateway_server::server::Server;
 use trz_gateway_server::server::gateway_config::GatewayConfig;
 use trz_gateway_server::server::gateway_config::app_config::AppConfig;
 
+use super::config_file::ConfigFile;
 use super::root_ca_config::PrivateRootCa;
 use crate::api;
 
@@ -31,6 +32,7 @@ pub struct TerminalBackendServer {
     pub root_ca: PrivateRootCa,
     pub tls_config: SecurityConfig<PrivateRootCa, CachedCertificate>,
     pub auth_config: Arc<api::server::AuthConfig>,
+    pub config_file: Arc<ConfigFile>,
 }
 
 impl GatewayConfig for TerminalBackendServer {
@@ -65,6 +67,7 @@ impl GatewayConfig for TerminalBackendServer {
     fn app_config(&self) -> impl AppConfig {
         let client_name = self.client_name.clone();
         let auth_config = self.auth_config.clone();
+        let config_file = self.config_file.clone();
         move |server: Arc<Server>, router: Router| {
             let router = router
                 .route("/", get(|| static_assets::get("index.html")))
@@ -74,9 +77,9 @@ impl GatewayConfig for TerminalBackendServer {
                 )
                 .route(
                     "/login",
-                    post(|cookies| {
-                        autoclone!(auth_config);
-                        api::server::login(auth_config, cookies)
+                    post(|cookies, password| {
+                        autoclone!(auth_config, config_file);
+                        api::server::login(auth_config, config_file, cookies, password)
                     }),
                 )
                 .nest_service(

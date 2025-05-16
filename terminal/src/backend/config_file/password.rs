@@ -7,6 +7,7 @@ use pbkdf2::hmac::digest::InvalidLength;
 use sha2::Sha256;
 
 use super::ConfigFile;
+use super::ServerConfig;
 use super::io::ConfigFileError;
 use crate::backend::config_file::types::Password;
 
@@ -19,14 +20,16 @@ impl ConfigFile {
             return Err(SetPasswordError::ConfigFile);
         };
         let password = rpassword::prompt_password("Password: ")?;
-        self.hash_password(&password)?;
-        debug_assert!(self.verify_password(&password).is_ok());
+        self.server.hash_password(&password)?;
+        debug_assert!(matches!(self.server.verify_password(&password), Ok(())));
         let () = self.save(config_file)?;
         Ok(())
     }
+}
 
+impl ServerConfig {
     fn hash_password(&mut self, password: &str) -> Result<(), SetPasswordError> {
-        Ok(self.server.password = {
+        Ok(self.password = {
             let mut hash = [0u8; 20];
             let salt = uuid::Uuid::new_v4();
             let iterations = 60_000;
@@ -45,7 +48,7 @@ impl ConfigFile {
     }
 
     pub fn verify_password(&self, password: &str) -> Result<(), VerifyPasswordError> {
-        let Some(password_hash) = &self.server.password else {
+        let Some(password_hash) = &self.password else {
             return Err(VerifyPasswordError::PasswordNotDefined);
         };
         let mut hash = [0u8; 20];
@@ -94,12 +97,12 @@ pub enum VerifyPasswordError {
 
 #[cfg(test)]
 mod tests {
-    use crate::backend::config_file::ConfigFile;
+    use crate::backend::config_file::ServerConfig;
     use crate::backend::config_file::password::VerifyPasswordError;
 
     #[test]
     fn test_password() {
-        let mut config_file = ConfigFile::default();
+        let mut config_file = ServerConfig::default();
         config_file.hash_password("pa$$word").unwrap();
         assert!(matches!(config_file.verify_password("pa$$word"), Ok(())));
         assert!(matches!(

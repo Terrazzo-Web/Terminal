@@ -11,7 +11,7 @@ pub(in crate::backend) mod kill;
 mod merge;
 pub(in crate::backend) mod password;
 pub(in crate::backend) mod pidfile;
-mod types;
+pub mod types;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ConfigFile<T: ConfigTypes = RuntimeTypes> {

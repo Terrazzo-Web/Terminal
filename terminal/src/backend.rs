@@ -43,7 +43,7 @@ use crate::assets;
 mod agent;
 mod cli;
 pub mod client_service;
-mod config_file;
+pub mod config_file;
 mod daemonize;
 pub mod protos;
 mod root_ca_config;
@@ -91,6 +91,7 @@ pub fn run_server() -> Result<(), RunServerError> {
 
     let root_ca = PrivateRootCa::load(&config_file)?;
     let tls_config = make_tls_config(&root_ca)?;
+    let config_file = Arc::new(config_file);
     let config = TerminalBackendServer {
         client_name: config_file
             .mesh
@@ -102,10 +103,11 @@ pub fn run_server() -> Result<(), RunServerError> {
         root_ca,
         tls_config,
         auth_config: AuthConfig::default().into(),
+        config_file: config_file.clone(),
     };
 
     if cli.action == Action::Start {
-        self::daemonize::daemonize(&config_file)?;
+        self::daemonize::daemonize(&config.config_file)?;
     }
 
     return run_server_async(cli, config_file, config);
@@ -114,7 +116,7 @@ pub fn run_server() -> Result<(), RunServerError> {
 #[tokio::main]
 async fn run_server_async(
     cli: Cli,
-    config_file: ConfigFile,
+    config_file: Arc<ConfigFile>,
     config: TerminalBackendServer,
 ) -> Result<(), RunServerError> {
     set_current_dir(std::env::var("HOME").expect("HOME")).map_err(RunServerError::SetCurrentDir)?;
@@ -199,7 +201,7 @@ pub enum RunServerError {
 
 async fn run_client_async(
     cli: Cli,
-    config_file: ConfigFile,
+    config_file: Arc<ConfigFile>,
     server: Arc<Server>,
 ) -> Result<ServerHandle<()>, RunClientError> {
     let _span = info_span!("Client").entered();
