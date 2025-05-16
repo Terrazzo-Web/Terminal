@@ -28,10 +28,6 @@ pub struct Cli {
     #[arg(long)]
     pub private_root_ca: Option<String>,
 
-    /// The password to login to the UI.
-    #[arg(long)]
-    pub password: Option<String>,
-
     /// If using mesh: the Client name.
     #[arg(long)]
     pub client_name: Option<String>,
@@ -63,4 +59,7 @@ pub enum Action {
 
     /// Stop the daemon
     Stop,
+
+    /// Sets the password
+    SetPassword,
 }

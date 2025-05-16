@@ -2,11 +2,15 @@
 
 use std::env::set_current_dir;
 use std::future::ready;
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use clap::Parser as _;
 use config_file::ConfigFile;
+use config_file::io::ConfigFileError;
 use config_file::kill::KillServerError;
+use config_file::password::SetPasswordError;
 use futures::FutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -52,17 +56,37 @@ const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
 pub fn run_server() -> Result<(), RunServerError> {
     crypto_provider();
-    let cli = Cli::parse();
+    let cli = {
+        let mut cli = Cli::parse();
+        if let Some(config_file) = &mut cli.config_file {
+            if Path::new(config_file).is_relative() {
+                let concat: PathBuf = [&home(), ".terrazzo", config_file].iter().collect();
+                *config_file = concat.to_string_lossy().to_string()
+            }
+        }
+        cli
+    };
 
-    let config_file = cli
-        .config_file
-        .as_deref()
-        .and_then(ConfigFile::load)
-        .unwrap_or_default()
-        .merge(&cli);
+    let config_file = if let Some(path) = cli.config_file.as_deref() {
+        ConfigFile::load(path)?
+    } else {
+        ConfigFile::default()
+    }
+    .merge(&cli);
+
+    #[cfg(debug_assertions)]
+    println!("Config: {config_file:?}");
 
     if cli.action == Action::Stop {
         return Ok(config_file.server.kill()?);
+    }
+
+    if cli.action == Action::SetPassword {
+        return Ok(config_file.set_password(cli.config_file)?);
+    }
+
+    if let Some(path) = cli.config_file.as_deref() {
+        let () = config_file.save(path)?;
     }
 
     let root_ca = PrivateRootCa::load(&config_file)?;
@@ -143,6 +167,12 @@ pub enum RunServerError {
     KillServer(#[from] KillServerError),
 
     #[error("[{n}] {0}", n = self.name())]
+    ConfigFile(#[from] ConfigFileError),
+
+    #[error("[{n}] {0}", n = self.name())]
+    SetPassword(#[from] SetPasswordError),
+
+    #[error("[{n}] {0}", n = self.name())]
     PrivateRootCa(#[from] PrivateRootCaError),
 
     #[error("[{n}] {0}", n = self.name())]
@@ -196,4 +226,8 @@ pub enum RunClientError {
 
     #[error("[{n}] {0}", n = self.name())]
     Aborted(String),
+}
+
+fn home() -> String {
+    std::env::var("HOME").expect("HOME")
 }

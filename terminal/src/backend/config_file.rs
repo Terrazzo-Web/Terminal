@@ -6,10 +6,11 @@ use serde::Serialize;
 use self::types::ConfigTypes;
 use self::types::RuntimeTypes;
 
+pub(in crate::backend) mod io;
 pub(in crate::backend) mod kill;
 mod merge;
+pub(in crate::backend) mod password;
 pub(in crate::backend) mod pidfile;
-mod read;
 mod types;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -33,7 +34,7 @@ pub struct ServerConfig<T: ConfigTypes = RuntimeTypes> {
     pub private_root_ca: T::String,
 
     /// The password to login to the UI.
-    pub password: T::String,
+    pub password: T::Password,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
