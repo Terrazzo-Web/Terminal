@@ -6,6 +6,7 @@ use std::time::SystemTime;
 
 use axum::body::Body;
 use axum::response::IntoResponse;
+use axum_extra::extract::CookieJar;
 use http::Request;
 use http::Response;
 use http::StatusCode;
@@ -19,6 +20,8 @@ use jsonwebtoken::Validation;
 use terrazzo::axum;
 use terrazzo::http;
 use uuid::Uuid;
+
+use super::TOKEN_COOKIE_NAME;
 
 pub struct AuthConfig {
     encoding_key: EncodingKey,
@@ -71,11 +74,21 @@ fn validate_impl(
     auth_config: &AuthConfig,
     request: &mut Request<Body>,
 ) -> Result<(), (StatusCode, String)> {
+    let token = extract_token(request)?;
+    let validation =
+        jsonwebtoken::decode(&token, &auth_config.decoding_key, &auth_config.validation);
+    validation
+        .map(|_: TokenData<Claims>| ())
+        .map_err(|error| (StatusCode::UNAUTHORIZED, format!("{error}")))
+}
+
+fn extract_token<'t>(request: &'t mut Request<Body>) -> Result<String, (StatusCode, String)> {
     let Some(auth_header) = request.headers().get(AUTHORIZATION) else {
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            format!("Missing '{AUTHORIZATION}' header"),
-        ));
+        let cookies = CookieJar::from_headers(request.headers());
+        if let Some(cookie) = cookies.get(TOKEN_COOKIE_NAME) {
+            return Ok(cookie.value().to_owned());
+        }
+        return Err((StatusCode::UNAUTHORIZED, format!("Missing access token")));
     };
     let Ok(auth_header) = auth_header.to_str() else {
         return Err((
@@ -89,11 +102,7 @@ fn validate_impl(
             format!("The '{AUTHORIZATION}' header does not contain a bearer token"),
         ));
     };
-    let validation =
-        jsonwebtoken::decode(token, &auth_config.decoding_key, &auth_config.validation);
-    validation
-        .map(|_: TokenData<Claims>| ())
-        .map_err(|error| (StatusCode::UNAUTHORIZED, format!("{error}")))
+    Ok(token.to_owned())
 }
 
 fn remove_bearer_prefix(auth_header: &str) -> Option<&str> {

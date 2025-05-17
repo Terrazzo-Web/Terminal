@@ -15,6 +15,7 @@ use web_sys::Response;
 
 use crate::api::APPLICATION_JSON;
 use crate::api::CORRELATION_ID;
+use crate::frontend::login::logged_in;
 
 pub const BASE_URL: &str = "/api";
 
@@ -39,6 +40,9 @@ pub async fn send_request(
         .map_err(|error| SendRequestError::UnexpectedResponseObject { error })?;
     if !response.ok() {
         warn!("Request failed: {}", response.status());
+        if response.status() == 401 {
+            logged_in().set(false);
+        }
         let message = response
             .text()
             .map_err(|_| SendRequestError::MissingErrorBody)?;

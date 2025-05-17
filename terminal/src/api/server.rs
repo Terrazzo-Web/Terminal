@@ -30,6 +30,8 @@ pub use auth::AuthConfig;
 
 use crate::backend::config_file::ConfigFile;
 
+pub static TOKEN_COOKIE_NAME: &str = "slt";
+
 #[autoclone]
 pub fn api_routes(
     client_name: &Option<ClientName>,
@@ -132,5 +134,5 @@ pub async fn login(
     let token = auth_config
         .make_token()
         .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
-    Ok((cookies.add(Cookie::new("access_token", token)), "OK"))
+    Ok((cookies.add(Cookie::new(TOKEN_COOKIE_NAME, token)), "OK"))
 }

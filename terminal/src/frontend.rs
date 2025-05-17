@@ -9,7 +9,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use self::login::login;
 
-mod login;
+pub mod login;
 pub mod utils;
 
 #[wasm_bindgen]
