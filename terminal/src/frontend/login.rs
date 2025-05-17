@@ -7,7 +7,9 @@ use terrazzo::template;
 use terrazzo::widgets::more_event::MoreEvent as _;
 use tracing::info;
 use tracing::warn;
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
+use web_sys::HtmlElement;
 use web_sys::HtmlInputElement;
 
 use crate::terminal::terminals;
@@ -27,6 +29,10 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
                 input(
                     r#type = "password",
                     autofocus = true,
+                    after_render = |password: Element| {
+                        let password: HtmlElement = password.dyn_into().or_throw("password");
+                        let () = password.focus().or_throw("password focus");
+                    },
                     change = move |ev: web_sys::Event| {
                         let Ok(password): Result<HtmlInputElement, _> = ev
                             .current_target_element("The password field")
