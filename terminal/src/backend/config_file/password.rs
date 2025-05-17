@@ -29,7 +29,7 @@ impl ConfigFile {
 
 impl ServerConfig {
     fn hash_password(&mut self, password: &str) -> Result<(), SetPasswordError> {
-        Ok(self.password = {
+        self.password = {
             let mut hash = [0u8; 20];
             let salt = uuid::Uuid::new_v4();
             let iterations = 60_000;
@@ -44,7 +44,8 @@ impl ServerConfig {
                 iterations,
                 salt: salt.as_bytes().to_vec(),
             })
-        })
+        };
+        Ok(())
     }
 
     pub fn verify_password(&self, password: &str) -> Result<(), VerifyPasswordError> {

@@ -142,7 +142,7 @@ pub async fn login(
     if config_file.server.password.is_some() {
         let () = config_file
             .server
-            .verify_password(&password)
+            .verify_password(password)
             .map_err(|error| (StatusCode::UNAUTHORIZED, error.to_string()))?;
     }
     let token = auth_config

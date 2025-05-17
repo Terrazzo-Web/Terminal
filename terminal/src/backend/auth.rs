@@ -125,7 +125,7 @@ fn extract_token(headers: &HeaderMap) -> Result<String, (StatusCode, String)> {
         if let Some(cookie) = cookies.get(TOKEN_COOKIE_NAME) {
             return Ok(cookie.value().to_owned());
         }
-        return Err((StatusCode::UNAUTHORIZED, format!("Missing access token")));
+        return Err((StatusCode::UNAUTHORIZED, "Missing access token".to_owned()));
     };
     let Ok(auth_header) = auth_header.to_str() else {
         return Err((
@@ -256,10 +256,7 @@ mod tests {
             .unwrap_err()
             .into_response();
         assert_eq!(StatusCode::UNAUTHORIZED, response.status());
-        assert_eq!(
-            "Missing 'authorization' header",
-            get_body(response).await.unwrap()
-        );
+        assert_eq!("Missing access token", get_body(response).await.unwrap());
     }
 
     #[tokio::test]
@@ -304,12 +301,8 @@ mod tests {
         .unwrap();
 
         let request = make_request(|b| b.header(AUTHORIZATION, &format!("Bearer {token}")));
-        let response = auth_config
-            .validate(request.headers())
-            .unwrap_err()
-            .into_response();
-        assert_eq!(StatusCode::OK, response.status());
-        assert_eq!("", get_body(response).await.unwrap());
+        let _token_data: jsonwebtoken::TokenData<Claims> =
+            auth_config.validate(request.headers()).unwrap();
     }
 
     #[tokio::test]
