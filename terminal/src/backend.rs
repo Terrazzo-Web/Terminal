@@ -29,6 +29,7 @@ use trz_gateway_server::server::GatewayError;
 use trz_gateway_server::server::Server;
 
 use self::agent::AgentTunnelConfig;
+use self::auth::AuthConfig;
 use self::cli::Action;
 use self::cli::Cli;
 use self::daemonize::DaemonizeServerError;
@@ -37,10 +38,10 @@ use self::root_ca_config::PrivateRootCaError;
 use self::server_config::TerminalBackendServer;
 use self::tls_config::TlsConfigError;
 use self::tls_config::make_tls_config;
-use crate::api::server::AuthConfig;
 use crate::assets;
 
 mod agent;
+pub mod auth;
 mod cli;
 pub mod client_service;
 pub mod config_file;

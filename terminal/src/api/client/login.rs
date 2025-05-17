@@ -8,9 +8,13 @@ use super::request::send_request;
 use super::request::set_json_body;
 
 #[nameth]
-pub async fn login(password: &str) -> Result<(), LoginError> {
-    let _: Response =
-        send_request(Method::POST, format!("/{LOGIN} "), set_json_body(password)?).await?;
+pub async fn login(password: Option<&str>) -> Result<(), LoginError> {
+    let _: Response = send_request(
+        Method::POST,
+        format!("/api/{LOGIN} "),
+        set_json_body(&password)?,
+    )
+    .await?;
     Ok(())
 }
 

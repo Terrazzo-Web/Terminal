@@ -23,7 +23,7 @@ pub fn login(#[signal] mut logged_in: bool) -> XElement {
     } else {
         spawn_local(async move {
             autoclone!(logged_in_mut);
-            match crate::api::client::login::login(&"").await {
+            match crate::api::client::login::login(None).await {
                 Ok(()) => logged_in_mut.set(true),
                 Err(error) => info!("Authentication is required: {error}"),
             }
@@ -44,7 +44,7 @@ pub fn login(#[signal] mut logged_in: bool) -> XElement {
 
                         spawn_local(async move {
                             autoclone!(logged_in_mut);
-                            match crate::api::client::login::login(&password.value()).await {
+                            match crate::api::client::login::login(Some(&password.value())).await {
                                 Ok(()) => logged_in_mut.set(true),
                                 Err(error) => warn!("{error}"),
                             }

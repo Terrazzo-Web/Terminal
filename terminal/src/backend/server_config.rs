@@ -2,11 +2,9 @@ use std::iter::once;
 use std::sync::Arc;
 
 use nameth::nameth;
-use terrazzo::autoclone;
 use terrazzo::axum::Router;
 use terrazzo::axum::extract::Path;
 use terrazzo::axum::routing::get;
-use terrazzo::axum::routing::post;
 use terrazzo::http::header::AUTHORIZATION;
 use terrazzo::static_assets;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
@@ -20,6 +18,7 @@ use trz_gateway_server::server::Server;
 use trz_gateway_server::server::gateway_config::GatewayConfig;
 use trz_gateway_server::server::gateway_config::app_config::AppConfig;
 
+use super::auth::AuthConfig;
 use super::config_file::ConfigFile;
 use super::root_ca_config::PrivateRootCa;
 use crate::api;
@@ -31,7 +30,7 @@ pub struct TerminalBackendServer {
     pub port: u16,
     pub root_ca: PrivateRootCa,
     pub tls_config: SecurityConfig<PrivateRootCa, CachedCertificate>,
-    pub auth_config: Arc<api::server::AuthConfig>,
+    pub auth_config: Arc<AuthConfig>,
     pub config_file: Arc<ConfigFile>,
 }
 
@@ -63,7 +62,6 @@ impl GatewayConfig for TerminalBackendServer {
         self.port
     }
 
-    #[autoclone]
     fn app_config(&self) -> impl AppConfig {
         let client_name = self.client_name.clone();
         let auth_config = self.auth_config.clone();
@@ -75,16 +73,9 @@ impl GatewayConfig for TerminalBackendServer {
                     "/static/{*file}",
                     get(|Path(path): Path<String>| static_assets::get(&path)),
                 )
-                .route(
-                    "/login",
-                    post(|cookies, password| {
-                        autoclone!(auth_config, config_file);
-                        api::server::login(auth_config, config_file, cookies, password)
-                    }),
-                )
                 .nest_service(
                     "/api",
-                    api::server::api_routes(&client_name, &server, &auth_config),
+                    api::server::api_routes(&client_name, &auth_config, &config_file, &server),
                 );
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {

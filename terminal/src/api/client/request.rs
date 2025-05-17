@@ -17,7 +17,7 @@ use crate::api::APPLICATION_JSON;
 use crate::api::CORRELATION_ID;
 use crate::frontend::login::logged_in;
 
-pub const BASE_URL: &str = "/api";
+pub const BASE_URL: &str = "/api/terminal";
 
 pub async fn send_request(
     method: Method,

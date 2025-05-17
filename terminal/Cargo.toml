@@ -47,9 +47,8 @@ thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
 toml = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
+tower = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = [
-    "auth",
-    "fs",
     "sensitive-headers",
     "trace",
 ] }
@@ -112,6 +111,7 @@ server = [
     "dep:tokio",
     "dep:toml",
     "dep:tonic",
+    "dep:tower",
     "dep:tower-http",
     "dep:trz-gateway-client",
     "dep:trz-gateway-common",
