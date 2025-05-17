@@ -1,16 +1,11 @@
 #![cfg(feature = "server")]
 
-use std::env::set_current_dir;
 use std::future::ready;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use clap::Parser as _;
-use config_file::ConfigFile;
-use config_file::io::ConfigFileError;
-use config_file::kill::KillServerError;
-use config_file::password::SetPasswordError;
 use futures::FutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -32,6 +27,10 @@ use self::agent::AgentTunnelConfig;
 use self::auth::AuthConfig;
 use self::cli::Action;
 use self::cli::Cli;
+use self::config_file::ConfigFile;
+use self::config_file::io::ConfigFileError;
+use self::config_file::kill::KillServerError;
+use self::config_file::password::SetPasswordError;
 use self::daemonize::DaemonizeServerError;
 use self::root_ca_config::PrivateRootCa;
 use self::root_ca_config::PrivateRootCaError;
@@ -120,7 +119,7 @@ async fn run_server_async(
     config_file: Arc<ConfigFile>,
     config: TerminalBackendServer,
 ) -> Result<(), RunServerError> {
-    set_current_dir(std::env::var("HOME").expect("HOME")).map_err(RunServerError::SetCurrentDir)?;
+    std::env::set_current_dir(home()).map_err(RunServerError::SetCurrentDir)?;
 
     assets::install_assets();
     let (server, server_handle, crash) = Server::run(config).await?;
