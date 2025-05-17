@@ -31,7 +31,7 @@ pub struct TerminalsState {
     pub terminal_tabs: XSignal<TerminalTabs>,
 }
 
-pub fn terminals(template: XTemplate) {
+pub fn terminals(template: XTemplate) -> Consumers {
     let terminal_id = TerminalId::from("Terminal");
     let selected_tab = XSignal::new("selected_tab", terminal_id.clone());
     let terminal_tabs = XSignal::new("terminal_tabs", TerminalTabs::from(Rc::new(vec![])));
@@ -40,8 +40,7 @@ pub fn terminals(template: XTemplate) {
         selected_tab,
         terminal_tabs: terminal_tabs.clone(),
     };
-    let consumers = render_terminals(template, state, terminal_tabs);
-    std::mem::forget(consumers);
+    render_terminals(template, state, terminal_tabs)
 }
 
 #[html]

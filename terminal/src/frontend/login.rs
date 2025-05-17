@@ -1,0 +1,68 @@
+use std::cell::OnceCell;
+
+use terrazzo::autoclone;
+use terrazzo::html;
+use terrazzo::prelude::*;
+use terrazzo::template;
+use terrazzo::widgets::more_event::MoreEvent as _;
+use tracing::info;
+use tracing::warn;
+use wasm_bindgen_futures::spawn_local;
+use web_sys::HtmlInputElement;
+
+use crate::terminal::terminals;
+
+stylance::import_crate_style!(style, "src/frontend/login.scss");
+
+#[autoclone]
+#[html]
+#[template]
+pub fn login(#[signal] mut logged_in: bool) -> XElement {
+    if logged_in {
+        div(|t| terminals(t))
+    } else {
+        spawn_local(async move {
+            autoclone!(logged_in_mut);
+            match crate::api::client::login::login(&"").await {
+                Ok(()) => logged_in_mut.set(true),
+                Err(error) => info!("Authentication is required: {error}"),
+            }
+        });
+        div(
+            class = style::login,
+            div(
+                "Password: ",
+                input(
+                    r#type = "password",
+                    change = move |ev: web_sys::Event| {
+                        let Ok(password): Result<HtmlInputElement, _> = ev
+                            .current_target_element("The password field")
+                            .map_err(|error| warn!("{error}"))
+                        else {
+                            return;
+                        };
+
+                        spawn_local(async move {
+                            autoclone!(logged_in_mut);
+                            match crate::api::client::login::login(&password.value()).await {
+                                Ok(()) => logged_in_mut.set(true),
+                                Err(error) => warn!("{error}"),
+                            }
+                        });
+                    },
+                ),
+            ),
+        )
+    }
+}
+
+pub fn logged_in() -> XSignal<bool> {
+    static LOGGED_IN: LoggedIn = LoggedIn(OnceCell::new());
+    LOGGED_IN
+        .0
+        .get_or_init(|| XSignal::new("logged-in", false))
+        .clone()
+}
+
+struct LoggedIn(OnceCell<XSignal<bool>>);
+unsafe impl Sync for LoggedIn {}

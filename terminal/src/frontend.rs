@@ -7,8 +7,9 @@ use terrazzo::prelude::*;
 use terrazzo::widgets;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::terminal::terminals;
+use self::login::login;
 
+mod login;
 pub mod utils;
 
 #[wasm_bindgen]
@@ -24,5 +25,10 @@ pub fn start() {
         .get_element_by_id("main")
         .or_throw("#main not found");
     let main = XTemplate::new(Rc::new(Mutex::new(main)));
-    let () = terminals(main);
+    let () = ui(main);
+}
+
+fn ui(main: XTemplate) {
+    let consumers = login(main, login::logged_in());
+    std::mem::forget(consumers);
 }
