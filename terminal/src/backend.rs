@@ -103,7 +103,7 @@ pub fn run_server() -> Result<(), RunServerError> {
         port: config_file.server.port,
         root_ca,
         tls_config,
-        auth_config: AuthConfig::default().into(),
+        auth_config: AuthConfig::new(&config_file).into(),
         config_file: config_file.clone(),
     };
 

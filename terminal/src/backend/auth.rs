@@ -30,6 +30,7 @@ use tracing::warn;
 use uuid::Uuid;
 
 use self::jwt_timestamp::Timestamp;
+use super::config_file::ConfigFile;
 
 mod jwt_timestamp;
 
@@ -64,19 +65,31 @@ pub struct Claims<T = Timestamp> {
 impl Default for AuthConfig {
     fn default() -> Self {
         let secret = Uuid::new_v4();
+        Self::from_secret(secret.as_bytes())
+    }
+}
+
+impl AuthConfig {
+    pub fn new(config_file: &ConfigFile) -> Self {
+        if let Some(password) = &config_file.server.password {
+            Self::from_secret(&password.hash)
+        } else {
+            Self::default()
+        }
+    }
+
+    fn from_secret(secret: &[u8]) -> Self {
         let mut validation = Validation::new(Algorithm::HS256);
         validation.validate_exp = true;
         validation.validate_nbf = true;
         validation.leeway = 15;
         Self {
-            encoding_key: EncodingKey::from_secret(secret.as_bytes()),
-            decoding_key: DecodingKey::from_secret(secret.as_bytes()),
+            encoding_key: EncodingKey::from_secret(secret),
+            decoding_key: DecodingKey::from_secret(secret),
             validation,
         }
     }
-}
 
-impl AuthConfig {
     pub fn make_token(&self) -> Result<Cookie<'static>, jsonwebtoken::errors::Error> {
         let token = jsonwebtoken::encode(
             &Header::default(),

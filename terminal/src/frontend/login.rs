@@ -26,6 +26,7 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
                 "Password: ",
                 input(
                     r#type = "password",
+                    autofocus = true,
                     change = move |ev: web_sys::Event| {
                         let Ok(password): Result<HtmlInputElement, _> = ev
                             .current_target_element("The password field")
