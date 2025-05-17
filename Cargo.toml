@@ -3,7 +3,7 @@ members = ["game", "pty", "terminal"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.8"
+version = "0.1.9"
 authors = ["Lamparo <LamparoS@Pavy.one>"]
 edition = "2024"
 repository = "https://github.com/Terrazzo-Web/Terminal"
@@ -27,7 +27,7 @@ incremental = true       # Incremental compilation.
 opt-level = "s"
 
 [workspace.dependencies]
-terrazzo-pty = { version = "0.1.8", path = "pty" }
+terrazzo-pty = { version = "0.1.9", path = "pty" }
 
 async-trait = { version = "0.1.88" }
 autoclone = { version = "0.1.8" }
