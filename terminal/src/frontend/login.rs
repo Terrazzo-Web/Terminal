@@ -28,7 +28,6 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
                 "Password: ",
                 input(
                     r#type = "password",
-                    autofocus = true,
                     after_render = |password: Element| {
                         let password: HtmlElement = password.dyn_into().or_throw("password");
                         let () = password.focus().or_throw("password focus");
