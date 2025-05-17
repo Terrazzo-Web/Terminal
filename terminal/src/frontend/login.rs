@@ -17,18 +17,10 @@ stylance::import_crate_style!(style, "src/frontend/login.scss");
 #[autoclone]
 #[html]
 #[template]
-pub fn login(#[signal] mut logged_in: bool) -> XElement {
-    if logged_in {
-        div(|t| terminals(t))
-    } else {
-        spawn_local(async move {
-            autoclone!(logged_in_mut);
-            match crate::api::client::login::login(None).await {
-                Ok(()) => logged_in_mut.set(true),
-                Err(error) => info!("Authentication is required: {error}"),
-            }
-        });
-        div(
+pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
+    match logged_in {
+        LoggedInStatus::Login => div(|t| terminals(t)),
+        LoggedInStatus::Logout => div(
             class = style::login,
             div(
                 "Password: ",
@@ -45,24 +37,46 @@ pub fn login(#[signal] mut logged_in: bool) -> XElement {
                         spawn_local(async move {
                             autoclone!(logged_in_mut);
                             match crate::api::client::login::login(Some(&password.value())).await {
-                                Ok(()) => logged_in_mut.set(true),
+                                Ok(()) => logged_in_mut.set(LoggedInStatus::Login),
                                 Err(error) => warn!("{error}"),
                             }
                         });
                     },
                 ),
             ),
-        )
+        ),
+        LoggedInStatus::Unknown => {
+            spawn_local(async move {
+                autoclone!(logged_in_mut);
+                match crate::api::client::login::login(None).await {
+                    Ok(()) => logged_in_mut.set(LoggedInStatus::Login),
+                    Err(error) => {
+                        logged_in_mut.set(LoggedInStatus::Logout);
+                        info!("Authentication is required: {error}")
+                    }
+                }
+            });
+            div(class = style::login)
+        }
     }
 }
 
-pub fn logged_in() -> XSignal<bool> {
+pub fn logged_in() -> XSignal<LoggedInStatus> {
     static LOGGED_IN: LoggedIn = LoggedIn(OnceCell::new());
     LOGGED_IN
         .0
-        .get_or_init(|| XSignal::new("logged-in", false))
+        .get_or_init(|| XSignal::new("logged-in", LoggedInStatus::Unknown))
         .clone()
 }
 
-struct LoggedIn(OnceCell<XSignal<bool>>);
+struct LoggedIn(OnceCell<XSignal<LoggedInStatus>>);
 unsafe impl Sync for LoggedIn {}
+
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub enum LoggedInStatus {
+    Login,
+    Logout,
+
+    #[default]
+    Unknown,
+}

@@ -15,6 +15,7 @@ use web_sys::Response;
 
 use crate::api::APPLICATION_JSON;
 use crate::api::CORRELATION_ID;
+use crate::frontend::login::LoggedInStatus;
 use crate::frontend::login::logged_in;
 
 pub const BASE_URL: &str = "/api/terminal";
@@ -41,7 +42,7 @@ pub async fn send_request(
     if !response.ok() {
         warn!("Request failed: {}", response.status());
         if response.status() == 401 {
-            logged_in().set(false);
+            logged_in().set(LoggedInStatus::Logout);
         }
         let message = response
             .text()
