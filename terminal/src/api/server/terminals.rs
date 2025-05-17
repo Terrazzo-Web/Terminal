@@ -14,11 +14,8 @@ pub async fn list(
     let my_client_name = my_client_name
         .map(|n| vec![n.to_string()])
         .unwrap_or_default();
-    let mut terminals: Vec<_> = list_terminals(&server, &my_client_name)
-        .await
-        .into_iter()
-        .map(TerminalDef::from)
-        .collect();
+    let terminals = list_terminals(&server, my_client_name).await;
+    let mut terminals: Vec<_> = terminals.into_iter().map(TerminalDef::from).collect();
     terminals.sort_by_key(|terminal| terminal.order);
     Json(terminals)
 }

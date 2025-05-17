@@ -12,7 +12,7 @@ use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::ListRemotesRequest;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 
-pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddress> {
+pub async fn list_remotes(server: &Server, visited: Vec<String>) -> Vec<ClientAddress> {
     async {
         debug!("Start");
         defer!(debug!("Done"));
@@ -46,7 +46,7 @@ pub async fn list_remotes(server: &Server, visited: &[String]) -> Vec<ClientAddr
                 };
                 let mut client = ClientServiceClient::new(client);
                 let remotes = client.list_remotes(ListRemotesRequest {
-                    visited: visited.to_vec(),
+                    visited: visited.clone(),
                 });
                 let Ok(mut remotes) = remotes.await.inspect_err(|error| warn!("Failed: {error}"))
                 else {

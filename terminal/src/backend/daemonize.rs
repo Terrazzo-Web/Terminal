@@ -5,12 +5,12 @@ use std::os::fd::IntoRawFd as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 
-use super::cli::Cli;
-use super::cli::pidfile::ReadPidfileError;
-use super::cli::pidfile::SavePidfileError;
+use super::config_file::ConfigFile;
+use super::config_file::pidfile::ReadPidfileError;
+use super::config_file::pidfile::SavePidfileError;
 
-pub fn daemonize(cli: &Cli) -> Result<(), DaemonizeServerError> {
-    if let Some(pid) = cli.read_pid()? {
+pub fn daemonize(config_file: &ConfigFile) -> Result<(), DaemonizeServerError> {
+    if let Some(pid) = config_file.server.read_pid()? {
         return Err(DaemonizeServerError::AlreadyRunning { pid });
     }
 
@@ -23,7 +23,7 @@ pub fn daemonize(cli: &Cli) -> Result<(), DaemonizeServerError> {
 
     match fork().map_err(DaemonizeServerError::Fork)? {
         Some(pid) => {
-            cli.save_pidfile(pid)?;
+            config_file.server.save_pidfile(pid)?;
             std::process::exit(0);
         }
         None => { /* in the child process */ }

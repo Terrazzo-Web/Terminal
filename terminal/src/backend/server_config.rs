@@ -1,4 +1,5 @@
 use std::iter::once;
+use std::sync::Arc;
 
 use nameth::nameth;
 use terrazzo::axum::Router;
@@ -13,9 +14,12 @@ use tracing::enabled;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_common::security_configuration::SecurityConfig;
 use trz_gateway_common::security_configuration::certificate::cache::CachedCertificate;
+use trz_gateway_server::server::Server;
 use trz_gateway_server::server::gateway_config::GatewayConfig;
 use trz_gateway_server::server::gateway_config::app_config::AppConfig;
 
+use super::auth::AuthConfig;
+use super::config_file::ConfigFile;
 use super::root_ca_config::PrivateRootCa;
 use crate::api;
 
@@ -26,6 +30,8 @@ pub struct TerminalBackendServer {
     pub port: u16,
     pub root_ca: PrivateRootCa,
     pub tls_config: SecurityConfig<PrivateRootCa, CachedCertificate>,
+    pub auth_config: Arc<AuthConfig>,
+    pub config_file: Arc<ConfigFile>,
 }
 
 impl GatewayConfig for TerminalBackendServer {
@@ -58,14 +64,19 @@ impl GatewayConfig for TerminalBackendServer {
 
     fn app_config(&self) -> impl AppConfig {
         let client_name = self.client_name.clone();
-        move |server, router: Router| {
+        let auth_config = self.auth_config.clone();
+        let config_file = self.config_file.clone();
+        move |server: Arc<Server>, router: Router| {
             let router = router
                 .route("/", get(|| static_assets::get("index.html")))
                 .route(
                     "/static/{*file}",
                     get(|Path(path): Path<String>| static_assets::get(&path)),
                 )
-                .nest_service("/api", api::server::route(&client_name, &server));
+                .nest_service(
+                    "/api",
+                    api::server::api_routes(&client_name, &auth_config, &config_file, &server),
+                );
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {
                 router.layer(TraceLayer::new_for_http())

@@ -5,11 +5,11 @@ use nix::sys::signal;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
 
-use super::Cli;
+use super::ServerConfig;
 use super::pidfile::DeletePidfileError;
 use super::pidfile::ReadPidfileError;
 
-impl Cli {
+impl ServerConfig {
     pub fn kill(&self) -> Result<(), KillServerError> {
         let pid = self
             .read_pid()?

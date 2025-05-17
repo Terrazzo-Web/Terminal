@@ -61,7 +61,7 @@ impl ClientService for ClientServiceImpl {
     ) -> Result<Response<ListRemotesResponse>, Status> {
         let mut visited = request.into_inner().visited;
         visited.push(self.client_name.to_string());
-        let clients = list_remotes(&self.server, &visited).await;
+        let clients = list_remotes(&self.server, visited).await;
         Ok(Response::new(ListRemotesResponse { clients }))
     }
 
@@ -71,7 +71,7 @@ impl ClientService for ClientServiceImpl {
     ) -> Result<Response<ListTerminalsResponse>, Status> {
         let mut visited = std::mem::take(&mut request.get_mut().visited);
         visited.push(self.client_name.to_string());
-        let terminals = list_terminals(&self.server, &visited).await;
+        let terminals = list_terminals(&self.server, visited).await;
         Ok(Response::new(ListTerminalsResponse { terminals }))
     }
 

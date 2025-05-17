@@ -12,6 +12,15 @@ html {
 
 body {
     border: 1px solid black;
+
+    font-family: courier-new, courier, monospace;
+    font-size: 15px;
+    font-kerning: none;
+
+    --color: green;
+    --link-color: green;
+    --background-color: black;
+    background-color: var(--background-color);
 }
 
 @mixin nowrap {

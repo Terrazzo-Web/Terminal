@@ -14,7 +14,7 @@ pub async fn list(
     let my_client_name = my_client_name
         .map(|n| vec![n.to_string()])
         .unwrap_or_default();
-    let mut remotes = list_remotes(&server, &my_client_name).await;
+    let mut remotes = list_remotes(&server, my_client_name).await;
     remotes.sort_by_key(|remote| remote.leaf());
     let remotes = remotes.into_iter().map(ClientAddress::from).collect();
     Json(remotes)

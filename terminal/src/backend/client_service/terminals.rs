@@ -12,7 +12,7 @@ use crate::backend::protos::terrazzo::gateway::client::TerminalDef;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 use crate::processes;
 
-pub async fn list_terminals(server: &Server, visited: &[String]) -> Vec<TerminalDef> {
+pub async fn list_terminals(server: &Server, visited: Vec<String>) -> Vec<TerminalDef> {
     async {
         debug!("Start");
         defer!(debug!("Done"));
@@ -38,7 +38,7 @@ pub async fn list_terminals(server: &Server, visited: &[String]) -> Vec<Terminal
                 };
                 let mut client = ClientServiceClient::new(client);
                 let terminals = client.list_terminals(ListTerminalsRequest {
-                    visited: visited.to_vec(),
+                    visited: visited.clone(),
                 });
                 let Ok(mut terminals) = terminals
                     .await

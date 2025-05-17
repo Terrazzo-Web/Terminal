@@ -31,7 +31,7 @@ pub struct TerminalsState {
     pub terminal_tabs: XSignal<TerminalTabs>,
 }
 
-pub fn terminals(template: XTemplate) {
+pub fn terminals(template: XTemplate) -> Consumers {
     let terminal_id = TerminalId::from("Terminal");
     let selected_tab = XSignal::new("selected_tab", terminal_id.clone());
     let terminal_tabs = XSignal::new("terminal_tabs", TerminalTabs::from(Rc::new(vec![])));
@@ -40,8 +40,7 @@ pub fn terminals(template: XTemplate) {
         selected_tab,
         terminal_tabs: terminal_tabs.clone(),
     };
-    let consumers = render_terminals(template, state, terminal_tabs);
-    std::mem::forget(consumers);
+    render_terminals(template, state, terminal_tabs)
 }
 
 #[html]
@@ -68,7 +67,7 @@ pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: Terminal
 
 fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSignal<TerminalTabs>) {
     spawn_local(async move {
-        let terminal_defs = match api::client::terminals::terminals().await {
+        let terminal_defs = match api::client::list::list().await {
             Ok(terminal_defs) => terminal_defs,
             Err(error) => {
                 warn!("Failed to load terminal definitions: {error}");

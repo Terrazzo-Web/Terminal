@@ -21,27 +21,34 @@ path = "src/server.rs"
 required-features = ["server"]
 
 [dependencies]
+axum-extra = { workspace = true, optional = true, features = ["cookie"] }
 clap = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
+jsonwebtoken = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 openssl = { workspace = true, optional = true }
+pbkdf2 = { workspace = true, optional = true }
 pin-project = { workspace = true }
 prost = { workspace = true, optional = true }
 prost-types = { workspace = true, optional = true }
+rpassword = { workspace = true, optional = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = { workspace = true, optional = true }
 static_assertions = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
 terrazzo = { workspace = true }
 terrazzo-pty = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
+toml = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
+tower = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = [
-    "fs",
     "sensitive-headers",
     "trace",
 ] }
@@ -87,16 +94,24 @@ client = [
     "terrazzo/client",
 ]
 server = [
+    "dep:axum-extra",
+    "dep:base64",
     "dep:clap",
     "dep:dashmap",
+    "dep:jsonwebtoken",
     "dep:nix",
     "dep:openssl",
+    "dep:pbkdf2",
     "dep:prost-types",
     "dep:prost",
+    "dep:rpassword",
+    "dep:sha2",
     "dep:static_assertions",
     "dep:terrazzo-pty",
     "dep:tokio",
+    "dep:toml",
     "dep:tonic",
+    "dep:tower",
     "dep:tower-http",
     "dep:trz-gateway-client",
     "dep:trz-gateway-common",
