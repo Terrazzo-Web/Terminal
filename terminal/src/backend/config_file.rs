@@ -1,7 +1,9 @@
 use std::fmt::Debug;
+use std::sync::Arc;
 
 use serde::Deserialize;
 use serde::Serialize;
+use trz_gateway_server::server::acme::AcmeConfig;
 
 use self::types::ConfigTypes;
 use self::types::RuntimeTypes;
@@ -17,6 +19,7 @@ pub mod types;
 pub struct ConfigFile<T: ConfigTypes = RuntimeTypes> {
     pub server: ServerConfig<T>,
     pub mesh: Option<MeshConfig<T>>,
+    pub letsencrypt: Option<Arc<AcmeConfig>>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]

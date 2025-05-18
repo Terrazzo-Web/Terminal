@@ -14,7 +14,11 @@ use tracing::enabled;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_common::security_configuration::SecurityConfig;
 use trz_gateway_common::security_configuration::certificate::cache::CachedCertificate;
+use trz_gateway_common::security_configuration::either::EitherConfig;
+use trz_gateway_common::security_configuration::trusted_store::native::NativeTrustedStoreConfig;
 use trz_gateway_server::server::Server;
+use trz_gateway_server::server::acme::active_challenges::ActiveChallenges;
+use trz_gateway_server::server::acme::certificate_config::AcmeCertificateConfig;
 use trz_gateway_server::server::gateway_config::GatewayConfig;
 use trz_gateway_server::server::gateway_config::app_config::AppConfig;
 
@@ -49,7 +53,7 @@ pub struct TerminalBackendServer {
     /// Terrazzo can run:
     /// - in air-gapped mode wiht a private Root CA, or
     /// - in public mode using the public PKI and Let's Encrypt certificates.
-    pub tls_config: SecurityConfig<PrivateRootCa, CachedCertificate>,
+    pub tls_config: TlsConfig,
 
     /// Configuration for authentication
     pub auth_config: Arc<AuthConfig>,
@@ -57,7 +61,14 @@ pub struct TerminalBackendServer {
     /// Configuration file.
     /// (host, port and client_name are thus redundant, that's OK)
     pub config_file: Arc<ConfigFile>,
+
+    pub active_challenges: ActiveChallenges,
 }
+
+type TlsConfig = EitherConfig<
+    SecurityConfig<PrivateRootCa, CachedCertificate>,
+    SecurityConfig<NativeTrustedStoreConfig, AcmeCertificateConfig>,
+>;
 
 impl GatewayConfig for TerminalBackendServer {
     type RootCaConfig = PrivateRootCa;
@@ -65,12 +76,12 @@ impl GatewayConfig for TerminalBackendServer {
         self.root_ca.clone()
     }
 
-    type TlsConfig = SecurityConfig<PrivateRootCa, CachedCertificate>;
+    type TlsConfig = TlsConfig;
     fn tls(&self) -> Self::TlsConfig {
         self.tls_config.clone()
     }
 
-    type ClientCertificateIssuerConfig = Self::TlsConfig;
+    type ClientCertificateIssuerConfig = TlsConfig;
     fn client_certificate_issuer(&self) -> Self::ClientCertificateIssuerConfig {
         self.tls_config.clone()
     }
@@ -91,6 +102,7 @@ impl GatewayConfig for TerminalBackendServer {
         let client_name = self.client_name.clone();
         let auth_config = self.auth_config.clone();
         let config_file = self.config_file.clone();
+        let active_challenges = self.active_challenges.clone();
         move |server: Arc<Server>, router: Router| {
             let router = router
                 .route("/", get(|| static_assets::get("index.html")))
@@ -101,7 +113,8 @@ impl GatewayConfig for TerminalBackendServer {
                 .nest_service(
                     "/api",
                     api::server::api_routes(&client_name, &auth_config, &config_file, &server),
-                );
+                )
+                .merge(active_challenges.route());
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {
                 router.layer(TraceLayer::new_for_http())

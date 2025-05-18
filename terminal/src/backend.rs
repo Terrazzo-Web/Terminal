@@ -19,8 +19,13 @@ use trz_gateway_client::client::connect::ConnectError;
 use trz_gateway_common::crypto_provider::crypto_provider;
 use trz_gateway_common::handle::ServerHandle;
 use trz_gateway_common::handle::ServerStopError;
+use trz_gateway_common::security_configuration::SecurityConfig;
+use trz_gateway_common::security_configuration::either::EitherConfig;
+use trz_gateway_common::security_configuration::trusted_store::native::NativeTrustedStoreConfig;
 use trz_gateway_server::server::GatewayError;
 use trz_gateway_server::server::Server;
+use trz_gateway_server::server::acme::active_challenges::ActiveChallenges;
+use trz_gateway_server::server::acme::certificate_config::AcmeCertificateConfig;
 
 use self::agent::AgentTunnelConfig;
 use self::auth::AuthConfig;
@@ -85,7 +90,16 @@ pub fn run_server() -> Result<(), RunServerError> {
     }
 
     let root_ca = PrivateRootCa::load(&config_file)?;
-    let tls_config = make_tls_config(&root_ca)?;
+
+    let active_challenges = ActiveChallenges::default();
+    let tls_config = if let Some(acme_config) = &config_file.letsencrypt {
+        EitherConfig::Right(SecurityConfig {
+            trusted_store: NativeTrustedStoreConfig,
+            certificate: AcmeCertificateConfig::new(acme_config.clone(), active_challenges.clone()),
+        })
+    } else {
+        EitherConfig::Left(make_tls_config(&root_ca)?)
+    };
     let config_file = Arc::new(config_file);
     let client_name = if let Some(mesh) = &config_file.mesh {
         Some(mesh.client_name.as_str().into())
@@ -100,6 +114,7 @@ pub fn run_server() -> Result<(), RunServerError> {
         tls_config,
         auth_config: AuthConfig::new(&config_file).into(),
         config_file: config_file.clone(),
+        active_challenges,
     };
 
     if cli.action == Action::Start {

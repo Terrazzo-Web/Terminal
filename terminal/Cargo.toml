@@ -57,7 +57,7 @@ tracing = { workspace = true }
 tracing-futures = { workspace = true, features = ["futures-03"] }
 trz-gateway-client = { workspace = true, optional = true }
 trz-gateway-common = { workspace = true, optional = true }
-trz-gateway-server = { workspace = true, optional = true }
+trz-gateway-server = { workspace = true, optional = true, features = ["acme"] }
 uuid = { workspace = true, optional = true, features = ["v4", "fast-rng"] }
 wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { workspace = true, optional = true }

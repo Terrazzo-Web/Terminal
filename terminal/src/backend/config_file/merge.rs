@@ -20,6 +20,7 @@ impl ConfigFile<ConfigFileTypes> {
         ConfigFile {
             server: merge_server_config(self.server, cli),
             mesh: merge_mesh_config(self.mesh, cli),
+            letsencrypt: self.letsencrypt,
         }
     }
 }
@@ -46,6 +47,7 @@ impl ConfigFile<RuntimeTypes> {
                 gateway_pki: mesh.gateway_pki.clone(),
                 client_certificate: mesh.client_certificate.clone().into(),
             }),
+            letsencrypt: self.letsencrypt.clone(),
         }
     }
 }
