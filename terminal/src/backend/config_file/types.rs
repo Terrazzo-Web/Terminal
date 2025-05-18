@@ -21,7 +21,7 @@ impl<T: ConfigTypes> ConfigTypes for ConfigFileTypes<T> {
     type MaybeString = T::MaybeString;
     type Port = Option<T::Port>;
     type Password = Option<Password>;
-    type Duration = Option<Duration>;
+    type Duration = Option<String>;
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -35,7 +35,7 @@ impl ConfigTypes for RuntimeTypes {
     type Duration = Duration;
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Password {
     #[serde(with = "password_serde")]
     pub hash: Vec<u8>,

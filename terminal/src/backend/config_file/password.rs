@@ -22,7 +22,7 @@ impl ConfigFile {
         let password = rpassword::prompt_password("Password: ")?;
         self.server.hash_password(&password)?;
         debug_assert!(matches!(self.server.verify_password(&password), Ok(())));
-        let () = self.save(config_file)?;
+        let () = self.to_config_file().save(config_file)?;
         Ok(())
     }
 }

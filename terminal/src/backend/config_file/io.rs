@@ -6,7 +6,6 @@ use nameth::nameth;
 
 use super::ConfigFile;
 use super::types::ConfigFileTypes;
-use super::types::RuntimeTypes;
 
 impl ConfigFile<ConfigFileTypes> {
     pub fn load(path: impl AsRef<Path>) -> Result<Self, ConfigFileError> {
@@ -25,7 +24,7 @@ impl ConfigFile<ConfigFileTypes> {
     }
 }
 
-impl ConfigFile<RuntimeTypes> {
+impl ConfigFile<ConfigFileTypes> {
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), ConfigFileError> {
         let json = toml::to_string_pretty(self)?;
         std::fs::write(path.as_ref(), &json).map_err(|error| ConfigFileError::IO {

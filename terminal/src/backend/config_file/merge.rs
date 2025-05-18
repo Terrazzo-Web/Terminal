@@ -1,4 +1,7 @@
 use std::path::PathBuf;
+use std::time::Duration;
+
+use tracing::warn;
 
 use super::ConfigFile;
 use super::MeshConfig;
@@ -17,6 +20,32 @@ impl ConfigFile<ConfigFileTypes> {
         ConfigFile {
             server: merge_server_config(self.server, cli),
             mesh: merge_mesh_config(self.mesh, cli),
+        }
+    }
+}
+
+impl ConfigFile<RuntimeTypes> {
+    pub fn to_config_file(&self) -> ConfigFile<ConfigFileTypes> {
+        ConfigFile {
+            server: ServerConfig {
+                host: self.server.host.clone().into(),
+                port: self.server.port.into(),
+                pidfile: self.server.pidfile.clone().into(),
+                private_root_ca: self.server.private_root_ca.clone().into(),
+                password: self.server.password.clone(),
+                token_cookie_lifetime: Some(
+                    humantime::format_duration(self.server.token_cookie_lifetime).to_string(),
+                ),
+                token_cookie_refresh: Some(
+                    humantime::format_duration(self.server.token_cookie_refresh).to_string(),
+                ),
+            },
+            mesh: self.mesh.as_ref().map(|mesh| MeshConfig {
+                client_name: mesh.client_name.clone().into(),
+                gateway_url: mesh.gateway_url.clone().into(),
+                gateway_pki: mesh.gateway_pki.clone(),
+                client_certificate: mesh.client_certificate.clone().into(),
+            }),
         }
     }
 }
@@ -46,20 +75,27 @@ fn merge_server_config(
                 .to_string_lossy()
                 .to_string()
         });
-
+    let token_cookie_lifetime =
+        parse_duration(server.token_cookie_lifetime).unwrap_or(DEFAULT_TOKEN_LIFETIME);
+    let token_cookie_refresh =
+        parse_duration(server.token_cookie_refresh).unwrap_or(DEFAULT_TOKEN_REFRESH);
     ServerConfig {
         host,
         port,
         pidfile,
         private_root_ca,
         password: server.password,
-        token_cookie_lifetime: server
-            .token_cookie_lifetime
-            .unwrap_or(DEFAULT_TOKEN_LIFETIME),
-        token_cookie_refresh: server
-            .token_cookie_lifetime
-            .unwrap_or(DEFAULT_TOKEN_REFRESH),
+        token_cookie_lifetime,
+        token_cookie_refresh,
     }
+}
+
+fn parse_duration(duration: Option<String>) -> Option<Duration> {
+    duration.and_then(|duration| {
+        humantime::parse_duration(&duration)
+            .inspect_err(|error| warn!("Failed to parse '{duration}': {error}"))
+            .ok()
+    })
 }
 
 fn merge_mesh_config(

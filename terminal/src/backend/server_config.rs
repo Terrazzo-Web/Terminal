@@ -7,7 +7,6 @@ use terrazzo::axum::extract::Path;
 use terrazzo::axum::routing::get;
 use terrazzo::http::header::AUTHORIZATION;
 use terrazzo::static_assets;
-use terrazzo_pty::TERRAZZO_CLIENT_NAME;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
 use tower_http::trace::TraceLayer;
 use tracing::Level;

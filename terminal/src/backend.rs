@@ -19,7 +19,6 @@ use trz_gateway_client::client::connect::ConnectError;
 use trz_gateway_common::crypto_provider::crypto_provider;
 use trz_gateway_common::handle::ServerHandle;
 use trz_gateway_common::handle::ServerStopError;
-use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::GatewayError;
 use trz_gateway_server::server::Server;
 
@@ -89,7 +88,7 @@ pub fn run_server() -> Result<(), RunServerError> {
     let tls_config = make_tls_config(&root_ca)?;
     let config_file = Arc::new(config_file);
     let client_name = if let Some(mesh) = &config_file.mesh {
-        Some(mesh.client_name.clone())
+        Some(mesh.client_name.as_str().into())
     } else {
         None
     };
@@ -108,7 +107,7 @@ pub fn run_server() -> Result<(), RunServerError> {
     }
 
     if let Some(path) = cli.config_file.as_deref() {
-        let () = config_file.save(path)?;
+        let () = config_file.to_config_file().save(path)?;
     }
     return run_server_async(cli, config_file, config);
 }

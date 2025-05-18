@@ -96,7 +96,7 @@ impl AuthConfig {
             &Header::default(),
             &Claims {
                 nbf: Duration::from_secs(60),
-                exp: TOKEN_COOKIE_LIFETIME,
+                exp: self.token_cookie_lifetime,
             }
             .into_timestamps(),
             &self.encoding_key,
@@ -106,9 +106,9 @@ impl AuthConfig {
         cookie.set_same_site(SameSite::Lax);
         cookie.set_http_only(true);
         cookie.set_max_age(Some(
-            TOKEN_COOKIE_LIFETIME
+            self.token_cookie_lifetime
                 .try_into()
-                .expect("TOKEN_COOKIE_LIFETIME"),
+                .expect("token_cookie_lifetime"),
         ));
         return Ok(cookie);
     }
@@ -218,8 +218,9 @@ fn refresh_auth_token(
     let Ok(expiration) = token_data.claims.exp.duration_since(SystemTime::now()) else {
         return response;
     };
-    if expiration > TOKEN_COOKIE_REFRESH {
-        debug!("The auth cookie expires in {expiration:?} > {TOKEN_COOKIE_REFRESH:?}");
+    let token_cookie_refresh = auth_config.token_cookie_refresh;
+    if expiration > token_cookie_refresh {
+        debug!("The auth cookie expires in {expiration:?} > {token_cookie_refresh:?}");
         return response;
     }
 
