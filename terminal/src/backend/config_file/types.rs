@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
+use std::time::Duration;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -9,6 +10,7 @@ pub trait ConfigTypes {
     type MaybeString: Serialize + for<'t> Deserialize<'t> + Debug + Default;
     type Port: Serialize + for<'t> Deserialize<'t> + Debug + Default;
     type Password: Serialize + for<'t> Deserialize<'t> + Debug + Default;
+    type Duration: Serialize + for<'t> Deserialize<'t> + Debug + Default;
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -19,6 +21,7 @@ impl<T: ConfigTypes> ConfigTypes for ConfigFileTypes<T> {
     type MaybeString = T::MaybeString;
     type Port = Option<T::Port>;
     type Password = Option<Password>;
+    type Duration = Option<Duration>;
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -29,6 +32,7 @@ impl ConfigTypes for RuntimeTypes {
     type MaybeString = Option<String>;
     type Port = u16;
     type Password = Option<Password>;
+    type Duration = Duration;
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]

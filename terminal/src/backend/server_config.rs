@@ -41,11 +41,15 @@ pub struct TerminalBackendServer {
     /// But security relies on the signed extension.
     pub root_ca: PrivateRootCa,
 
-    /// The TLS config is the external PKI, used to:
+    /// The TLS config is the external PKI:
     /// - A certificate used to
     ///     1. listen to HTTPS connection
     ///     2. sign the client certificate extension
     /// - A trusted store to validate the client certificate extension
+    ///
+    /// Terrazzo can run:
+    /// - in air-gapped mode wiht a private Root CA, or
+    /// - in public mode using the public PKI and Let's Encrypt certificates.
     pub tls_config: SecurityConfig<PrivateRootCa, CachedCertificate>,
 
     /// Configuration for authentication

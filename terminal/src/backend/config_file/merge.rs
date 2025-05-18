@@ -7,6 +7,8 @@ use super::types::ConfigFileTypes;
 use super::types::RuntimeTypes;
 use crate::backend::HOST;
 use crate::backend::PORT;
+use crate::backend::auth::DEFAULT_TOKEN_LIFETIME;
+use crate::backend::auth::DEFAULT_TOKEN_REFRESH;
 use crate::backend::cli::Cli;
 use crate::backend::home;
 
@@ -51,6 +53,12 @@ fn merge_server_config(
         pidfile,
         private_root_ca,
         password: server.password,
+        token_cookie_lifetime: server
+            .token_cookie_lifetime
+            .unwrap_or(DEFAULT_TOKEN_LIFETIME),
+        token_cookie_refresh: server
+            .token_cookie_lifetime
+            .unwrap_or(DEFAULT_TOKEN_REFRESH),
     }
 }
 

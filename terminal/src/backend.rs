@@ -85,10 +85,6 @@ pub fn run_server() -> Result<(), RunServerError> {
         return Ok(config_file.set_password(cli.config_file)?);
     }
 
-    if let Some(path) = cli.config_file.as_deref() {
-        let () = config_file.save(path)?;
-    }
-
     let root_ca = PrivateRootCa::load(&config_file)?;
     let tls_config = make_tls_config(&root_ca)?;
     let config_file = Arc::new(config_file);
@@ -111,6 +107,9 @@ pub fn run_server() -> Result<(), RunServerError> {
         self::daemonize::daemonize(&config.config_file)?;
     }
 
+    if let Some(path) = cli.config_file.as_deref() {
+        let () = config_file.save(path)?;
+    }
     return run_server_async(cli, config_file, config);
 }
 

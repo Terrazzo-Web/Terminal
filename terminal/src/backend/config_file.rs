@@ -35,6 +35,8 @@ pub struct ServerConfig<T: ConfigTypes = RuntimeTypes> {
 
     /// The password to login to the UI.
     pub password: T::Password,
+    pub token_cookie_lifetime: T::Duration,
+    pub token_cookie_refresh: T::Duration,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]

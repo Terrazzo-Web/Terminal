@@ -37,23 +37,25 @@ mod jwt_timestamp;
 pub static TOKEN_COOKIE_NAME: &str = "slt";
 
 /// Original expiration of the cookie.
-pub static TOKEN_COOKIE_LIFETIME: Duration = if cfg!(debug_assertions) {
+pub static DEFAULT_TOKEN_LIFETIME: Duration = if cfg!(debug_assertions) {
     Duration::from_secs(300)
 } else {
     Duration::from_secs(3600 * 24)
 };
 
 /// Refresh if the cookie has started to expire
-pub static TOKEN_COOKIE_REFRESH: Duration = if cfg!(debug_assertions) {
-    TOKEN_COOKIE_LIFETIME.saturating_sub(Duration::from_secs(10))
+pub static DEFAULT_TOKEN_REFRESH: Duration = if cfg!(debug_assertions) {
+    DEFAULT_TOKEN_LIFETIME.saturating_sub(Duration::from_secs(10))
 } else {
-    TOKEN_COOKIE_LIFETIME.saturating_sub(Duration::from_secs(3600))
+    DEFAULT_TOKEN_LIFETIME.saturating_sub(Duration::from_secs(3600))
 };
 
 pub struct AuthConfig {
     encoding_key: EncodingKey,
     decoding_key: DecodingKey,
     validation: Validation,
+    token_cookie_lifetime: Duration,
+    token_cookie_refresh: Duration,
 }
 
 #[derive(Debug, serde::Serialize, serde:: Deserialize)]
@@ -62,19 +64,16 @@ pub struct Claims<T = Timestamp> {
     nbf: T,
 }
 
-impl Default for AuthConfig {
-    fn default() -> Self {
-        let secret = Uuid::new_v4();
-        Self::from_secret(secret.as_bytes())
-    }
-}
-
 impl AuthConfig {
     pub fn new(config_file: &ConfigFile) -> Self {
-        if let Some(password) = &config_file.server.password {
-            Self::from_secret(&password.hash)
-        } else {
-            Self::default()
+        Self {
+            token_cookie_lifetime: config_file.server.token_cookie_lifetime,
+            token_cookie_refresh: config_file.server.token_cookie_refresh,
+            ..if let Some(password) = &config_file.server.password {
+                Self::from_secret(&password.hash)
+            } else {
+                Self::random()
+            }
         }
     }
 
@@ -87,6 +86,8 @@ impl AuthConfig {
             encoding_key: EncodingKey::from_secret(secret),
             decoding_key: DecodingKey::from_secret(secret),
             validation,
+            token_cookie_lifetime: DEFAULT_TOKEN_LIFETIME,
+            token_cookie_refresh: DEFAULT_TOKEN_REFRESH,
         }
     }
 
@@ -149,6 +150,13 @@ fn remove_bearer_prefix(auth_header: &str) -> Option<&str> {
         Some(&auth_header[PREFIX.len()..])
     } else {
         None
+    }
+}
+
+impl AuthConfig {
+    fn random() -> Self {
+        let secret = Uuid::new_v4();
+        Self::from_secret(secret.as_bytes())
     }
 }
 
@@ -249,7 +257,7 @@ mod tests {
 
     #[tokio::test]
     async fn missing_authorization_header() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let request = make_request(|b| b);
         let response = auth_config
             .validate(request.headers())
@@ -261,7 +269,7 @@ mod tests {
 
     #[tokio::test]
     async fn missing_bearer_token() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let request = make_request(|b| b.header(AUTHORIZATION, "blabla"));
         let response = auth_config
             .validate(request.headers())
@@ -276,7 +284,7 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_bearer_token() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let request = make_request(|b| b.header(AUTHORIZATION, "Bearer blabla"));
         let response = auth_config
             .validate(request.headers())
@@ -288,7 +296,7 @@ mod tests {
 
     #[tokio::test]
     async fn valid_token() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let token = jsonwebtoken::encode(
             &Header::default(),
             &Claims {
@@ -307,7 +315,7 @@ mod tests {
 
     #[tokio::test]
     async fn early_token() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let now = SystemTime::now();
         let token = jsonwebtoken::encode(
             &Header::default(),
@@ -330,7 +338,7 @@ mod tests {
 
     #[tokio::test]
     async fn expired_token() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let now = SystemTime::now();
         let token = jsonwebtoken::encode(
             &Header::default(),
@@ -353,8 +361,8 @@ mod tests {
 
     #[tokio::test]
     async fn bad_signature_token() {
-        let auth_config = AuthConfig::default();
-        let auth_config2 = AuthConfig::default();
+        let auth_config = AuthConfig::random();
+        let auth_config2 = AuthConfig::random();
         let now = SystemTime::now();
         let token = jsonwebtoken::encode(
             &Header::default(),
