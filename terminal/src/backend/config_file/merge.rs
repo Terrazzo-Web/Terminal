@@ -33,11 +33,11 @@ impl ConfigFile<RuntimeTypes> {
                 pidfile: self.server.pidfile.clone().into(),
                 private_root_ca: self.server.private_root_ca.clone().into(),
                 password: self.server.password.clone(),
-                token_cookie_lifetime: Some(
-                    humantime::format_duration(self.server.token_cookie_lifetime).to_string(),
+                token_lifetime: Some(
+                    humantime::format_duration(self.server.token_lifetime).to_string(),
                 ),
-                token_cookie_refresh: Some(
-                    humantime::format_duration(self.server.token_cookie_refresh).to_string(),
+                token_refresh: Some(
+                    humantime::format_duration(self.server.token_refresh).to_string(),
                 ),
             },
             mesh: self.mesh.as_ref().map(|mesh| MeshConfig {
@@ -75,18 +75,16 @@ fn merge_server_config(
                 .to_string_lossy()
                 .to_string()
         });
-    let token_cookie_lifetime =
-        parse_duration(server.token_cookie_lifetime).unwrap_or(DEFAULT_TOKEN_LIFETIME);
-    let token_cookie_refresh =
-        parse_duration(server.token_cookie_refresh).unwrap_or(DEFAULT_TOKEN_REFRESH);
+    let token_lifetime = parse_duration(server.token_lifetime).unwrap_or(DEFAULT_TOKEN_LIFETIME);
+    let token_refresh = parse_duration(server.token_refresh).unwrap_or(DEFAULT_TOKEN_REFRESH);
     ServerConfig {
         host,
         port,
         pidfile,
         private_root_ca,
         password: server.password,
-        token_cookie_lifetime,
-        token_cookie_refresh,
+        token_lifetime,
+        token_refresh,
     }
 }
 

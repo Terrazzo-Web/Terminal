@@ -54,8 +54,8 @@ pub struct AuthConfig {
     encoding_key: EncodingKey,
     decoding_key: DecodingKey,
     validation: Validation,
-    token_cookie_lifetime: Duration,
-    token_cookie_refresh: Duration,
+    token_lifetime: Duration,
+    token_refresh: Duration,
 }
 
 #[derive(Debug, serde::Serialize, serde:: Deserialize)]
@@ -67,8 +67,8 @@ pub struct Claims<T = Timestamp> {
 impl AuthConfig {
     pub fn new(config_file: &ConfigFile) -> Self {
         Self {
-            token_cookie_lifetime: config_file.server.token_cookie_lifetime,
-            token_cookie_refresh: config_file.server.token_cookie_refresh,
+            token_lifetime: config_file.server.token_lifetime,
+            token_refresh: config_file.server.token_refresh,
             ..if let Some(password) = &config_file.server.password {
                 Self::from_secret(&password.hash)
             } else {
@@ -86,8 +86,8 @@ impl AuthConfig {
             encoding_key: EncodingKey::from_secret(secret),
             decoding_key: DecodingKey::from_secret(secret),
             validation,
-            token_cookie_lifetime: DEFAULT_TOKEN_LIFETIME,
-            token_cookie_refresh: DEFAULT_TOKEN_REFRESH,
+            token_lifetime: DEFAULT_TOKEN_LIFETIME,
+            token_refresh: DEFAULT_TOKEN_REFRESH,
         }
     }
 
@@ -96,7 +96,7 @@ impl AuthConfig {
             &Header::default(),
             &Claims {
                 nbf: Duration::from_secs(60),
-                exp: self.token_cookie_lifetime,
+                exp: self.token_lifetime,
             }
             .into_timestamps(),
             &self.encoding_key,
@@ -106,9 +106,7 @@ impl AuthConfig {
         cookie.set_same_site(SameSite::Lax);
         cookie.set_http_only(true);
         cookie.set_max_age(Some(
-            self.token_cookie_lifetime
-                .try_into()
-                .expect("token_cookie_lifetime"),
+            self.token_lifetime.try_into().expect("token_lifetime"),
         ));
         return Ok(cookie);
     }
@@ -218,9 +216,9 @@ fn refresh_auth_token(
     let Ok(expiration) = token_data.claims.exp.duration_since(SystemTime::now()) else {
         return response;
     };
-    let token_cookie_refresh = auth_config.token_cookie_refresh;
-    if expiration > token_cookie_refresh {
-        debug!("The auth cookie expires in {expiration:?} > {token_cookie_refresh:?}");
+    let token_refresh = auth_config.token_refresh;
+    if expiration > token_refresh {
+        debug!("The auth cookie expires in {expiration:?} > {token_refresh:?}");
         return response;
     }
 
