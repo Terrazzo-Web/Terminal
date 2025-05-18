@@ -7,6 +7,7 @@ use terrazzo::axum::extract::Path;
 use terrazzo::axum::routing::get;
 use terrazzo::http::header::AUTHORIZATION;
 use terrazzo::static_assets;
+use terrazzo_pty::TERRAZZO_CLIENT_NAME;
 use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
 use tower_http::trace::TraceLayer;
 use tracing::Level;
@@ -25,12 +26,33 @@ use crate::api;
 
 #[nameth]
 pub struct TerminalBackendServer {
+    /// The client name is
+    /// - Set as an environment variable [terrazzo_pty::TERRAZZO_CLIENT_NAME] in terminals
+    /// - Allocate IDs of terminals
     pub client_name: Option<ClientName>,
+
+    /// The TCP host to listen to.
     pub host: String,
+
+    /// The TCP port to listen to.
     pub port: u16,
+
+    /// The private Root CA is used to issue client certificates.
+    /// But security relies on the signed extension.
     pub root_ca: PrivateRootCa,
+
+    /// The TLS config is the external PKI, used to:
+    /// - A certificate used to
+    ///     1. listen to HTTPS connection
+    ///     2. sign the client certificate extension
+    /// - A trusted store to validate the client certificate extension
     pub tls_config: SecurityConfig<PrivateRootCa, CachedCertificate>,
+
+    /// Configuration for authentication
     pub auth_config: Arc<AuthConfig>,
+
+    /// Configuration file.
+    /// (host, port and client_name are thus redundant, that's OK)
     pub config_file: Arc<ConfigFile>,
 }
 

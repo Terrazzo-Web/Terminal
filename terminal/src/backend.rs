@@ -92,12 +92,13 @@ pub fn run_server() -> Result<(), RunServerError> {
     let root_ca = PrivateRootCa::load(&config_file)?;
     let tls_config = make_tls_config(&root_ca)?;
     let config_file = Arc::new(config_file);
+    let client_name = if let Some(mesh) = &config_file.mesh {
+        Some(mesh.client_name.clone())
+    } else {
+        None
+    };
     let config = TerminalBackendServer {
-        client_name: config_file
-            .mesh
-            .as_ref()
-            .map(|mesh| mesh.client_name.clone())
-            .map(ClientName::from),
+        client_name,
         host: config_file.server.host.clone(),
         port: config_file.server.port,
         root_ca,
