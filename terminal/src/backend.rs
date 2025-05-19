@@ -79,7 +79,7 @@ pub fn run_server() -> Result<(), RunServerError> {
     .merge(&cli);
 
     #[cfg(debug_assertions)]
-    println!("Config: {config_file:?}");
+    println!("Config: {config_file:#?}");
 
     if cli.action == Action::Stop {
         return Ok(config_file.server.kill()?);
@@ -93,6 +93,7 @@ pub fn run_server() -> Result<(), RunServerError> {
 
     let active_challenges = ActiveChallenges::default();
     let tls_config = if let Some(acme_config) = &config_file.letsencrypt {
+        // TODO: provide a callback to set the account creds.
         EitherConfig::Right(SecurityConfig {
             trusted_store: NativeTrustedStoreConfig,
             certificate: AcmeCertificateConfig::new(acme_config.clone(), active_challenges.clone()),
