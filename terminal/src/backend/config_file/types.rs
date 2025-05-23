@@ -5,33 +5,30 @@ use std::time::Duration;
 use serde::Deserialize;
 use serde::Serialize;
 
-pub trait ConfigTypes {
+pub trait ConfigTypes: Clone {
     type String: Serialize + for<'t> Deserialize<'t> + Debug + Default;
     type MaybeString: Serialize + for<'t> Deserialize<'t> + Debug + Default;
     type Port: Serialize + for<'t> Deserialize<'t> + Debug + Default;
-    type Password: Serialize + for<'t> Deserialize<'t> + Debug + Default;
     type Duration: Serialize + for<'t> Deserialize<'t> + Debug + Default;
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigFileTypes<T = RuntimeTypes>(PhantomData<T>);
 
 impl<T: ConfigTypes> ConfigTypes for ConfigFileTypes<T> {
     type String = Option<T::String>;
     type MaybeString = T::MaybeString;
     type Port = Option<T::Port>;
-    type Password = Option<Password>;
     type Duration = Option<String>;
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct RuntimeTypes(PhantomData<()>);
 
 impl ConfigTypes for RuntimeTypes {
     type String = String;
     type MaybeString = Option<String>;
     type Port = u16;
-    type Password = Option<Password>;
     type Duration = Duration;
 }
 

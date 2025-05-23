@@ -20,6 +20,7 @@ use trz_gateway_common::crypto_provider::crypto_provider;
 use trz_gateway_common::handle::ServerHandle;
 use trz_gateway_common::handle::ServerStopError;
 use trz_gateway_common::security_configuration::SecurityConfig;
+use trz_gateway_common::security_configuration::certificate::dynamic::DynamicCertificate;
 use trz_gateway_common::security_configuration::either::EitherConfig;
 use trz_gateway_common::security_configuration::trusted_store::native::NativeTrustedStoreConfig;
 use trz_gateway_server::server::GatewayError;
@@ -31,6 +32,7 @@ use self::agent::AgentTunnelConfig;
 use self::auth::AuthConfig;
 use self::cli::Action;
 use self::cli::Cli;
+use self::config_file::Config;
 use self::config_file::ConfigFile;
 use self::config_file::io::ConfigFileError;
 use self::config_file::kill::KillServerError;
@@ -71,7 +73,7 @@ pub fn run_server() -> Result<(), RunServerError> {
         cli
     };
 
-    let config_file = if let Some(path) = cli.config_file.as_deref() {
+    let config = if let Some(path) = cli.config_file.as_deref() {
         ConfigFile::load(path)?
     } else {
         ConfigFile::default()
@@ -79,65 +81,68 @@ pub fn run_server() -> Result<(), RunServerError> {
     .merge(&cli);
 
     #[cfg(debug_assertions)]
-    println!("Config: {config_file:#?}");
+    println!("Config: {:#?}", config.get());
 
     if cli.action == Action::Stop {
-        return Ok(config_file.server.kill()?);
+        return Ok(config.server.get().kill()?);
     }
 
     if cli.action == Action::SetPassword {
-        return Ok(config_file.set_password(cli.config_file)?);
+        return Ok(config.server.set_password()?);
     }
 
-    let root_ca = PrivateRootCa::load(&config_file)?;
-
+    let root_ca = PrivateRootCa::load(&config)?;
     let active_challenges = ActiveChallenges::default();
-    let tls_config = if let Some(acme_config) = &config_file.letsencrypt {
-        // TODO: provide a callback to set the account creds.
-        EitherConfig::Right(SecurityConfig {
-            trusted_store: NativeTrustedStoreConfig,
-            certificate: AcmeCertificateConfig::new(acme_config.clone(), active_challenges.clone()),
+
+    let tls_config = {
+        let root_ca = root_ca.clone();
+        let active_challenges = active_challenges.clone();
+        let dynamic_acme_config = config.letsencrypt.clone();
+        config.letsencrypt.view(move |letsencrypt| {
+            if let Some(letsencrypt) = &letsencrypt {
+                EitherConfig::Right(SecurityConfig {
+                    trusted_store: NativeTrustedStoreConfig,
+                    certificate: AcmeCertificateConfig::new(
+                        dynamic_acme_config.clone(),
+                        letsencrypt.clone(),
+                        active_challenges.clone(),
+                    ),
+                })
+            } else {
+                EitherConfig::Left(make_tls_config(&root_ca).unwrap())
+            }
         })
-    } else {
-        EitherConfig::Left(make_tls_config(&root_ca)?)
     };
-    let config_file = Arc::new(config_file);
-    let client_name = if let Some(mesh) = &config_file.mesh {
-        Some(mesh.client_name.as_str().into())
-    } else {
-        None
-    };
-    let config = TerminalBackendServer {
-        client_name,
-        host: config_file.server.host.clone(),
-        port: config_file.server.port,
+    let tls_config = Arc::new(DynamicCertificate::from(tls_config));
+    let backend_config = TerminalBackendServer {
         root_ca,
         tls_config,
-        auth_config: AuthConfig::new(&config_file).into(),
-        config_file: config_file.clone(),
+        auth_config: config.view(|config| Arc::new(AuthConfig::new(&config.server))),
         active_challenges,
+        config,
     };
 
     if cli.action == Action::Start {
-        self::daemonize::daemonize(&config.config_file)?;
+        let server_config = &backend_config.config.server;
+        server_config.with(|server_config| self::daemonize::daemonize(server_config))?;
     }
 
     if let Some(path) = cli.config_file.as_deref() {
-        let () = config_file.to_config_file().save(path)?;
+        let () = backend_config.config.to_config_file().save(path)?;
     }
-    return run_server_async(cli, config_file, config);
+    return run_server_async(cli, backend_config);
 }
 
 #[tokio::main]
 async fn run_server_async(
     cli: Cli,
-    config_file: Arc<ConfigFile>,
-    config: TerminalBackendServer,
+    backend_config: TerminalBackendServer,
 ) -> Result<(), RunServerError> {
     std::env::set_current_dir(home()).map_err(RunServerError::SetCurrentDir)?;
 
     assets::install_assets();
-    let (server, server_handle, crash) = Server::run(config).await?;
+    let config = backend_config.config.clone();
+    let (server, server_handle, crash) = Server::run(backend_config).await?;
     let crash = crash
         .then(|crash| {
             let crash = crash
@@ -148,7 +153,7 @@ async fn run_server_async(
         .shared();
 
     let client_handle = async {
-        match run_client_async(cli, config_file, server.clone()).await {
+        match run_client_async(cli, config, server.clone()).await {
             Ok(client_handle) => Ok(Some(client_handle)),
             Err(RunClientError::ClientNotEnabled) => Ok(None),
             Err(error) => Err(error),
@@ -216,11 +221,11 @@ pub enum RunServerError {
 
 async fn run_client_async(
     cli: Cli,
-    config_file: Arc<ConfigFile>,
+    config: Config,
     server: Arc<Server>,
 ) -> Result<ServerHandle<()>, RunClientError> {
     let _span = info_span!("Client").entered();
-    let Some(agent_config) = AgentTunnelConfig::new(&cli, &config_file, server).await else {
+    let Some(agent_config) = AgentTunnelConfig::new(&cli, config, server).await else {
         info!("Gateway client disabled");
         return Err(RunClientError::ClientNotEnabled);
     };

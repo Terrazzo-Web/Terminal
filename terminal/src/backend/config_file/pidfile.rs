@@ -6,7 +6,7 @@ use std::io::Write;
 use nameth::NamedType as _;
 use nameth::nameth;
 
-use super::ServerConfig;
+use super::server::ServerConfig;
 
 impl ServerConfig {
     pub fn read_pid(&self) -> Result<Option<i32>, ReadPidfileError> {
