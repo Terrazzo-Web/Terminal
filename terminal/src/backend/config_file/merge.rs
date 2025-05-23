@@ -123,7 +123,7 @@ fn merge_server_config(
         host: {
             let host = cli.host.as_deref();
             let host = host.or(server.host.as_deref());
-            host.unwrap_or_else(|| HOST).to_owned()
+            host.unwrap_or(HOST).to_owned()
         },
         port,
         pidfile: {

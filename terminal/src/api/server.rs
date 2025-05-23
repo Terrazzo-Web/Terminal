@@ -11,6 +11,8 @@ use terrazzo::autoclone;
 use terrazzo::axum;
 use terrazzo::axum::Json;
 use terrazzo::http;
+use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::mode;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
@@ -26,23 +28,23 @@ mod write;
 
 use crate::backend::auth::AuthConfig;
 use crate::backend::auth::AuthLayer;
-use crate::backend::config_file::ConfigFile;
+use crate::backend::config_file::Config;
 
 #[autoclone]
 pub fn api_routes(
-    client_name: &Option<ClientName>,
-    auth_config: &Arc<AuthConfig>,
-    config_file: &Arc<ConfigFile>,
+    config: &Config,
+    auth_config: &Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
     server: &Arc<Server>,
 ) -> Router {
-    let client_name = client_name.clone();
+    let mesh = &config.mesh;
+    let client_name = mesh.with(|mesh| Some(ClientName::from(mesh.as_ref()?.client_name.as_str())));
     let server = server.clone();
     Router::new()
         .route(
             "/login",
             post(|cookies, headers, password| {
-                autoclone!(auth_config, config_file);
-                login(auth_config, config_file, cookies, headers, password)
+                autoclone!(config, auth_config);
+                login(config, auth_config, cookies, headers, password)
             }),
         )
         .nest(
@@ -128,25 +130,25 @@ pub fn api_routes(
 }
 
 pub async fn login(
-    auth_config: Arc<AuthConfig>,
-    config_file: Arc<ConfigFile>,
+    config: Config,
+    auth_config: Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
     cookies: CookieJar,
     headers: HeaderMap,
     Json(password): Json<Option<String>>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let Some(password) = &password else {
-        auth_config.validate(&headers)?;
+        auth_config.with(|auth_config| auth_config.validate(&headers))?;
         return Ok((cookies, "OK"));
     };
 
-    if config_file.server.password.is_some() {
-        let () = config_file
+    if config.server.with(|server| server.password.is_some()) {
+        let () = config
             .server
-            .verify_password(password)
+            .with(|server| server.verify_password(password))
             .map_err(|error| (StatusCode::UNAUTHORIZED, error.to_string()))?;
     }
     let token = auth_config
-        .make_token()
+        .with(|auth_config| auth_config.make_token())
         .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
     Ok((cookies.add(token), "OK"))
 }

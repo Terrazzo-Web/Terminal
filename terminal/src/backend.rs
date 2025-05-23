@@ -259,7 +259,7 @@ async fn run_client_async(
     tokio::spawn(async move {
         let _terminated = terminated_all_tx.await;
         drop(dynamic_client);
-        terminated_tx.send(());
+        let _ = terminated_tx.send(());
     });
 
     return Ok(handle);

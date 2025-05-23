@@ -27,6 +27,8 @@ use tower::Layer;
 use tower::Service;
 use tracing::debug;
 use tracing::warn;
+use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::mode;
 use uuid::Uuid;
 
 use self::jwt_timestamp::Timestamp;
@@ -160,7 +162,7 @@ impl AuthConfig {
 
 #[derive(Clone)]
 pub struct AuthLayer {
-    pub auth_config: Arc<AuthConfig>,
+    pub auth_config: Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
 }
 
 impl<S> Layer<S> for AuthLayer {
@@ -197,10 +199,11 @@ where
         let mut inner = self.inner.clone();
         let auth_config = self.layer.auth_config.clone();
         Box::pin(async move {
-            let token_data = match auth_config.validate(request.headers()) {
-                Ok(token_data) => token_data,
-                Err(error) => return Ok(error.into_response()),
-            };
+            let token_data =
+                match auth_config.with(|auth_config| auth_config.validate(request.headers())) {
+                    Ok(token_data) => token_data,
+                    Err(error) => return Ok(error.into_response()),
+                };
 
             let response = inner.call(request).await?;
             return Ok(refresh_auth_token(auth_config, token_data, response));
@@ -209,21 +212,21 @@ where
 }
 
 fn refresh_auth_token(
-    auth_config: Arc<AuthConfig>,
+    auth_config: Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
     token_data: TokenData<Claims>,
     response: Response<Body>,
 ) -> Response<Body> {
     let Ok(expiration) = token_data.claims.exp.duration_since(SystemTime::now()) else {
         return response;
     };
-    let token_refresh = auth_config.token_refresh;
+    let token_refresh = auth_config.with(|auth_config| auth_config.token_refresh);
     if expiration > token_refresh {
         debug!("The auth cookie expires in {expiration:?} > {token_refresh:?}");
         return response;
     }
 
     let Ok(token) = auth_config
-        .make_token()
+        .with(|auth_config| auth_config.make_token())
         .inspect_err(|error| warn!("Failed to create refreshed token: {error}"))
     else {
         return response;

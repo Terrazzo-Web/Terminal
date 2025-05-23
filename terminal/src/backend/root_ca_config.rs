@@ -19,13 +19,14 @@ use trz_gateway_common::x509::validity::Validity;
 use trz_gateway_server::server::root_ca_configuration;
 use trz_gateway_server::server::root_ca_configuration::RootCaConfigError;
 
-use super::config_file::ConfigFile;
+use super::config_file::Config;
 
 #[derive(Clone)]
 pub struct PrivateRootCa(CachedCertificate);
 
 impl PrivateRootCa {
-    pub fn load(config_file: &ConfigFile) -> Result<Self, PrivateRootCaError> {
+    pub fn load(config: &Config) -> Result<Self, PrivateRootCaError> {
+        let server = config.server.get();
         let root_ca = root_ca_configuration::load_root_ca(
             CertitficateName {
                 organization: Some("Terrazzo"),
@@ -33,8 +34,8 @@ impl PrivateRootCa {
                 ..CertitficateName::default()
             },
             CertificateInfo {
-                certificate: format!("{}.cert", config_file.server.private_root_ca),
-                private_key: format!("{}.key", config_file.server.private_root_ca),
+                certificate: format!("{}.cert", server.private_root_ca),
+                private_key: format!("{}.key", server.private_root_ca),
             },
             Validity {
                 from: 0,

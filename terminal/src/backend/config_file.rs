@@ -54,7 +54,7 @@ impl Deref for Config {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-struct ConfigImpl<T: ConfigTypes> {
+pub struct ConfigImpl<T: ConfigTypes> {
     pub server: Arc<ServerConfig<T>>,
     pub mesh: Option<Arc<MeshConfig<T>>>,
     pub letsencrypt: Option<Arc<AcmeConfig>>,

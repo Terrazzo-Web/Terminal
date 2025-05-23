@@ -32,6 +32,7 @@ impl ConfigTypes for RuntimeTypes {
     type Duration = Duration;
 }
 
+#[must_use]
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Password {
     #[serde(with = "password_serde")]

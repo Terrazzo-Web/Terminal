@@ -14,13 +14,13 @@ use crate::backend::config_file::types::Password;
 impl DynamicServerConfig {
     pub fn set_password(&self) -> Result<(), SetPasswordError> {
         let password = rpassword::prompt_password("Password: ")?;
-        self.try_set(|server| {
+        let () = self.try_set(|server| {
             let password = server.hash_password(&password)?;
             Ok::<_, SetPasswordError>(Arc::new(ServerConfig {
                 password: Some(password),
                 ..server.as_ref().clone()
             }))
-        });
+        })?;
         debug_assert!(matches!(self.get().verify_password(&password), Ok(())));
         Ok(())
     }
@@ -97,7 +97,11 @@ mod tests {
     #[test]
     fn test_password() {
         let config_file = ServerConfig::default();
-        config_file.hash_password("pa$$word").unwrap();
+        let password = config_file.hash_password("pa$$word").unwrap();
+        let config_file = ServerConfig {
+            password: Some(password),
+            ..config_file
+        };
         assert!(matches!(config_file.verify_password("pa$$word"), Ok(())));
         assert!(matches!(
             config_file.verify_password("pa$$word2"),

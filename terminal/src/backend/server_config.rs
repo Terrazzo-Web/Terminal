@@ -94,6 +94,7 @@ impl GatewayConfig for TerminalBackendServer {
 
     fn app_config(&self) -> impl AppConfig {
         let config = self.config.clone();
+        let auth_config = self.auth_config.clone();
         let active_challenges = self.active_challenges.clone();
         move |server: Arc<Server>, router: Router| {
             let router = router
@@ -102,7 +103,10 @@ impl GatewayConfig for TerminalBackendServer {
                     "/static/{*file}",
                     get(|Path(path): Path<String>| static_assets::get(&path)),
                 )
-                .nest_service("/api", api::server::api_routes(&config, &server))
+                .nest_service(
+                    "/api",
+                    api::server::api_routes(&config, &auth_config, &server),
+                )
                 .merge(active_challenges.route());
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {
