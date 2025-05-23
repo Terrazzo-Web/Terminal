@@ -11,8 +11,11 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use tokio::signal::unix::SignalKind;
 use tokio::signal::unix::signal;
+use tokio::sync::oneshot;
+use tracing::Instrument as _;
 use tracing::info;
 use tracing::info_span;
+use trz_gateway_client::client::AuthCode;
 use trz_gateway_client::client::Client;
 use trz_gateway_client::client::NewClientError;
 use trz_gateway_client::client::connect::ConnectError;
@@ -224,14 +227,42 @@ async fn run_client_async(
     config: Config,
     server: Arc<Server>,
 ) -> Result<ServerHandle<()>, RunClientError> {
-    let _span = info_span!("Client").entered();
-    let Some(agent_config) = AgentTunnelConfig::new(&cli, config, server).await else {
-        info!("Gateway client disabled");
-        return Err(RunClientError::ClientNotEnabled);
-    };
-    info!(?agent_config, "Gateway client enabled");
-    let client = Client::new(agent_config)?;
-    Ok(client.run().await?)
+    let (shutdown_rx, terminated_tx, handle) = ServerHandle::new("Dynamic Client");
+    let auth_code = AuthCode::from(cli.auth_code);
+    let shutdown_rx = shutdown_rx.shared();
+    let (terminated_all_rx, terminated_all_tx) = oneshot::channel::<()>();
+    let terminated_all_rx = Arc::new(terminated_all_rx);
+    let terminated_all_tx = terminated_all_tx.shared();
+
+    let dynamic_client = config.mesh.view(move |mesh| {
+        if let Some(mesh) = mesh.clone() {
+            let auth_code = auth_code.clone();
+            let server = server.clone();
+            let terminated_all_rx = terminated_all_rx.clone();
+            let task = async move {
+                let Some(agent_config) = AgentTunnelConfig::new(auth_code, &mesh, &server).await
+                else {
+                    info!("Gateway client disabled");
+                    return Err(RunClientError::ClientNotEnabled);
+                };
+                info!(?agent_config, "Gateway client enabled");
+                let client = Client::new(agent_config)?;
+                let result = Ok(client.run().await?);
+                drop(terminated_all_rx);
+                return result;
+            };
+            let task = futures::future::select(Box::pin(task), shutdown_rx.clone());
+            tokio::spawn(task.instrument(info_span!("Client")));
+        }
+    });
+
+    tokio::spawn(async move {
+        let _terminated = terminated_all_tx.await;
+        drop(dynamic_client);
+        terminated_tx.send(());
+    });
+
+    return Ok(handle);
 }
 
 #[nameth]

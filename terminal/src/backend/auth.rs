@@ -30,7 +30,7 @@ use tracing::warn;
 use uuid::Uuid;
 
 use self::jwt_timestamp::Timestamp;
-use super::config_file::ConfigFile;
+use super::config_file::server::ServerConfig;
 
 mod jwt_timestamp;
 
@@ -65,11 +65,11 @@ pub struct Claims<T = Timestamp> {
 }
 
 impl AuthConfig {
-    pub fn new(config_file: &ConfigFile) -> Self {
+    pub fn new(server_config: &ServerConfig) -> Self {
         Self {
-            token_lifetime: config_file.server.token_lifetime,
-            token_refresh: config_file.server.token_refresh,
-            ..if let Some(password) = &config_file.server.password {
+            token_lifetime: server_config.token_lifetime,
+            token_refresh: server_config.token_refresh,
+            ..if let Some(password) = &server_config.password {
                 Self::from_secret(&password.hash)
             } else {
                 Self::random()

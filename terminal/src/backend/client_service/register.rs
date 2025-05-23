@@ -10,7 +10,7 @@ use tonic::client::GrpcService;
 use tonic::codegen::Bytes;
 use tonic::codegen::StdError;
 use tonic::transport::Body;
-use tracing::Instrument;
+use tracing::Instrument as _;
 use tracing::info;
 use tracing::info_span;
 use trz_gateway_common::http_error::IsHttpError;

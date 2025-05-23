@@ -11,9 +11,11 @@ use tower_http::sensitive_headers::SetSensitiveRequestHeadersLayer;
 use tower_http::trace::TraceLayer;
 use tracing::Level;
 use tracing::enabled;
-use trz_gateway_common::id::ClientName;
+use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::mode::RO;
 use trz_gateway_common::security_configuration::SecurityConfig;
 use trz_gateway_common::security_configuration::certificate::cache::CachedCertificate;
+use trz_gateway_common::security_configuration::certificate::dynamic::DynamicCertificate;
 use trz_gateway_common::security_configuration::either::EitherConfig;
 use trz_gateway_common::security_configuration::trusted_store::native::NativeTrustedStoreConfig;
 use trz_gateway_server::server::Server;
@@ -23,22 +25,13 @@ use trz_gateway_server::server::gateway_config::GatewayConfig;
 use trz_gateway_server::server::gateway_config::app_config::AppConfig;
 
 use super::auth::AuthConfig;
-use super::config_file::ConfigFile;
+use super::config_file::Config;
 use super::root_ca_config::PrivateRootCa;
 use crate::api;
 
 #[nameth]
 pub struct TerminalBackendServer {
-    /// The client name is
-    /// - Set as an environment variable [terrazzo_pty::TERRAZZO_CLIENT_NAME] in terminals
-    /// - Allocate IDs of terminals
-    pub client_name: Option<ClientName>,
-
-    /// The TCP host to listen to.
-    pub host: String,
-
-    /// The TCP port to listen to.
-    pub port: u16,
+    pub config: Config,
 
     /// The private Root CA is used to issue client certificates.
     /// But security relies on the signed extension.
@@ -56,18 +49,19 @@ pub struct TerminalBackendServer {
     pub tls_config: TlsConfig,
 
     /// Configuration for authentication
-    pub auth_config: Arc<AuthConfig>,
-
-    /// Configuration file.
-    /// (host, port and client_name are thus redundant, that's OK)
-    pub config_file: Arc<ConfigFile>,
+    pub auth_config: Arc<DynamicConfig<Arc<AuthConfig>, RO>>,
 
     pub active_challenges: ActiveChallenges,
 }
 
-type TlsConfig = EitherConfig<
-    SecurityConfig<PrivateRootCa, CachedCertificate>,
-    SecurityConfig<NativeTrustedStoreConfig, AcmeCertificateConfig>,
+type TlsConfig = Arc<
+    DynamicCertificate<
+        EitherConfig<
+            SecurityConfig<PrivateRootCa, CachedCertificate>,
+            SecurityConfig<NativeTrustedStoreConfig, AcmeCertificateConfig>,
+        >,
+        RO,
+    >,
 >;
 
 impl GatewayConfig for TerminalBackendServer {
@@ -90,18 +84,16 @@ impl GatewayConfig for TerminalBackendServer {
         true
     }
 
-    fn host(&self) -> &str {
-        &self.host
+    fn host(&self) -> String {
+        self.config.server.with(|server| server.host.to_owned())
     }
 
     fn port(&self) -> u16 {
-        self.port
+        self.config.server.with(|server| server.port)
     }
 
     fn app_config(&self) -> impl AppConfig {
-        let client_name = self.client_name.clone();
-        let auth_config = self.auth_config.clone();
-        let config_file = self.config_file.clone();
+        let config = self.config.clone();
         let active_challenges = self.active_challenges.clone();
         move |server: Arc<Server>, router: Router| {
             let router = router
@@ -110,10 +102,7 @@ impl GatewayConfig for TerminalBackendServer {
                     "/static/{*file}",
                     get(|Path(path): Path<String>| static_assets::get(&path)),
                 )
-                .nest_service(
-                    "/api",
-                    api::server::api_routes(&client_name, &auth_config, &config_file, &server),
-                )
+                .nest_service("/api", api::server::api_routes(&config, &server))
                 .merge(active_challenges.route());
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {
@@ -132,14 +121,15 @@ mod debug {
     use std::fmt::Result;
 
     use nameth::NamedType as _;
+    use trz_gateway_server::server::gateway_config::GatewayConfig as _;
 
     use super::TerminalBackendServer;
 
     impl Debug for TerminalBackendServer {
         fn fmt(&self, f: &mut Formatter<'_>) -> Result {
             f.debug_struct(TerminalBackendServer::type_name())
-                .field("host", &self.host)
-                .field("port", &self.port)
+                .field("host", &self.host())
+                .field("port", &self.port())
                 .finish()
         }
     }

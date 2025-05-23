@@ -1,60 +1,61 @@
 use std::fmt::Debug;
+use std::ops::Deref;
 use std::sync::Arc;
 
 use serde::Deserialize;
 use serde::Serialize;
+use trz_gateway_common::dynamic_config::DynamicConfig;
 use trz_gateway_server::server::acme::AcmeConfig;
+use trz_gateway_server::server::acme::DynamicAcmeConfig;
 
+use self::mesh::DynamicMeshConfig;
+use self::mesh::MeshConfig;
+use self::server::DynamicServerConfig;
+use self::server::ServerConfig;
+use self::types::ConfigFileTypes;
 use self::types::ConfigTypes;
 use self::types::RuntimeTypes;
 
 pub(in crate::backend) mod io;
 pub(in crate::backend) mod kill;
 mod merge;
+pub mod mesh;
 pub(in crate::backend) mod password;
 pub(in crate::backend) mod pidfile;
-pub mod types;
+pub mod server;
+pub(in crate::backend) mod types;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct ConfigFile<T: ConfigTypes = RuntimeTypes> {
-    pub server: ServerConfig<T>,
-    pub mesh: Option<MeshConfig<T>>,
+#[serde(transparent)]
+pub struct ConfigFile(ConfigImpl<ConfigFileTypes>);
+
+impl Deref for ConfigFile {
+    type Target = ConfigImpl<ConfigFileTypes>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone)]
+pub struct Config {
+    config: Arc<DynamicConfig<Arc<ConfigImpl<RuntimeTypes>>>>,
+    pub server: DynamicServerConfig,
+    pub mesh: DynamicMeshConfig,
+    pub letsencrypt: DynamicAcmeConfig,
+}
+
+impl Deref for Config {
+    type Target = Arc<DynamicConfig<Arc<ConfigImpl<RuntimeTypes>>>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.config
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct ConfigImpl<T: ConfigTypes> {
+    pub server: Arc<ServerConfig<T>>,
+    pub mesh: Option<Arc<MeshConfig<T>>>,
     pub letsencrypt: Option<Arc<AcmeConfig>>,
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct ServerConfig<T: ConfigTypes = RuntimeTypes> {
-    /// The TCP host to listen to.
-    pub host: T::String,
-
-    /// The TCP port to listen to.
-    pub port: T::Port,
-
-    /// The file to store the pid of the daemon while it is running,
-    pub pidfile: T::String,
-
-    /// The file to the store private Root CA.
-    pub private_root_ca: T::String,
-
-    /// The password to login to the UI.
-    pub password: T::Password,
-    pub token_lifetime: T::Duration,
-    pub token_refresh: T::Duration,
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct MeshConfig<T: ConfigTypes = RuntimeTypes> {
-    /// The Client name.
-    pub client_name: T::String,
-
-    /// The Gateway endpoint.
-    pub gateway_url: T::String,
-
-    /// The Gateway CA.
-    ///
-    /// This is the Root CA of the Gateway server certificate.
-    pub gateway_pki: T::MaybeString,
-
-    /// The file to store the client certificate.
-    pub client_certificate: T::String,
 }
