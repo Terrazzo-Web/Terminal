@@ -31,7 +31,6 @@ impl ConfigFile {
     }
 }
 
-// TODO: support for read-modify-write?
 impl ConfigFile {
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), ConfigFileError> {
         let json = toml::to_string_pretty(self)?;

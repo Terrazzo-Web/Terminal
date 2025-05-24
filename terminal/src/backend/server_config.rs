@@ -31,7 +31,7 @@ use crate::api;
 
 #[nameth]
 pub struct TerminalBackendServer {
-    pub config: Config,
+    pub config: Arc<Config>,
 
     /// The private Root CA is used to issue client certificates.
     /// But security relies on the signed extension.

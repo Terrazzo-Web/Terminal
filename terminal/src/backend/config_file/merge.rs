@@ -1,9 +1,14 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use std::time::SystemTime;
 
+use tracing::Instrument;
+use tracing::info;
+use tracing::info_span;
 use tracing::warn;
 use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::mode::RO;
 use trz_gateway_server::server::acme::DynamicAcmeConfig;
 
 use super::Config;
@@ -23,54 +28,65 @@ use crate::backend::cli::Cli;
 use crate::backend::home;
 
 impl ConfigFile {
-    pub fn merge(self, cli: &Cli) -> Config {
+    pub fn merge(self, cli: &Cli) -> Arc<Config> {
         let config = Arc::new(DynamicConfig::from(Arc::new(ConfigImpl {
             server: merge_server_config(&self.server, cli),
             mesh: merge_mesh_config(self.mesh.as_deref(), cli),
             letsencrypt: self.letsencrypt.clone(),
         })));
-        Config {
-            server: DynamicServerConfig::from(config.derive(
-                |config| config.server.clone(),
-                |config, server_config| {
-                    if Arc::ptr_eq(&config.server, server_config) {
-                        return None;
-                    }
-                    Some(Arc::new(ConfigImpl {
-                        server: server_config.clone(),
-                        mesh: config.mesh.clone(),
-                        letsencrypt: config.letsencrypt.clone(),
-                    }))
-                },
-            )),
-            mesh: DynamicMeshConfig::from(config.derive(
-                |config| config.mesh.clone(),
-                |config, mesh_config| {
-                    if option_ptr_eq(&config.mesh, mesh_config) {
-                        return None;
-                    }
-                    Some(Arc::new(ConfigImpl {
-                        server: config.server.clone(),
-                        mesh: mesh_config.clone(),
-                        letsencrypt: config.letsencrypt.clone(),
-                    }))
-                },
-            )),
-            letsencrypt: DynamicAcmeConfig::from(config.derive(
-                |config| config.letsencrypt.clone(),
-                |config, letsencrypt| {
-                    if option_ptr_eq(&config.letsencrypt, letsencrypt) {
-                        return None;
-                    }
-                    Some(Arc::new(ConfigImpl {
-                        server: config.server.clone(),
-                        mesh: config.mesh.clone(),
-                        letsencrypt: letsencrypt.clone(),
-                    }))
-                },
-            )),
+        let server = DynamicServerConfig::from(config.derive(
+            |config| config.server.clone(),
+            |config, server_config| {
+                if Arc::ptr_eq(&config.server, server_config) {
+                    return None;
+                }
+                Some(Arc::new(ConfigImpl {
+                    server: server_config.clone(),
+                    ..(*config).clone()
+                }))
+            },
+        ));
+        let mesh = DynamicMeshConfig::from(config.derive(
+            |config| config.mesh.clone(),
+            |config, mesh_config| {
+                if option_ptr_eq(&config.mesh, mesh_config) {
+                    return None;
+                }
+                Some(Arc::new(ConfigImpl {
+                    mesh: mesh_config.clone(),
+                    ..(*config).clone()
+                }))
+            },
+        ));
+        let letsencrypt = DynamicAcmeConfig::from(config.derive(
+            |config| config.letsencrypt.clone(),
+            |config, letsencrypt| {
+                if option_ptr_eq(&config.letsencrypt, letsencrypt) {
+                    return None;
+                }
+                Some(Arc::new(ConfigImpl {
+                    letsencrypt: letsencrypt.clone(),
+                    ..(*config).clone()
+                }))
+            },
+        ));
+        let config_file_path = cli.config_file.to_owned();
+        let dyn_config_file: Arc<DynamicConfig<(), RO>> = config.view(move |config| {
+            if let Some(config_file_path) = config_file_path.as_deref() {
+                let () = config
+                    .to_config_file()
+                    .save(config_file_path)
+                    .inspect(|()| info!("Saved config file {config_file_path}"))
+                    .unwrap_or_else(|error| warn!("Failed to save {config_file_path}: {error}"));
+            }
+        });
+        Arc::new(Config {
+            server,
+            mesh,
+            letsencrypt,
             config,
-        }
+            dyn_config_file,
+        })
     }
 }
 
@@ -83,14 +99,13 @@ fn option_ptr_eq<T>(a: &Option<Arc<T>>, b: &Option<Arc<T>>) -> bool {
     }
 }
 
-impl Config {
+impl ConfigImpl<RuntimeTypes> {
     pub fn to_config_file(&self) -> ConfigFile {
-        let config = self.config.get();
         let ConfigImpl {
             server,
             mesh,
             letsencrypt,
-        } = &*config;
+        } = self;
         ConfigFile(ConfigImpl {
             server: Arc::new(ServerConfig {
                 host: Some(server.host.clone()),
@@ -193,4 +208,60 @@ fn merge_mesh_config(
         gateway_pki,
         client_certificate,
     }))
+}
+
+#[expect(unused)]
+async fn poll_config_file(
+    config_file_path: String,
+    config: Arc<DynamicConfig<Arc<ConfigImpl<RuntimeTypes>>>>,
+) {
+    let span = info_span!("Polling config file", config_file_path);
+    async move {
+        let mut last_modified = SystemTime::UNIX_EPOCH;
+        loop {
+            tokio::time::sleep(Duration::from_secs(3)).await;
+            let metadata = match std::fs::metadata(&config_file_path) {
+                Ok(metadata) => metadata,
+                Err(error) => {
+                    warn!("Failed to get file metadata: {error}");
+                    continue;
+                }
+            };
+            let modified = match metadata.modified() {
+                Ok(modified) => modified,
+                Err(error) => {
+                    warn!("Failed to get modification timestamp: {error}");
+                    continue;
+                }
+            };
+            if modified == last_modified {
+                continue;
+            }
+            last_modified = modified;
+            let new_config_file = match ConfigFile::load(&config_file_path) {
+                Ok(new_config_file) => new_config_file,
+                Err(error) => {
+                    warn!("Failed to load config file: {error}");
+                    continue;
+                }
+            };
+            let new = new_config_file.merge(&Cli::default()).get();
+            let _ = config.try_set(|old| {
+                let mut result = Err(());
+                if new.server.password != old.server.password {
+                    //
+                }
+                if new.server.token_lifetime != old.server.token_lifetime {
+                    //
+                }
+                if new.server.token_refresh != old.server.token_refresh {
+                    //
+                }
+
+                return result.map(Arc::new);
+            });
+        }
+    }
+    .instrument(span)
+    .await
 }

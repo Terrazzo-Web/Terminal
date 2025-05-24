@@ -87,7 +87,7 @@ pub fn run_server() -> Result<(), RunServerError> {
     println!("Config: {:#?}", config.get());
 
     if cli.action == Action::Stop {
-        return Ok(config.server.get().kill()?);
+        return Ok(config.server.with(|s| s.kill())?);
     }
 
     if cli.action == Action::SetPassword {
@@ -130,9 +130,6 @@ pub fn run_server() -> Result<(), RunServerError> {
         server_config.with(|server_config| self::daemonize::daemonize(server_config))?;
     }
 
-    if let Some(path) = cli.config_file.as_deref() {
-        let () = backend_config.config.to_config_file().save(path)?;
-    }
     return run_server_async(cli, backend_config);
 }
 
@@ -224,7 +221,7 @@ pub enum RunServerError {
 
 async fn run_client_async(
     cli: Cli,
-    config: Config,
+    config: Arc<Config>,
     server: Arc<Server>,
 ) -> Result<ServerHandle<()>, RunClientError> {
     let (shutdown_rx, terminated_tx, handle) = ServerHandle::new("Dynamic Client");

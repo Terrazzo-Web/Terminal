@@ -32,7 +32,7 @@ use crate::backend::config_file::Config;
 
 #[autoclone]
 pub fn api_routes(
-    config: &Config,
+    config: &Arc<Config>,
     auth_config: &Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
     server: &Arc<Server>,
 ) -> Router {
@@ -130,7 +130,7 @@ pub fn api_routes(
 }
 
 pub async fn login(
-    config: Config,
+    config: Arc<Config>,
     auth_config: Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
     cookies: CookieJar,
     headers: HeaderMap,

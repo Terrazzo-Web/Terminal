@@ -33,7 +33,7 @@ impl ConfigTypes for RuntimeTypes {
 }
 
 #[must_use]
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Password {
     #[serde(with = "password_serde")]
     pub hash: Vec<u8>,

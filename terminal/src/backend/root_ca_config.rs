@@ -26,30 +26,33 @@ pub struct PrivateRootCa(CachedCertificate);
 
 impl PrivateRootCa {
     pub fn load(config: &Config) -> Result<Self, PrivateRootCaError> {
-        let server = config.server.get();
-        let root_ca = root_ca_configuration::load_root_ca(
-            CertitficateName {
-                organization: Some("Terrazzo"),
-                common_name: Some("Terrazzo Terminal Root CA"),
-                ..CertitficateName::default()
-            },
-            CertificateInfo {
-                certificate: format!("{}.cert", server.private_root_ca),
-                private_key: format!("{}.key", server.private_root_ca),
-            },
-            Validity {
-                from: 0,
-                to: 365 * 20,
-            }
-            .try_map(Asn1Time::days_from_now)
-            .expect("Asn1Time::days_from_now")
-            .as_deref()
-            .try_into()
-            .expect("Asn1Time to SystemTime"),
-        )
-        .map_err(PrivateRootCaError::Load)?
-        .cache()
-        .map_err(PrivateRootCaError::Cache)?;
+        let server = &config.server;
+        let root_ca = server
+            .with(|server| {
+                root_ca_configuration::load_root_ca(
+                    CertitficateName {
+                        organization: Some("Terrazzo"),
+                        common_name: Some("Terrazzo Terminal Root CA"),
+                        ..CertitficateName::default()
+                    },
+                    CertificateInfo {
+                        certificate: format!("{}.cert", server.private_root_ca),
+                        private_key: format!("{}.key", server.private_root_ca),
+                    },
+                    Validity {
+                        from: 0,
+                        to: 365 * 20,
+                    }
+                    .try_map(Asn1Time::days_from_now)
+                    .expect("Asn1Time::days_from_now")
+                    .as_deref()
+                    .try_into()
+                    .expect("Asn1Time to SystemTime"),
+                )
+            })
+            .map_err(PrivateRootCaError::Load)?
+            .cache()
+            .map_err(PrivateRootCaError::Cache)?;
         Ok(Self(root_ca))
     }
 }

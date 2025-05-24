@@ -5,6 +5,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 use serde::Serialize;
 use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::mode::RO;
 use trz_gateway_server::server::acme::AcmeConfig;
 use trz_gateway_server::server::acme::DynamicAcmeConfig;
 
@@ -37,12 +38,14 @@ impl Deref for ConfigFile {
     }
 }
 
-#[derive(Clone)]
 pub struct Config {
     config: Arc<DynamicConfig<Arc<ConfigImpl<RuntimeTypes>>>>,
     pub server: DynamicServerConfig,
     pub mesh: DynamicMeshConfig,
     pub letsencrypt: DynamicAcmeConfig,
+
+    #[expect(unused)]
+    dyn_config_file: Arc<DynamicConfig<(), RO>>,
 }
 
 impl Deref for Config {
@@ -53,7 +56,7 @@ impl Deref for Config {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigImpl<T: ConfigTypes> {
     pub server: Arc<ServerConfig<T>>,
     pub mesh: Option<Arc<MeshConfig<T>>>,
