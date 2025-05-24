@@ -1,37 +1,45 @@
 #![cfg(feature = "server")]
 
-use std::env::set_current_dir;
 use std::future::ready;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use clap::Parser as _;
-use config_file::ConfigFile;
-use config_file::io::ConfigFileError;
-use config_file::kill::KillServerError;
-use config_file::password::SetPasswordError;
 use futures::FutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use tokio::signal::unix::SignalKind;
 use tokio::signal::unix::signal;
+use tokio::sync::oneshot;
+use tracing::Instrument as _;
 use tracing::info;
 use tracing::info_span;
+use trz_gateway_client::client::AuthCode;
 use trz_gateway_client::client::Client;
 use trz_gateway_client::client::NewClientError;
 use trz_gateway_client::client::connect::ConnectError;
 use trz_gateway_common::crypto_provider::crypto_provider;
 use trz_gateway_common::handle::ServerHandle;
 use trz_gateway_common::handle::ServerStopError;
-use trz_gateway_common::id::ClientName;
+use trz_gateway_common::security_configuration::SecurityConfig;
+use trz_gateway_common::security_configuration::certificate::dynamic::DynamicCertificate;
+use trz_gateway_common::security_configuration::either::EitherConfig;
+use trz_gateway_common::security_configuration::trusted_store::native::NativeTrustedStoreConfig;
 use trz_gateway_server::server::GatewayError;
 use trz_gateway_server::server::Server;
+use trz_gateway_server::server::acme::active_challenges::ActiveChallenges;
+use trz_gateway_server::server::acme::certificate_config::AcmeCertificateConfig;
 
 use self::agent::AgentTunnelConfig;
 use self::auth::AuthConfig;
 use self::cli::Action;
 use self::cli::Cli;
+use self::config::Config;
+use self::config::ConfigFile;
+use self::config::io::ConfigFileError;
+use self::config::kill::KillServerError;
+use self::config::password::SetPasswordError;
 use self::daemonize::DaemonizeServerError;
 use self::root_ca_config::PrivateRootCa;
 use self::root_ca_config::PrivateRootCaError;
@@ -44,7 +52,7 @@ mod agent;
 pub mod auth;
 mod cli;
 pub mod client_service;
-pub mod config_file;
+pub mod config;
 mod daemonize;
 pub mod protos;
 mod root_ca_config;
@@ -68,7 +76,7 @@ pub fn run_server() -> Result<(), RunServerError> {
         cli
     };
 
-    let config_file = if let Some(path) = cli.config_file.as_deref() {
+    let config = if let Some(path) = cli.config_file.as_deref() {
         ConfigFile::load(path)?
     } else {
         ConfigFile::default()
@@ -76,54 +84,65 @@ pub fn run_server() -> Result<(), RunServerError> {
     .merge(&cli);
 
     #[cfg(debug_assertions)]
-    println!("Config: {config_file:?}");
+    println!("Config: {:#?}", config.get());
 
     if cli.action == Action::Stop {
-        return Ok(config_file.server.kill()?);
+        return Ok(config.server.with(|s| s.kill())?);
     }
 
     if cli.action == Action::SetPassword {
-        return Ok(config_file.set_password(cli.config_file)?);
+        return Ok(config.server.set_password()?);
     }
 
-    if let Some(path) = cli.config_file.as_deref() {
-        let () = config_file.save(path)?;
-    }
+    let root_ca = PrivateRootCa::load(&config)?;
+    let active_challenges = ActiveChallenges::default();
 
-    let root_ca = PrivateRootCa::load(&config_file)?;
-    let tls_config = make_tls_config(&root_ca)?;
-    let config_file = Arc::new(config_file);
-    let config = TerminalBackendServer {
-        client_name: config_file
-            .mesh
-            .as_ref()
-            .map(|mesh| mesh.client_name.clone())
-            .map(ClientName::from),
-        host: config_file.server.host.clone(),
-        port: config_file.server.port,
+    let tls_config = {
+        let root_ca = root_ca.clone();
+        let active_challenges = active_challenges.clone();
+        let dynamic_acme_config = config.letsencrypt.clone();
+        config.letsencrypt.view(move |letsencrypt| {
+            if let Some(letsencrypt) = &letsencrypt {
+                EitherConfig::Right(SecurityConfig {
+                    trusted_store: NativeTrustedStoreConfig,
+                    certificate: AcmeCertificateConfig::new(
+                        dynamic_acme_config.clone(),
+                        letsencrypt.clone(),
+                        active_challenges.clone(),
+                    ),
+                })
+            } else {
+                EitherConfig::Left(make_tls_config(&root_ca).unwrap())
+            }
+        })
+    };
+    let tls_config = Arc::new(DynamicCertificate::from(tls_config));
+    let backend_config = TerminalBackendServer {
         root_ca,
         tls_config,
-        auth_config: AuthConfig::new(&config_file).into(),
-        config_file: config_file.clone(),
+        auth_config: config.view(|config| Arc::new(AuthConfig::new(&config.server))),
+        active_challenges,
+        config,
     };
 
     if cli.action == Action::Start {
-        self::daemonize::daemonize(&config.config_file)?;
+        let server_config = &backend_config.config.server;
+        server_config.with(|server_config| self::daemonize::daemonize(server_config))?;
     }
 
-    return run_server_async(cli, config_file, config);
+    return run_server_async(cli, backend_config);
 }
 
 #[tokio::main]
 async fn run_server_async(
     cli: Cli,
-    config_file: Arc<ConfigFile>,
-    config: TerminalBackendServer,
+    backend_config: TerminalBackendServer,
 ) -> Result<(), RunServerError> {
-    set_current_dir(std::env::var("HOME").expect("HOME")).map_err(RunServerError::SetCurrentDir)?;
+    std::env::set_current_dir(home()).map_err(RunServerError::SetCurrentDir)?;
 
     assets::install_assets();
-    let (server, server_handle, crash) = Server::run(config).await?;
+    let config = backend_config.config.clone();
+    let (server, server_handle, crash) = Server::run(backend_config).await?;
     let crash = crash
         .then(|crash| {
             let crash = crash
@@ -134,7 +153,7 @@ async fn run_server_async(
         .shared();
 
     let client_handle = async {
-        match run_client_async(cli, config_file, server.clone()).await {
+        match run_client_async(cli, config, server.clone()).await {
             Ok(client_handle) => Ok(Some(client_handle)),
             Err(RunClientError::ClientNotEnabled) => Ok(None),
             Err(error) => Err(error),
@@ -202,17 +221,45 @@ pub enum RunServerError {
 
 async fn run_client_async(
     cli: Cli,
-    config_file: Arc<ConfigFile>,
+    config: Arc<Config>,
     server: Arc<Server>,
 ) -> Result<ServerHandle<()>, RunClientError> {
-    let _span = info_span!("Client").entered();
-    let Some(agent_config) = AgentTunnelConfig::new(&cli, &config_file, server).await else {
-        info!("Gateway client disabled");
-        return Err(RunClientError::ClientNotEnabled);
-    };
-    info!(?agent_config, "Gateway client enabled");
-    let client = Client::new(agent_config)?;
-    Ok(client.run().await?)
+    let (shutdown_rx, terminated_tx, handle) = ServerHandle::new("Dynamic Client");
+    let auth_code = AuthCode::from(cli.auth_code);
+    let shutdown_rx = shutdown_rx.shared();
+    let (terminated_all_rx, terminated_all_tx) = oneshot::channel::<()>();
+    let terminated_all_rx = Arc::new(terminated_all_rx);
+    let terminated_all_tx = terminated_all_tx.shared();
+
+    let dynamic_client = config.mesh.view(move |mesh| {
+        if let Some(mesh) = mesh.clone() {
+            let auth_code = auth_code.clone();
+            let server = server.clone();
+            let terminated_all_rx = terminated_all_rx.clone();
+            let task = async move {
+                let Some(agent_config) = AgentTunnelConfig::new(auth_code, &mesh, &server).await
+                else {
+                    info!("Gateway client disabled");
+                    return Err(RunClientError::ClientNotEnabled);
+                };
+                info!(?agent_config, "Gateway client enabled");
+                let client = Client::new(agent_config)?;
+                let result = Ok(client.run().await?);
+                drop(terminated_all_rx);
+                return result;
+            };
+            let task = futures::future::select(Box::pin(task), shutdown_rx.clone());
+            tokio::spawn(task.instrument(info_span!("Client")));
+        }
+    });
+
+    tokio::spawn(async move {
+        let _terminated = terminated_all_tx.await;
+        drop(dynamic_client);
+        let _ = terminated_tx.send(());
+    });
+
+    return Ok(handle);
 }
 
 #[nameth]

@@ -26,6 +26,8 @@ mod release_on_drop;
 pub mod size;
 mod tail;
 
+pub const TERRAZZO_CLIENT_NAME: &str = "TERRAZZO_CLIENT_NAME";
+
 pub struct ProcessIO {
     input: OwnedWritePty,
     output: TailStream,
@@ -62,7 +64,7 @@ impl ProcessIO {
             std::env::var("SHELL").map_or_else(|_| Command::new("/bin/bash"), Command::new);
         command.arg("-i");
         if let Some(client_name) = client_name {
-            command.env("TERRAZZO_CLIENT_NAME", client_name.as_ref());
+            command.env(TERRAZZO_CLIENT_NAME, client_name.as_ref());
         }
         let child = command.spawn(&pty.pts()?)?;
 

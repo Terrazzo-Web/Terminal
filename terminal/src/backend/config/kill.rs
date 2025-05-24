@@ -5,9 +5,9 @@ use nix::sys::signal;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
 
-use super::ServerConfig;
 use super::pidfile::DeletePidfileError;
 use super::pidfile::ReadPidfileError;
+use super::server::ServerConfig;
 
 impl ServerConfig {
     pub fn kill(&self) -> Result<(), KillServerError> {

@@ -5,27 +5,33 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 
 use super::ConfigFile;
-use super::types::ConfigFileTypes;
-use super::types::RuntimeTypes;
 
-impl ConfigFile<ConfigFileTypes> {
+impl ConfigFile {
     pub fn load(path: impl AsRef<Path>) -> Result<Self, ConfigFileError> {
-        let content =
-            std::fs::read_to_string(path.as_ref()).map_err(|error| ConfigFileError::IO {
-                config_file: path.as_ref().to_owned(),
+        // TODO if file does not exist, return a default config
+        let path = path.as_ref();
+        let content = if std::fs::exists(path).map_err(|error| ConfigFileError::IO {
+            config_file: path.to_owned(),
+            error,
+        })? {
+            std::fs::read_to_string(path).map_err(|error| ConfigFileError::IO {
+                config_file: path.to_owned(),
                 error,
-            })?;
+            })?
+        } else {
+            String::default()
+        };
         if content.is_empty() {
             return Ok(Self::default());
         }
         return toml::from_str(&content).map_err(|error| ConfigFileError::Deserialize {
-            config_file: path.as_ref().to_owned(),
+            config_file: path.to_owned(),
             error,
         });
     }
 }
 
-impl ConfigFile<RuntimeTypes> {
+impl ConfigFile {
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), ConfigFileError> {
         let json = toml::to_string_pretty(self)?;
         std::fs::write(path.as_ref(), &json).map_err(|error| ConfigFileError::IO {

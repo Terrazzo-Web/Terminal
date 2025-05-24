@@ -22,10 +22,11 @@ required-features = ["server"]
 
 [dependencies]
 axum-extra = { workspace = true, optional = true, features = ["cookie"] }
-clap = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }
+clap = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
+humantime = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
@@ -56,7 +57,7 @@ tracing = { workspace = true }
 tracing-futures = { workspace = true, features = ["futures-03"] }
 trz-gateway-client = { workspace = true, optional = true }
 trz-gateway-common = { workspace = true, optional = true }
-trz-gateway-server = { workspace = true, optional = true }
+trz-gateway-server = { workspace = true, optional = true, features = ["acme"] }
 uuid = { workspace = true, optional = true, features = ["v4", "fast-rng"] }
 wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { workspace = true, optional = true }
@@ -98,6 +99,7 @@ server = [
     "dep:base64",
     "dep:clap",
     "dep:dashmap",
+    "dep:humantime",
     "dep:jsonwebtoken",
     "dep:nix",
     "dep:openssl",
@@ -111,8 +113,8 @@ server = [
     "dep:tokio",
     "dep:toml",
     "dep:tonic",
-    "dep:tower",
     "dep:tower-http",
+    "dep:tower",
     "dep:trz-gateway-client",
     "dep:trz-gateway-common",
     "dep:trz-gateway-server",

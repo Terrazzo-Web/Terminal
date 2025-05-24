@@ -1,5 +1,5 @@
 use scopeguard::defer;
-use tracing::Instrument;
+use tracing::Instrument as _;
 use tracing::debug;
 use tracing::info;
 use tracing::info_span;

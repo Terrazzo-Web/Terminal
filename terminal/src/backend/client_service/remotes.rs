@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::collections::hash_map;
 
 use scopeguard::defer;
-use tracing::Instrument;
+use tracing::Instrument as _;
 use tracing::debug;
 use tracing::debug_span;
 use tracing::warn;
