@@ -97,8 +97,9 @@ pub async fn run_server() -> Result<(), RunServerError> {
     }
 
     let config = config.into_dyn(&cli);
+    let server_config = config.server.clone();
     if cli.action == Action::SetPassword {
-        return Ok(config.server.set_password()?);
+        return Ok(server_config.set_password()?);
     }
 
     let root_ca = PrivateRootCa::load(&config)?;
@@ -128,17 +129,14 @@ pub async fn run_server() -> Result<(), RunServerError> {
     let backend_config = TerminalBackendServer {
         root_ca,
         tls_config,
-        auth_config: DiffArc::from(
-            config
-                .server
-                .view_diff(|server| DiffArc::from(AuthConfig::new(&server))),
-        ),
+        auth_config: server_config
+            .view(|server| DiffArc::from(AuthConfig::new(server)))
+            .into(),
         active_challenges,
         config,
     };
 
     if cli.action == Action::Start {
-        let server_config = &backend_config.config.server;
         server_config.with(|server_config| self::daemonize::daemonize(server_config))?;
     }
 

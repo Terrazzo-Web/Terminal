@@ -143,17 +143,17 @@ async fn poll_config_file(config_file_path: String, config: DiffArc<DynConfig>) 
                 }
                 if new.server.password != old.password {
                     info!("Changed: password");
-                    let result = get_or_init(&old, &mut result);
+                    let result = get_or_init(old, &mut result);
                     result.password = new.server.password.clone();
                 }
                 if new.server.token_lifetime != old.token_lifetime {
                     info!("Changed: token_lifetime");
-                    let result = get_or_init(&old, &mut result);
+                    let result = get_or_init(old, &mut result);
                     result.token_lifetime = new.server.token_lifetime;
                 }
                 if new.server.token_refresh != old.token_refresh {
                     info!("Changed: token_refresh");
-                    let result = get_or_init(&old, &mut result);
+                    let result = get_or_init(old, &mut result);
                     result.token_refresh = new.server.token_refresh;
                 }
 
