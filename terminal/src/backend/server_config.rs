@@ -25,13 +25,13 @@ use trz_gateway_server::server::gateway_config::GatewayConfig;
 use trz_gateway_server::server::gateway_config::app_config::AppConfig;
 
 use super::auth::AuthConfig;
-use super::config::Config;
+use super::config::DynConfig;
 use super::root_ca_config::PrivateRootCa;
 use crate::api;
 
 #[nameth]
 pub struct TerminalBackendServer {
-    pub config: Arc<Config>,
+    pub config: Arc<DynConfig>,
 
     /// The private Root CA is used to issue client certificates.
     /// But security relies on the signed extension.

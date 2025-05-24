@@ -5,7 +5,7 @@ use clap::ValueEnum;
 #[command(version, about, long_about = None)]
 pub struct Cli {
     /// Whether to start or stop the terrazzo-terminal daemon.
-    #[arg(long, short, value_enum)]
+    #[arg(long, short, value_enum, default_value_t = Action::Run)]
     pub action: Action,
 
     /// The TCP host to listen to.

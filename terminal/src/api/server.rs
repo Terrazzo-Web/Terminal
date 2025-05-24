@@ -28,11 +28,11 @@ mod write;
 
 use crate::backend::auth::AuthConfig;
 use crate::backend::auth::AuthLayer;
-use crate::backend::config::Config;
+use crate::backend::config::DynConfig;
 
 #[autoclone]
 pub fn api_routes(
-    config: &Arc<Config>,
+    config: &Arc<DynConfig>,
     auth_config: &Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
     server: &Arc<Server>,
 ) -> Router {
@@ -130,7 +130,7 @@ pub fn api_routes(
 }
 
 pub async fn login(
-    config: Arc<Config>,
+    config: Arc<DynConfig>,
     auth_config: Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
     cookies: CookieJar,
     headers: HeaderMap,

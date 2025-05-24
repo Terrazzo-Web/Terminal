@@ -19,13 +19,13 @@ use trz_gateway_common::x509::validity::Validity;
 use trz_gateway_server::server::root_ca_configuration;
 use trz_gateway_server::server::root_ca_configuration::RootCaConfigError;
 
-use super::config::Config;
+use super::config::DynConfig;
 
 #[derive(Clone)]
 pub struct PrivateRootCa(CachedCertificate);
 
 impl PrivateRootCa {
-    pub fn load(config: &Config) -> Result<Self, PrivateRootCaError> {
+    pub fn load(config: &DynConfig) -> Result<Self, PrivateRootCaError> {
         let server = &config.server;
         let root_ca = server
             .with(|server| {

@@ -35,8 +35,8 @@ use self::agent::AgentTunnelConfig;
 use self::auth::AuthConfig;
 use self::cli::Action;
 use self::cli::Cli;
-use self::config::Config;
 use self::config::ConfigFile;
+use self::config::DynConfig;
 use self::config::io::ConfigFileError;
 use self::config::kill::KillServerError;
 use self::config::password::SetPasswordError;
@@ -63,7 +63,8 @@ mod tls_config;
 const HOST: &str = "localhost";
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
-pub fn run_server() -> Result<(), RunServerError> {
+#[tokio::main]
+pub async fn run_server() -> Result<(), RunServerError> {
     crypto_provider();
     let cli = {
         let mut cli = Cli::parse();
@@ -84,12 +85,13 @@ pub fn run_server() -> Result<(), RunServerError> {
     .merge(&cli);
 
     #[cfg(debug_assertions)]
-    println!("Config: {:#?}", config.get());
+    println!("Config: {:#?}", config);
 
     if cli.action == Action::Stop {
-        return Ok(config.server.with(|s| s.kill())?);
+        return Ok(config.server.kill()?);
     }
 
+    let config = config.into_dyn(&cli);
     if cli.action == Action::SetPassword {
         return Ok(config.server.set_password()?);
     }
@@ -130,10 +132,9 @@ pub fn run_server() -> Result<(), RunServerError> {
         server_config.with(|server_config| self::daemonize::daemonize(server_config))?;
     }
 
-    return run_server_async(cli, backend_config);
+    return run_server_async(cli, backend_config).await;
 }
 
-#[tokio::main]
 async fn run_server_async(
     cli: Cli,
     backend_config: TerminalBackendServer,
@@ -221,7 +222,7 @@ pub enum RunServerError {
 
 async fn run_client_async(
     cli: Cli,
-    config: Arc<Config>,
+    config: Arc<DynConfig>,
     server: Arc<Server>,
 ) -> Result<ServerHandle<()>, RunClientError> {
     let (shutdown_rx, terminated_tx, handle) = ServerHandle::new("Dynamic Client");

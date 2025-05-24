@@ -33,7 +33,7 @@ impl ConfigTypes for RuntimeTypes {
 }
 
 #[must_use]
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Password {
     #[serde(with = "password_serde")]
     pub hash: Vec<u8>,
@@ -67,6 +67,18 @@ mod password_serde {
         general_purpose::STANDARD_NO_PAD
             .decode(&s)
             .map_err(serde::de::Error::custom)
+    }
+}
+
+impl std::fmt::Debug for Password {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use base64::Engine as _;
+        use base64::engine::general_purpose;
+        f.debug_struct("Password")
+            .field("hash", &general_purpose::STANDARD_NO_PAD.encode(&self.hash))
+            .field("iterations", &self.iterations)
+            .field("salt", &general_purpose::STANDARD_NO_PAD.encode(&self.salt))
+            .finish()
     }
 }
 

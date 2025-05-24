@@ -17,6 +17,7 @@ use self::types::ConfigFileTypes;
 use self::types::ConfigTypes;
 use self::types::RuntimeTypes;
 
+mod into_dyn;
 pub(in crate::backend) mod io;
 pub(in crate::backend) mod kill;
 mod merge;
@@ -38,8 +39,8 @@ impl Deref for ConfigFile {
     }
 }
 
-pub struct Config {
-    config: Arc<DynamicConfig<Arc<ConfigImpl<RuntimeTypes>>>>,
+pub struct DynConfig {
+    config: Arc<DynamicConfig<Arc<Config>>>,
     pub server: DynamicServerConfig,
     pub mesh: DynamicMeshConfig,
     pub letsencrypt: DynamicAcmeConfig,
@@ -48,16 +49,34 @@ pub struct Config {
     dyn_config_file: Arc<DynamicConfig<(), RO>>,
 }
 
-impl Deref for Config {
-    type Target = Arc<DynamicConfig<Arc<ConfigImpl<RuntimeTypes>>>>;
+impl Deref for DynConfig {
+    type Target = Arc<DynamicConfig<Arc<Config>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.config
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct Config(ConfigImpl<RuntimeTypes>);
+
+impl Deref for Config {
+    type Target = ConfigImpl<RuntimeTypes>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<ConfigImpl<RuntimeTypes>> for Config {
+    fn from(value: ConfigImpl<RuntimeTypes>) -> Self {
+        Self(value)
+    }
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigImpl<T: ConfigTypes> {
+    #[serde(default)]
     pub server: Arc<ServerConfig<T>>,
     pub mesh: Option<Arc<MeshConfig<T>>>,
     pub letsencrypt: Option<Arc<AcmeConfig>>,
