@@ -3,6 +3,7 @@ use std::time::Duration;
 use std::time::SystemTime;
 
 use tracing::Instrument;
+use tracing::debug;
 use tracing::info;
 use tracing::info_span;
 use tracing::warn;
@@ -29,6 +30,7 @@ impl Config {
                 if Arc::ptr_eq(&config.server, server_config) {
                     return None;
                 }
+                debug!("Updated server config");
                 Some(Arc::new(Config::from(ConfigImpl {
                     server: server_config.clone(),
                     ..(**config).clone()
@@ -41,6 +43,7 @@ impl Config {
                 if option_ptr_eq(&config.mesh, mesh_config) {
                     return None;
                 }
+                debug!("Updated mesh config");
                 Some(Arc::new(Config::from(ConfigImpl {
                     mesh: mesh_config.clone(),
                     ..(**config).clone()
@@ -53,6 +56,7 @@ impl Config {
                 if option_ptr_eq(&config.letsencrypt, letsencrypt) {
                     return None;
                 }
+                debug!("Updated letsencrypt config");
                 Some(Arc::new(Config::from(ConfigImpl {
                     letsencrypt: letsencrypt.clone(),
                     ..(**config).clone()
@@ -128,20 +132,21 @@ async fn poll_config_file(config_file_path: String, config: Arc<DynamicConfig<Ar
             let new = new_config_file.merge(&Cli::default());
             let _ = config.try_set(|old| {
                 let mut result = Err(());
-                fn get_or_init(
-                    result: &mut Result<ConfigImpl<RuntimeTypes>, ()>,
-                ) -> &mut ConfigImpl<RuntimeTypes> {
+                fn get_or_init<'t>(
+                    old: &Config,
+                    result: &'t mut Result<ConfigImpl<RuntimeTypes>, ()>,
+                ) -> &'t mut ConfigImpl<RuntimeTypes> {
                     match result {
                         Ok(r) => r,
                         Err(()) => {
-                            *result = Ok(ConfigImpl::default());
+                            *result = Ok(old.0.clone());
                             return result.as_mut().unwrap();
                         }
                     }
                 }
                 if new.server.password != old.server.password {
                     info!("Changed: password");
-                    let result = get_or_init(&mut result);
+                    let result = get_or_init(&old, &mut result);
                     result.server = Arc::new(ServerConfig {
                         password: new.server.password.clone(),
                         ..(*old.server).clone()
@@ -149,7 +154,7 @@ async fn poll_config_file(config_file_path: String, config: Arc<DynamicConfig<Ar
                 }
                 if new.server.token_lifetime != old.server.token_lifetime {
                     info!("Changed: token_lifetime");
-                    let result = get_or_init(&mut result);
+                    let result = get_or_init(&old, &mut result);
                     result.server = Arc::new(ServerConfig {
                         token_lifetime: new.server.token_lifetime,
                         ..(*old.server).clone()
@@ -157,7 +162,7 @@ async fn poll_config_file(config_file_path: String, config: Arc<DynamicConfig<Ar
                 }
                 if new.server.token_refresh != old.server.token_refresh {
                     info!("Changed: token_refresh");
-                    let result = get_or_init(&mut result);
+                    let result = get_or_init(&old, &mut result);
                     result.server = Arc::new(ServerConfig {
                         token_refresh: new.server.token_refresh,
                         ..(*old.server).clone()

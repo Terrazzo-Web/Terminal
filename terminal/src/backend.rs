@@ -12,7 +12,9 @@ use nameth::nameth;
 use tokio::signal::unix::SignalKind;
 use tokio::signal::unix::signal;
 use tokio::sync::oneshot;
+use tokio::task::JoinHandle;
 use tracing::Instrument as _;
+use tracing::debug;
 use tracing::info;
 use tracing::info_span;
 use trz_gateway_client::client::AuthCode;
@@ -227,10 +229,18 @@ async fn run_client_async(
 ) -> Result<ServerHandle<()>, RunClientError> {
     let (shutdown_rx, terminated_tx, handle) = ServerHandle::new("Dynamic Client");
     let auth_code = AuthCode::from(cli.auth_code);
-    let shutdown_rx = shutdown_rx.shared();
     let (terminated_all_rx, terminated_all_tx) = oneshot::channel::<()>();
     let terminated_all_rx = Arc::new(terminated_all_rx);
     let terminated_all_tx = terminated_all_tx.shared();
+
+    struct AbortOnDrop<T>(JoinHandle<T>);
+
+    impl<T> Drop for AbortOnDrop<T> {
+        fn drop(&mut self) {
+            debug!("Aborting the client");
+            self.0.abort();
+        }
+    }
 
     let dynamic_client = config.mesh.view(move |mesh| {
         if let Some(mesh) = mesh.clone() {
@@ -245,16 +255,20 @@ async fn run_client_async(
                 };
                 info!(?agent_config, "Gateway client enabled");
                 let client = Client::new(agent_config)?;
-                let result = Ok(client.run().await?);
+                let result = client.run().await?;
                 drop(terminated_all_rx);
-                return result;
+                return Ok(result);
             };
-            let task = futures::future::select(Box::pin(task), shutdown_rx.clone());
-            tokio::spawn(task.instrument(info_span!("Client")));
+            Some(Arc::new(AbortOnDrop(tokio::spawn(
+                task.instrument(info_span!("Client")),
+            ))))
+        } else {
+            None
         }
     });
 
     tokio::spawn(async move {
+        let () = shutdown_rx.await;
         let _terminated = terminated_all_tx.await;
         drop(dynamic_client);
         let _ = terminated_tx.send(());

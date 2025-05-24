@@ -232,6 +232,7 @@ fn refresh_auth_token(
         return response;
     };
 
+    debug!("Issued a new token");
     let cookies = CookieJar::from_headers(response.headers()).add(token);
     return (cookies, response).into_response();
 }

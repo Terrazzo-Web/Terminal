@@ -11,6 +11,10 @@ use terrazzo::autoclone;
 use terrazzo::axum;
 use terrazzo::axum::Json;
 use terrazzo::http;
+use tracing::debug;
+use tracing::info;
+use tracing::info_span;
+use tracing::warn;
 use trz_gateway_common::dynamic_config::DynamicConfig;
 use trz_gateway_common::dynamic_config::mode;
 use trz_gateway_common::id::ClientName;
@@ -136,19 +140,29 @@ pub async fn login(
     headers: HeaderMap,
     Json(password): Json<Option<String>>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-    let Some(password) = &password else {
-        auth_config.with(|auth_config| auth_config.validate(&headers))?;
-        return Ok((cookies, "OK"));
-    };
+    let _span = info_span!("Login").entered();
+    let server = config.server.get();
+    let result = move || {
+        match (&server.password, &password) {
+            (None, _) => debug!("Password not required"),
+            (Some(_), None) => {
+                debug!("Password not provided, checking token");
+                let _ = auth_config.with(|auth_config| auth_config.validate(&headers))?;
+            }
+            (Some(_), Some(password)) => {
+                debug!("Password provided, verify password");
+                let () = server
+                    .verify_password(password)
+                    .map_err(|error| (StatusCode::UNAUTHORIZED, error.to_string()))?;
+            }
+        }
 
-    if config.server.with(|server| server.password.is_some()) {
-        let () = config
-            .server
-            .with(|server| server.verify_password(password))
-            .map_err(|error| (StatusCode::UNAUTHORIZED, error.to_string()))?;
-    }
-    let token = auth_config
-        .with(|auth_config| auth_config.make_token())
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
-    Ok((cookies.add(token), "OK"))
+        let token = auth_config
+            .with(|auth_config| auth_config.make_token())
+            .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
+        Ok((cookies.add(token), "OK"))
+    };
+    return result()
+        .inspect(|(_cookies, result)| info!("{result}"))
+        .inspect_err(|(status_code, error)| warn!("Failed: {status_code} {error}"));
 }
