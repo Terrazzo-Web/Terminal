@@ -19,7 +19,7 @@ use trz_gateway_common::x509::validity::Validity;
 use trz_gateway_server::server::root_ca_configuration;
 use trz_gateway_server::server::root_ca_configuration::RootCaConfigError;
 
-use super::config_file::Config;
+use super::config::Config;
 
 #[derive(Clone)]
 pub struct PrivateRootCa(CachedCertificate);

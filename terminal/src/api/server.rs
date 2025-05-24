@@ -28,7 +28,7 @@ mod write;
 
 use crate::backend::auth::AuthConfig;
 use crate::backend::auth::AuthLayer;
-use crate::backend::config_file::Config;
+use crate::backend::config::Config;
 
 #[autoclone]
 pub fn api_routes(

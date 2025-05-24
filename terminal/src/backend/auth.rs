@@ -32,7 +32,7 @@ use trz_gateway_common::dynamic_config::mode;
 use uuid::Uuid;
 
 use self::jwt_timestamp::Timestamp;
-use super::config_file::server::ServerConfig;
+use super::config::server::ServerConfig;
 
 mod jwt_timestamp;
 

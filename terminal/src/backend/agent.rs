@@ -19,7 +19,7 @@ use trz_gateway_common::security_configuration::trusted_store::cache::CachedTrus
 use trz_gateway_common::security_configuration::trusted_store::load::LoadTrustedStore;
 use trz_gateway_server::server::Server;
 
-use super::config_file::mesh::MeshConfig;
+use super::config::mesh::MeshConfig;
 use crate::backend::client_service::ClientServiceImpl;
 use crate::backend::protos::terrazzo::gateway::client::client_service_server::ClientServiceServer;
 

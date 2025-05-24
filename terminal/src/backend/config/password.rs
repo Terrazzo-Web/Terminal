@@ -9,7 +9,7 @@ use sha2::Sha256;
 use super::ServerConfig;
 use super::io::ConfigFileError;
 use super::server::DynamicServerConfig;
-use crate::backend::config_file::types::Password;
+use crate::backend::config::types::Password;
 
 impl DynamicServerConfig {
     pub fn set_password(&self) -> Result<(), SetPasswordError> {
@@ -91,8 +91,8 @@ pub enum VerifyPasswordError {
 
 #[cfg(test)]
 mod tests {
-    use crate::backend::config_file::ServerConfig;
-    use crate::backend::config_file::password::VerifyPasswordError;
+    use crate::backend::config::ServerConfig;
+    use crate::backend::config::password::VerifyPasswordError;
 
     #[test]
     fn test_password() {

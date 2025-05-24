@@ -5,9 +5,9 @@ use std::os::fd::IntoRawFd as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 
-use super::config_file::pidfile::ReadPidfileError;
-use super::config_file::pidfile::SavePidfileError;
-use super::config_file::server::ServerConfig;
+use super::config::pidfile::ReadPidfileError;
+use super::config::pidfile::SavePidfileError;
+use super::config::server::ServerConfig;
 
 pub fn daemonize(server_config: &ServerConfig) -> Result<(), DaemonizeServerError> {
     if let Some(pid) = server_config.read_pid()? {

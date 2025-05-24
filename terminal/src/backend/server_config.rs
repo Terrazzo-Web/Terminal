@@ -25,7 +25,7 @@ use trz_gateway_server::server::gateway_config::GatewayConfig;
 use trz_gateway_server::server::gateway_config::app_config::AppConfig;
 
 use super::auth::AuthConfig;
-use super::config_file::Config;
+use super::config::Config;
 use super::root_ca_config::PrivateRootCa;
 use crate::api;
 
