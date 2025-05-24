@@ -16,6 +16,7 @@ use tracing::info;
 use tracing::info_span;
 use tracing::warn;
 use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 use trz_gateway_common::dynamic_config::mode;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
@@ -36,8 +37,8 @@ use crate::backend::config::DynConfig;
 
 #[autoclone]
 pub fn api_routes(
-    config: &Arc<DynConfig>,
-    auth_config: &Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
+    config: &DiffArc<DynConfig>,
+    auth_config: &DiffArc<DynamicConfig<DiffArc<AuthConfig>, mode::RO>>,
     server: &Arc<Server>,
 ) -> Router {
     let mesh = &config.mesh;
@@ -134,8 +135,8 @@ pub fn api_routes(
 }
 
 pub async fn login(
-    config: Arc<DynConfig>,
-    auth_config: Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
+    config: DiffArc<DynConfig>,
+    auth_config: DiffArc<DynamicConfig<DiffArc<AuthConfig>, mode::RO>>,
     cookies: CookieJar,
     headers: HeaderMap,
     Json(password): Json<Option<String>>,

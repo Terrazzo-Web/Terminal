@@ -4,6 +4,8 @@ use std::sync::Arc;
 use serde::Deserialize;
 use serde::Serialize;
 use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::has_diff::DiffArc;
+use trz_gateway_common::dynamic_config::has_diff::DiffOption;
 
 use super::types::ConfigTypes;
 use super::types::RuntimeTypes;
@@ -26,18 +28,18 @@ pub struct MeshConfig<T: ConfigTypes = RuntimeTypes> {
 }
 
 #[derive(Clone)]
-pub struct DynamicMeshConfig(Arc<DynamicConfig<Option<Arc<MeshConfig>>>>);
+pub struct DynamicMeshConfig(Arc<DynamicConfig<DiffOption<DiffArc<MeshConfig>>>>);
 
 impl Deref for DynamicMeshConfig {
-    type Target = Arc<DynamicConfig<Option<Arc<MeshConfig>>>>;
+    type Target = Arc<DynamicConfig<DiffOption<DiffArc<MeshConfig>>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl From<Arc<DynamicConfig<Option<Arc<MeshConfig>>>>> for DynamicMeshConfig {
-    fn from(value: Arc<DynamicConfig<Option<Arc<MeshConfig>>>>) -> Self {
+impl From<Arc<DynamicConfig<DiffOption<DiffArc<MeshConfig>>>>> for DynamicMeshConfig {
+    fn from(value: Arc<DynamicConfig<DiffOption<DiffArc<MeshConfig>>>>) -> Self {
         Self(value)
     }
 }

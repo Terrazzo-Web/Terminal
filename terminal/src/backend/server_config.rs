@@ -12,6 +12,7 @@ use tower_http::trace::TraceLayer;
 use tracing::Level;
 use tracing::enabled;
 use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 use trz_gateway_common::dynamic_config::mode::RO;
 use trz_gateway_common::security_configuration::SecurityConfig;
 use trz_gateway_common::security_configuration::certificate::cache::CachedCertificate;
@@ -31,7 +32,7 @@ use crate::api;
 
 #[nameth]
 pub struct TerminalBackendServer {
-    pub config: Arc<DynConfig>,
+    pub config: DiffArc<DynConfig>,
 
     /// The private Root CA is used to issue client certificates.
     /// But security relies on the signed extension.
@@ -49,7 +50,7 @@ pub struct TerminalBackendServer {
     pub tls_config: TlsConfig,
 
     /// Configuration for authentication
-    pub auth_config: Arc<DynamicConfig<Arc<AuthConfig>, RO>>,
+    pub auth_config: DiffArc<DynamicConfig<DiffArc<AuthConfig>, RO>>,
 
     pub active_challenges: ActiveChallenges,
 }

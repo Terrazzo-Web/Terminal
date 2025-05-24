@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use pbkdf2::hmac::Hmac;
@@ -16,10 +14,13 @@ impl DynamicServerConfig {
         let password = rpassword::prompt_password("Password: ")?;
         let () = self.try_set(|server| {
             let password = server.hash_password(&password)?;
-            Ok::<_, SetPasswordError>(Arc::new(ServerConfig {
-                password: Some(password),
-                ..server.as_ref().clone()
-            }))
+            Ok::<_, SetPasswordError>(
+                ServerConfig {
+                    password: Some(password),
+                    ..(**server).clone()
+                }
+                .into(),
+            )
         })?;
         debug_assert!(matches!(self.get().verify_password(&password), Ok(())));
         Ok(())

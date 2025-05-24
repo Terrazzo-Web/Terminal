@@ -1,5 +1,4 @@
 use std::pin::Pin;
-use std::sync::Arc;
 use std::task::Context;
 use std::task::Poll;
 use std::time::Duration;
@@ -28,6 +27,7 @@ use tower::Service;
 use tracing::debug;
 use tracing::warn;
 use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 use trz_gateway_common::dynamic_config::mode;
 use uuid::Uuid;
 
@@ -162,7 +162,7 @@ impl AuthConfig {
 
 #[derive(Clone)]
 pub struct AuthLayer {
-    pub auth_config: Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
+    pub auth_config: DiffArc<DynamicConfig<DiffArc<AuthConfig>, mode::RO>>,
 }
 
 impl<S> Layer<S> for AuthLayer {
@@ -206,13 +206,13 @@ where
                 };
 
             let response = inner.call(request).await?;
-            return Ok(refresh_auth_token(auth_config, token_data, response));
+            return Ok(refresh_auth_token(&auth_config, token_data, response));
         })
     }
 }
 
 fn refresh_auth_token(
-    auth_config: Arc<DynamicConfig<Arc<AuthConfig>, mode::RO>>,
+    auth_config: &DynamicConfig<DiffArc<AuthConfig>, mode::RO>,
     token_data: TokenData<Claims>,
     response: Response<Body>,
 ) -> Response<Body> {

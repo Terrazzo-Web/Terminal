@@ -4,6 +4,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 use serde::Serialize;
 use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 
 use super::types::ConfigTypes;
 use super::types::Password;
@@ -30,18 +31,18 @@ pub struct ServerConfig<T: ConfigTypes = RuntimeTypes> {
 }
 
 #[derive(Clone)]
-pub struct DynamicServerConfig(pub(super) Arc<DynamicConfig<Arc<ServerConfig>>>);
+pub struct DynamicServerConfig(pub(super) Arc<DynamicConfig<DiffArc<ServerConfig>>>);
 
 impl Deref for DynamicServerConfig {
-    type Target = Arc<DynamicConfig<Arc<ServerConfig>>>;
+    type Target = Arc<DynamicConfig<DiffArc<ServerConfig>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl From<Arc<DynamicConfig<Arc<ServerConfig>>>> for DynamicServerConfig {
-    fn from(value: Arc<DynamicConfig<Arc<ServerConfig>>>) -> Self {
+impl From<Arc<DynamicConfig<DiffArc<ServerConfig>>>> for DynamicServerConfig {
+    fn from(value: Arc<DynamicConfig<DiffArc<ServerConfig>>>) -> Self {
         Self(value)
     }
 }

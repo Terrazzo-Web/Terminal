@@ -5,6 +5,8 @@ use std::sync::Arc;
 use serde::Deserialize;
 use serde::Serialize;
 use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::has_diff::DiffArc;
+use trz_gateway_common::dynamic_config::has_diff::DiffOption;
 use trz_gateway_common::dynamic_config::mode::RO;
 use trz_gateway_server::server::acme::AcmeConfig;
 use trz_gateway_server::server::acme::DynamicAcmeConfig;
@@ -40,7 +42,7 @@ impl Deref for ConfigFile {
 }
 
 pub struct DynConfig {
-    config: Arc<DynamicConfig<Arc<Config>>>,
+    config: Arc<DynamicConfig<DiffArc<Config>>>,
     pub server: DynamicServerConfig,
     pub mesh: DynamicMeshConfig,
     pub letsencrypt: DynamicAcmeConfig,
@@ -50,7 +52,7 @@ pub struct DynConfig {
 }
 
 impl Deref for DynConfig {
-    type Target = Arc<DynamicConfig<Arc<Config>>>;
+    type Target = Arc<DynamicConfig<DiffArc<Config>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.config
@@ -75,9 +77,9 @@ impl From<ConfigImpl<RuntimeTypes>> for Config {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ConfigImpl<T: ConfigTypes> {
-    #[serde(default)]
-    pub server: Arc<ServerConfig<T>>,
-    pub mesh: Option<Arc<MeshConfig<T>>>,
-    pub letsencrypt: Option<Arc<AcmeConfig>>,
+    pub server: DiffArc<ServerConfig<T>>,
+    pub mesh: DiffOption<DiffArc<MeshConfig<T>>>,
+    pub letsencrypt: DiffOption<DiffArc<AcmeConfig>>,
 }

@@ -1,9 +1,10 @@
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
 
 use tracing::warn;
+use trz_gateway_common::dynamic_config::has_diff::DiffArc;
+use trz_gateway_common::dynamic_config::has_diff::DiffOption;
 
 use super::Config;
 use super::ConfigFile;
@@ -22,8 +23,8 @@ use crate::backend::home;
 impl ConfigFile {
     pub fn merge(self, cli: &Cli) -> Config {
         Config(ConfigImpl {
-            server: merge_server_config(&self.server, cli),
-            mesh: merge_mesh_config(self.mesh.as_deref(), cli),
+            server: merge_server_config(&self.server, cli).into(),
+            mesh: merge_mesh_config(self.mesh.as_deref(), cli).into(),
             letsencrypt: self.letsencrypt.clone(),
         })
     }
@@ -37,7 +38,7 @@ impl Config {
             letsencrypt,
         } = self.deref();
         ConfigFile(ConfigImpl {
-            server: Arc::new(ServerConfig {
+            server: DiffArc::from(ServerConfig {
                 host: Some(server.host.clone()),
                 port: Some(server.port),
                 pidfile: Some(server.pidfile.clone()),
@@ -46,14 +47,14 @@ impl Config {
                 token_lifetime: Some(humantime::format_duration(server.token_lifetime).to_string()),
                 token_refresh: Some(humantime::format_duration(server.token_refresh).to_string()),
             }),
-            mesh: mesh.as_ref().map(|mesh| {
-                Arc::new(MeshConfig {
+            mesh: DiffOption::from(mesh.as_ref().map(|mesh| {
+                DiffArc::from(MeshConfig {
                     client_name: Some(mesh.client_name.clone()),
                     gateway_url: Some(mesh.gateway_url.clone()),
                     gateway_pki: mesh.gateway_pki.clone(),
                     client_certificate: Some(mesh.client_certificate.clone()),
                 })
-            }),
+            })),
             letsencrypt: letsencrypt.clone(),
         })
     }
@@ -62,9 +63,9 @@ impl Config {
 fn merge_server_config(
     server: &ServerConfig<ConfigFileTypes>,
     cli: &Cli,
-) -> Arc<ServerConfig<RuntimeTypes>> {
+) -> ServerConfig<RuntimeTypes> {
     let port = cli.port.or(server.port).unwrap_or(PORT);
-    Arc::new(ServerConfig {
+    ServerConfig {
         host: {
             let host = cli.host.as_deref();
             let host = host.or(server.host.as_deref());
@@ -100,7 +101,7 @@ fn merge_server_config(
             .unwrap_or(DEFAULT_TOKEN_LIFETIME),
         token_refresh: parse_duration(server.token_refresh.as_deref())
             .unwrap_or(DEFAULT_TOKEN_REFRESH),
-    })
+    }
 }
 
 fn parse_duration(duration: Option<&str>) -> Option<Duration> {
@@ -114,7 +115,7 @@ fn parse_duration(duration: Option<&str>) -> Option<Duration> {
 fn merge_mesh_config(
     mesh: Option<&MeshConfig<ConfigFileTypes>>,
     cli: &Cli,
-) -> Option<Arc<MeshConfig<RuntimeTypes>>> {
+) -> Option<DiffArc<MeshConfig<RuntimeTypes>>> {
     let mesh = mesh.as_ref();
     let client_name = cli.client_name.as_ref().cloned();
     let client_name = client_name.or(mesh.and_then(|m| m.client_name.to_owned()))?;
@@ -132,7 +133,7 @@ fn merge_mesh_config(
                 .to_string_lossy()
                 .to_string()
         });
-    Some(Arc::new(MeshConfig {
+    Some(DiffArc::from(MeshConfig {
         client_name,
         gateway_url,
         gateway_pki,

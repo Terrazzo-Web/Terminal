@@ -22,6 +22,9 @@ use trz_gateway_client::client::Client;
 use trz_gateway_client::client::NewClientError;
 use trz_gateway_client::client::connect::ConnectError;
 use trz_gateway_common::crypto_provider::crypto_provider;
+use trz_gateway_common::dynamic_config::has_diff::DiffArc;
+use trz_gateway_common::dynamic_config::has_diff::DiffOption;
+use trz_gateway_common::dynamic_config::has_diff::HasDiff;
 use trz_gateway_common::handle::ServerHandle;
 use trz_gateway_common::handle::ServerStopError;
 use trz_gateway_common::security_configuration::SecurityConfig;
@@ -106,7 +109,8 @@ pub async fn run_server() -> Result<(), RunServerError> {
         let active_challenges = active_challenges.clone();
         let dynamic_acme_config = config.letsencrypt.clone();
         config.letsencrypt.view(move |letsencrypt| {
-            if let Some(letsencrypt) = &letsencrypt {
+            debug!("Refresh TLS config");
+            if let Some(letsencrypt) = &**letsencrypt {
                 EitherConfig::Right(SecurityConfig {
                     trusted_store: NativeTrustedStoreConfig,
                     certificate: AcmeCertificateConfig::new(
@@ -124,7 +128,11 @@ pub async fn run_server() -> Result<(), RunServerError> {
     let backend_config = TerminalBackendServer {
         root_ca,
         tls_config,
-        auth_config: config.view(|config| Arc::new(AuthConfig::new(&config.server))),
+        auth_config: DiffArc::from(
+            config
+                .server
+                .view_diff(|server| DiffArc::from(AuthConfig::new(&server))),
+        ),
         active_challenges,
         config,
     };
@@ -224,7 +232,7 @@ pub enum RunServerError {
 
 async fn run_client_async(
     cli: Cli,
-    config: Arc<DynConfig>,
+    config: DiffArc<DynConfig>,
     server: Arc<Server>,
 ) -> Result<ServerHandle<()>, RunClientError> {
     let (shutdown_rx, terminated_tx, handle) = ServerHandle::new("Dynamic Client");
@@ -242,8 +250,11 @@ async fn run_client_async(
         }
     }
 
+    impl<T> HasDiff for AbortOnDrop<T> {}
+
     let dynamic_client = config.mesh.view(move |mesh| {
-        if let Some(mesh) = mesh.clone() {
+        debug!("Refresh mesh config");
+        if let Some(mesh) = (**mesh).clone() {
             let auth_code = auth_code.clone();
             let server = server.clone();
             let terminated_all_rx = terminated_all_rx.clone();
@@ -259,11 +270,11 @@ async fn run_client_async(
                 drop(terminated_all_rx);
                 return Ok(result);
             };
-            Some(Arc::new(AbortOnDrop(tokio::spawn(
+            DiffOption::from(DiffArc::from(AbortOnDrop(tokio::spawn(
                 task.instrument(info_span!("Client")),
             ))))
         } else {
-            None
+            None.into()
         }
     });
 
