@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use std::time::Duration;
-use std::time::SystemTime;
 
 use terrazzo::autoclone;
 use tracing::Instrument;
@@ -13,7 +12,9 @@ use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 use trz_gateway_common::dynamic_config::has_diff::DiffOption;
 use trz_gateway_common::dynamic_config::has_diff::HasDiff;
 use trz_gateway_common::dynamic_config::mode::RO;
+use trz_gateway_server::server::acme::AcmeConfig;
 use trz_gateway_server::server::acme::DynamicAcmeConfig;
+use trz_gateway_server::server::acme::instant_acme::AccountCredentials;
 
 use super::Config;
 use super::ConfigFile;
@@ -98,7 +99,7 @@ impl Config {
 async fn poll_config_file(config_file_path: String, config: DiffArc<DynConfig>) {
     let span = info_span!("Polling config file", config_file_path);
     async move {
-        let mut last_modified = SystemTime::UNIX_EPOCH;
+        let mut last_modified = None;
         loop {
             tokio::time::sleep(Duration::from_secs(3)).await;
             let metadata = match std::fs::metadata(&config_file_path) {
@@ -115,10 +116,13 @@ async fn poll_config_file(config_file_path: String, config: DiffArc<DynConfig>) 
                     continue;
                 }
             };
-            if modified == last_modified {
+            let last_modified = scopeguard::guard(&mut last_modified, |v| *v = Some(modified));
+            if last_modified.is_none() || **last_modified == Some(modified) {
                 continue;
-            }
-            last_modified = modified;
+            };
+
+            debug!("Config file timestamp has changed");
+
             let new_config_file = match ConfigFile::load(&config_file_path) {
                 Ok(new_config_file) => new_config_file,
                 Err(error) => {
@@ -127,44 +131,88 @@ async fn poll_config_file(config_file_path: String, config: DiffArc<DynConfig>) 
                 }
             };
             let new = new_config_file.merge(&Cli::default());
-            let is_changed = config.server.try_set(|old| {
-                let mut result = Err(());
-                fn get_or_init<'t>(
-                    old: &ServerConfig,
-                    result: &'t mut Result<ServerConfig, ()>,
-                ) -> &'t mut ServerConfig {
-                    match result {
-                        Ok(r) => r,
-                        Err(()) => {
-                            *result = Ok(old.clone());
-                            return result.as_mut().unwrap();
-                        }
-                    }
-                }
-                if new.server.password != old.password {
-                    info!("Changed: password");
-                    let result = get_or_init(old, &mut result);
-                    result.password = new.server.password.clone();
-                }
-                if new.server.token_lifetime != old.token_lifetime {
-                    info!("Changed: token_lifetime");
-                    let result = get_or_init(old, &mut result);
-                    result.token_lifetime = new.server.token_lifetime;
-                }
-                if new.server.token_refresh != old.token_refresh {
-                    info!("Changed: token_refresh");
-                    let result = get_or_init(old, &mut result);
-                    result.token_refresh = new.server.token_refresh;
-                }
-
-                return result.map(DiffArc::from);
-            });
-            match is_changed {
-                Ok(()) => debug!("ServerConfig has changed"),
-                Err(()) => debug!("ServerConfig hasn't changed"),
-            }
+            apply_server_config(&config, &new.server);
+            apply_letsencrypt_config(&config, &new.letsencrypt);
         }
     }
     .instrument(span)
     .await
+}
+
+fn apply_server_config(config: &DiffArc<DynConfig>, new: &ServerConfig) {
+    let is_server_changed = config.server.try_set(|old| {
+        let mut result = Err(());
+        fn get_or_init<'t>(
+            old: &ServerConfig,
+            result: &'t mut Result<ServerConfig, ()>,
+        ) -> &'t mut ServerConfig {
+            match result {
+                Ok(r) => r,
+                Err(()) => {
+                    *result = Ok(old.clone());
+                    return result.as_mut().unwrap();
+                }
+            }
+        }
+        if new.password != old.password {
+            info!("Changed: password");
+            let result = get_or_init(old, &mut result);
+            result.password = new.password.clone();
+        }
+        if new.token_lifetime != old.token_lifetime {
+            info!("Changed: token_lifetime");
+            let result = get_or_init(old, &mut result);
+            result.token_lifetime = new.token_lifetime;
+        }
+        if new.token_refresh != old.token_refresh {
+            info!("Changed: token_refresh");
+            let result = get_or_init(old, &mut result);
+            result.token_refresh = new.token_refresh;
+        }
+
+        return result.map(DiffArc::from);
+    });
+    match is_server_changed {
+        Ok(()) => info!("ServerConfig has changed"),
+        Err(()) => debug!("ServerConfig hasn't changed"),
+    }
+}
+
+fn apply_letsencrypt_config(config: &DiffArc<DynConfig>, new: &DiffOption<DiffArc<AcmeConfig>>) {
+    let is_letsencrypt_changed =
+        config
+            .letsencrypt
+            .try_set(|old: &DiffOption<DiffArc<AcmeConfig>>| {
+                match (old.as_deref(), new.as_deref()) {
+                    (None, None) => false,
+                    (None, Some(_)) | (Some(_), None) => true,
+                    (Some(old), Some(new)) => {
+                        old.contact != new.contact
+                            || old.domain != new.domain
+                            || !credentials_eq(&old.credentials, &new.credentials)
+                            || old.environment.url() != new.environment.url()
+                            || old.certificate != new.certificate
+                    }
+                }
+                .then(|| new.clone())
+                .ok_or(())
+            });
+    match is_letsencrypt_changed {
+        Ok(()) => info!("Let's Encrypt config has changed"),
+        Err(()) => debug!("Let's Encrypt config hasn't changed"),
+    }
+}
+
+fn credentials_eq(a: &Option<AccountCredentials>, b: &Option<AccountCredentials>) -> bool {
+    match (a, b) {
+        (None, None) => true,
+        (None, Some(_)) | (Some(_), None) => false,
+        (Some(a), Some(b)) => {
+            if let (Ok(a), Ok(b)) = (serde_json::to_string(a), serde_json::to_string(b)) {
+                a == b
+            } else {
+                false
+            }
+        }
+    }
 }
