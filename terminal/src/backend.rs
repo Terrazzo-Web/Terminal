@@ -28,7 +28,6 @@ use trz_gateway_common::dynamic_config::has_diff::HasDiff;
 use trz_gateway_common::handle::ServerHandle;
 use trz_gateway_common::handle::ServerStopError;
 use trz_gateway_common::security_configuration::SecurityConfig;
-use trz_gateway_common::security_configuration::certificate::dynamic::DynamicCertificate;
 use trz_gateway_common::security_configuration::either::EitherConfig;
 use trz_gateway_common::security_configuration::trusted_store::native::NativeTrustedStoreConfig;
 use trz_gateway_server::server::GatewayError;
@@ -125,7 +124,6 @@ pub async fn run_server() -> Result<(), RunServerError> {
             }
         })
     };
-    let tls_config = Arc::new(DynamicCertificate::from(tls_config));
     let backend_config = TerminalBackendServer {
         root_ca,
         tls_config,

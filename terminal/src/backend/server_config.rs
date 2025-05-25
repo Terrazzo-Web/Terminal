@@ -47,7 +47,7 @@ pub struct TerminalBackendServer {
     /// Terrazzo can run:
     /// - in air-gapped mode wiht a private Root CA, or
     /// - in public mode using the public PKI and Let's Encrypt certificates.
-    pub tls_config: TlsConfig,
+    pub tls_config: std::sync::Arc<DynamicConfig<TlsConfig, RO>>,
 
     /// Configuration for authentication
     pub auth_config: DiffArc<DynamicConfig<DiffArc<AuthConfig>, RO>>,
@@ -55,14 +55,9 @@ pub struct TerminalBackendServer {
     pub active_challenges: ActiveChallenges,
 }
 
-type TlsConfig = Arc<
-    DynamicCertificate<
-        EitherConfig<
-            SecurityConfig<PrivateRootCa, CachedCertificate>,
-            SecurityConfig<NativeTrustedStoreConfig, AcmeCertificateConfig>,
-        >,
-        RO,
-    >,
+type TlsConfig = EitherConfig<
+    SecurityConfig<PrivateRootCa, CachedCertificate>,
+    SecurityConfig<NativeTrustedStoreConfig, AcmeCertificateConfig>,
 >;
 
 impl GatewayConfig for TerminalBackendServer {
@@ -71,12 +66,12 @@ impl GatewayConfig for TerminalBackendServer {
         self.root_ca.clone()
     }
 
-    type TlsConfig = TlsConfig;
+    type TlsConfig = Arc<DynamicCertificate<TlsConfig, RO>>;
     fn tls(&self) -> Self::TlsConfig {
-        self.tls_config.clone()
+        Arc::new(DynamicCertificate::from(self.tls_config.clone()))
     }
 
-    type ClientCertificateIssuerConfig = TlsConfig;
+    type ClientCertificateIssuerConfig = Arc<DynamicConfig<TlsConfig, RO>>;
     fn client_certificate_issuer(&self) -> Self::ClientCertificateIssuerConfig {
         self.tls_config.clone()
     }
