@@ -47,6 +47,9 @@ pub struct TerminalBackendServer {
     /// Terrazzo can run:
     /// - in air-gapped mode wiht a private Root CA, or
     /// - in public mode using the public PKI and Let's Encrypt certificates.
+    ///
+    /// Either way the certificate used by the Terrazzo Gateway to [sign](GatewayConfig::client_certificate_issuer)
+    /// the extension uses the same PKI as the [TLS server](GatewayConfig::tls) certificate.
     pub tls_config: std::sync::Arc<DynamicConfig<TlsConfig, RO>>,
 
     /// Configuration for authentication

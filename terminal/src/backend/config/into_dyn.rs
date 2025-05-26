@@ -14,7 +14,6 @@ use trz_gateway_common::dynamic_config::has_diff::HasDiff;
 use trz_gateway_common::dynamic_config::mode::RO;
 use trz_gateway_server::server::acme::AcmeConfig;
 use trz_gateway_server::server::acme::DynamicAcmeConfig;
-use trz_gateway_server::server::acme::instant_acme::AccountCredentials;
 
 use super::Config;
 use super::ConfigFile;
@@ -186,13 +185,7 @@ fn apply_letsencrypt_config(config: &DiffArc<DynConfig>, new: &DiffOption<DiffAr
                 match (old.as_deref(), new.as_deref()) {
                     (None, None) => false,
                     (None, Some(_)) | (Some(_), None) => true,
-                    (Some(old), Some(new)) => {
-                        old.contact != new.contact
-                            || old.domain != new.domain
-                            || !credentials_eq(&old.credentials, &new.credentials)
-                            || old.environment.url() != new.environment.url()
-                            || old.certificate != new.certificate
-                    }
+                    (Some(old), Some(new)) => old != new,
                 }
                 .then(|| new.clone())
                 .ok_or(())
@@ -200,19 +193,5 @@ fn apply_letsencrypt_config(config: &DiffArc<DynConfig>, new: &DiffOption<DiffAr
     match is_letsencrypt_changed {
         Ok(()) => info!("Let's Encrypt config has changed"),
         Err(()) => debug!("Let's Encrypt config hasn't changed"),
-    }
-}
-
-fn credentials_eq(a: &Option<AccountCredentials>, b: &Option<AccountCredentials>) -> bool {
-    match (a, b) {
-        (None, None) => true,
-        (None, Some(_)) | (Some(_), None) => false,
-        (Some(a), Some(b)) => {
-            if let (Ok(a), Ok(b)) = (serde_json::to_string(a), serde_json::to_string(b)) {
-                a == b
-            } else {
-                false
-            }
-        }
     }
 }
