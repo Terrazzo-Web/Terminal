@@ -164,9 +164,9 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "autoclone"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9cb08e1e69b07b2236a68a2d05ca937d5d9ff4997185f7adae15aec53713b4f"
+checksum = "072738cd83ade96377e57de065c08f27ba970f161943e7e08c3840176d2a1e73"
 dependencies = [
  "darling",
  "prettyplease",
@@ -933,7 +933,7 @@ dependencies = [
 
 [[package]]
 name = "game"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "scopeguard",
  "stylance",
@@ -1765,18 +1765,18 @@ checksum = "1d87ecb2933e8aeadb3e3a02b828fed80a7528047e68b4f424523a0981a3a084"
 
 [[package]]
 name = "nameth"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "daf666d82b234c75886675470d4c1445e7486ca31cec4317bbf3bfe7a633c135"
+checksum = "8f3e8ba0eaabcc32f5c87de9d636448b93d2e39e1ada690283d06799ff23052e"
 dependencies = [
  "nameth-macro",
 ]
 
 [[package]]
 name = "nameth-macro"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5d7e394f0a0772a142b9993d02e1a05c4895c76394ea7a6fac014bd71cf8941"
+checksum = "b115cc684bec17d27d89a6c786eed89bcd2056df31241f9ada34726b1fcd0c9d"
 dependencies = [
  "darling",
  "quote",
@@ -2873,9 +2873,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5739032ca184a6c7604b8ad91c66d10ed7149704c910d3784f8f1a4fa0bfdb6c"
+checksum = "f94e6990522e59e1cec4ba972a3f996f66cf127b76e30eb48216fd1cf87d17f5"
 dependencies = [
  "autoclone",
  "axum",
@@ -2898,9 +2898,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-build"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cedf36a732c8aa73931a92db98b6fb30195ffae6e9e8afcabae81bd0bbe19c50"
+checksum = "3f52dcc5c366bfd96f618c92dcc08180db4edd4431957d2c6546a0aa7643cab3"
 dependencies = [
  "nameth",
  "thiserror 2.0.12",
@@ -2908,9 +2908,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-client"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "838bb30b219f0560212fa00b7d16f4a35149f02b167577c953721903c4c6bdf4"
+checksum = "5a2147144c6ca6efc80fc3cbb283e319bfe76f2d07a05948a5d08ab15d663612"
 dependencies = [
  "autoclone",
  "nameth",
@@ -2925,9 +2925,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-macro"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5541549a9b57c337839931fe3ec89000fa5a7fa43fe75a71e4d8814ce0bdf2ba"
+checksum = "7e3cac2fd531999730e6165937f3214378a1e20c237c292ef5073f64f90c023e"
 dependencies = [
  "deluxe",
  "prettyplease",
@@ -2938,7 +2938,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-pty"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "bytes",
  "futures",
@@ -2957,7 +2957,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-terminal"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "axum-extra",
  "base64",
@@ -3426,9 +3426,9 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "trz-gateway-client"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb0ba817526cdfb397b75875b11c76f589cc5f99ad540559c088f51ba2820c4"
+checksum = "7212a493a6d1335090147fe8d6ec8b2843c479ec7f942859f2a4333ec8084893"
 dependencies = [
  "futures",
  "hostname",
@@ -3456,9 +3456,9 @@ dependencies = [
 
 [[package]]
 name = "trz-gateway-common"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92930171110d266802de1b3a2dbd80a9cdb92e949a84bd850e62e7797c35295a"
+checksum = "47725d84203b9f4313042fee25ad5daf651e417fff207314886dfcc1366f7eb3"
 dependencies = [
  "axum",
  "bytes",
@@ -3485,9 +3485,9 @@ dependencies = [
 
 [[package]]
 name = "trz-gateway-server"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b36c827a818a5d5c404e9928ddaa776d41cccefc06c0503e298df12bf7685079"
+checksum = "1f8de57f31e6aa58ebe1a5c15727a5182eebe25a15e464d941630e3124757fbb"
 dependencies = [
  "autoclone",
  "axum",
