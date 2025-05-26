@@ -29,7 +29,7 @@ runs:
 
     - name: Install stylance
       shell: bash
-      run: cargo install stylance-cli --version 0.5.5
+      run: cargo install stylance-cli --version 0.6.0
 
     - name: Install Protoc
       uses: arduino/setup-protoc@v3
