@@ -1,37 +1,39 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
+use std::time::Duration;
 
 use serde::Deserialize;
 use serde::Serialize;
 
-pub trait ConfigTypes {
+pub trait ConfigTypes: Clone {
     type String: Serialize + for<'t> Deserialize<'t> + Debug + Default;
     type MaybeString: Serialize + for<'t> Deserialize<'t> + Debug + Default;
     type Port: Serialize + for<'t> Deserialize<'t> + Debug + Default;
-    type Password: Serialize + for<'t> Deserialize<'t> + Debug + Default;
+    type Duration: Serialize + for<'t> Deserialize<'t> + Debug + Default;
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigFileTypes<T = RuntimeTypes>(PhantomData<T>);
 
 impl<T: ConfigTypes> ConfigTypes for ConfigFileTypes<T> {
     type String = Option<T::String>;
     type MaybeString = T::MaybeString;
     type Port = Option<T::Port>;
-    type Password = Option<Password>;
+    type Duration = Option<String>;
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct RuntimeTypes(PhantomData<()>);
 
 impl ConfigTypes for RuntimeTypes {
     type String = String;
     type MaybeString = Option<String>;
     type Port = u16;
-    type Password = Option<Password>;
+    type Duration = Duration;
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[must_use]
+#[derive(Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Password {
     #[serde(with = "password_serde")]
     pub hash: Vec<u8>,
@@ -65,6 +67,18 @@ mod password_serde {
         general_purpose::STANDARD_NO_PAD
             .decode(&s)
             .map_err(serde::de::Error::custom)
+    }
+}
+
+impl std::fmt::Debug for Password {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use base64::Engine as _;
+        use base64::engine::general_purpose;
+        f.debug_struct("Password")
+            .field("hash", &general_purpose::STANDARD_NO_PAD.encode(&self.hash))
+            .field("iterations", &self.iterations)
+            .field("salt", &general_purpose::STANDARD_NO_PAD.encode(&self.salt))
+            .finish()
     }
 }
 

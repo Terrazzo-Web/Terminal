@@ -1,7 +1,7 @@
 use clap::Parser;
 use clap::ValueEnum;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Default)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
     /// Whether to start or stop the terrazzo-terminal daemon.
@@ -49,9 +49,10 @@ pub struct Cli {
     pub client_certificate: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Action {
     /// Run the server in the foreground
+    #[default]
     Run,
 
     /// Run the server in the background as a daemon

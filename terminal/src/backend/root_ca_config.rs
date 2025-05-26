@@ -19,36 +19,40 @@ use trz_gateway_common::x509::validity::Validity;
 use trz_gateway_server::server::root_ca_configuration;
 use trz_gateway_server::server::root_ca_configuration::RootCaConfigError;
 
-use super::config_file::ConfigFile;
+use super::config::DynConfig;
 
 #[derive(Clone)]
 pub struct PrivateRootCa(CachedCertificate);
 
 impl PrivateRootCa {
-    pub fn load(config_file: &ConfigFile) -> Result<Self, PrivateRootCaError> {
-        let root_ca = root_ca_configuration::load_root_ca(
-            CertitficateName {
-                organization: Some("Terrazzo"),
-                common_name: Some("Terrazzo Terminal Root CA"),
-                ..CertitficateName::default()
-            },
-            CertificateInfo {
-                certificate: format!("{}.cert", config_file.server.private_root_ca),
-                private_key: format!("{}.key", config_file.server.private_root_ca),
-            },
-            Validity {
-                from: 0,
-                to: 365 * 20,
-            }
-            .try_map(Asn1Time::days_from_now)
-            .expect("Asn1Time::days_from_now")
-            .as_deref()
-            .try_into()
-            .expect("Asn1Time to SystemTime"),
-        )
-        .map_err(PrivateRootCaError::Load)?
-        .cache()
-        .map_err(PrivateRootCaError::Cache)?;
+    pub fn load(config: &DynConfig) -> Result<Self, PrivateRootCaError> {
+        let server = &config.server;
+        let root_ca = server
+            .with(|server| {
+                root_ca_configuration::load_root_ca(
+                    CertitficateName {
+                        organization: Some("Terrazzo"),
+                        common_name: Some("Terrazzo Terminal Root CA"),
+                        ..CertitficateName::default()
+                    },
+                    CertificateInfo {
+                        certificate: format!("{}.cert", server.private_root_ca),
+                        private_key: format!("{}.key", server.private_root_ca),
+                    },
+                    Validity {
+                        from: 0,
+                        to: 365 * 20,
+                    }
+                    .try_map(Asn1Time::days_from_now)
+                    .expect("Asn1Time::days_from_now")
+                    .as_deref()
+                    .try_into()
+                    .expect("Asn1Time to SystemTime"),
+                )
+            })
+            .map_err(PrivateRootCaError::Load)?
+            .cache()
+            .map_err(PrivateRootCaError::Cache)?;
         Ok(Self(root_ca))
     }
 }

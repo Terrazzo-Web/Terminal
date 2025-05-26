@@ -16,7 +16,7 @@ use scopeguard::defer;
 use tokio::pin;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
-use tracing::Instrument;
+use tracing::Instrument as _;
 use tracing::Level;
 use tracing::span_enabled;
 use tracing::trace;
@@ -272,7 +272,7 @@ mod tests {
     use tokio::sync::mpsc;
     use tokio::sync::oneshot;
     use tokio_stream::wrappers::UnboundedReceiverStream;
-    use tracing::Instrument;
+    use tracing::Instrument as _;
     use tracing::info_span;
     use tracing::trace;
     use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;

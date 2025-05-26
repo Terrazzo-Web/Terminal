@@ -1,5 +1,4 @@
 use std::pin::Pin;
-use std::sync::Arc;
 use std::task::Context;
 use std::task::Poll;
 use std::time::Duration;
@@ -27,33 +26,38 @@ use tower::Layer;
 use tower::Service;
 use tracing::debug;
 use tracing::warn;
+use trz_gateway_common::dynamic_config::DynamicConfig;
+use trz_gateway_common::dynamic_config::has_diff::DiffArc;
+use trz_gateway_common::dynamic_config::mode;
 use uuid::Uuid;
 
 use self::jwt_timestamp::Timestamp;
-use super::config_file::ConfigFile;
+use super::config::server::ServerConfig;
 
 mod jwt_timestamp;
 
 pub static TOKEN_COOKIE_NAME: &str = "slt";
 
 /// Original expiration of the cookie.
-pub static TOKEN_COOKIE_LIFETIME: Duration = if cfg!(debug_assertions) {
+pub static DEFAULT_TOKEN_LIFETIME: Duration = if cfg!(debug_assertions) {
     Duration::from_secs(300)
 } else {
     Duration::from_secs(3600 * 24)
 };
 
 /// Refresh if the cookie has started to expire
-pub static TOKEN_COOKIE_REFRESH: Duration = if cfg!(debug_assertions) {
-    TOKEN_COOKIE_LIFETIME.saturating_sub(Duration::from_secs(10))
+pub static DEFAULT_TOKEN_REFRESH: Duration = if cfg!(debug_assertions) {
+    DEFAULT_TOKEN_LIFETIME.saturating_sub(Duration::from_secs(10))
 } else {
-    TOKEN_COOKIE_LIFETIME.saturating_sub(Duration::from_secs(3600))
+    DEFAULT_TOKEN_LIFETIME.saturating_sub(Duration::from_secs(3600))
 };
 
 pub struct AuthConfig {
     encoding_key: EncodingKey,
     decoding_key: DecodingKey,
     validation: Validation,
+    token_lifetime: Duration,
+    token_refresh: Duration,
 }
 
 #[derive(Debug, serde::Serialize, serde:: Deserialize)]
@@ -62,19 +66,16 @@ pub struct Claims<T = Timestamp> {
     nbf: T,
 }
 
-impl Default for AuthConfig {
-    fn default() -> Self {
-        let secret = Uuid::new_v4();
-        Self::from_secret(secret.as_bytes())
-    }
-}
-
 impl AuthConfig {
-    pub fn new(config_file: &ConfigFile) -> Self {
-        if let Some(password) = &config_file.server.password {
-            Self::from_secret(&password.hash)
-        } else {
-            Self::default()
+    pub fn new(server_config: &ServerConfig) -> Self {
+        Self {
+            token_lifetime: server_config.token_lifetime,
+            token_refresh: server_config.token_refresh,
+            ..if let Some(password) = &server_config.password {
+                Self::from_secret(&password.hash)
+            } else {
+                Self::random()
+            }
         }
     }
 
@@ -87,6 +88,8 @@ impl AuthConfig {
             encoding_key: EncodingKey::from_secret(secret),
             decoding_key: DecodingKey::from_secret(secret),
             validation,
+            token_lifetime: DEFAULT_TOKEN_LIFETIME,
+            token_refresh: DEFAULT_TOKEN_REFRESH,
         }
     }
 
@@ -95,7 +98,7 @@ impl AuthConfig {
             &Header::default(),
             &Claims {
                 nbf: Duration::from_secs(60),
-                exp: TOKEN_COOKIE_LIFETIME,
+                exp: self.token_lifetime,
             }
             .into_timestamps(),
             &self.encoding_key,
@@ -105,9 +108,7 @@ impl AuthConfig {
         cookie.set_same_site(SameSite::Lax);
         cookie.set_http_only(true);
         cookie.set_max_age(Some(
-            TOKEN_COOKIE_LIFETIME
-                .try_into()
-                .expect("TOKEN_COOKIE_LIFETIME"),
+            self.token_lifetime.try_into().expect("token_lifetime"),
         ));
         return Ok(cookie);
     }
@@ -152,9 +153,16 @@ fn remove_bearer_prefix(auth_header: &str) -> Option<&str> {
     }
 }
 
+impl AuthConfig {
+    fn random() -> Self {
+        let secret = Uuid::new_v4();
+        Self::from_secret(secret.as_bytes())
+    }
+}
+
 #[derive(Clone)]
 pub struct AuthLayer {
-    pub auth_config: Arc<AuthConfig>,
+    pub auth_config: DiffArc<DynamicConfig<DiffArc<AuthConfig>, mode::RO>>,
 }
 
 impl<S> Layer<S> for AuthLayer {
@@ -191,37 +199,40 @@ where
         let mut inner = self.inner.clone();
         let auth_config = self.layer.auth_config.clone();
         Box::pin(async move {
-            let token_data = match auth_config.validate(request.headers()) {
-                Ok(token_data) => token_data,
-                Err(error) => return Ok(error.into_response()),
-            };
+            let token_data =
+                match auth_config.with(|auth_config| auth_config.validate(request.headers())) {
+                    Ok(token_data) => token_data,
+                    Err(error) => return Ok(error.into_response()),
+                };
 
             let response = inner.call(request).await?;
-            return Ok(refresh_auth_token(auth_config, token_data, response));
+            return Ok(refresh_auth_token(&auth_config, token_data, response));
         })
     }
 }
 
 fn refresh_auth_token(
-    auth_config: Arc<AuthConfig>,
+    auth_config: &DynamicConfig<DiffArc<AuthConfig>, mode::RO>,
     token_data: TokenData<Claims>,
     response: Response<Body>,
 ) -> Response<Body> {
     let Ok(expiration) = token_data.claims.exp.duration_since(SystemTime::now()) else {
         return response;
     };
-    if expiration > TOKEN_COOKIE_REFRESH {
-        debug!("The auth cookie expires in {expiration:?} > {TOKEN_COOKIE_REFRESH:?}");
+    let token_refresh = auth_config.with(|auth_config| auth_config.token_refresh);
+    if expiration > token_refresh {
+        debug!("The auth cookie expires in {expiration:?} > {token_refresh:?}");
         return response;
     }
 
     let Ok(token) = auth_config
-        .make_token()
+        .with(|auth_config| auth_config.make_token())
         .inspect_err(|error| warn!("Failed to create refreshed token: {error}"))
     else {
         return response;
     };
 
+    debug!("Issued a new token");
     let cookies = CookieJar::from_headers(response.headers()).add(token);
     return (cookies, response).into_response();
 }
@@ -249,7 +260,7 @@ mod tests {
 
     #[tokio::test]
     async fn missing_authorization_header() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let request = make_request(|b| b);
         let response = auth_config
             .validate(request.headers())
@@ -261,7 +272,7 @@ mod tests {
 
     #[tokio::test]
     async fn missing_bearer_token() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let request = make_request(|b| b.header(AUTHORIZATION, "blabla"));
         let response = auth_config
             .validate(request.headers())
@@ -276,7 +287,7 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_bearer_token() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let request = make_request(|b| b.header(AUTHORIZATION, "Bearer blabla"));
         let response = auth_config
             .validate(request.headers())
@@ -288,7 +299,7 @@ mod tests {
 
     #[tokio::test]
     async fn valid_token() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let token = jsonwebtoken::encode(
             &Header::default(),
             &Claims {
@@ -307,7 +318,7 @@ mod tests {
 
     #[tokio::test]
     async fn early_token() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let now = SystemTime::now();
         let token = jsonwebtoken::encode(
             &Header::default(),
@@ -330,7 +341,7 @@ mod tests {
 
     #[tokio::test]
     async fn expired_token() {
-        let auth_config = AuthConfig::default();
+        let auth_config = AuthConfig::random();
         let now = SystemTime::now();
         let token = jsonwebtoken::encode(
             &Header::default(),
@@ -353,8 +364,8 @@ mod tests {
 
     #[tokio::test]
     async fn bad_signature_token() {
-        let auth_config = AuthConfig::default();
-        let auth_config2 = AuthConfig::default();
+        let auth_config = AuthConfig::random();
+        let auth_config2 = AuthConfig::random();
         let now = SystemTime::now();
         let token = jsonwebtoken::encode(
             &Header::default(),

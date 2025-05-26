@@ -1,51 +1,48 @@
-use std::path::Path;
-
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use pbkdf2::hmac::Hmac;
 use pbkdf2::hmac::digest::InvalidLength;
 use sha2::Sha256;
 
-use super::ConfigFile;
 use super::ServerConfig;
 use super::io::ConfigFileError;
-use crate::backend::config_file::types::Password;
+use super::server::DynamicServerConfig;
+use crate::backend::config::types::Password;
 
-impl ConfigFile {
-    pub fn set_password(
-        mut self,
-        config_file: Option<impl AsRef<Path>>,
-    ) -> Result<(), SetPasswordError> {
-        let Some(config_file) = config_file else {
-            return Err(SetPasswordError::ConfigFile);
-        };
+impl DynamicServerConfig {
+    pub fn set_password(&self) -> Result<(), SetPasswordError> {
         let password = rpassword::prompt_password("Password: ")?;
-        self.server.hash_password(&password)?;
-        debug_assert!(matches!(self.server.verify_password(&password), Ok(())));
-        let () = self.save(config_file)?;
+        let () = self.try_set(|server| {
+            let password = server.hash_password(&password)?;
+            Ok::<_, SetPasswordError>(
+                ServerConfig {
+                    password: Some(password),
+                    ..(**server).clone()
+                }
+                .into(),
+            )
+        })?;
+        debug_assert!(matches!(self.get().verify_password(&password), Ok(())));
         Ok(())
     }
 }
 
 impl ServerConfig {
-    fn hash_password(&mut self, password: &str) -> Result<(), SetPasswordError> {
-        self.password = {
-            let mut hash = [0u8; 20];
-            let salt = uuid::Uuid::new_v4();
-            let iterations = 60_000;
-            let () = pbkdf2::pbkdf2::<Hmac<Sha256>>(
-                password.as_bytes(),
-                salt.as_bytes(),
-                iterations,
-                &mut hash,
-            )?;
-            Some(Password {
-                hash: hash.to_vec(),
-                iterations,
-                salt: salt.as_bytes().to_vec(),
-            })
-        };
-        Ok(())
+    fn hash_password(&self, password: &str) -> Result<Password, SetPasswordError> {
+        let mut hash = [0u8; 20];
+        let salt = uuid::Uuid::new_v4();
+        let iterations = 60_000;
+        let () = pbkdf2::pbkdf2::<Hmac<Sha256>>(
+            password.as_bytes(),
+            salt.as_bytes(),
+            iterations,
+            &mut hash,
+        )?;
+        Ok(Password {
+            hash: hash.to_vec(),
+            iterations,
+            salt: salt.as_bytes().to_vec(),
+        })
     }
 
     pub fn verify_password(&self, password: &str) -> Result<(), VerifyPasswordError> {
@@ -70,9 +67,6 @@ impl ServerConfig {
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum SetPasswordError {
-    #[error("[{n}] Missing configuration for the confg file path.", n = self.name())]
-    ConfigFile,
-
     #[error("[{n}] Failed read password: {0}", n = self.name())]
     Prompt(#[from] std::io::Error),
 
@@ -98,13 +92,17 @@ pub enum VerifyPasswordError {
 
 #[cfg(test)]
 mod tests {
-    use crate::backend::config_file::ServerConfig;
-    use crate::backend::config_file::password::VerifyPasswordError;
+    use crate::backend::config::ServerConfig;
+    use crate::backend::config::password::VerifyPasswordError;
 
     #[test]
     fn test_password() {
-        let mut config_file = ServerConfig::default();
-        config_file.hash_password("pa$$word").unwrap();
+        let config_file = ServerConfig::default();
+        let password = config_file.hash_password("pa$$word").unwrap();
+        let config_file = ServerConfig {
+            password: Some(password),
+            ..config_file
+        };
         assert!(matches!(config_file.verify_password("pa$$word"), Ok(())));
         assert!(matches!(
             config_file.verify_password("pa$$word2"),

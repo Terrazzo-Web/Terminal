@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use terrazzo::axum::Json;
-use tracing::Instrument;
+use tracing::Instrument as _;
 use tracing::debug_span;
 use trz_gateway_server::server::Server;
 

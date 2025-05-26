@@ -2,11 +2,13 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use nameth::nameth;
+use tracing::Instrument as _;
 use tracing::info;
 use tracing::info_span;
 use tracing::warn;
-use trz_gateway_client::client_config::ClientConfig;
-use trz_gateway_client::client_service::ClientService;
+use trz_gateway_client::client::AuthCode;
+use trz_gateway_client::client::config::ClientConfig;
+use trz_gateway_client::client::service::ClientService;
 use trz_gateway_client::load_client_certificate::load_client_certificate;
 use trz_gateway_client::retry_strategy::RetryStrategy;
 use trz_gateway_client::tunnel_config::TunnelConfig;
@@ -17,8 +19,7 @@ use trz_gateway_common::security_configuration::trusted_store::cache::CachedTrus
 use trz_gateway_common::security_configuration::trusted_store::load::LoadTrustedStore;
 use trz_gateway_server::server::Server;
 
-use super::cli::Cli;
-use super::config_file::ConfigFile;
+use super::config::mesh::MeshConfig;
 use crate::backend::client_service::ClientServiceImpl;
 use crate::backend::protos::terrazzo::gateway::client::client_service_server::ClientServiceServer;
 
@@ -43,46 +44,47 @@ const CLIENT_CERTIFICATE_FILE_SUFFIX: CertificateInfo<&str> = CertificateInfo {
 };
 
 impl AgentTunnelConfig {
-    pub async fn new(cli: &Cli, config_file: &ConfigFile, server: Arc<Server>) -> Option<Self> {
-        let mesh = config_file.mesh.as_ref()?;
-        let _span = info_span!("Agent tunnel config").entered();
+    pub async fn new(auth_code: AuthCode, mesh: &MeshConfig, server: &Arc<Server>) -> Option<Self> {
+        async move {
+            let client_name = mesh.client_name.as_str().into();
+            let gateway_url = mesh.gateway_url.clone();
 
-        let client_name = mesh.client_name.as_str().into();
-        let gateway_url = mesh.gateway_url.clone();
+            let gateway_pki = mesh
+                .gateway_pki
+                .as_deref()
+                .map(LoadTrustedStore::File)
+                .unwrap_or(LoadTrustedStore::Native);
 
-        let gateway_pki = mesh
-            .gateway_pki
-            .as_deref()
-            .map(LoadTrustedStore::File)
-            .unwrap_or(LoadTrustedStore::Native);
+            let client_config = AgentClientConfig {
+                gateway_url,
+                gateway_pki: gateway_pki
+                    .load()
+                    .inspect_err(|error| warn!("Failed to load Gateway PKI: {error}"))
+                    .ok()?,
+                client_name,
+            };
 
-        let client_config = AgentClientConfig {
-            gateway_url,
-            gateway_pki: gateway_pki
-                .load()
-                .inspect_err(|error| warn!("Failed to load Gateway PKI: {error}"))
+            let client_certificate = Arc::new(
+                load_client_certificate(
+                    &client_config,
+                    auth_code,
+                    CLIENT_CERTIFICATE_FILE_SUFFIX
+                        .map(|suffix| format!("{}.{suffix}", mesh.client_certificate)),
+                )
+                .await
+                .inspect_err(|error| warn!("Failed to load Client Certificate: {error}"))
                 .ok()?,
-            client_name,
-        };
+            );
 
-        let client_certificate = Arc::new(
-            load_client_certificate(
-                &client_config,
-                cli.auth_code.as_str().into(),
-                CLIENT_CERTIFICATE_FILE_SUFFIX
-                    .map(|suffix| format!("{}.{suffix}", mesh.client_certificate)),
-            )
-            .await
-            .inspect_err(|error| warn!("Failed to load Client Certificate: {error}"))
-            .ok()?,
-        );
-
-        Some(Self {
-            client_config,
-            client_certificate,
-            retry_strategy: RetryStrategy::default(),
-            server,
-        })
+            Some(Self {
+                client_config,
+                client_certificate,
+                retry_strategy: RetryStrategy::default(),
+                server: server.clone(),
+            })
+        }
+        .instrument(info_span!("Agent tunnel config"))
+        .await
     }
 }
 
