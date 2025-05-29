@@ -39,6 +39,7 @@ use self::agent::AgentTunnelConfig;
 use self::auth::AuthConfig;
 use self::cli::Action;
 use self::cli::Cli;
+use self::config::Config;
 use self::config::ConfigFile;
 use self::config::DynConfig;
 use self::config::io::ConfigFileError;
@@ -94,58 +95,57 @@ pub fn run_server() -> Result<(), RunServerError> {
         return Ok(config.server.kill()?);
     }
 
+    std::env::set_current_dir(home()).map_err(RunServerError::SetCurrentDir)?;
+    if cli.action == Action::Start {
+        self::daemonize::daemonize(&config.server)?;
+    }
+
+    return run_server_async(cli, config);
+}
+
+#[tokio::main]
+async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError> {
     let config = config.into_dyn(&cli);
     let server_config = config.server.clone();
     if cli.action == Action::SetPassword {
         return Ok(server_config.set_password()?);
     }
 
-    let root_ca = PrivateRootCa::load(&config)?;
-    let active_challenges = ActiveChallenges::default();
+    let backend_config = {
+        let root_ca = PrivateRootCa::load(&config)?;
+        let active_challenges = ActiveChallenges::default();
 
-    let tls_config = {
-        let root_ca = root_ca.clone();
-        let active_challenges = active_challenges.clone();
-        let dynamic_acme_config = config.letsencrypt.clone();
-        config.letsencrypt.view(move |letsencrypt| {
-            debug!("Refresh TLS config");
-            if let Some(letsencrypt) = &**letsencrypt {
-                EitherConfig::Right(SecurityConfig {
-                    trusted_store: NativeTrustedStoreConfig,
-                    certificate: AcmeCertificateConfig::new(
-                        dynamic_acme_config.clone(),
-                        letsencrypt.clone(),
-                        active_challenges.clone(),
-                    ),
-                })
-            } else {
-                EitherConfig::Left(make_tls_config(&root_ca).unwrap())
-            }
-        })
+        let tls_config = {
+            let root_ca = root_ca.clone();
+            let active_challenges = active_challenges.clone();
+            let dynamic_acme_config = config.letsencrypt.clone();
+            config.letsencrypt.view(move |letsencrypt| {
+                debug!("Refresh TLS config");
+                if let Some(letsencrypt) = &**letsencrypt {
+                    EitherConfig::Right(SecurityConfig {
+                        trusted_store: NativeTrustedStoreConfig,
+                        certificate: AcmeCertificateConfig::new(
+                            dynamic_acme_config.clone(),
+                            letsencrypt.clone(),
+                            active_challenges.clone(),
+                        ),
+                    })
+                } else {
+                    EitherConfig::Left(make_tls_config(&root_ca).unwrap())
+                }
+            })
+        };
+
+        TerminalBackendServer {
+            root_ca,
+            tls_config,
+            auth_config: server_config
+                .view(|server| DiffArc::from(AuthConfig::new(server)))
+                .into(),
+            active_challenges,
+            config,
+        }
     };
-    let backend_config = TerminalBackendServer {
-        root_ca,
-        tls_config,
-        auth_config: server_config
-            .view(|server| DiffArc::from(AuthConfig::new(server)))
-            .into(),
-        active_challenges,
-        config,
-    };
-
-    if cli.action == Action::Start {
-        server_config.with(|server_config| self::daemonize::daemonize(server_config))?;
-    }
-
-    return run_server_async(cli, backend_config);
-}
-
-#[tokio::main]
-async fn run_server_async(
-    cli: Cli,
-    backend_config: TerminalBackendServer,
-) -> Result<(), RunServerError> {
-    std::env::set_current_dir(home()).map_err(RunServerError::SetCurrentDir)?;
 
     assets::install_assets();
     let config = backend_config.config.clone();
