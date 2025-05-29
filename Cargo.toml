@@ -35,7 +35,7 @@ axum = { version = "0.8.4" }
 axum-extra = { version = "0.10.1" }
 base64 = { version = "0.22.1" }
 bytes = { version = "1.10.1" }
-clap = { version = "4.5.38", features = ["derive"] }
+clap = { version = "4.5.39", features = ["derive"] }
 darling = { version = "0.20.11" }
 dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
@@ -49,7 +49,7 @@ mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.10" }
 nix = { version = "0.30.1" }
-openssl = { version = "0.10.72" }
+openssl = { version = "0.10.73" }
 pbkdf2 = { version = "0.12.2" }
 pin-project = { version = "1.1.10" }
 prettyplease = { version = "0.2.32" }

@@ -4,12 +4,14 @@ use std::time::Duration;
 
 use serde::Deserialize;
 use serde::Serialize;
+use trz_gateway_common::retry_strategy::RetryStrategy;
 
 pub trait ConfigTypes: Clone {
     type String: Serialize + for<'t> Deserialize<'t> + Debug + Default;
     type MaybeString: Serialize + for<'t> Deserialize<'t> + Debug + Default;
     type Port: Serialize + for<'t> Deserialize<'t> + Debug + Default;
     type Duration: Serialize + for<'t> Deserialize<'t> + Debug + Default;
+    type RetryStrategy: Serialize + for<'t> Deserialize<'t> + Debug + Default;
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -20,6 +22,7 @@ impl<T: ConfigTypes> ConfigTypes for ConfigFileTypes<T> {
     type MaybeString = T::MaybeString;
     type Port = Option<T::Port>;
     type Duration = Option<String>;
+    type RetryStrategy = Option<RetryStrategy>;
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -30,6 +33,7 @@ impl ConfigTypes for RuntimeTypes {
     type MaybeString = Option<String>;
     type Port = u16;
     type Duration = Duration;
+    type RetryStrategy = RetryStrategy;
 }
 
 #[must_use]

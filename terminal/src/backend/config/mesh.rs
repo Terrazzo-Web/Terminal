@@ -25,6 +25,9 @@ pub struct MeshConfig<T: ConfigTypes = RuntimeTypes> {
 
     /// The file to store the client certificate.
     pub client_certificate: T::String,
+
+    /// The strategy to retry connecting.
+    pub retry_strategy: T::RetryStrategy,
 }
 
 #[derive(Clone)]
