@@ -3,7 +3,7 @@ members = ["game", "pty", "terminal"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.11"
+version = "0.1.12"
 authors = ["Lamparo <LamparoS@Pavy.one>"]
 edition = "2024"
 repository = "https://github.com/Terrazzo-Web/Terminal"
@@ -27,15 +27,15 @@ incremental = true       # Incremental compilation.
 opt-level = "s"
 
 [workspace.dependencies]
-terrazzo-pty = { version = "0.1.11", path = "pty" }
+terrazzo-pty = { version = "0.1.12", path = "pty" }
 
 async-trait = { version = "0.1.88" }
-autoclone = { version = "0.1.10" }
+autoclone = { version = "0.1.11" }
 axum = { version = "0.8.4" }
 axum-extra = { version = "0.10.1" }
 base64 = { version = "0.22.1" }
 bytes = { version = "1.10.1" }
-clap = { version = "4.5.38", features = ["derive"] }
+clap = { version = "4.5.39", features = ["derive"] }
 darling = { version = "0.20.11" }
 dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
@@ -47,9 +47,9 @@ jsonwebtoken = { version = "9.3.1" }
 libc = { version = "0.2.172" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
-nameth = { version = "0.1.10" }
+nameth = { version = "0.1.11" }
 nix = { version = "0.30.1" }
-openssl = { version = "0.10.72" }
+openssl = { version = "0.10.73" }
 pbkdf2 = { version = "0.12.2" }
 pin-project = { version = "1.1.10" }
 prettyplease = { version = "0.2.32" }
@@ -69,8 +69,8 @@ sha2 = { version = "0.10.9" }
 static_assertions = { version = "1.1.0" }
 stylance = { version = "0.6.0" }
 syn = { version = "2.0.101" }
-terrazzo = { version = "0.1.10", default-features = false }
-terrazzo-build = { version = "0.1.10" }
+terrazzo = { version = "0.1.11", default-features = false }
+terrazzo-build = { version = "0.1.11" }
 thiserror = { version = "2.0.12" }
 tokio = { version = "1.45.1" }
 tokio-stream = { version = "0.1.17" }
@@ -84,9 +84,9 @@ tracing = { version = "0.1.41" }
 tracing-futures = { version = "0.2.5" }
 tracing-subscriber = { version = "0.3.19" }
 tracing-subscriber-wasm = { version = "0.1.0" }
-trz-gateway-client = { version = "0.1.10" }
-trz-gateway-common = { version = "0.1.10" }
-trz-gateway-server = { version = "0.1.10" }
+trz-gateway-client = { version = "0.1.11" }
+trz-gateway-common = { version = "0.1.11" }
+trz-gateway-server = { version = "0.1.11" }
 uuid = { version = "1.17.0" }
 wasm-bindgen = { version = "0.2.100" }
 wasm-bindgen-futures = { version = "0.4.50" }

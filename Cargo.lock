@@ -164,9 +164,9 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "autoclone"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "072738cd83ade96377e57de065c08f27ba970f161943e7e08c3840176d2a1e73"
+checksum = "ad021cefd24571b0c4b1200dc141100335d277c464737a679730ee2ef4a873d1"
 dependencies = [
  "darling",
  "prettyplease",
@@ -443,9 +443,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.38"
+version = "4.5.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed93b9805f8ba930df42c2590f05453d5ec36cbb85d018868a5b24d31f6ac000"
+checksum = "fd60e63e9be68e5fb56422e397cf9baddded06dae1d2e523401542383bc72a9f"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -453,9 +453,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.38"
+version = "4.5.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "379026ff283facf611b0ea629334361c4211d1b12ee01024eec1591133b04120"
+checksum = "89cc6392a1f72bbeb820d71f32108f61fdaf18bc526e1d23954168a67759ef51"
 dependencies = [
  "anstream",
  "anstyle",
@@ -933,7 +933,7 @@ dependencies = [
 
 [[package]]
 name = "game"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "scopeguard",
  "stylance",
@@ -1370,22 +1370,28 @@ dependencies = [
 
 [[package]]
 name = "hyper-util"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf9f1e950e0d9d1d3c47184416723cf29c0d1f93bd8cccf37e4beb6b44f31710"
+checksum = "b1c293b6b3d21eca78250dc7dbebd6b9210ec5530e038cbfe0661b5c47ab06e8"
 dependencies = [
+ "base64",
  "bytes",
  "futures-channel",
+ "futures-core",
  "futures-util",
  "http 1.3.1",
  "http-body",
  "hyper",
+ "ipnet",
  "libc",
+ "percent-encoding",
  "pin-project-lite",
  "socket2",
+ "system-configuration",
  "tokio",
  "tower-service",
  "tracing",
+ "windows-registry",
 ]
 
 [[package]]
@@ -1568,6 +1574,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
 
 [[package]]
+name = "iri-string"
+version = "0.7.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbc5ebe9c3a1a7a5127f920a418f7585e9e758e911d0466ed004f393b0e380b2"
+dependencies = [
+ "memchr",
+ "serde",
+]
+
+[[package]]
 name = "is_terminal_polyfill"
 version = "1.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1652,9 +1668,9 @@ checksum = "d750af042f7ef4f724306de029d18836c26c1765a54a6a3f094cbd23a7267ffa"
 
 [[package]]
 name = "libloading"
-version = "0.8.7"
+version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a793df0d7afeac54f95b471d3af7f0d4fb975699f972341a4b76988d49cdf0c"
+checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
  "windows-targets 0.53.0",
@@ -1765,18 +1781,18 @@ checksum = "1d87ecb2933e8aeadb3e3a02b828fed80a7528047e68b4f424523a0981a3a084"
 
 [[package]]
 name = "nameth"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f3e8ba0eaabcc32f5c87de9d636448b93d2e39e1ada690283d06799ff23052e"
+checksum = "2ced5ac5aea80fe9e7d781b3875c4d62993fb70deacdee8084e56f51fb83e5b1"
 dependencies = [
  "nameth-macro",
 ]
 
 [[package]]
 name = "nameth-macro"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b115cc684bec17d27d89a6c786eed89bcd2056df31241f9ada34726b1fcd0c9d"
+checksum = "07de3fcfbb383627051786b22338a1011a09bb89803e2684c68dbdaea53f8d5f"
 dependencies = [
  "darling",
  "quote",
@@ -1926,9 +1942,9 @@ checksum = "a4895175b425cb1f87721b59f0f286c2092bd4af812243672510e1ac53e2e0ad"
 
 [[package]]
 name = "openssl"
-version = "0.10.72"
+version = "0.10.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fedfea7d58a1f73118430a55da6a286e7b044961736ce96a16a17068ea25e5da"
+checksum = "8505734d46c8ab1e19a1dce3aef597ad87dcb4c37e7188231769bd6bd51cebf8"
 dependencies = [
  "bitflags",
  "cfg-if",
@@ -1958,9 +1974,9 @@ checksum = "d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e"
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.108"
+version = "0.9.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e145e1651e858e820e4860f7b9c5e169bc1d8ce1c86043be79fa7b7634821847"
+checksum = "90096e2e47630d78b7d1c20952dc621f957103f8bc2c8359ec81290d75238571"
 dependencies = [
  "cc",
  "libc",
@@ -2297,15 +2313,14 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
 name = "reqwest"
-version = "0.12.15"
+version = "0.12.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d19c46a6fdd48bc4dab94b6103fccc55d34c67cc0ad04653aad4ea2a07cd7bbb"
+checksum = "e98ff6b0dbbe4d5a37318f433d4fc82babd21631f194d370409ceb2e40b2f0b5"
 dependencies = [
  "base64",
  "bytes",
  "encoding_rs",
  "futures-core",
- "futures-util",
  "h2",
  "http 1.3.1",
  "http-body",
@@ -2322,21 +2337,20 @@ dependencies = [
  "once_cell",
  "percent-encoding",
  "pin-project-lite",
- "rustls-pemfile",
+ "rustls-pki-types",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "sync_wrapper",
- "system-configuration",
  "tokio",
  "tokio-native-tls",
  "tower",
+ "tower-http",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "windows-registry",
 ]
 
 [[package]]
@@ -2873,9 +2887,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f94e6990522e59e1cec4ba972a3f996f66cf127b76e30eb48216fd1cf87d17f5"
+checksum = "36adb386a335c3881988eeefa4a80e037f082732006dcaab84edbef16368ac93"
 dependencies = [
  "autoclone",
  "axum",
@@ -2898,9 +2912,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-build"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f52dcc5c366bfd96f618c92dcc08180db4edd4431957d2c6546a0aa7643cab3"
+checksum = "8c0506c1957b7da6fe154cc1e64e36398d66a14b6f4a366182cf75a2288ccdf3"
 dependencies = [
  "nameth",
  "thiserror 2.0.12",
@@ -2908,9 +2922,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-client"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a2147144c6ca6efc80fc3cbb283e319bfe76f2d07a05948a5d08ab15d663612"
+checksum = "49ca664d6168d7570ba38c04f9640319db221914935712a89a56a07361ad93a4"
 dependencies = [
  "autoclone",
  "nameth",
@@ -2925,9 +2939,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-macro"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e3cac2fd531999730e6165937f3214378a1e20c237c292ef5073f64f90c023e"
+checksum = "df75c5f692882935c9619f8250f0204931daf66dc2b792068c0295aad450feed"
 dependencies = [
  "deluxe",
  "prettyplease",
@@ -2938,7 +2952,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-pty"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "bytes",
  "futures",
@@ -2957,7 +2971,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-terminal"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "axum-extra",
  "base64",
@@ -3310,12 +3324,14 @@ dependencies = [
  "http-body-util",
  "http-range-header",
  "httpdate",
+ "iri-string",
  "mime",
  "mime_guess",
  "percent-encoding",
  "pin-project-lite",
  "tokio",
  "tokio-util",
+ "tower",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -3426,9 +3442,9 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "trz-gateway-client"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7212a493a6d1335090147fe8d6ec8b2843c479ec7f942859f2a4333ec8084893"
+checksum = "06611545b08ca51594404ea5742c56a72d09ecbe093bfea62652ba5e889a03e5"
 dependencies = [
  "futures",
  "hostname",
@@ -3456,14 +3472,15 @@ dependencies = [
 
 [[package]]
 name = "trz-gateway-common"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47725d84203b9f4313042fee25ad5daf651e417fff207314886dfcc1366f7eb3"
+checksum = "abcfb98f7d9737a0ef1ece32cd5736e3d8a10eb7b0cf9cd327b53425258d0c28"
 dependencies = [
  "axum",
  "bytes",
  "cms",
  "futures",
+ "humantime",
  "nameth",
  "oid-registry",
  "openssl",
@@ -3485,9 +3502,9 @@ dependencies = [
 
 [[package]]
 name = "trz-gateway-server"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f8de57f31e6aa58ebe1a5c15727a5182eebe25a15e464d941630e3124757fbb"
+checksum = "7dec4f6ee0249761559dafa835270703738137442114744ace144ad4a252bf9b"
 dependencies = [
  "autoclone",
  "axum",

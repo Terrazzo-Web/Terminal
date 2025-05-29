@@ -28,6 +28,9 @@ pub struct ServerConfig<T: ConfigTypes = RuntimeTypes> {
     pub password: Option<Password>,
     pub token_lifetime: T::Duration,
     pub token_refresh: T::Duration,
+
+    /// Polling strategy for the config file
+    pub config_file_poll_strategy: T::RetryStrategy,
 }
 
 #[derive(Clone)]
