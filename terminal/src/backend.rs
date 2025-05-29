@@ -67,8 +67,7 @@ mod tls_config;
 const HOST: &str = "localhost";
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
 
-#[tokio::main]
-pub async fn run_server() -> Result<(), RunServerError> {
+pub fn run_server() -> Result<(), RunServerError> {
     crypto_provider();
     let cli = {
         let mut cli = Cli::parse();
@@ -138,9 +137,10 @@ pub async fn run_server() -> Result<(), RunServerError> {
         server_config.with(|server_config| self::daemonize::daemonize(server_config))?;
     }
 
-    return run_server_async(cli, backend_config).await;
+    return run_server_async(cli, backend_config);
 }
 
+#[tokio::main]
 async fn run_server_async(
     cli: Cli,
     backend_config: TerminalBackendServer,

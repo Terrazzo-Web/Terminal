@@ -5,6 +5,7 @@ use std::time::Duration;
 use tracing::warn;
 use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 use trz_gateway_common::dynamic_config::has_diff::DiffOption;
+use trz_gateway_common::retry_strategy::RetryStrategy;
 
 use super::Config;
 use super::ConfigFile;
@@ -46,6 +47,7 @@ impl Config {
                 password: server.password.clone(),
                 token_lifetime: Some(humantime::format_duration(server.token_lifetime).to_string()),
                 token_refresh: Some(humantime::format_duration(server.token_refresh).to_string()),
+                config_file_poll_strategy: Some(server.config_file_poll_strategy.clone()),
             }),
             mesh: DiffOption::from(mesh.as_ref().map(|mesh| {
                 DiffArc::from(MeshConfig {
@@ -102,6 +104,10 @@ fn merge_server_config(
             .unwrap_or(DEFAULT_TOKEN_LIFETIME),
         token_refresh: parse_duration(server.token_refresh.as_deref())
             .unwrap_or(DEFAULT_TOKEN_REFRESH),
+        config_file_poll_strategy: server
+            .config_file_poll_strategy
+            .clone()
+            .unwrap_or_else(|| RetryStrategy::fixed(Duration::from_secs(60))),
     }
 }
 

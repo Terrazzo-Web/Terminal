@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::time::Duration;
 
 use terrazzo::autoclone;
 use tracing::Instrument;
@@ -97,10 +96,11 @@ impl Config {
 
 async fn poll_config_file(config_file_path: String, config: DiffArc<DynConfig>) {
     let span = info_span!("Polling config file", config_file_path);
+    let mut retry_strategy = config.with(|config| config.server.config_file_poll_strategy.clone());
     async move {
         let mut last_modified = None;
         loop {
-            tokio::time::sleep(Duration::from_secs(3)).await;
+            retry_strategy.wait().await;
             let metadata = match std::fs::metadata(&config_file_path) {
                 Ok(metadata) => metadata,
                 Err(error) => {
@@ -130,6 +130,7 @@ async fn poll_config_file(config_file_path: String, config: DiffArc<DynConfig>) 
                 }
             };
             let new = new_config_file.merge(&Cli::default());
+            retry_strategy = new.server.config_file_poll_strategy.clone();
             apply_server_config(&config, &new.server);
             apply_letsencrypt_config(&config, &new.letsencrypt);
         }
