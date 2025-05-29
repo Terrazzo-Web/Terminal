@@ -1,6 +1,4 @@
 # TODO
-- `#·88`. Authentication
-- `#·87`. Figure out certbot
 - `#·86`. Remove static state from the client -- search for "([^']|\n)static ". Ambient ctx on spawn_local, events, timers
 - `#·82`. Create a new Reddit account.
 - `#·81`. Announce open source autoclone.
@@ -96,3 +94,5 @@ Next: `#·89`.
 - `#·85`. Terrazzo-gateway works with multiple agents
 - `#·51`. Save terminal buffer state before close
 - `#·43`. Errors should implement a trait that indicates their http status code
+- `#·88`. Authentication
+- `#·87`. Figure out certbot
