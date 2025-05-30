@@ -10,6 +10,8 @@ use self::add_tab::RemotesState;
 use super::TerminalsState;
 use super::terminal_tab::TerminalTab;
 use crate::api::client_address::ClientAddress;
+use crate::assets::icons::add_tab;
+use crate::assets::icons::menu;
 use crate::terminal_id::TerminalId;
 
 mod add_tab;
@@ -41,7 +43,7 @@ impl TabsDescriptor for TerminalTabs {
         [div(
             class = style::menu_icon,
             key = "menu-icon",
-            div(img(src = "/static/icons/signpost-split.svg")),
+            div(img(src = menu())),
         )]
     }
 
@@ -57,7 +59,7 @@ impl TabsDescriptor for TerminalTabs {
                     autoclone!(client_names_state);
                     add_tab::active(t, client_names_state.remotes.clone())
                 },
-                img(src = "/static/icons/plus-square.svg"),
+                img(src = add_tab()),
                 click = add_tab::create_terminal(state.clone(), ClientAddress::default()),
                 mouseenter = client_names_state.mouseenter(),
             ),

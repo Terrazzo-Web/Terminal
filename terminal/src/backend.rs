@@ -147,7 +147,7 @@ async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError
         }
     };
 
-    assets::install_assets();
+    assets::install::install_assets();
     let config = backend_config.config.clone();
     let (server, server_handle, crash) = Server::run(backend_config).await?;
     let crash = crash
