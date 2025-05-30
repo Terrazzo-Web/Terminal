@@ -1,0 +1,15 @@
+[server]
+host = "0.0.0.0"
+port = 3001
+pidfile = "/home/richard/.terrazzo/terminal-3000.pid"
+private_root_ca = "/home/richard/.terrazzo/root_ca"
+token_lifetime = "15m 5s"
+token_refresh = "14m 50s"
+
+[server.password]
+hash = "bRZZiFMRd/RBn7hW3sgl+WTPSh4"
+iterations = 60000
+salt = "sdfVZP9WQXeC9eyBn3jUWA"
+
+[server.config_file_poll_strategy]
+fixed = "1m"
