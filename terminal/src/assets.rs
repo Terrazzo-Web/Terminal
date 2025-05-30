@@ -28,6 +28,7 @@ fn install_icons() {
         asset.install();
     }
     install_icon(declare_asset!("/assets/icons/plus-square.svg"));
+    install_icon(declare_asset!("/assets/icons/signpost-split.svg"));
     install_icon(declare_asset!("/assets/icons/x-lg.svg"));
 }
 

@@ -36,6 +36,15 @@ impl TabsDescriptor for TerminalTabs {
         &self.terminal_tabs
     }
 
+    #[html]
+    fn before_titles(&self, _state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
+        [div(
+            class = style::menu_icon,
+            key = "menu-icon",
+            div(img(src = "/static/icons/signpost-split.svg")),
+        )]
+    }
+
     #[autoclone]
     #[html]
     fn after_titles(&self, state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
