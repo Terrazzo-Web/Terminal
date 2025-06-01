@@ -59,3 +59,12 @@ body {
     -ms-user-drag: none;
     user-drag: none;
 }
+
+@mixin trz-icon($size: 15px) {
+    display: block;
+    height: $size;
+    border: 0;
+    margin: 0px;
+    padding: 0px;
+    filter: invert(1);
+}

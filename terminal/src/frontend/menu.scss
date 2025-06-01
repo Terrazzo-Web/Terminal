@@ -15,12 +15,7 @@ div.menu {
         margin-left: 2px;
 
         img.menu-icon {
-            display: block;
-            height: 15px;
-            border: 0;
-            margin: 0px;
-            padding: 0px;
-            filter: invert(1);
+            @include trz-icon;
         }
 
         &:hover {
@@ -61,13 +56,8 @@ ul.menu-items {
         @include nowrap;
 
         img.app-icon {
-            display: block;
-            height: 15px;
-            border: 0;
-            margin: 0px;
+            @include trz-icon;
             margin-right: var(--padding);
-            padding: 0px;
-            filter: invert(1);
         }
     }
 }

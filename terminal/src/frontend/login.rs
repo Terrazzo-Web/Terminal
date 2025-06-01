@@ -12,8 +12,11 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
 use web_sys::HtmlInputElement;
 
+use super::menu::App;
+use super::menu::app;
 use crate::assets::icons;
 use crate::terminal::terminals;
+use crate::text_editor::text_editor;
 
 stylance::import_crate_style!(style, "src/frontend/login.scss");
 
@@ -22,7 +25,7 @@ stylance::import_crate_style!(style, "src/frontend/login.scss");
 #[template]
 pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
     match logged_in {
-        LoggedInStatus::Login => div(|t| terminals(t)),
+        LoggedInStatus::Login => div(|t| show_app(t, app())),
         LoggedInStatus::Logout => div(
             class = style::login,
             img(class = style::key_icon, src = icons::key_icon()),
@@ -84,4 +87,13 @@ pub enum LoggedInStatus {
 
     #[default]
     Unknown,
+}
+
+#[html]
+#[template]
+fn show_app(#[signal] app: App) -> XElement {
+    match app {
+        App::Terminal => div(|t| terminals(t)),
+        App::TextEditor => div(|t| text_editor(t)),
+    }
 }

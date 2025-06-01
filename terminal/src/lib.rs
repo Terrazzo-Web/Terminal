@@ -5,6 +5,7 @@ mod frontend;
 mod processes;
 mod terminal;
 mod terminal_id;
+mod text_editor;
 
 #[cfg(feature = "server")]
 pub use self::backend::RunServerError;

@@ -15,11 +15,6 @@ div.login {
 }
 
 img.key-icon {
-    display: block;
-    height: 15px;
-    border: 0;
-    margin: 0px;
+    @include trz-icon;
     margin-right: var(--padding);
-    padding: 0px;
-    filter: invert(1);
 }
