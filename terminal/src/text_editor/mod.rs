@@ -14,14 +14,18 @@ stylance::import_crate_style!(style, "src/text_editor/text_editor.scss");
 #[template]
 pub fn text_editor() -> XElement {
     div(
-        class = style::text_editor,
+        style = "height: 100%;",
         div(
-            class = style::header,
-            menu(),
-            base_path_selector(),
-            path_selector(),
+            key = "text-editor",
+            class = style::text_editor,
+            div(
+                class = style::header,
+                menu(),
+                base_path_selector(),
+                path_selector(),
+            ),
+            div(class = style::body, "hello"),
         ),
-        div(class = style::body, "hello"),
     )
 }
 
@@ -32,13 +36,16 @@ fn base_path_selector() -> XElement {
     tag(
         class = style::path_selector,
         img(class = style::icon, src = icons::slash()),
-        input(
-            r#type = "text",
+        div(
             class = style::selector,
-            focus = start_autocomplete("/".to_owned(), autocomplete.clone()),
-            blur = stop_autocomplete(autocomplete.clone()),
+            input(
+                r#type = "text",
+                class = style::selector,
+                focus = start_autocomplete("/".to_owned(), autocomplete.clone()),
+                blur = stop_autocomplete(autocomplete.clone()),
+            ),
+            show_autocomplete(autocomplete),
         ),
-        show_autocomplete(autocomplete),
     )
 }
 

@@ -25,8 +25,9 @@ stylance::import_crate_style!(style, "src/frontend/login.scss");
 #[template]
 pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
     match logged_in {
-        LoggedInStatus::Login => div(|t| show_app(t, app())),
+        LoggedInStatus::Login => div(key = "app", div(|t| show_app(t, app()))),
         LoggedInStatus::Logout => div(
+            key = "login",
             class = style::login,
             img(class = style::key_icon, src = icons::key_icon()),
             input(
@@ -64,7 +65,7 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
                     }
                 }
             });
-            div(class = style::login)
+            div(key = "login-pending", class = style::login)
         }
     }
 }

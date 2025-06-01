@@ -17,7 +17,7 @@ stylance::import_crate_style!(style, "src/frontend/menu.scss");
 #[html]
 #[template(tag = div)]
 pub fn menu() -> XElement {
-    let hide_menu = Duration::from_millis(250).cancellable();
+    let hide_menu = Duration::from_millis(500).cancellable();
     div(
         class = style::menu,
         div(
@@ -44,12 +44,22 @@ fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -
         tag(
             class = style::menu_items,
             mouseover = move |_: MouseEvent| {
-                autoclone!(hide_menu);
+                autoclone!(hide_menu, show_menu_mut);
                 hide_menu.cancel();
                 show_menu_mut.set(true);
             },
-            menu_item(App::Terminal, app()),
-            menu_item(App::TextEditor, app()),
+            menu_item(
+                App::Terminal,
+                app(),
+                show_menu_mut.clone(),
+                hide_menu.clone(),
+            ),
+            menu_item(
+                App::TextEditor,
+                app(),
+                show_menu_mut.clone(),
+                hide_menu.clone(),
+            ),
         )
     } else {
         tag(style::visibility = "hidden", style::display = "none")
@@ -59,14 +69,23 @@ fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -
 #[autoclone]
 #[html]
 #[template(tag = li)]
-fn menu_item(app: App, #[signal] mut selected_app: App) -> XElement {
+fn menu_item(
+    app: App,
+    #[signal] mut selected_app: App,
+    show_menu_mut: MutableSignal<bool>,
+    hide_menu: Cancellable<Duration>,
+) -> XElement {
     tag(
         img(class = style::app_icon, src = app.icon()),
         "{app}",
         class = (selected_app == app).then_some(style::active),
         click = move |_| {
             autoclone!(selected_app_mut);
+            let batch = Batch::use_batch("select-app");
+            hide_menu.cancel();
+            show_menu_mut.set(false);
             selected_app_mut.set(app);
+            drop(batch);
         },
     )
 }
