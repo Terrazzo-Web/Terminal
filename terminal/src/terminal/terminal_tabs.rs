@@ -11,8 +11,7 @@ use super::TerminalsState;
 use super::terminal_tab::TerminalTab;
 use crate::api::client_address::ClientAddress;
 use crate::assets::icons::add_tab;
-use crate::assets::icons::menu;
-use crate::frontend::menu::show_menu;
+use crate::frontend::menu::menu;
 use crate::terminal_id::TerminalId;
 
 mod add_tab;
@@ -41,11 +40,7 @@ impl TabsDescriptor for TerminalTabs {
 
     #[html]
     fn before_titles(&self, _state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
-        [div(
-            class = style::menu_icon,
-            key = "menu-icon",
-            div(img(src = menu()), show_menu()),
-        )]
+        Some(menu())
     }
 
     #[autoclone]

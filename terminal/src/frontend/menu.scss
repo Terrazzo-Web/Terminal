@@ -1,20 +1,20 @@
-.add-tab-icon {
+div.menu {
     position: relative;
     display: inline flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     align-self: center;
-    flex-grow: 1;
+    flex-grow: 0;
 
     border: 0;
     margin: 0px;
     padding: 0px;
 
-    div {
+    div.menu-inner {
         padding: 3px;
-        margin-right: 2px;
+        margin-left: 2px;
 
-        img {
+        img.menu-icon {
             display: block;
             height: 15px;
             border: 0;
@@ -23,8 +23,8 @@
             filter: invert(1);
         }
 
-        &.active {
-            img {
+        &:hover {
+            img.menu-icon {
                 filter: invert(0);
             }
 
@@ -34,9 +34,9 @@
     }
 }
 
-ul.add-client-tab {
+ul.menu-items {
     position: absolute;
-    right: 0;
+    left: 0;
     top: 25px;
 
     list-style: none;
@@ -46,13 +46,36 @@ ul.add-client-tab {
     border: 1px solid white;
     background-color: var(--background-color);
 
-    li {
+    li.menu-item {
+        display: flex;
+        flex-direction: row;
+
         &:hover {
             background-color: var(--link-color);
             cursor: pointer;
         }
 
         padding: var(--padding);
-        margin: 1px;
+        margin: 0px;
+
+        @include nowrap;
+
+        img.app-icon {
+            display: block;
+            height: 15px;
+            border: 0;
+            margin: 0px;
+            margin-right: var(--padding);
+            padding: 0px;
+            filter: invert(1);
+        }
+    }
+}
+
+ul.menu-items:not(:hover) {
+    li.menu-item {
+        &.active {
+            background-color: var(--link-color);
+        }
     }
 }

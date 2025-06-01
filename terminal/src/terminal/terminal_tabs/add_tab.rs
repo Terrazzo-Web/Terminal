@@ -105,11 +105,12 @@ impl RemotesState {
 
 #[template]
 pub fn active(#[signal] remotes: Remotes) -> XAttributeValue {
-    if let Remotes::Some { .. } = remotes {
-        Some(super::style::active)
-    } else {
-        None
+    if let Remotes::Some(remotes) = remotes {
+        if !remotes.is_empty() {
+            return Some(super::style::active);
+        }
     }
+    return None;
 }
 
 #[autoclone]

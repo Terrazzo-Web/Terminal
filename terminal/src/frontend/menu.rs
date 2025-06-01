@@ -1,29 +1,73 @@
 use std::cell::OnceCell;
+use std::time::Duration;
 
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
+use terrazzo::widgets::cancellable::Cancellable;
+use terrazzo::widgets::debounce::DoDebounce as _;
+use web_sys::MouseEvent;
 
 use crate::assets::icons;
 
+stylance::import_crate_style!(style, "src/frontend/menu.scss");
+
+#[autoclone]
 #[html]
-#[template(tag = ul)]
-pub fn show_menu() -> XElement {
-    tag(
-        show_menu_item(App::Terminal, app()),
-        show_menu_item(App::TextEditor, app()),
+#[template(tag = div)]
+pub fn menu() -> XElement {
+    let hide_menu = Duration::from_millis(250).cancellable();
+    div(
+        class = style::menu,
+        div(
+            class = style::menu_inner,
+            img(class = style::menu_icon, src = icons::menu()),
+            mouseover = move |_: MouseEvent| {
+                autoclone!(hide_menu);
+                hide_menu.cancel();
+                show_menu().set(true);
+            },
+        ),
+        mouseout = hide_menu
+            .clone()
+            .wrap(|_: MouseEvent| show_menu().set(false)),
+        menu_items(show_menu(), hide_menu.clone()),
     )
 }
 
 #[autoclone]
 #[html]
+#[template(tag = ul)]
+fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -> XElement {
+    if show_menu {
+        tag(
+            class = style::menu_items,
+            mouseover = move |_: MouseEvent| {
+                autoclone!(hide_menu);
+                hide_menu.cancel();
+                show_menu_mut.set(true);
+            },
+            menu_item(App::Terminal, app()),
+            menu_item(App::TextEditor, app()),
+        )
+    } else {
+        tag(style::visibility = "hidden", style::display = "none")
+    }
+}
+
+#[autoclone]
+#[html]
 #[template(tag = li)]
-pub fn show_menu_item(app: App, #[signal] mut selected_app: App) -> XElement {
+fn menu_item(app: App, #[signal] mut selected_app: App) -> XElement {
     tag(
-        img(src = app.icon()),
+        img(class = style::app_icon, src = app.icon()),
         "{app}",
-        class = (selected_app == app).then_some("active"),
+        class = if selected_app == app {
+            format!("{} {}", style::menu_item, style::active)
+        } else {
+            style::menu_item.to_string()
+        },
         click = move |_| {
             autoclone!(selected_app_mut);
             selected_app_mut.set(app);
@@ -58,11 +102,23 @@ impl App {
 }
 
 pub fn app() -> XSignal<App> {
-    static APP: CurrentApp = CurrentApp(OnceCell::new());
-    APP.0
+    struct Static(OnceCell<XSignal<App>>);
+    unsafe impl Sync for Static {}
+
+    static STATIC: Static = Static(OnceCell::new());
+    STATIC
+        .0
         .get_or_init(|| XSignal::new("app", App::Terminal))
         .clone()
 }
 
-struct CurrentApp(OnceCell<XSignal<App>>);
-unsafe impl Sync for CurrentApp {}
+fn show_menu() -> XSignal<bool> {
+    struct Static(OnceCell<XSignal<bool>>);
+    unsafe impl Sync for Static {}
+
+    static STATIC: Static = Static(OnceCell::new());
+    STATIC
+        .0
+        .get_or_init(|| XSignal::new("show-menu", false))
+        .clone()
+}
