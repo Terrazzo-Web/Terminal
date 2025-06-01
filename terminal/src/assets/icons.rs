@@ -37,3 +37,7 @@ pub fn terminal() -> Icon {
 pub fn text_editor() -> Icon {
     declare_icon!("/icons/layout-text-sidebar-reverse.svg")
 }
+
+pub fn key_icon() -> Icon {
+    declare_icon!("/icons/key.svg")
+}

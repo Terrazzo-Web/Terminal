@@ -12,6 +12,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
 use web_sys::HtmlInputElement;
 
+use crate::assets::icons;
 use crate::terminal::terminals;
 
 stylance::import_crate_style!(style, "src/frontend/login.scss");
@@ -24,31 +25,29 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
         LoggedInStatus::Login => div(|t| terminals(t)),
         LoggedInStatus::Logout => div(
             class = style::login,
-            div(
-                "Password: ",
-                input(
-                    r#type = "password",
-                    after_render = |password: Element| {
-                        let password: HtmlElement = password.dyn_into().or_throw("password");
-                        let () = password.focus().or_throw("password focus");
-                    },
-                    change = move |ev: web_sys::Event| {
-                        let Ok(password): Result<HtmlInputElement, _> = ev
-                            .current_target_element("The password field")
-                            .map_err(|error| warn!("{error}"))
-                        else {
-                            return;
-                        };
+            img(class = style::key_icon, src = icons::key_icon()),
+            input(
+                r#type = "password",
+                after_render = |password: Element| {
+                    let password: HtmlElement = password.dyn_into().or_throw("password");
+                    let () = password.focus().or_throw("password focus");
+                },
+                change = move |ev: web_sys::Event| {
+                    let Ok(password): Result<HtmlInputElement, _> = ev
+                        .current_target_element("The password field")
+                        .map_err(|error| warn!("{error}"))
+                    else {
+                        return;
+                    };
 
-                        spawn_local(async move {
-                            autoclone!(logged_in_mut);
-                            match crate::api::client::login::login(Some(&password.value())).await {
-                                Ok(()) => logged_in_mut.set(LoggedInStatus::Login),
-                                Err(error) => warn!("{error}"),
-                            }
-                        });
-                    },
-                ),
+                    spawn_local(async move {
+                        autoclone!(logged_in_mut);
+                        match crate::api::client::login::login(Some(&password.value())).await {
+                            Ok(()) => logged_in_mut.set(LoggedInStatus::Login),
+                            Err(error) => warn!("{error}"),
+                        }
+                    });
+                },
             ),
         ),
         LoggedInStatus::Unknown => {
