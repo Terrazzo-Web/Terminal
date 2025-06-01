@@ -1,6 +1,5 @@
 #![cfg(feature = "client")]
 
-use std::rc::Rc;
 use std::sync::Mutex;
 
 use terrazzo::prelude::*;
@@ -10,6 +9,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use self::login::login;
 
 pub mod login;
+pub mod menu;
 pub mod utils;
 
 #[wasm_bindgen]
@@ -24,7 +24,7 @@ pub fn start() {
     let main = document
         .get_element_by_id("main")
         .or_throw("#main not found");
-    let main = XTemplate::new(Rc::new(Mutex::new(main)));
+    let main = XTemplate::new(Ptr::new(Mutex::new(main)));
     let () = ui(main);
 }
 

@@ -30,8 +30,10 @@ fn install_icons() {
     fn install_icon(_: &'static str) {}
 
     install_icon(super::icons::add_tab());
-    install_icon(super::icons::menu());
     install_icon(super::icons::close_tab());
+    install_icon(super::icons::menu());
+    install_icon(super::icons::terminal());
+    install_icon(super::icons::text_editor());
 }
 
 fn install_xterm() {

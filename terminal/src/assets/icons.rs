@@ -29,3 +29,11 @@ pub fn menu() -> Icon {
 pub fn close_tab() -> Icon {
     declare_icon!("/icons/x-lg.svg")
 }
+
+pub fn terminal() -> Icon {
+    declare_icon!("/icons/terminal-dash.svg")
+}
+
+pub fn text_editor() -> Icon {
+    declare_icon!("/icons/layout-text-sidebar-reverse.svg")
+}

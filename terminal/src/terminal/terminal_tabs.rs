@@ -12,6 +12,7 @@ use super::terminal_tab::TerminalTab;
 use crate::api::client_address::ClientAddress;
 use crate::assets::icons::add_tab;
 use crate::assets::icons::menu;
+use crate::frontend::menu::show_menu;
 use crate::terminal_id::TerminalId;
 
 mod add_tab;
@@ -43,7 +44,7 @@ impl TabsDescriptor for TerminalTabs {
         [div(
             class = style::menu_icon,
             key = "menu-icon",
-            div(img(src = menu())),
+            div(img(src = menu()), show_menu()),
         )]
     }
 
