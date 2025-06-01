@@ -63,11 +63,7 @@ fn menu_item(app: App, #[signal] mut selected_app: App) -> XElement {
     tag(
         img(class = style::app_icon, src = app.icon()),
         "{app}",
-        class = if selected_app == app {
-            format!("{} {}", style::menu_item, style::active)
-        } else {
-            style::menu_item.to_string()
-        },
+        class = (selected_app == app).then_some(style::active),
         click = move |_| {
             autoclone!(selected_app_mut);
             selected_app_mut.set(app);

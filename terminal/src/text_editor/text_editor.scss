@@ -1,0 +1,68 @@
+div.text_editor {
+    width: 100%;
+    height: 100%;
+    @include nowrap;
+}
+
+div.header {
+    position: relative;
+    height: 30px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 30px;
+
+    overflow-x: scroll;
+    overflow-y: hidden;
+    @include no-scroll-bar;
+}
+
+div.body {
+    width: 100%;
+}
+
+div.path-selector {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+
+    >img.icon {
+        @include trz-icon;
+        margin-left: var(--padding);
+        margin-right: var(--padding);
+    }
+
+    input.selector {
+        background-color: var(--background-color);
+        color: var(--color);
+        border: 0;
+        width: 100%;
+    }
+}
+
+ul.autocomplete {
+    position: absolute;
+    left: 0;
+    top: 25px;
+
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    border: 1px solid white;
+    background-color: var(--background-color);
+
+    >li {
+        &:hover {
+            background-color: var(--link-color);
+            cursor: pointer;
+        }
+
+        padding: var(--padding);
+        margin: 0px;
+
+        @include nowrap;
+    }
+}

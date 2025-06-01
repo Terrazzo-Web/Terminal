@@ -41,3 +41,11 @@ pub fn text_editor() -> Icon {
 pub fn key_icon() -> Icon {
     declare_icon!("/icons/key.svg")
 }
+
+pub fn slash() -> Icon {
+    declare_icon!("/icons/slash.svg")
+}
+
+pub fn chevron_double_right() -> Icon {
+    declare_icon!("/icons/chevron-double-right.svg")
+}

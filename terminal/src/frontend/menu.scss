@@ -41,7 +41,7 @@ ul.menu-items {
     border: 1px solid white;
     background-color: var(--background-color);
 
-    li.menu-item {
+    >li {
         display: flex;
         flex-direction: row;
 
@@ -63,7 +63,7 @@ ul.menu-items {
 }
 
 ul.menu-items:not(:hover) {
-    li.menu-item {
+    >li {
         &.active {
             background-color: var(--link-color);
         }
