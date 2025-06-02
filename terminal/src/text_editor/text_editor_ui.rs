@@ -11,7 +11,7 @@ use crate::frontend::menu::menu;
 mod autocomplete;
 mod path_selector;
 
-stylance::import_crate_style!(style, "src/text_editor/text_editor.scss");
+stylance::import_crate_style!(style, "src/text_editor/text_editor_ui.scss");
 
 #[html]
 #[template]
