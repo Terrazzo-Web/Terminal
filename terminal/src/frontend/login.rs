@@ -16,7 +16,7 @@ use super::menu::App;
 use super::menu::app;
 use crate::assets::icons;
 use crate::terminal::terminals;
-use crate::text_editor::text_editor;
+use crate::text_editor::text_editor_ui::text_editor;
 
 stylance::import_crate_style!(style, "src/frontend/login.scss");
 
