@@ -7,12 +7,10 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use wasm_bindgen::JsCast as _;
-use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
 
 use super::autocomplete::*;
 use crate::assets::icons;
-use crate::text_editor::base_path_autocomplete;
 
 pub fn base_path_selector() -> XElement {
     path_selector_impll("base-path-selector", icons::slash())
@@ -40,26 +38,16 @@ fn path_selector_impll(name: &'static str, icon_src: icons::Icon) -> XElement {
                         .dyn_into::<HtmlInputElement>()
                         .or_throw("Not an HtmlInputElement");
                     input
-                        .set(SafeHtmlInputElement(element))
+                        .set(SafeHtmlInputElement(element.into()))
                         .or_throw("Input element already set");
                 },
                 r#type = "text",
                 class = super::style::selector,
-                focus = start_autocomplete(input.clone()),
+                focus = start_autocomplete(input.clone(), autocomplete.clone()),
                 blur = stop_autocomplete(autocomplete.clone()),
-                keypress = move |_| {
-                    autoclone!(input, autocomplete);
-                    let value = input.get().unwrap().value();
-                    spawn_local(async move {
-                        autoclone!(autocomplete);
-                        let autocompletes = base_path_autocomplete(value)
-                            .await
-                            .or_else_throw(|error| format!("Autocomplete failed: {error}"));
-                        autocomplete.set(autocompletes);
-                    });
-                },
+                keypress = do_autocomplete(input.clone(), autocomplete.clone()),
             ),
-            show_autocomplete(autocomplete),
+            show_autocomplete(input, autocomplete.clone(), autocomplete),
         ),
     )
 }
