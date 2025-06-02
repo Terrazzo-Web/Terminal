@@ -6,7 +6,7 @@ macro_rules! declare_icon {
 }
 
 #[cfg(all(feature = "server", not(feature = "client")))]
-type Icon = terrazzo::static_assets::AssetBuilder;
+pub type Icon = terrazzo::static_assets::AssetBuilder;
 
 #[cfg(feature = "client")]
 macro_rules! declare_icon {
@@ -16,7 +16,7 @@ macro_rules! declare_icon {
 }
 
 #[cfg(feature = "client")]
-type Icon = &'static str;
+pub type Icon = &'static str;
 
 pub fn add_tab() -> Icon {
     declare_icon!("/icons/plus-square.svg")

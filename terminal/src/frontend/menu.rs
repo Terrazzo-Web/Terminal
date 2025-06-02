@@ -1,4 +1,6 @@
 use std::cell::OnceCell;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
 use std::time::Duration;
 
 use terrazzo::autoclone;
@@ -13,6 +15,11 @@ use crate::assets::icons;
 
 stylance::import_crate_style!(style, "src/frontend/menu.scss");
 
+pub fn before_menu() -> MutexGuard<'static, Option<Box<dyn FnOnce() + Send>>> {
+    static BEFORE_MENU: Mutex<Option<Box<dyn FnOnce() + Send>>> = Mutex::new(None);
+    BEFORE_MENU.lock().unwrap()
+}
+
 #[autoclone]
 #[html]
 #[template(tag = div)]
@@ -25,6 +32,7 @@ pub fn menu() -> XElement {
             img(class = style::menu_icon, src = icons::menu()),
             mouseover = move |_: MouseEvent| {
                 autoclone!(hide_menu);
+                before_menu().take().map(|f| f());
                 hide_menu.cancel();
                 show_menu().set(true);
             },

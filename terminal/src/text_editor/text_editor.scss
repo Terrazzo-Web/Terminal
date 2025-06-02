@@ -54,7 +54,8 @@ ul.autocomplete {
     margin: 0;
     padding: 0;
 
-    border: 1px solid white;
+    border-left: 1px dotted gray;
+    border-bottom: 1px dotted gray;
     background-color: var(--background-color);
 
     >li {
