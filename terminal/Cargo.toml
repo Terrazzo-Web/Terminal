@@ -71,6 +71,7 @@ web-sys = { workspace = true, optional = true, features = [
     "FocusEvent",
     "Headers",
     "HtmlInputElement",
+    "KeyboardEvent",
     "MouseEvent",
     "Performance",
     "Request",
@@ -84,6 +85,9 @@ web-sys = { workspace = true, optional = true, features = [
 scopeguard = { workspace = true }
 terrazzo-build = { workspace = true }
 tonic-build = { workspace = true, features = ["prost"] }
+
+[dev-dependencies]
+fluent-asserter = { workspace = true }
 
 [features]
 default = ["server", "max_level_info"]

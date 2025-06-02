@@ -21,24 +21,13 @@ pub fn show_autocomplete(#[signal] autocomplete: Option<Vec<String>>) -> XElemen
 }
 
 #[autoclone]
-pub fn start_autocomplete(
-    base: String,
-    autocomplete: XSignal<Option<Vec<String>>>,
-    input: Arc<OnceLock<SafeHtmlInputElement>>,
-) -> impl Fn(FocusEvent) {
+pub fn start_autocomplete(input: Arc<OnceLock<SafeHtmlInputElement>>) -> impl Fn(FocusEvent) {
     move |_| {
         *before_menu() = Some(Box::new(move || {
             autoclone!(input);
             let input = input.get().or_throw("Input element not set");
             input.blur().or_throw("Can't blur() input element")
         }));
-        autocomplete.set(vec![
-            base.to_owned(),
-            "a1".to_owned(),
-            "a2".to_owned(),
-            "a3".to_owned(),
-            "a4".to_owned(),
-        ]);
     }
 }
 

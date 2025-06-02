@@ -26,6 +26,7 @@ use trz_gateway_server::server::gateway_config::GatewayConfig;
 use trz_gateway_server::server::gateway_config::app_config::AppConfig;
 
 use super::auth::AuthConfig;
+use super::auth::AuthLayer;
 use super::config::DynConfig;
 use super::root_ca_config::PrivateRootCa;
 use crate::api;
@@ -106,7 +107,20 @@ impl GatewayConfig for TerminalBackendServer {
                     "/api",
                     api::server::api_routes(&config, &auth_config, &server),
                 )
-                .merge(active_challenges.route());
+                .merge(active_challenges.route())
+                .merge(
+                    Router::new()
+                        .route(
+                            "/api/fn/{path}",
+                            get(server_fn::axum::handle_server_fn)
+                                .post(server_fn::axum::handle_server_fn)
+                                .patch(server_fn::axum::handle_server_fn)
+                                .put(server_fn::axum::handle_server_fn),
+                        )
+                        .route_layer(AuthLayer {
+                            auth_config: auth_config.clone(),
+                        }),
+                );
             let router = router.layer(SetSensitiveRequestHeadersLayer::new(once(AUTHORIZATION)));
             let router = if enabled!(Level::TRACE) {
                 router.layer(TraceLayer::new_for_http())
