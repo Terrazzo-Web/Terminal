@@ -132,6 +132,12 @@ pub fn api_routes(
                     auth_config: auth_config.clone(),
                 }),
         )
+        .route(
+            "/fn/{*path}",
+            get(|request| server_fn::axum::handle_server_fn(request)).route_layer(AuthLayer {
+                auth_config: auth_config.clone(),
+            }),
+        )
 }
 
 pub async fn login(

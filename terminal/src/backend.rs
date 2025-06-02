@@ -105,6 +105,14 @@ pub fn run_server() -> Result<(), RunServerError> {
 
 #[tokio::main]
 async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError> {
+    #[cfg(debug_assertions)]
+    {
+        debug!("server_fn paths:");
+        for (m, p) in server_fn::axum::server_fn_paths() {
+            debug!("{m} {p}");
+        }
+        debug!("server_fn paths END");
+    }
     let config = config.into_dyn(&cli);
     let server_config = config.server.clone();
     if cli.action == Action::SetPassword {
