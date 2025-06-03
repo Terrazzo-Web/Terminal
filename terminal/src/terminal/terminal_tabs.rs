@@ -10,6 +10,8 @@ use self::add_tab::RemotesState;
 use super::TerminalsState;
 use super::terminal_tab::TerminalTab;
 use crate::api::client_address::ClientAddress;
+use crate::assets::icons;
+use crate::frontend::menu::menu;
 use crate::terminal_id::TerminalId;
 
 mod add_tab;
@@ -36,6 +38,11 @@ impl TabsDescriptor for TerminalTabs {
         &self.terminal_tabs
     }
 
+    #[html]
+    fn before_titles(&self, _state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
+        Some(menu())
+    }
+
     #[autoclone]
     #[html]
     fn after_titles(&self, state: &TerminalsState) -> impl IntoIterator<Item = impl Into<XNode>> {
@@ -48,7 +55,7 @@ impl TabsDescriptor for TerminalTabs {
                     autoclone!(client_names_state);
                     add_tab::active(t, client_names_state.remotes.clone())
                 },
-                img(src = "/static/icons/plus-square.svg"),
+                img(src = icons::add_tab()),
                 click = add_tab::create_terminal(state.clone(), ClientAddress::default()),
                 mouseenter = client_names_state.mouseenter(),
             ),

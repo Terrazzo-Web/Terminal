@@ -22,6 +22,7 @@ use crate::api;
 use crate::api::TabTitle;
 use crate::api::TerminalDef;
 use crate::api::client::LiveTerminalDef;
+use crate::assets::icons;
 use crate::terminal_id::TerminalId;
 
 #[nameth]
@@ -138,7 +139,7 @@ impl TabDescriptor for TerminalTab {
         let close_button = img(
             key = "close-icon",
             class = super::style::close_icon,
-            src = "/static/icons/x-lg.svg",
+            src = icons::close_tab(),
             click = move |ev: web_sys::MouseEvent| {
                 autoclone!(terminal);
                 ev.stop_propagation();

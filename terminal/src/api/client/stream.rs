@@ -1,5 +1,6 @@
 use std::cell::Cell;
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -212,4 +213,22 @@ enum ShutdownPipe {
     Signal(oneshot::Sender<()>),
 }
 
-static DISPATCHERS: Mutex<Option<StreamDispatchers>> = Mutex::new(None);
+static DISPATCHERS: Dispatchers = Dispatchers::new();
+
+struct Dispatchers(Mutex<Option<StreamDispatchers>>);
+
+unsafe impl Sync for Dispatchers {}
+
+impl Dispatchers {
+    pub const fn new() -> Self {
+        Self(Mutex::new(None))
+    }
+}
+
+impl Deref for Dispatchers {
+    type Target = Mutex<Option<StreamDispatchers>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}

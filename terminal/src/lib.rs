@@ -10,3 +10,9 @@ mod terminal_id;
 pub use self::backend::RunServerError;
 #[cfg(feature = "server")]
 pub use self::backend::run_server;
+
+#[allow(unused)]
+// #[server]
+async fn dummy() -> Result<(), server_fn::ServerFnError> {
+    Ok(())
+}

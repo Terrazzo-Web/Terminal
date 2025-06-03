@@ -48,19 +48,23 @@ pub fn terminals(template: XTemplate) -> Consumers {
 pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: TerminalTabs) -> XElement {
     info!("Render terminals: {terminal_tabs:?}");
     div(
-        class = style::terminals,
-        tabs(
-            terminal_tabs,
-            state,
-            Rc::new(TabsOptions {
-                tabs_class: Some(style::tabs.into()),
-                titles_class: Some(style::titles.into()),
-                title_class: Some(style::title.into()),
-                items_class: Some(style::items.into()),
-                item_class: Some(style::item.into()),
-                selected_class: Some(style::selected.into()),
-                ..TabsOptions::default()
-            }),
+        style = "height: 100%;",
+        div(
+            key = "terminals",
+            class = style::terminals,
+            tabs(
+                terminal_tabs,
+                state,
+                Rc::new(TabsOptions {
+                    tabs_class: Some(style::tabs.into()),
+                    titles_class: Some(style::titles.into()),
+                    title_class: Some(style::title.into()),
+                    items_class: Some(style::items.into()),
+                    item_class: Some(style::item.into()),
+                    selected_class: Some(style::selected.into()),
+                    ..TabsOptions::default()
+                }),
+            ),
         ),
     )
 }
