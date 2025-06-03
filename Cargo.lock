@@ -165,8 +165,6 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 [[package]]
 name = "autoclone"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b84c089ba3f0236accc39199a764dd7a4e7a06cb99aad66b28312fc72c357219"
 dependencies = [
  "darling",
  "prettyplease",
@@ -984,7 +982,7 @@ dependencies = [
  "scopeguard",
  "stylance",
  "terrazzo",
- "terrazzo-build",
+ "terrazzo-build 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
  "tower-http",
  "tracing",
@@ -1888,8 +1886,6 @@ checksum = "1d87ecb2933e8aeadb3e3a02b828fed80a7528047e68b4f424523a0981a3a084"
 [[package]]
 name = "nameth"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3bb86ff5902be82210af6952a393c89454088146acec48eb37b4d1bc9fa383e"
 dependencies = [
  "nameth-macro",
 ]
@@ -1897,8 +1893,6 @@ dependencies = [
 [[package]]
 name = "nameth-macro"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8172f051a5b16401ec0a4767e85b7d8a563d2b9134c9b40e875e8c2e2109d438"
 dependencies = [
  "darling",
  "quote",
@@ -3146,8 +3140,6 @@ dependencies = [
 [[package]]
 name = "terrazzo"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21e6bc1bc6cbaf77d36b8e1b6668f45463e512f25bbb0b5b134270915b936c77"
 dependencies = [
  "autoclone",
  "axum",
@@ -3159,13 +3151,21 @@ dependencies = [
  "rsass-macros",
  "scopeguard",
  "stylance",
- "terrazzo-build",
+ "terrazzo-build 0.1.12",
  "terrazzo-client",
  "terrazzo-macro",
  "thiserror 2.0.12",
  "tracing",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "terrazzo-build"
+version = "0.1.12"
+dependencies = [
+ "nameth",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -3181,8 +3181,6 @@ dependencies = [
 [[package]]
 name = "terrazzo-client"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d8ca280853b29e6b90d1c44d0637d7d8d0ffd14b69b1a449da1a97499214649"
 dependencies = [
  "autoclone",
  "nameth",
@@ -3198,13 +3196,12 @@ dependencies = [
 [[package]]
 name = "terrazzo-macro"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28136234195115297c8ac6c2dcc008188d2ae6227bdcdf90702e4ce9d231751c"
 dependencies = [
  "deluxe",
  "prettyplease",
  "proc-macro2",
  "quote",
+ "server_fn_macro",
  "syn",
 ]
 
@@ -3255,7 +3252,7 @@ dependencies = [
  "static_assertions",
  "stylance",
  "terrazzo",
- "terrazzo-build",
+ "terrazzo-build 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "terrazzo-pty",
  "thiserror 2.0.12",
  "tokio",
@@ -3581,15 +3578,9 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-<<<<<<< HEAD
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cc2d9e086a412a451384326f521c8123a99a466b329941a9403696bff9b0da2"
-=======
 version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adc82fd73de2a9722ac5da747f12383d2bfdb93591ee6c58486e0097890f05f2"
->>>>>>> origin/main
 dependencies = [
  "bitflags",
  "bytes",
@@ -3719,8 +3710,6 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "trz-gateway-client"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dc7e2a044870982c4980e213514eb27664de36daecd957ac810a57e041cc733"
 dependencies = [
  "futures",
  "hostname",
@@ -3749,8 +3738,6 @@ dependencies = [
 [[package]]
 name = "trz-gateway-common"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5cdff89ce59aca7c51628417d0caa4473a5c03251586ca6d2e2900afbb7937f"
 dependencies = [
  "axum",
  "bytes",
@@ -3779,8 +3766,6 @@ dependencies = [
 [[package]]
 name = "trz-gateway-server"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "756fb96fa8efbb6ddf96e7f474a16ccea999700b529b5148cef62886a9fcc70a"
 dependencies = [
  "autoclone",
  "axum",

@@ -64,15 +64,12 @@ fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -
                 show_menu_mut.clone(),
                 hide_menu.clone(),
             ),
-<<<<<<< HEAD
             menu_item(
                 App::TextEditor,
                 app(),
                 show_menu_mut.clone(),
                 hide_menu.clone(),
             ),
-=======
->>>>>>> origin/main
         )
     } else {
         tag(style::visibility = "hidden", style::display = "none")
@@ -106,20 +103,14 @@ fn menu_item(
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum App {
     Terminal,
-<<<<<<< HEAD
     TextEditor,
-=======
->>>>>>> origin/main
 }
 
 impl std::fmt::Display for App {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             App::Terminal => "Terminal",
-<<<<<<< HEAD
             App::TextEditor => "Text editor",
-=======
->>>>>>> origin/main
         }
         .fmt(f)
     }
@@ -130,10 +121,7 @@ impl App {
     pub fn icon(&self) -> &'static str {
         match self {
             App::Terminal => icons::terminal(),
-<<<<<<< HEAD
             App::TextEditor => icons::text_editor(),
-=======
->>>>>>> origin/main
         }
     }
 }
