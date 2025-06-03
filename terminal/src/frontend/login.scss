@@ -13,3 +13,8 @@ div.login {
         border: 1px solid var(--color);
     }
 }
+
+img.key-icon {
+    @include trz-icon;
+    margin-right: var(--padding);
+}

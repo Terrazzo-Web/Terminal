@@ -45,20 +45,21 @@ pub fn show_clients_dropdown(
 ) -> XElement {
     info!("Render client names");
     if let Remotes::Some(remotes) = remotes {
-        let client_names = remotes.into_iter().map(|client_address| {
-            li(
-                "{client_address} ⏎",
-                mouseenter = move |_ev| {
-                    autoclone!(hide_clients);
-                    hide_clients.cancel();
-                },
-                click = create_terminal(state.clone(), client_address),
-            )
-        });
-        tag(class = super::style::add_client_tab, client_names..)
-    } else {
-        tag(style::visibility = "hidden", style::display = "none")
+        if !remotes.is_empty() {
+            let client_names = remotes.into_iter().map(|client_address| {
+                li(
+                    "{client_address} ⏎",
+                    mouseenter = move |_ev| {
+                        autoclone!(hide_clients);
+                        hide_clients.cancel();
+                    },
+                    click = create_terminal(state.clone(), client_address),
+                )
+            });
+            return tag(class = super::style::add_client_tab, client_names..);
+        }
     }
+    return tag(style::visibility = "hidden", style::display = "none");
 }
 
 impl RemotesState {

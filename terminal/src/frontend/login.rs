@@ -12,6 +12,9 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
 use web_sys::HtmlInputElement;
 
+use super::menu::App;
+use super::menu::app;
+use crate::assets::icons;
 use crate::terminal::terminals;
 
 stylance::import_crate_style!(style, "src/frontend/login.scss");
@@ -21,34 +24,33 @@ stylance::import_crate_style!(style, "src/frontend/login.scss");
 #[template]
 pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
     match logged_in {
-        LoggedInStatus::Login => div(|t| terminals(t)),
+        LoggedInStatus::Login => div(key = "app", div(|t| show_app(t, app()))),
         LoggedInStatus::Logout => div(
+            key = "login",
             class = style::login,
-            div(
-                "Password: ",
-                input(
-                    r#type = "password",
-                    after_render = |password: Element| {
-                        let password: HtmlElement = password.dyn_into().or_throw("password");
-                        let () = password.focus().or_throw("password focus");
-                    },
-                    change = move |ev: web_sys::Event| {
-                        let Ok(password): Result<HtmlInputElement, _> = ev
-                            .current_target_element("The password field")
-                            .map_err(|error| warn!("{error}"))
-                        else {
-                            return;
-                        };
+            img(class = style::key_icon, src = icons::key_icon()),
+            input(
+                r#type = "password",
+                after_render = |password: Element| {
+                    let password: HtmlElement = password.dyn_into().or_throw("password");
+                    let () = password.focus().or_throw("password focus");
+                },
+                change = move |ev: web_sys::Event| {
+                    let Ok(password): Result<HtmlInputElement, _> = ev
+                        .current_target_element("The password field")
+                        .map_err(|error| warn!("{error}"))
+                    else {
+                        return;
+                    };
 
-                        spawn_local(async move {
-                            autoclone!(logged_in_mut);
-                            match crate::api::client::login::login(Some(&password.value())).await {
-                                Ok(()) => logged_in_mut.set(LoggedInStatus::Login),
-                                Err(error) => warn!("{error}"),
-                            }
-                        });
-                    },
-                ),
+                    spawn_local(async move {
+                        autoclone!(logged_in_mut);
+                        match crate::api::client::login::login(Some(&password.value())).await {
+                            Ok(()) => logged_in_mut.set(LoggedInStatus::Login),
+                            Err(error) => warn!("{error}"),
+                        }
+                    });
+                },
             ),
         ),
         LoggedInStatus::Unknown => {
@@ -62,7 +64,7 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
                     }
                 }
             });
-            div(class = style::login)
+            div(key = "login-pending", class = style::login)
         }
     }
 }
@@ -85,4 +87,12 @@ pub enum LoggedInStatus {
 
     #[default]
     Unknown,
+}
+
+#[html]
+#[template]
+fn show_app(#[signal] app: App) -> XElement {
+    match app {
+        App::Terminal => div(|t| terminals(t)),
+    }
 }

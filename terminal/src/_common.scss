@@ -20,6 +20,7 @@ body {
     --color: green;
     --link-color: green;
     --background-color: black;
+    --padding: 5px;
     background-color: var(--background-color);
 }
 
@@ -57,4 +58,17 @@ body {
     -o-user-drag: none;
     -ms-user-drag: none;
     user-drag: none;
+}
+
+@mixin trz-icon($size: 15px) {
+    display: block;
+    height: $size;
+    border: 0;
+    margin: 0px;
+    padding: 0px;
+    filter: invert(1);
+}
+
+#main {
+    height: 100%;
 }

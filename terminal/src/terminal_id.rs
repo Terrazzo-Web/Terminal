@@ -36,14 +36,14 @@ mod client {
         fn from(value: XString) -> Self {
             match value {
                 XString::Str(str) => str.into(),
-                XString::Arc(arc) => Self { id: arc },
+                XString::Ref(ptr) => Self { id: ptr },
             }
         }
     }
 
     impl From<TerminalId> for XString {
         fn from(value: TerminalId) -> Self {
-            XString::Arc(value.id)
+            XString::Ref(value.id)
         }
     }
 }
