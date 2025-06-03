@@ -9,7 +9,6 @@ use terrazzo::template;
 use terrazzo::widgets::debounce::DoDebounce;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::FocusEvent;
-use web_sys::KeyboardEvent;
 use web_sys::MouseEvent;
 
 use super::path_selector::SafeHtmlInputElement;
@@ -55,6 +54,7 @@ pub fn start_autocomplete(
             input_element.blur().or_throw("Can't blur() input element")
         }));
         autocomplete.set(Some(Default::default()));
+        do_autocomplete_impl(input.clone(), autocomplete.clone());
     }
 }
 
@@ -67,9 +67,9 @@ pub fn stop_autocomplete(autocomplete: XSignal<Option<Vec<String>>>) -> impl Fn(
 pub fn do_autocomplete(
     input: Arc<OnceLock<SafeHtmlInputElement>>,
     autocomplete: XSignal<Option<Vec<String>>>,
-) -> impl Fn(KeyboardEvent) {
+) -> impl Fn(()) {
     Duration::from_millis(250)
-        .debounce(move |_| do_autocomplete_impl(input.clone(), autocomplete.clone()))
+        .debounce(move |()| do_autocomplete_impl(input.clone(), autocomplete.clone()))
 }
 
 #[autoclone]

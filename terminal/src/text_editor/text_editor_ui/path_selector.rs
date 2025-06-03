@@ -26,6 +26,7 @@ pub fn path_selector() -> XElement {
 fn path_selector_impll(name: &'static str, icon_src: icons::Icon) -> XElement {
     let autocomplete: XSignal<Option<Vec<String>>> = XSignal::new(name, None);
     let input: Arc<OnceLock<SafeHtmlInputElement>> = OnceLock::new().into();
+    let do_autocomplete = Ptr::new(do_autocomplete(input.clone(), autocomplete.clone()));
     tag(
         class = super::style::path_selector,
         img(class = super::style::icon, src = icon_src),
@@ -45,7 +46,14 @@ fn path_selector_impll(name: &'static str, icon_src: icons::Icon) -> XElement {
                 class = super::style::selector,
                 focus = start_autocomplete(input.clone(), autocomplete.clone()),
                 blur = stop_autocomplete(autocomplete.clone()),
-                keypress = do_autocomplete(input.clone(), autocomplete.clone()),
+                keydown = move |_| {
+                    autoclone!(do_autocomplete);
+                    do_autocomplete(())
+                },
+                click = move |_| {
+                    autoclone!(do_autocomplete);
+                    do_autocomplete(())
+                },
             ),
             show_autocomplete(input, autocomplete.clone(), autocomplete),
         ),

@@ -1,8 +1,13 @@
 #![cfg(feature = "server")]
 
+use std::cmp::Reverse;
+use std::ffi::OsStr;
 use std::fmt::Debug;
-use std::ops::Deref;
+use std::fs::Metadata;
 use std::path::Path;
+use std::path::PathBuf;
+use std::time::Duration;
+use std::time::SystemTime;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -13,113 +18,223 @@ use trz_gateway_common::http_error::HttpError;
 use trz_gateway_common::http_error::IsHttpError;
 
 const ROOT: &str = "/";
+const MAX_RESULTS: usize = 20;
 
-pub fn base_path_autocomplete(path: String) -> Result<Vec<String>, HttpError<AutoCompleteError>> {
-    Ok(base_path_autocomplete_impl(path.as_ref())?)
+pub fn base_path_autocomplete(input: String) -> Result<Vec<String>, HttpError<AutoCompleteError>> {
+    Ok(path_autocomplete_impl(input, |metadata| metadata.is_dir())?)
 }
 
-pub fn base_path_autocomplete_impl(path: &Path) -> Result<Vec<String>, AutoCompleteError> {
-    let _span = debug_span!("Autocomplete", path = %path.to_string_lossy()).entered();
-    match path.metadata() {
-        Ok(metadata) => {
+pub fn path_autocomplete_impl(
+    input: String,
+    leaf_filter: impl Fn(&Metadata) -> bool,
+) -> Result<Vec<String>, AutoCompleteError> {
+    let input = input.trim();
+    let _span = debug_span!("Autocomplete", input).entered();
+    let path = canonicalize(if input.is_empty() { ROOT } else { &input }.as_ref());
+    let ends_with_slash = input.ends_with("/");
+    let ends_with_slashdot = input.ends_with("/.");
+    if !ends_with_slashdot {
+        if let Ok(metadata) = path
+            .metadata()
+            .inspect_err(|error| debug!("Path does not exist, finding best match. Error={error}"))
+        {
             if metadata.is_dir() {
                 debug!("List directory");
-                return list_dir(&path);
+                return list_folders(&path, leaf_filter);
             } else {
                 debug!("List parent directory");
-                return path
-                    .parent()
-                    .map(list_dir)
-                    .unwrap_or_else(|| list_dir(ROOT.as_ref()));
+                let parent = path.parent().unwrap_or(ROOT.as_ref());
+                return list_folders(parent, leaf_filter);
             }
         }
-        Err(error) => {
-            debug!("Path does not exist, finding best match. Error={error}");
-            return resolve_path(path);
-        }
     }
+    return resolve_path(&path, ends_with_slash, ends_with_slashdot, leaf_filter);
 }
 
-fn list_dir(path: &Path) -> Result<Vec<String>, AutoCompleteError> {
+fn canonicalize(path: &Path) -> PathBuf {
+    let mut canonicalized = PathBuf::new();
+    for leg in path {
+        if leg == ".." {
+            if let Some(parent) = canonicalized.parent() {
+                canonicalized = parent.to_owned();
+            }
+        } else {
+            canonicalized.push(leg);
+        }
+    }
+    return canonicalized;
+}
+
+fn list_folders(
+    path: &Path,
+    leaf_filter: impl Fn(&Metadata) -> bool,
+) -> Result<Vec<String>, AutoCompleteError> {
     let mut result = vec![];
     for child in path.read_dir().map_err(AutoCompleteError::ListDir)? {
-        match child {
-            Ok(child) => result.push(child.path().to_string_lossy().into_owned()),
-            Err(error) => debug!("Error when reading {path:?}: {error}"),
+        let Ok(child) = child.map_err(|error| debug!("Error when reading {path:?}: {error}"))
+        else {
+            continue;
+        };
+        let child_path = child.path();
+
+        // Check that it is not a hidden file.
+        {
+            let Some(file_name) = child_path
+                .file_name()
+                .and_then(|file_name| file_name.to_str())
+            else {
+                continue;
+            };
+            if file_name.starts_with(".") {
+                continue;
+            }
         }
+
+        // Check that it is a folder.
+        {
+            let Ok(metadata) = child_path
+                .metadata()
+                .map_err(|error| debug!("Error when getting metadata for {child_path:?}: {error}"))
+            else {
+                continue;
+            };
+            if !leaf_filter(&metadata) {
+                continue;
+            }
+        }
+        result.push(child_path)
     }
-    return Ok(result);
+    return Ok(sort_result(result));
 }
 
-fn resolve_path(path: &Path) -> Result<Vec<String>, AutoCompleteError> {
+fn sort_result(mut result: Vec<impl AsRef<Path>>) -> Vec<String> {
+    if result.len() > MAX_RESULTS {
+        result.sort_by_cached_key(|path| {
+            let age: Option<Duration> = path
+                .as_ref()
+                .metadata()
+                .ok()
+                .and_then(|metadata| metadata.modified().ok())
+                .and_then(|modified| modified.duration_since(SystemTime::UNIX_EPOCH).ok());
+            // Sort youngest first / oldest last or error.
+            Reverse(age.unwrap_or(Duration::ZERO))
+        });
+        result = result.into_iter().take(MAX_RESULTS).collect();
+    }
+
+    let mut result: Vec<String> = result
+        .into_iter()
+        .take(MAX_RESULTS)
+        .map(|path| path.as_ref().to_string_lossy().into_owned())
+        .collect();
+    result.sort();
+    return result;
+}
+
+fn resolve_path(
+    path: &Path,
+    ends_with_slash: bool,
+    ends_with_slashdot: bool,
+    leaf_filter: impl Fn(&Metadata) -> bool,
+) -> Result<Vec<String>, AutoCompleteError> {
     let ancestors = {
         let mut ancestors = vec![];
         for ancestor in path.ancestors() {
-            let ancestor_name = ancestor.file_name().unwrap_or_default().to_string_lossy();
-            ancestors.push(ancestor_name);
+            if let Some(ancestor_name) = ancestor.file_name() {
+                ancestors.push(ancestor_name.as_ref());
+            }
         }
         if ancestors.is_empty() {
-            ancestors.push(ROOT.into());
+            ancestors.push(ROOT.as_ref());
         } else {
             ancestors.reverse();
+        }
+        if ends_with_slash {
+            ancestors.push("".as_ref());
+        } else if ends_with_slashdot {
+            ancestors.push(".".as_ref());
         }
         ancestors
     };
     let mut result = vec![];
-    populate_paths(&mut result, ROOT.as_ref(), &ancestors);
-    Ok(result)
+    populate_paths(
+        &mut result,
+        PathBuf::from(ROOT),
+        None,
+        &ancestors,
+        &leaf_filter,
+    );
+    Ok(sort_result(result))
 }
 
-fn populate_paths<'t>(
-    result: &mut Vec<String>,
-    path: &Path,
-    ancestors: &[impl Deref<Target = str> + Debug],
+fn populate_paths<'a>(
+    result: &mut Vec<PathBuf>,
+    accu: PathBuf,
+    metadata: Option<Metadata>,
+    ancestors: &[&OsStr],
+    leaf_filter: &impl Fn(&Metadata) -> bool,
 ) {
-    let &[first, rest @ ..] = &ancestors else {
-        debug!("Found {path:?}");
-        result.push(path.to_string_lossy().into_owned());
+    let [leg, ancestors @ ..] = &ancestors else {
+        let metadata = metadata.or_else(|| accu.metadata().ok());
+        if metadata
+            .map(|metadata| leaf_filter(&metadata))
+            .unwrap_or(false)
+        {
+            debug!("Found matching leaf {accu:?}");
+            result.push(accu);
+        }
         return;
     };
 
-    let first = &**first;
-    debug!(?path, first, "Populate path. ancestors={ancestors:?}");
+    debug!(?accu, ?leg, "Populate path. ancestors={ancestors:?}");
 
-    // If "/{path}/{first}" exists, return it.
-    {
-        let mut child_path = path.to_path_buf();
-        child_path.push(first);
-        if child_path.exists() {
-            debug!("Exact match {child_path:?}");
-            populate_paths(result, &child_path, rest);
+    // If "/{accu}/{leg}" exists, return it.
+    // Note: only the last leg can be "" (or ".") if ends_with_slash (or ends_with_slashdot).
+    if !ancestors.is_empty() || leg.as_encoded_bytes() != b"." && !leg.is_empty() {
+        let mut child_accu = accu.to_path_buf();
+        child_accu.push(leg);
+        if let Ok(metadata) = child_accu.metadata() {
+            debug!("Exact match {child_accu:?}");
+            populate_paths(result, child_accu, Some(metadata), ancestors, leaf_filter);
             return;
         }
     }
 
-    let Ok(dir) = path.read_dir() else {
-        debug!("Not a folder {path:?}");
+    let Some(leg) = leg.to_str() else {
+        debug!("Can't match against something that is not a UTF-8 string: {leg:?}");
+        return;
+    };
+    let leg_lc = leg.to_lowercase();
+
+    let Ok(accu_read_dir) = accu.read_dir() else {
+        debug!("Not a folder {accu:?}");
         return;
     };
 
-    // Populate "/{path}/{child}" for every matching child.
-    for child in dir.filter_map(|child| child.ok()) {
-        let child = child.file_name();
-        let child = child.to_string_lossy();
-        if child.starts_with(".") {
-            match child.as_ref() {
-                ".." | "." => continue,
-                _ => (),
+    // Populate "/{accu}/{child}" for every matching child.
+    for child in accu_read_dir.filter_map(|child| child.ok()) {
+        let child_name = child.file_name();
+        if child_name.as_encoded_bytes().starts_with(b".") {
+            // Skip "." and ".."
+            if let b"." | b".." = child_name.as_encoded_bytes() {
+                continue;
             }
-            if !first.starts_with(".") {
+
+            // Only match hidden files if leg starts with '.'
+            if !leg.starts_with('.') {
                 continue;
             }
         }
-        if child.contains(first) {
-            debug!("Child '{child}' matches '{first}'");
-            let mut child_path = path.to_path_buf();
-            child_path.push(child.as_ref());
-            populate_paths(result, &child_path, rest);
+
+        let Some(child_name) = child_name.to_str() else {
+            debug!("Can't match child that is not UTF-8 string: {child_name:?}");
+            continue;
+        };
+        if child_name.to_lowercase().contains(&leg_lc) {
+            debug!("Child '{child_name}' matches '{leg}'");
+            populate_paths(result, child.path(), None, ancestors, leaf_filter);
         } else {
-            debug!("Child '{child}' does not match '{first}'");
+            debug!("Child '{child_name}' does not match '{leg}'");
         }
     }
 }
@@ -141,7 +256,7 @@ impl IsHttpError for AutoCompleteError {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::borrow::Cow;
 
     use fluent_asserter::prelude::*;
     use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;
@@ -152,7 +267,7 @@ mod tests {
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         assert_that!(&root).ends_with("/terminal");
 
-        let autocomplete = call_autocomplete(&root, &root);
+        let autocomplete = call_autocomplete(&root, root.clone());
         assert_that!(&autocomplete).contains(&"ROOT/assets".into());
         assert_that!(&autocomplete).contains(&"ROOT/src".into());
         assert_that!(&autocomplete).contains(&"ROOT/build.rs".into());
@@ -182,12 +297,96 @@ mod tests {
         assert_that!(&autocomplete).contains(&PATH_SELECTOR_RS_PATH.into());
     }
 
-    fn call_autocomplete(prefix: &str, path: impl AsRef<Path>) -> Vec<String> {
-        let path = path.as_ref();
-        let mut autocomplete = super::base_path_autocomplete_impl(path).unwrap();
+    #[test]
+    fn match_dirs() {
+        enable_tracing_for_tests();
+        let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let autocomplete = call_autocomplete_dir(&root, format!("{root}/src/text/t"));
+        assert_that!(&autocomplete)
+            .is_equal_to(&["ROOT/src/text_editor/text_editor_ui".into()].into());
+    }
+
+    #[test]
+    fn match_files() {
+        enable_tracing_for_tests();
+        let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let autocomplete = call_autocomplete_files(&root, format!("{root}/src/text/ui"));
+        assert_that!(&autocomplete).is_equal_to(
+            &[
+                "ROOT/src/text_editor/text_editor_ui.rs".into(),
+                "ROOT/src/text_editor/text_editor_ui.scss".into(),
+            ]
+            .into(),
+        );
+    }
+
+    fn call_autocomplete(prefix: &str, path: String) -> Vec<String> {
+        let mut autocomplete = super::path_autocomplete_impl(path, |_| true).unwrap();
         autocomplete
             .iter_mut()
             .for_each(|p| *p = p.replace(prefix, "ROOT"));
         return autocomplete;
+    }
+
+    fn call_autocomplete_dir(prefix: &str, path: String) -> Vec<String> {
+        let mut autocomplete = super::path_autocomplete_impl(path, |m| m.is_dir()).unwrap();
+        autocomplete
+            .iter_mut()
+            .for_each(|p| *p = p.replace(prefix, "ROOT"));
+        return autocomplete;
+    }
+
+    fn call_autocomplete_files(prefix: &str, path: String) -> Vec<String> {
+        let mut autocomplete = super::path_autocomplete_impl(path, |m| m.is_file()).unwrap();
+        autocomplete
+            .iter_mut()
+            .for_each(|p| *p = p.replace(prefix, "ROOT"));
+        return autocomplete;
+    }
+
+    #[test]
+    fn canonicalize() {
+        assert_that!(
+            super::canonicalize("/a/b".as_ref())
+                .iter()
+                .map(|leg| leg.to_string_lossy())
+                .collect::<Vec<_>>()
+        )
+        .is_equal_to(["/", "a", "b"].map(Cow::from).into());
+        assert_that!(
+            super::canonicalize("a/b".as_ref())
+                .iter()
+                .map(|leg| leg.to_string_lossy())
+                .collect::<Vec<_>>()
+        )
+        .is_equal_to(["a", "b"].map(Cow::from).into());
+        assert_that!(
+            super::canonicalize("/a/b/.".as_ref())
+                .iter()
+                .map(|leg| leg.to_string_lossy())
+                .collect::<Vec<_>>()
+        )
+        .is_equal_to(["/", "a", "b"].map(Cow::from).into());
+        assert_that!(
+            super::canonicalize("/a/./b/.".as_ref())
+                .iter()
+                .map(|leg| leg.to_string_lossy())
+                .collect::<Vec<_>>()
+        )
+        .is_equal_to(["/", "a", "b"].map(Cow::from).into());
+        assert_that!(
+            super::canonicalize("/a/./b/../c/.".as_ref())
+                .iter()
+                .map(|leg| leg.to_string_lossy())
+                .collect::<Vec<_>>()
+        )
+        .is_equal_to(["/", "a", "c"].map(Cow::from).into());
+        assert_that!(
+            super::canonicalize("/a/../../b/./c/.".as_ref())
+                .iter()
+                .map(|leg| leg.to_string_lossy())
+                .collect::<Vec<_>>()
+        )
+        .is_equal_to(["/", "b", "c"].map(Cow::from).into());
     }
 }
