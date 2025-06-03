@@ -32,7 +32,9 @@ pub fn menu() -> XElement {
             img(class = style::menu_icon, src = icons::menu()),
             mouseover = move |_: MouseEvent| {
                 autoclone!(hide_menu);
-                before_menu().take().map(|f| f());
+                if let Some(f) = before_menu().take() {
+                    f()
+                };
                 hide_menu.cancel();
                 show_menu().set(true);
             },
