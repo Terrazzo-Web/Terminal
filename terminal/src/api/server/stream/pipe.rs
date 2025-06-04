@@ -23,6 +23,7 @@ use tracing::info_span;
 use tracing::trace;
 use tracing_futures::Instrument as _;
 use trz_gateway_common::http_error::HttpError;
+use trz_gateway_server::server::Server;
 
 use super::registration::PingTimeoutError;
 use crate::api::Chunk;
@@ -45,7 +46,7 @@ pub const KEEPALIVE_TTL: Duration = if cfg!(feature = "concise_traces") {
 };
 
 #[autoclone]
-pub fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
+pub fn pipe(server: Arc<Server>, correlation_id: CorrelationId) -> impl IntoResponse {
     let span = info_span!("Pipe", %correlation_id);
     let _span = span.clone().entered();
     info!("Start");
@@ -78,16 +79,19 @@ pub fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
         let lease = lease
             // Remove processes when EOS or failure
             .inspect(move |chunk| {
-                autoclone!(terminal_id);
+                autoclone!(server, terminal_id);
                 match chunk {
                     LeaseItem::EOS | LeaseItem::Error { .. } => {}
                     LeaseItem::Data { .. } => return,
                 };
                 let task = async move {
-                    autoclone!(terminal_id, client_address);
-                    let server = None.unwrap();
-                    match client_service::close::close(server, &client_address, terminal_id.clone())
-                        .await
+                    autoclone!(server, terminal_id, client_address);
+                    match client_service::close::close(
+                        &server,
+                        &client_address,
+                        terminal_id.clone(),
+                    )
+                    .await
                     {
                         Ok(()) => debug!("Closed {terminal_id}"),
                         Err(error) => debug!("Closing {terminal_id} returned {error}"),
