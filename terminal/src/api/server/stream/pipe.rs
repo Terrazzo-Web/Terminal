@@ -97,7 +97,7 @@ pub fn pipe(server: Arc<Server>, correlation_id: CorrelationId) -> impl IntoResp
                         Err(error) => debug!("Closing {terminal_id} returned {error}"),
                     }
                 };
-                let _ = tokio::spawn(task.in_current_span());
+                tokio::spawn(task.in_current_span());
             });
 
         // Concat chunks
