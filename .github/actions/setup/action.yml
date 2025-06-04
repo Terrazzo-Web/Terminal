@@ -3,7 +3,7 @@ inputs:
   github-token:
     description: "GitHub token for authentication"
     required: true
-  cache-level
+  cache-level:
     description: 'How to setup the cache'
     required: true
     type: choice
