@@ -1,5 +1,5 @@
 [server]
-host = "localhost323"
+host = "localhost"
 port = 3001
 pidfile = "/home/richard/.terrazzo/terminal-3001.pid"
 private_root_ca = "/home/richard/.terrazzo/root_ca"

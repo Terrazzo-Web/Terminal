@@ -6,5 +6,5 @@ cargo run \
     --no-default-features \
     --features server,max_level_info \
     -- \
-    --config-file $PWD/server-config.toml \
+    --config-file $PWD/config-server.toml \
     $@
