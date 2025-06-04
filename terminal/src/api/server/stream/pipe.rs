@@ -23,6 +23,7 @@ use tracing::info_span;
 use tracing::trace;
 use tracing_futures::Instrument as _;
 use trz_gateway_common::http_error::HttpError;
+use trz_gateway_server::server::Server;
 
 use super::registration::PingTimeoutError;
 use crate::api::Chunk;
@@ -30,7 +31,7 @@ use crate::api::KEEPALIVE_TTL_HEADER;
 use crate::api::NEWLINE;
 use crate::api::server::correlation_id::CorrelationId;
 use crate::api::server::stream::registration::Registration;
-use crate::processes;
+use crate::backend::client_service;
 
 pub const PIPE_TTL: Duration = if cfg!(feature = "concise_traces") {
     Duration::from_secs(3600)
@@ -45,7 +46,7 @@ pub const KEEPALIVE_TTL: Duration = if cfg!(feature = "concise_traces") {
 };
 
 #[autoclone]
-pub fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
+pub fn pipe(server: Arc<Server>, correlation_id: CorrelationId) -> impl IntoResponse {
     let span = info_span!("Pipe", %correlation_id);
     let _span = span.clone().entered();
     info!("Start");
@@ -56,8 +57,10 @@ pub fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
         drop(Registration::take_if(&correlation_id));
         info!("End");
     }));
-    let rx = rx.flat_map_unordered(None, move |(terminal_id, lease)| {
+    let rx = rx.flat_map_unordered(None, move |(terminal_address, lease)| {
         let _rx_dropped = rx_dropped.clone();
+        let terminal_id = terminal_address.id;
+        let client_address = terminal_address.via;
         let span = tracing::info_span!("Lease", %terminal_id);
 
         // Debug logs
@@ -76,15 +79,25 @@ pub fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
         let lease = lease
             // Remove processes when EOS or failure
             .inspect(move |chunk| {
-                autoclone!(terminal_id);
+                autoclone!(server, terminal_id);
                 match chunk {
                     LeaseItem::EOS | LeaseItem::Error { .. } => {}
                     LeaseItem::Data { .. } => return,
                 };
-                match processes::close::close(&terminal_id) {
-                    Ok(()) => debug!("Closed {terminal_id}"),
-                    Err(error) => debug!("Closing {terminal_id} returned {error}"),
+                let task = async move {
+                    autoclone!(server, terminal_id, client_address);
+                    match client_service::close::close(
+                        &server,
+                        &client_address,
+                        terminal_id.clone(),
+                    )
+                    .await
+                    {
+                        Ok(()) => debug!("Closed {terminal_id}"),
+                        Err(error) => debug!("Closing {terminal_id} returned {error}"),
+                    }
                 };
+                tokio::spawn(task.in_current_span());
             });
 
         // Concat chunks

@@ -12,10 +12,10 @@ use trz_gateway_server::server::Server;
 
 use super::registration::Registration;
 use crate::api::RegisterTerminalRequest;
+use crate::api::TerminalAddress;
 use crate::backend::client_service::register;
 use crate::processes;
 use crate::processes::io::LocalReader;
-use crate::terminal_id::TerminalId;
 
 pub async fn register(
     my_client_name: Option<ClientName>,
@@ -25,25 +25,28 @@ pub async fn register(
     defer!(debug!("End"));
     debug!("Start");
     async {
-        let terminal_id = request.def.address.id.clone();
+        let terminal_address = request.def.address.clone();
         let stream = register::register(my_client_name, server, request.into())
             .await
             .unwrap();
         let stream = LocalReader(stream);
-        push_lease(terminal_id, stream)?;
+        push_lease(terminal_address, stream)?;
         Ok(())
     }
     .await
     .inspect_err(|err| warn!("{err}"))
 }
 
-fn push_lease(terminal_id: TerminalId, stream: LocalReader) -> Result<(), PushLeaseError> {
+fn push_lease(
+    terminal_address: TerminalAddress,
+    stream: LocalReader,
+) -> Result<(), PushLeaseError> {
     #[cfg(debug_assertions)]
     let stream = tracing_futures::Instrument::instrument(stream, tracing::debug_span!("Lease"));
 
     Ok(Registration::current()
         .ok_or(PushLeaseError::NoClientRegisteredError)?
-        .try_send((terminal_id, stream))
+        .try_send((terminal_address, stream))
         .map_err(|err| err.into_send_error())?)
 }
 
