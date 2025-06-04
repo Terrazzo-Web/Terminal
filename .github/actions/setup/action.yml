@@ -15,7 +15,7 @@ runs:
   using: "composite"
   steps:
     - name: Setup cache for Rust compilation
-      if: ${{{ inputs.cache-level == 'strict' }}
+      if: ${{ inputs.cache-level == 'strict' }}
       uses: actions/cache@v4
       with:
         path: |
@@ -29,7 +29,7 @@ runs:
           terrazzo/target/wasm
         key: ${{ runner.os }}-cargo-1.83.0-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
     - name: Setup cache for Rust compilation
-      if: ${{{ inputs.cache-level == 'lenient' }}
+      if: ${{ inputs.cache-level == 'lenient' }}
       uses: actions/cache@v4
       with:
         path: |
