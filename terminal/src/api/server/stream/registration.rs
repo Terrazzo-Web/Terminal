@@ -12,9 +12,9 @@ use tracing::info;
 use trz_gateway_common::http_error::IsHttpError;
 
 use super::pipe::PIPE_TTL;
+use crate::api::TerminalAddress;
 use crate::api::server::correlation_id::CorrelationId;
 use crate::processes::io::LocalReader;
-use crate::terminal_id::TerminalId;
 
 type OutputStreamBase = LocalReader;
 
@@ -26,7 +26,7 @@ type OutputStream = OutputStreamBase;
 
 pub struct Registration {
     correlation_id: CorrelationId,
-    tx: mpsc::Sender<(TerminalId, OutputStream)>,
+    tx: mpsc::Sender<(TerminalAddress, OutputStream)>,
     timeout_tx: Option<oneshot::Sender<()>>,
     timeout_handle: JoinHandle<()>,
 }
@@ -34,7 +34,7 @@ pub struct Registration {
 static REGISTRATION: Mutex<Option<Registration>> = Mutex::new(None);
 
 impl Registration {
-    pub fn current() -> Option<mpsc::Sender<(TerminalId, OutputStream)>> {
+    pub fn current() -> Option<mpsc::Sender<(TerminalAddress, OutputStream)>> {
         REGISTRATION
             .lock()
             .unwrap()
@@ -69,7 +69,7 @@ impl Registration {
     pub fn set(
         correlation_id: CorrelationId,
     ) -> (
-        mpsc::Receiver<(TerminalId, OutputStream)>,
+        mpsc::Receiver<(TerminalAddress, OutputStream)>,
         impl Future<Output = ()>,
     ) {
         let (tx, rx) = mpsc::channel(10);

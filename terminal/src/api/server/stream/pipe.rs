@@ -30,7 +30,7 @@ use crate::api::KEEPALIVE_TTL_HEADER;
 use crate::api::NEWLINE;
 use crate::api::server::correlation_id::CorrelationId;
 use crate::api::server::stream::registration::Registration;
-use crate::processes;
+use crate::backend::client_service;
 
 pub const PIPE_TTL: Duration = if cfg!(feature = "concise_traces") {
     Duration::from_secs(3600)
@@ -56,8 +56,10 @@ pub fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
         drop(Registration::take_if(&correlation_id));
         info!("End");
     }));
-    let rx = rx.flat_map_unordered(None, move |(terminal_id, lease)| {
+    let rx = rx.flat_map_unordered(None, move |(terminal_address, lease)| {
         let _rx_dropped = rx_dropped.clone();
+        let terminal_id = terminal_address.id;
+        let client_address = terminal_address.via;
         let span = tracing::info_span!("Lease", %terminal_id);
 
         // Debug logs
@@ -81,10 +83,17 @@ pub fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
                     LeaseItem::EOS | LeaseItem::Error { .. } => {}
                     LeaseItem::Data { .. } => return,
                 };
-                match processes::close::close(&terminal_id) {
-                    Ok(()) => debug!("Closed {terminal_id}"),
-                    Err(error) => debug!("Closing {terminal_id} returned {error}"),
+                let task = async move {
+                    autoclone!(terminal_id, client_address);
+                    let server = None.unwrap();
+                    match client_service::close::close(server, &client_address, terminal_id.clone())
+                        .await
+                    {
+                        Ok(()) => debug!("Closed {terminal_id}"),
+                        Err(error) => debug!("Closing {terminal_id} returned {error}"),
+                    }
                 };
+                let _ = tokio::spawn(task.in_current_span());
             });
 
         // Concat chunks
