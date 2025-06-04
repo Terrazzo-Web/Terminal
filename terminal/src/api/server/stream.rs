@@ -24,8 +24,8 @@ pub use self::close::close;
 pub use self::pipe::close_pipe;
 pub use self::pipe::keepalive;
 
-pub async fn pipe(correlation_id: CorrelationId) -> impl IntoResponse {
-    pipe::pipe(correlation_id)
+pub async fn pipe(server: Arc<Server>, correlation_id: CorrelationId) -> impl IntoResponse {
+    pipe::pipe(server, correlation_id)
 }
 
 pub async fn register(

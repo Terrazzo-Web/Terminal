@@ -83,7 +83,13 @@ pub fn api_routes(
                         stream::close(server, request)
                     }),
                 )
-                .route("/stream/pipe", post(stream::pipe))
+                .route(
+                    "/stream/pipe",
+                    post(|correlation_id| {
+                        autoclone!(server);
+                        stream::pipe(server, correlation_id)
+                    }),
+                )
                 .route("/stream/pipe/close", post(stream::close_pipe))
                 .route("/stream/pipe/keepalive", post(stream::keepalive))
                 .route(
