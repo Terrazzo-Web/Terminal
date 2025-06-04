@@ -1,0 +1,23 @@
+[server]
+host = "localhost"
+port = 3101
+pidfile = "/home/richard/.terrazzo/terminal-3101.pid"
+private_root_ca = "/home/richard/.terrazzo/root_ca"
+token_lifetime = "5m"
+token_refresh = "4m 50s"
+
+[server.config_file_poll_strategy]
+fixed = "1m"
+
+[mesh]
+client_name = "Qwerty"
+gateway_url = "https://localhost:3100"
+gateway_pki = "/home/richard/.terrazzo/root_ca.cert"
+client_certificate = "/home/richard/.terrazzo/client_certificate2"
+
+[mesh.retry_strategy.exponential-backoff]
+exponent = 2.0
+max_delay = "1m"
+
+[mesh.retry_strategy.exponential-backoff.base]
+fixed = "1s"
