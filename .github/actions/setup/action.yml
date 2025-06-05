@@ -3,10 +3,20 @@ inputs:
   github-token:
     description: "GitHub token for authentication"
     required: true
+  cache-level:
+    description: 'How to setup the cache'
+    required: true
+    type: choice
+    options:
+      - strict
+      - lenient
+      - off
 runs:
   using: "composite"
   steps:
-    - uses: actions/cache@v4
+    - name: Setup cache for Rust compilation
+      if: ${{ inputs.cache-level == 'strict' }}
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/.crates.toml
@@ -17,7 +27,22 @@ runs:
           ~/.cargo/git/db/
           target/
           terrazzo/target/wasm
-        key: ${{ runner.os }}-cargo-1.83.0-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+    - name: Setup cache for Rust compilation
+      if: ${{ inputs.cache-level == 'lenient' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/.crates.toml
+          ~/.cargo/.crates2.json
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+          terrazzo/target/wasm
+        key: ${{ runner.os }}-cargo-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-cargo-${{ github.job }}
 
     - name: Add wasm32 compilation target
       shell: bash
