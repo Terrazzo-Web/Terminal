@@ -17,6 +17,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
+          cache-level: "strict"
       - uses: ./.github/actions/check
   test:
     runs-on: ${{ matrix.os }}
@@ -28,6 +29,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
+          cache-level: "strict"
       - uses: ./.github/actions/test
   build:
     runs-on: ${{ matrix.os }}
@@ -39,6 +41,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
+          cache-level: "strict"
       - uses: ./.github/actions/build
   publish-dry-run:
     runs-on: ubuntu-latest
@@ -47,4 +50,5 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
+          cache-level: "off"
       - uses: ./.github/actions/publish-dry-run
