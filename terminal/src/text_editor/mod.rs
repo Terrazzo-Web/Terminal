@@ -1,3 +1,6 @@
+use std::path::PathBuf;
+use std::sync::Arc;
+
 use nameth::nameth;
 use server_fn::ServerFnError;
 use terrazzo::server;
@@ -6,7 +9,7 @@ mod text_editor_service;
 pub mod text_editor_ui;
 
 #[server]
-pub async fn autocomplete_path(
+async fn autocomplete_path(
     kind: PathSelector,
     prefix: String,
     path: String,
@@ -14,9 +17,22 @@ pub async fn autocomplete_path(
     Ok(text_editor_service::autocomplete_path(kind, prefix, path)?)
 }
 
+#[server]
+async fn load_file(
+    base_path: String,
+    file_path: String,
+) -> Result<Option<Arc<str>>, ServerFnError> {
+    let path = PathBuf::from(format!("{base_path}/{file_path}"));
+    if path.exists() {
+        Ok(Some(Arc::from(std::fs::read_to_string(&path)?)))
+    } else {
+        Ok(None)
+    }
+}
+
 #[nameth]
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Copy)]
-pub enum PathSelector {
+enum PathSelector {
     BasePath,
     FilePath,
 }
