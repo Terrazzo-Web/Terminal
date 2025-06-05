@@ -17,18 +17,29 @@ use tracing::debug_span;
 use trz_gateway_common::http_error::HttpError;
 use trz_gateway_common::http_error::IsHttpError;
 
+use crate::text_editor::PathSelector;
+
 const ROOT: &str = "/";
 const MAX_RESULTS: usize = 20;
 
-pub fn base_path_autocomplete(input: String) -> Result<Vec<String>, HttpError<AutoCompleteError>> {
-    Ok(path_autocomplete_impl(input, |metadata| metadata.is_dir())?)
+pub fn autocomplete_path(
+    kind: PathSelector,
+    prefix: String,
+    input: String,
+) -> Result<Vec<String>, HttpError<AutoCompleteError>> {
+    let prefix = prefix.trim();
+    let input = input.trim();
+    let input = format!("{prefix}/{input}");
+    Ok(autocomplete_path_impl(prefix.as_ref(), input, |m| {
+        kind.accept(m)
+    })?)
 }
 
-pub fn path_autocomplete_impl(
+pub fn autocomplete_path_impl(
+    prefix: &Path,
     input: String,
     leaf_filter: impl Fn(&Metadata) -> bool,
 ) -> Result<Vec<String>, AutoCompleteError> {
-    let input = input.trim();
     let _span = debug_span!("Autocomplete", input).entered();
     let path = canonicalize(if input.is_empty() { ROOT } else { &input }.as_ref());
     let ends_with_slash = input.ends_with("/");
@@ -40,15 +51,21 @@ pub fn path_autocomplete_impl(
         {
             if metadata.is_dir() {
                 debug!("List directory");
-                return list_folders(&path, leaf_filter);
+                return list_folders(prefix, &path, leaf_filter);
             } else {
                 debug!("List parent directory");
                 let parent = path.parent().unwrap_or(ROOT.as_ref());
-                return list_folders(parent, leaf_filter);
+                return list_folders(prefix, parent, leaf_filter);
             }
         }
     }
-    return resolve_path(&path, ends_with_slash, ends_with_slashdot, leaf_filter);
+    return resolve_path(
+        prefix,
+        &path,
+        ends_with_slash,
+        ends_with_slashdot,
+        leaf_filter,
+    );
 }
 
 fn canonicalize(path: &Path) -> PathBuf {
@@ -66,6 +83,7 @@ fn canonicalize(path: &Path) -> PathBuf {
 }
 
 fn list_folders(
+    prefix: &Path,
     path: &Path,
     leaf_filter: impl Fn(&Metadata) -> bool,
 ) -> Result<Vec<String>, AutoCompleteError> {
@@ -104,10 +122,10 @@ fn list_folders(
         }
         result.push(child_path)
     }
-    return Ok(sort_result(result));
+    return Ok(sort_result(prefix, result));
 }
 
-fn sort_result(mut result: Vec<impl AsRef<Path>>) -> Vec<String> {
+fn sort_result(prefix: &Path, mut result: Vec<impl AsRef<Path>>) -> Vec<String> {
     if result.len() > MAX_RESULTS {
         result.sort_by_cached_key(|path| {
             let age: Option<Duration> = path
@@ -124,14 +142,17 @@ fn sort_result(mut result: Vec<impl AsRef<Path>>) -> Vec<String> {
 
     let mut result: Vec<String> = result
         .into_iter()
-        .take(MAX_RESULTS)
-        .map(|path| path.as_ref().to_string_lossy().into_owned())
+        .filter_map(|path| {
+            let path = path.as_ref().strip_prefix(prefix).ok()?;
+            Some(path.to_string_lossy().into_owned())
+        })
         .collect();
     result.sort();
     return result;
 }
 
 fn resolve_path(
+    prefix: &Path,
     path: &Path,
     ends_with_slash: bool,
     ends_with_slashdot: bool,
@@ -164,7 +185,7 @@ fn resolve_path(
         &ancestors,
         &leaf_filter,
     );
-    Ok(sort_result(result))
+    Ok(sort_result(prefix, result))
 }
 
 fn populate_paths<'a>(
@@ -257,8 +278,10 @@ impl IsHttpError for AutoCompleteError {
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
+    use std::path::Path;
 
     use fluent_asserter::prelude::*;
+    use nix::NixPath;
     use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;
 
     #[test]
@@ -313,15 +336,15 @@ mod tests {
         let autocomplete = call_autocomplete_files(&root, format!("{root}/src/text/ui"));
         assert_that!(&autocomplete).is_equal_to(
             &[
-                "ROOT/src/text_editor/text_editor_ui.rs".into(),
-                "ROOT/src/text_editor/text_editor_ui.scss".into(),
+                "text_editor/text_editor_ui.rs".into(),
+                "text_editor/text_editor_ui.scss".into(),
             ]
             .into(),
         );
     }
 
     fn call_autocomplete(prefix: &str, path: String) -> Vec<String> {
-        let mut autocomplete = super::path_autocomplete_impl(path, |_| true).unwrap();
+        let mut autocomplete = super::autocomplete_path_impl("".as_ref(), path, |_| true).unwrap();
         autocomplete
             .iter_mut()
             .for_each(|p| *p = p.replace(prefix, "ROOT"));
@@ -329,7 +352,8 @@ mod tests {
     }
 
     fn call_autocomplete_dir(prefix: &str, path: String) -> Vec<String> {
-        let mut autocomplete = super::path_autocomplete_impl(path, |m| m.is_dir()).unwrap();
+        let mut autocomplete =
+            super::autocomplete_path_impl("".as_ref(), path, |m| m.is_dir()).unwrap();
         autocomplete
             .iter_mut()
             .for_each(|p| *p = p.replace(prefix, "ROOT"));
@@ -337,7 +361,10 @@ mod tests {
     }
 
     fn call_autocomplete_files(prefix: &str, path: String) -> Vec<String> {
-        let mut autocomplete = super::path_autocomplete_impl(path, |m| m.is_file()).unwrap();
+        let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let mut autocomplete =
+            super::autocomplete_path_impl(format!("{root}/src").as_ref(), path, |m| m.is_file())
+                .unwrap();
         autocomplete
             .iter_mut()
             .for_each(|p| *p = p.replace(prefix, "ROOT"));
@@ -388,5 +415,13 @@ mod tests {
                 .collect::<Vec<_>>()
         )
         .is_equal_to(["/", "b", "c"].map(Cow::from).into());
+    }
+
+    #[test]
+    fn is_empty_behavior() {
+        let empty: &Path = "".as_ref();
+        assert_that!(empty.is_empty()).is_true();
+        let slash: &Path = "/".as_ref();
+        assert_that!(slash.is_empty()).is_false();
     }
 }

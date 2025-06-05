@@ -13,12 +13,15 @@ use web_sys::MouseEvent;
 
 use super::path_selector::SafeHtmlInputElement;
 use crate::frontend::menu::before_menu;
-use crate::text_editor::base_path_autocomplete;
+use crate::text_editor::PathSelector;
+use crate::text_editor::autocomplete_path;
 
 #[autoclone]
 #[html]
 #[template(tag = ul)]
 pub fn show_autocomplete(
+    kind: PathSelector,
+    prefix: Option<XSignal<String>>,
     input: Arc<OnceLock<SafeHtmlInputElement>>,
     autocomplete_sig: XSignal<Option<Vec<String>>>,
     #[signal] autocomplete: Option<Vec<String>>,
@@ -30,12 +33,17 @@ pub fn show_autocomplete(
         li(
             "{item}",
             mousedown = move |ev: MouseEvent| {
-                autoclone!(input, autocomplete_sig);
+                autoclone!(input, autocomplete_sig, prefix);
                 ev.prevent_default();
                 ev.stop_propagation();
                 let input_element = input.get().or_throw("Input element not set");
                 input_element.set_value(&item);
-                do_autocomplete_impl(input.clone(), autocomplete_sig.clone());
+                do_autocomplete_impl(
+                    kind,
+                    prefix.clone(),
+                    input.clone(),
+                    autocomplete_sig.clone(),
+                );
             },
         )
     });
@@ -44,6 +52,8 @@ pub fn show_autocomplete(
 
 #[autoclone]
 pub fn start_autocomplete(
+    kind: PathSelector,
+    prefix: Option<XSignal<String>>,
     input: Arc<OnceLock<SafeHtmlInputElement>>,
     autocomplete: XSignal<Option<Vec<String>>>,
 ) -> impl Fn(FocusEvent) {
@@ -54,12 +64,19 @@ pub fn start_autocomplete(
             input_element.blur().or_throw("Can't blur() input element")
         }));
         autocomplete.set(Some(Default::default()));
-        do_autocomplete_impl(input.clone(), autocomplete.clone());
+        do_autocomplete_impl(kind, prefix.clone(), input.clone(), autocomplete.clone());
     }
 }
 
-pub fn stop_autocomplete(autocomplete: XSignal<Option<Vec<String>>>) -> impl Fn(FocusEvent) {
+pub fn stop_autocomplete(
+    path: XSignal<String>,
+    input: Arc<OnceLock<SafeHtmlInputElement>>,
+    autocomplete: XSignal<Option<Vec<String>>>,
+) -> impl Fn(FocusEvent) {
     move |_| {
+        let input_element = input.get().or_throw("Input element not set");
+        let value = input_element.value();
+        path.set(value);
         autocomplete.set(None);
     }
 }
@@ -67,13 +84,18 @@ pub fn stop_autocomplete(autocomplete: XSignal<Option<Vec<String>>>) -> impl Fn(
 pub fn do_autocomplete(
     input: Arc<OnceLock<SafeHtmlInputElement>>,
     autocomplete: XSignal<Option<Vec<String>>>,
+    kind: PathSelector,
+    prefix: Option<XSignal<String>>,
 ) -> impl Fn(()) {
-    Duration::from_millis(250)
-        .debounce(move |()| do_autocomplete_impl(input.clone(), autocomplete.clone()))
+    Duration::from_millis(250).debounce(move |()| {
+        do_autocomplete_impl(kind, prefix.clone(), input.clone(), autocomplete.clone())
+    })
 }
 
 #[autoclone]
 fn do_autocomplete_impl(
+    kind: PathSelector,
+    prefix: Option<XSignal<String>>,
     input: Arc<OnceLock<SafeHtmlInputElement>>,
     autocomplete: XSignal<Option<Vec<String>>>,
 ) {
@@ -81,9 +103,16 @@ fn do_autocomplete_impl(
     let value = input_element.value();
     spawn_local(async move {
         autoclone!(autocomplete);
-        let autocompletes = base_path_autocomplete(value)
-            .await
-            .or_else_throw(|error| format!("Autocomplete failed: {error}"));
+        let autocompletes = autocomplete_path(
+            kind,
+            prefix
+                .as_ref()
+                .map(XSignal::get_value_untracked)
+                .unwrap_or_default(),
+            value,
+        )
+        .await
+        .or_else_throw(|error| format!("Autocomplete failed: {error}"));
         autocomplete.update(|old| {
             if old.is_some() {
                 Some(Some(autocompletes))
