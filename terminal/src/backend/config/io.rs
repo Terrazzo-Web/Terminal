@@ -8,7 +8,6 @@ use super::ConfigFile;
 
 impl ConfigFile {
     pub fn load(path: impl AsRef<Path>) -> Result<Self, ConfigFileError> {
-        // TODO if file does not exist, return a default config
         let path = path.as_ref();
         let content = if std::fs::exists(path).map_err(|error| ConfigFileError::IO {
             config_file: path.to_owned(),
