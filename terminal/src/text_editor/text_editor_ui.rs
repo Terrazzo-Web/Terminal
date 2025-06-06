@@ -29,6 +29,7 @@ pub fn text_editor() -> XElement {
 
     let file_async_view = file_path.view("content", move |file_path| {
         autoclone!(base_path, content);
+        content.set(None);
         let task = async move {
             autoclone!(base_path, content, file_path);
             let data = load_file(base_path.get_value_untracked(), file_path)

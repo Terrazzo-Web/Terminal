@@ -1,36 +1,27 @@
 use std::sync::Arc;
+use std::sync::atomic::AtomicI32;
+use std::sync::atomic::Ordering::SeqCst;
 
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 
-const JS: &str = r#"
-    const [
-        { EditorView },
-        { basicSetup },
-        { javascript }
-    ] = await Promise.all([
-        import("https://esm.sh/@codemirror/view@latest"),
-        import("https://esm.sh/@codemirror/basic-setup@latest"),
-        import("https://esm.sh/@codemirror/lang-javascript@latest"),
-    ]);
-
-    new EditorView({
-        doc: "console.log('Hello, dynamically loaded CodeMirror!');",
-        extensions: [basicSetup, javascript()],
-        parent: document.getElementById("editor"),
-    });
-"#;
+use crate::text_editor::text_editor_ui::code_mirror::CodeMirrorJs;
 
 #[html]
 #[template(tag = div)]
 pub fn editor(#[signal] content: Option<Arc<str>>) -> XElement {
+    static NEXT: AtomicI32 = AtomicI32::new(1);
+    let key = format!("editor-{}", NEXT.fetch_add(1, SeqCst));
     tag(
         class = super::style::body,
-        pre(after_render = move |element| {
-            element.set_text_content(content.as_deref());
-        }),
-        div(id = "editor"),
-        script(r#type = "module", "{JS}"),
+        div(
+            key = key,
+            after_render = move |element| {
+                if let Some(content) = &content {
+                    drop(CodeMirrorJs::new(element, content.as_ref().into()))
+                }
+            },
+        ),
     )
 }
