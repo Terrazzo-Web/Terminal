@@ -29,7 +29,14 @@ pub fn autocomplete_path(
 ) -> Result<Vec<String>, HttpError<AutoCompleteError>> {
     let prefix = prefix.trim();
     let input = input.trim();
-    let input = format!("{prefix}/{input}");
+    let input = if prefix.is_empty() && input.is_empty() {
+        std::env::home_dir()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned()
+    } else {
+        format!("{prefix}/{input}")
+    };
     Ok(autocomplete_path_impl(prefix.as_ref(), input, |m| {
         kind.accept(m)
     })?)
@@ -88,6 +95,9 @@ fn list_folders(
     leaf_filter: impl Fn(&Metadata) -> bool,
 ) -> Result<Vec<String>, AutoCompleteError> {
     let mut result = vec![];
+    if let Some(parent) = path.parent() {
+        result.push(parent.to_owned());
+    }
     for child in path.read_dir().map_err(AutoCompleteError::ListDir)? {
         let Ok(child) = child.map_err(|error| debug!("Error when reading {path:?}: {error}"))
         else {
@@ -158,6 +168,10 @@ fn resolve_path(
     ends_with_slashdot: bool,
     leaf_filter: impl Fn(&Metadata) -> bool,
 ) -> Result<Vec<String>, AutoCompleteError> {
+    let mut result = vec![];
+    if let Some(parent) = path.parent() {
+        result.push(parent.to_owned());
+    }
     let ancestors = {
         let mut ancestors = vec![];
         for ancestor in path.ancestors() {
@@ -177,7 +191,6 @@ fn resolve_path(
         }
         ancestors
     };
-    let mut result = vec![];
     populate_paths(
         &mut result,
         PathBuf::from(ROOT),

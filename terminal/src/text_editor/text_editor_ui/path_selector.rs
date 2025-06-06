@@ -56,7 +56,7 @@ fn path_selector_impll(
                 class = super::style::selector,
                 focus =
                     start_autocomplete(kind, prefix.clone(), input.clone(), autocomplete.clone()),
-                blur = stop_autocomplete(path, input.clone(), autocomplete.clone()),
+                blur = stop_autocomplete(path.clone(), input.clone(), autocomplete.clone()),
                 keydown = move |_| {
                     autoclone!(do_autocomplete);
                     do_autocomplete(())
@@ -72,6 +72,7 @@ fn path_selector_impll(
                 input,
                 autocomplete.clone(),
                 autocomplete,
+                path,
             ),
         ),
     )

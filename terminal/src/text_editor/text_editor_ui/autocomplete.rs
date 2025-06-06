@@ -25,19 +25,26 @@ pub fn show_autocomplete(
     input: Arc<OnceLock<SafeHtmlInputElement>>,
     autocomplete_sig: XSignal<Option<Vec<String>>>,
     #[signal] autocomplete: Option<Vec<String>>,
+    path: XSignal<String>,
 ) -> XElement {
     let Some(autocomplete) = autocomplete else {
         return tag(style::visibility = "hidden", style::display = "none");
     };
     let items = autocomplete.into_iter().map(|item| {
+        let item = item
+            .trim()
+            .is_empty()
+            .then(|| "\u{00A0}".into())
+            .unwrap_or(item);
         li(
             "{item}",
             mousedown = move |ev: MouseEvent| {
-                autoclone!(input, autocomplete_sig, prefix);
+                autoclone!(input, autocomplete_sig, prefix, path);
                 ev.prevent_default();
                 ev.stop_propagation();
                 let input_element = input.get().or_throw("Input element not set");
                 input_element.set_value(&item);
+                path.set(item.clone());
                 do_autocomplete_impl(
                     kind,
                     prefix.clone(),

@@ -37,6 +37,9 @@ ul.menu-items {
     border: 1px solid white;
 
     >li {
+        display: flex;
+        flex-direction: row;
+
         img.app-icon {
             @include trz-icon;
             margin-right: var(--padding);

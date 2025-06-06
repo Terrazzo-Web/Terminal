@@ -13,10 +13,13 @@ div.header {
     align-items: center;
     height: 30px;
     border: 1px solid var(--color);
+    flex-grow: 0;
 }
 
 div.body {
     width: 100%;
+    flex-grow: 1;
+    overflow-y: scroll;
 }
 
 div.path-selector {

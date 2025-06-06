@@ -23,7 +23,7 @@ async fn load_file(
 ) -> Result<Option<Arc<str>>, ServerFnError> {
     use std::path::PathBuf;
     let path = PathBuf::from(format!("{base_path}/{file_path}"));
-    if path.exists() {
+    if !file_path.is_empty() && path.exists() {
         Ok(Some(Arc::from(std::fs::read_to_string(&path)?)))
     } else {
         Ok(None)
