@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use nameth::nameth;
@@ -22,6 +21,7 @@ async fn load_file(
     base_path: String,
     file_path: String,
 ) -> Result<Option<Arc<str>>, ServerFnError> {
+    use std::path::PathBuf;
     let path = PathBuf::from(format!("{base_path}/{file_path}"));
     if path.exists() {
         Ok(Some(Arc::from(std::fs::read_to_string(&path)?)))

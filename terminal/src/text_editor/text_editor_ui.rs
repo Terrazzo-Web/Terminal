@@ -13,6 +13,7 @@ use crate::text_editor::load_file;
 use crate::text_editor::text_editor_ui::editor::editor;
 
 mod autocomplete;
+mod code_mirror;
 mod editor;
 mod path_selector;
 
