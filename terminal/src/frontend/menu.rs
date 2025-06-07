@@ -12,7 +12,8 @@ use terrazzo::widgets::debounce::DoDebounce as _;
 use web_sys::MouseEvent;
 
 use crate::assets::icons;
-use crate::state::make_state;
+use crate::state::app;
+use crate::state::app::App;
 
 stylance::import_crate_style!(style, "src/frontend/menu.scss");
 
@@ -101,26 +102,8 @@ fn menu_item(
     )
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum App {
-    #[default]
-    Terminal,
-    TextEditor,
-}
-
-impl std::fmt::Display for App {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            App::Terminal => "Terminal",
-            App::TextEditor => "Text editor",
-        }
-        .fmt(f)
-    }
-}
-
 impl App {
-    #[allow(unused)]
-    pub fn icon(&self) -> &'static str {
+    pub fn icon(&self) -> icons::Icon {
         match self {
             App::Terminal => icons::terminal(),
             App::TextEditor => icons::text_editor(),
@@ -136,22 +119,20 @@ pub fn app() -> XSignal<App> {
             let app = XSignal::new("app", App::Terminal);
             wasm_bindgen_futures::spawn_local(async move {
                 autoclone!(app);
-                if let Ok(p) = app::get().await {
+                if let Ok(p) = app::state::get().await {
                     app.set(p);
                 }
             });
             static CONSUMER: OnceLock<Consumers> = OnceLock::new();
             let _ = CONSUMER.set(app.add_subscriber(|app| {
                 wasm_bindgen_futures::spawn_local(async move {
-                    let _ = app::set(app).await;
+                    let _ = app::state::set(app).await;
                 })
             }));
             app
         })
         .clone()
 }
-
-make_state!(app, super::App);
 
 fn show_menu() -> XSignal<bool> {
     static STATIC: OnceLock<XSignal<bool>> = OnceLock::new();

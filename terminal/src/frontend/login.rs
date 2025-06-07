@@ -12,9 +12,9 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
 use web_sys::HtmlInputElement;
 
-use super::menu::App;
-use super::menu::app;
 use crate::assets::icons;
+use crate::frontend::menu::app;
+use crate::state::app::App;
 use crate::terminal::terminals;
 use crate::text_editor::ui::text_editor;
 

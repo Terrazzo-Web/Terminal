@@ -29,3 +29,5 @@ macro_rules! make_state {
 }
 
 pub(crate) use make_state;
+
+pub mod app;
