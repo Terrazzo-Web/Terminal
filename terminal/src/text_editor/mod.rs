@@ -4,8 +4,9 @@ use nameth::nameth;
 use server_fn::ServerFnError;
 use terrazzo::server;
 
-mod text_editor_service;
-pub mod text_editor_ui;
+mod service;
+mod state;
+pub mod ui;
 
 #[server]
 async fn autocomplete_path(
@@ -13,7 +14,7 @@ async fn autocomplete_path(
     prefix: String,
     path: String,
 ) -> Result<Vec<String>, ServerFnError> {
-    Ok(text_editor_service::autocomplete_path(kind, prefix, path)?)
+    Ok(service::autocomplete_path(kind, prefix, path)?)
 }
 
 #[server]

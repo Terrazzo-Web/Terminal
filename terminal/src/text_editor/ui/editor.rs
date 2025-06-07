@@ -6,7 +6,7 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 
-use crate::text_editor::text_editor_ui::code_mirror::CodeMirrorJs;
+use super::code_mirror::CodeMirrorJs;
 
 #[html]
 #[template(tag = div)]

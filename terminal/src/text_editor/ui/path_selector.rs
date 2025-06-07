@@ -37,6 +37,12 @@ fn path_selector_impll(
         kind,
         prefix.clone(),
     ));
+    let onchange = path.add_subscriber(move |new| {
+        autoclone!(input);
+        if let Some(input) = input.get() {
+            input.set_value(&new);
+        }
+    });
     tag(
         class = super::style::path_selector,
         img(class = super::style::icon, src = kind.icon()),
@@ -45,6 +51,7 @@ fn path_selector_impll(
             input(
                 before_render = move |element| {
                     autoclone!(input);
+                    let _ = &onchange;
                     let element = element
                         .dyn_into::<HtmlInputElement>()
                         .or_throw("Not an HtmlInputElement");
