@@ -44,9 +44,9 @@ fn path_selector_impll(
     });
     tag(
         class = super::style::path_selector,
-        img(class = super::style::icon, src = kind.icon()),
+        img(class = super::style::path_selector_icon, src = kind.icon()),
         div(
-            class = super::style::selector,
+            class = super::style::path_selector_widget,
             input(
                 before_render = move |element| {
                     autoclone!(input);
@@ -59,7 +59,7 @@ fn path_selector_impll(
                         .or_throw("Input element already set");
                 },
                 r#type = "text",
-                class = super::style::selector,
+                class = super::style::path_selector_field,
                 focus =
                     start_autocomplete(kind, prefix.clone(), input.clone(), autocomplete.clone()),
                 blur = stop_autocomplete(path.clone(), input.clone(), autocomplete.clone()),

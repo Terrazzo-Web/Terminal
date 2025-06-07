@@ -4,24 +4,23 @@ macro_rules! make_state {
             use server_fn::ServerFnError;
             use terrazzo::server;
 
+            #[allow(unused)]
+            use super::*;
+
             #[cfg(feature = "server")]
             static STATE: std::sync::Mutex<Option<$ty>> = std::sync::Mutex::new(None);
 
-            #[allow(unused)]
             #[server]
             pub async fn get() -> Result<$ty, ServerFnError> {
-                Ok(STATE
-                    .lock()
-                    .expect(stringify!($name))
-                    .as_ref()
-                    .cloned()
-                    .unwrap_or_default())
+                let state = STATE.lock().expect(stringify!($name));
+                Ok(state.as_ref().cloned().unwrap_or_default())
             }
 
             #[allow(unused)]
             #[server]
             pub async fn set(value: $ty) -> Result<(), ServerFnError> {
-                *STATE.lock().expect(stringify!($name)) = Some(value);
+                let mut state = STATE.lock().expect(stringify!($name));
+                *state = Some(value);
                 Ok(())
             }
         }

@@ -10,12 +10,20 @@ html {
     border-width: 0px;
 }
 
+@mixin trz-font {
+    font-family: var(--font-family);
+    font-size: var(--font-size);
+    font-kerning: var(--font-kerning);
+}
+
 body {
     border: 0;
 
-    font-family: courier-new, courier, monospace;
-    font-size: 15px;
-    font-kerning: none;
+    --font-family: courier-new, courier, monospace;
+    --font-size: 15px;
+    --font-kerning: none;
+
+    @include trz-font;
 
     --color: green;
     --link-color: green;
@@ -23,6 +31,7 @@ body {
     --padding: 5px;
     background-color: var(--background-color);
 }
+
 
 @mixin nowrap {
     overflow-x: hidden;

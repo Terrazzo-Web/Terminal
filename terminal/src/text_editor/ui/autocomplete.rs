@@ -54,7 +54,7 @@ pub fn show_autocomplete(
             },
         )
     });
-    tag(class = super::style::autocomplete, items..)
+    tag(class = super::style::path_selector_autocomplete, items..)
 }
 
 #[autoclone]
