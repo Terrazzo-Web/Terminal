@@ -31,11 +31,11 @@ pub fn show_autocomplete(
         return tag(style::visibility = "hidden", style::display = "none");
     };
     let items = autocomplete.into_iter().map(|item| {
-        let item = item
-            .trim()
-            .is_empty()
-            .then(|| "\u{00A0}".into())
-            .unwrap_or(item);
+        let item = if item.trim().is_empty() {
+            "\u{00A0}".into()
+        } else {
+            item
+        };
         li(
             "{item}",
             mousedown = move |ev: MouseEvent| {

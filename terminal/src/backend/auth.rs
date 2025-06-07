@@ -311,7 +311,7 @@ mod tests {
         )
         .unwrap();
 
-        let request = make_request(|b| b.header(AUTHORIZATION, &format!("Bearer {token}")));
+        let request = make_request(|b| b.header(AUTHORIZATION, format!("Bearer {token}")));
         let _token_data: jsonwebtoken::TokenData<Claims> =
             auth_config.validate(request.headers()).unwrap();
     }
@@ -330,7 +330,7 @@ mod tests {
         )
         .unwrap();
 
-        let request = make_request(|b| b.header(AUTHORIZATION, &format!("Bearer {token}")));
+        let request = make_request(|b| b.header(AUTHORIZATION, format!("Bearer {token}")));
         let response = auth_config
             .validate(request.headers())
             .unwrap_err()
@@ -353,7 +353,7 @@ mod tests {
         )
         .unwrap();
 
-        let request = make_request(|b| b.header(AUTHORIZATION, &format!("Bearer {token}")));
+        let request = make_request(|b| b.header(AUTHORIZATION, format!("Bearer {token}")));
         let response = auth_config
             .validate(request.headers())
             .unwrap_err()
@@ -377,7 +377,7 @@ mod tests {
         )
         .unwrap();
 
-        let request = make_request(|b| b.header(AUTHORIZATION, &format!("Bearer {token}")));
+        let request = make_request(|b| b.header(AUTHORIZATION, format!("Bearer {token}")));
         let response = auth_config
             .validate(request.headers())
             .unwrap_err()

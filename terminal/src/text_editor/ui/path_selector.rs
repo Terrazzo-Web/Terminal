@@ -56,7 +56,7 @@ fn path_selector_impll(
                         .dyn_into::<HtmlInputElement>()
                         .or_throw("Not an HtmlInputElement");
                     input
-                        .set(SafeHtmlInputElement(element.into()))
+                        .set(SafeHtmlInputElement(element))
                         .or_throw("Input element already set");
                 },
                 r#type = "text",

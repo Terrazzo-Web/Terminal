@@ -319,8 +319,8 @@ mod tests {
         assert_that!(&autocomplete).is_not_empty();
         assert_that!(&autocomplete).contains(&"ROOT/build.rs".into());
 
-        const AUTOCOMPLETE_RS_PATH: &str = "ROOT/src/text_editor/text_editor_ui/autocomplete.rs";
-        const PATH_SELECTOR_RS_PATH: &str = "ROOT/src/text_editor/text_editor_ui/path_selector.rs";
+        const AUTOCOMPLETE_RS_PATH: &str = "ROOT/src/text_editor/ui/autocomplete.rs";
+        const PATH_SELECTOR_RS_PATH: &str = "ROOT/src/text_editor/ui/path_selector.rs";
 
         let autocomplete = call_autocomplete(&root, format!("{root}/src/text/ui/path"));
         assert_that!(&autocomplete).is_not_empty();
@@ -337,23 +337,17 @@ mod tests {
     fn match_dirs() {
         enable_tracing_for_tests();
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-        let autocomplete = call_autocomplete_dir(&root, format!("{root}/src/text/t"));
-        assert_that!(&autocomplete)
-            .is_equal_to(&["ROOT/src/text_editor/text_editor_ui".into()].into());
+        let autocomplete = call_autocomplete_dir(&root, format!("{root}/src/text/i"));
+        assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/ui".into());
     }
 
     #[test]
     fn match_files() {
         enable_tracing_for_tests();
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-        let autocomplete = call_autocomplete_files(&root, format!("{root}/src/text/ui"));
-        assert_that!(&autocomplete).is_equal_to(
-            &[
-                "text_editor/text_editor_ui.rs".into(),
-                "text_editor/text_editor_ui.scss".into(),
-            ]
-            .into(),
-        );
+        let autocomplete = call_autocomplete_files(&root, format!("{root}/src/text/u"));
+        assert_that!(&autocomplete)
+            .is_equal_to(&["text".into(), "text_editor/ui.rs".into()].into());
     }
 
     fn call_autocomplete(prefix: &str, path: String) -> Vec<String> {

@@ -103,7 +103,7 @@ async fn pipe_impl(
             let count = chunk.length() as usize;
             let old_len = buffer.len();
             let new_len = old_len + count;
-            buffer.extend(std::iter::repeat(b'\0').take(count));
+            buffer.extend(std::iter::repeat_n(b'\0', count));
             let slice = &mut buffer[old_len..new_len];
             chunk.copy_to(slice);
         }
