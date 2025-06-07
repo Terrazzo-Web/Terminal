@@ -3,6 +3,7 @@ mod assets;
 mod backend;
 mod frontend;
 mod processes;
+mod state;
 mod terminal;
 mod terminal_id;
 mod text_editor;
