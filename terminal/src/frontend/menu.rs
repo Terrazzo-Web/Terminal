@@ -1,6 +1,6 @@
-use std::cell::OnceCell;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use terrazzo::autoclone;
@@ -12,6 +12,7 @@ use terrazzo::widgets::debounce::DoDebounce as _;
 use web_sys::MouseEvent;
 
 use crate::assets::icons;
+use crate::state::make_state;
 
 stylance::import_crate_style!(style, "src/frontend/menu.scss");
 
@@ -100,8 +101,9 @@ fn menu_item(
     )
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum App {
+    #[default]
     Terminal,
     TextEditor,
 }
@@ -126,24 +128,34 @@ impl App {
     }
 }
 
+#[autoclone]
 pub fn app() -> XSignal<App> {
-    struct Static(OnceCell<XSignal<App>>);
-    unsafe impl Sync for Static {}
-
-    static STATIC: Static = Static(OnceCell::new());
+    static STATIC: OnceLock<XSignal<App>> = OnceLock::new();
     STATIC
-        .0
-        .get_or_init(|| XSignal::new("app", App::Terminal))
+        .get_or_init(|| {
+            let app = XSignal::new("app", App::Terminal);
+            wasm_bindgen_futures::spawn_local(async move {
+                autoclone!(app);
+                if let Ok(p) = app::get().await {
+                    app.set(p);
+                }
+            });
+            static CONSUMER: OnceLock<Consumers> = OnceLock::new();
+            let _ = CONSUMER.set(app.add_subscriber(|app| {
+                wasm_bindgen_futures::spawn_local(async move {
+                    let _ = app::set(app).await;
+                })
+            }));
+            app
+        })
         .clone()
 }
 
-fn show_menu() -> XSignal<bool> {
-    struct Static(OnceCell<XSignal<bool>>);
-    unsafe impl Sync for Static {}
+make_state!(app, super::App);
 
-    static STATIC: Static = Static(OnceCell::new());
+fn show_menu() -> XSignal<bool> {
+    static STATIC: OnceLock<XSignal<bool>> = OnceLock::new();
     STATIC
-        .0
         .get_or_init(|| XSignal::new("show-menu", false))
         .clone()
 }

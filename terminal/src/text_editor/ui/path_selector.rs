@@ -1,4 +1,3 @@
-use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::OnceLock;
 
@@ -30,7 +29,7 @@ fn path_selector_impll(
     path: XSignal<String>,
 ) -> XElement {
     let autocomplete: XSignal<Option<Vec<String>>> = XSignal::new(kind.name(), None);
-    let input: Arc<OnceLock<SafeHtmlInputElement>> = OnceLock::new().into();
+    let input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>> = OnceLock::new().into();
     let do_autocomplete = Ptr::new(do_autocomplete(
         input.clone(),
         autocomplete.clone(),
@@ -56,7 +55,7 @@ fn path_selector_impll(
                         .dyn_into::<HtmlInputElement>()
                         .or_throw("Not an HtmlInputElement");
                     input
-                        .set(SafeHtmlInputElement(element))
+                        .set(element.into())
                         .or_throw("Input element already set");
                 },
                 r#type = "text",
@@ -83,16 +82,4 @@ fn path_selector_impll(
             ),
         ),
     )
-}
-
-pub struct SafeHtmlInputElement(HtmlInputElement);
-unsafe impl Send for SafeHtmlInputElement {}
-unsafe impl Sync for SafeHtmlInputElement {}
-
-impl Deref for SafeHtmlInputElement {
-    type Target = HtmlInputElement;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
 }

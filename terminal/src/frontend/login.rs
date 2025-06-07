@@ -1,4 +1,4 @@
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
 use terrazzo::autoclone;
 use terrazzo::html;
@@ -71,15 +71,11 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
 }
 
 pub fn logged_in() -> XSignal<LoggedInStatus> {
-    static LOGGED_IN: LoggedIn = LoggedIn(OnceCell::new());
+    static LOGGED_IN: OnceLock<XSignal<LoggedInStatus>> = OnceLock::new();
     LOGGED_IN
-        .0
         .get_or_init(|| XSignal::new("logged-in", LoggedInStatus::Unknown))
         .clone()
 }
-
-struct LoggedIn(OnceCell<XSignal<LoggedInStatus>>);
-unsafe impl Sync for LoggedIn {}
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 pub enum LoggedInStatus {

@@ -9,9 +9,9 @@ use terrazzo::template;
 use terrazzo::widgets::debounce::DoDebounce;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::FocusEvent;
+use web_sys::HtmlInputElement;
 use web_sys::MouseEvent;
 
-use super::path_selector::SafeHtmlInputElement;
 use crate::frontend::menu::before_menu;
 use crate::text_editor::PathSelector;
 use crate::text_editor::autocomplete_path;
@@ -22,7 +22,7 @@ use crate::text_editor::autocomplete_path;
 pub fn show_autocomplete(
     kind: PathSelector,
     prefix: Option<XSignal<String>>,
-    input: Arc<OnceLock<SafeHtmlInputElement>>,
+    input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete_sig: XSignal<Option<Vec<String>>>,
     #[signal] autocomplete: Option<Vec<String>>,
     path: XSignal<String>,
@@ -61,7 +61,7 @@ pub fn show_autocomplete(
 pub fn start_autocomplete(
     kind: PathSelector,
     prefix: Option<XSignal<String>>,
-    input: Arc<OnceLock<SafeHtmlInputElement>>,
+    input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete: XSignal<Option<Vec<String>>>,
 ) -> impl Fn(FocusEvent) {
     move |_| {
@@ -77,7 +77,7 @@ pub fn start_autocomplete(
 
 pub fn stop_autocomplete(
     path: XSignal<String>,
-    input: Arc<OnceLock<SafeHtmlInputElement>>,
+    input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete: XSignal<Option<Vec<String>>>,
 ) -> impl Fn(FocusEvent) {
     move |_| {
@@ -89,7 +89,7 @@ pub fn stop_autocomplete(
 }
 
 pub fn do_autocomplete(
-    input: Arc<OnceLock<SafeHtmlInputElement>>,
+    input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete: XSignal<Option<Vec<String>>>,
     kind: PathSelector,
     prefix: Option<XSignal<String>>,
@@ -103,7 +103,7 @@ pub fn do_autocomplete(
 fn do_autocomplete_impl(
     kind: PathSelector,
     prefix: Option<XSignal<String>>,
-    input: Arc<OnceLock<SafeHtmlInputElement>>,
+    input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete: XSignal<Option<Vec<String>>>,
 ) {
     let input_element = input.get().or_throw("Input element not set");
