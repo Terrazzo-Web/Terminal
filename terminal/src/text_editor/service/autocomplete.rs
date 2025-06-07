@@ -201,7 +201,7 @@ fn resolve_path(
     Ok(sort_result(prefix, result))
 }
 
-fn populate_paths<'a>(
+fn populate_paths(
     result: &mut Vec<PathBuf>,
     accu: PathBuf,
     metadata: Option<Metadata>,
