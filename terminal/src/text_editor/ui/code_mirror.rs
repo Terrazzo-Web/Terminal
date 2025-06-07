@@ -1,3 +1,4 @@
+use terrazzo::prelude::Closure;
 use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
 use web_sys::Element;
@@ -8,5 +9,9 @@ extern "C" {
     pub type CodeMirrorJs;
 
     #[wasm_bindgen(constructor)]
-    pub fn new(element: Element, content: JsValue) -> CodeMirrorJs;
+    pub fn new(
+        element: Element,
+        content: JsValue,
+        onchange: &Closure<dyn FnMut(JsValue)>,
+    ) -> CodeMirrorJs;
 }

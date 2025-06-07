@@ -21,11 +21,11 @@ use crate::text_editor::autocomplete_path;
 #[template(tag = ul)]
 pub fn show_autocomplete(
     kind: PathSelector,
-    prefix: Option<XSignal<String>>,
+    prefix: Option<XSignal<Arc<str>>>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete_sig: XSignal<Option<Vec<String>>>,
     #[signal] autocomplete: Option<Vec<String>>,
-    path: XSignal<String>,
+    path: XSignal<Arc<str>>,
 ) -> XElement {
     let Some(autocomplete) = autocomplete else {
         return tag(style::visibility = "hidden", style::display = "none");
@@ -60,7 +60,7 @@ pub fn show_autocomplete(
 #[autoclone]
 pub fn start_autocomplete(
     kind: PathSelector,
-    prefix: Option<XSignal<String>>,
+    prefix: Option<XSignal<Arc<str>>>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete: XSignal<Option<Vec<String>>>,
 ) -> impl Fn(FocusEvent) {
@@ -76,7 +76,7 @@ pub fn start_autocomplete(
 }
 
 pub fn stop_autocomplete(
-    path: XSignal<String>,
+    path: XSignal<Arc<str>>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete: XSignal<Option<Vec<String>>>,
 ) -> impl Fn(FocusEvent) {
@@ -92,7 +92,7 @@ pub fn do_autocomplete(
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete: XSignal<Option<Vec<String>>>,
     kind: PathSelector,
-    prefix: Option<XSignal<String>>,
+    prefix: Option<XSignal<Arc<str>>>,
 ) -> impl Fn(()) {
     Duration::from_millis(250).debounce(move |()| {
         do_autocomplete_impl(kind, prefix.clone(), input.clone(), autocomplete.clone())
@@ -102,12 +102,12 @@ pub fn do_autocomplete(
 #[autoclone]
 fn do_autocomplete_impl(
     kind: PathSelector,
-    prefix: Option<XSignal<String>>,
+    prefix: Option<XSignal<Arc<str>>>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete: XSignal<Option<Vec<String>>>,
 ) {
     let input_element = input.get().or_throw("Input element not set");
-    let value = input_element.value();
+    let value = input_element.value().into();
     spawn_local(async move {
         autoclone!(autocomplete);
         let autocompletes = autocomplete_path(

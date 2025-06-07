@@ -12,11 +12,11 @@ use web_sys::HtmlInputElement;
 use super::autocomplete::*;
 use crate::text_editor::PathSelector;
 
-pub fn base_path_selector(base_path: XSignal<String>) -> XElement {
+pub fn base_path_selector(base_path: XSignal<Arc<str>>) -> XElement {
     path_selector_impll(PathSelector::BasePath, None, base_path)
 }
 
-pub fn file_path_selector(base_path: XSignal<String>, file_path: XSignal<String>) -> XElement {
+pub fn file_path_selector(base_path: XSignal<Arc<str>>, file_path: XSignal<Arc<str>>) -> XElement {
     path_selector_impll(PathSelector::FilePath, Some(base_path), file_path)
 }
 
@@ -25,8 +25,8 @@ pub fn file_path_selector(base_path: XSignal<String>, file_path: XSignal<String>
 #[template(tag = div)]
 fn path_selector_impll(
     kind: PathSelector,
-    prefix: Option<XSignal<String>>,
-    path: XSignal<String>,
+    prefix: Option<XSignal<Arc<str>>>,
+    path: XSignal<Arc<str>>,
 ) -> XElement {
     let autocomplete: XSignal<Option<Vec<String>>> = XSignal::new(kind.name(), None);
     let input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>> = OnceLock::new().into();

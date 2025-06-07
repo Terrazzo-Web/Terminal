@@ -24,8 +24,8 @@ const MAX_RESULTS: usize = 20;
 
 pub fn autocomplete_path(
     kind: PathSelector,
-    prefix: String,
-    input: String,
+    prefix: &str,
+    input: &str,
 ) -> Result<Vec<String>, HttpError<AutoCompleteError>> {
     let prefix = prefix.trim();
     let input = input.trim();

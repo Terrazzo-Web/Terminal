@@ -11,16 +11,16 @@ pub mod ui;
 #[server]
 async fn autocomplete_path(
     kind: PathSelector,
-    prefix: String,
-    path: String,
+    prefix: Arc<str>,
+    path: Arc<str>,
 ) -> Result<Vec<String>, ServerFnError> {
-    Ok(service::autocomplete_path(kind, prefix, path)?)
+    Ok(service::autocomplete_path(kind, &prefix, &path)?)
 }
 
 #[server]
 async fn load_file(
-    base_path: String,
-    file_path: String,
+    base_path: Arc<str>,
+    file_path: Arc<str>,
 ) -> Result<Option<Arc<str>>, ServerFnError> {
     use std::path::PathBuf;
     let path = PathBuf::from(format!("{base_path}/{file_path}"));
@@ -28,6 +28,42 @@ async fn load_file(
         Ok(Some(Arc::from(std::fs::read_to_string(&path)?)))
     } else {
         Ok(None)
+    }
+}
+
+#[server]
+async fn store_file(
+    base_path: Arc<str>,
+    file_path: Arc<str>,
+    content: String,
+) -> Result<(), ServerFnError> {
+    return Ok(aux(base_path, file_path, content)?);
+
+    use std::path::PathBuf;
+
+    use nameth::NamedEnumValues as _;
+
+    fn aux(
+        base_path: Arc<str>,
+        file_path: Arc<str>,
+        content: String,
+    ) -> Result<(), StoreFileError> {
+        let path = PathBuf::from(format!("{base_path}/{file_path}"));
+        return if !file_path.is_empty() && path.exists() {
+            Ok(std::fs::write(&path, content)?)
+        } else {
+            Err(StoreFileError::InvalidPath)
+        };
+    }
+
+    #[nameth]
+    #[derive(thiserror::Error, Debug)]
+    enum StoreFileError {
+        #[error("[{n}] {0}", n = self.name())]
+        IO(#[from] std::io::Error),
+
+        #[error("[{n}] Invalid path", n = self.name())]
+        InvalidPath,
     }
 }
 
