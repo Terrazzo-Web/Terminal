@@ -33,7 +33,9 @@ fn install_icons() {
     install_icon(super::icons::add_tab());
     install_icon(super::icons::chevron_double_right());
     install_icon(super::icons::close_tab());
+    install_icon(super::icons::done());
     install_icon(super::icons::key_icon());
+    install_icon(super::icons::loading());
     install_icon(super::icons::menu());
     install_icon(super::icons::slash());
     install_icon(super::icons::terminal());

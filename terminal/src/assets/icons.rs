@@ -1,7 +1,9 @@
 #[cfg(all(feature = "server", not(feature = "client")))]
 macro_rules! declare_icon {
-    ($file:expr $(,)?) => {
-        terrazzo::declare_asset!(concat!("/assets", $file))
+    ($name:ident, $file:expr) => {
+        pub fn $name() -> Icon {
+            terrazzo::declare_asset!(concat!("/assets", $file))
+        }
     };
 }
 
@@ -10,42 +12,23 @@ pub type Icon = terrazzo::static_assets::AssetBuilder;
 
 #[cfg(feature = "client")]
 macro_rules! declare_icon {
-    ($file:expr $(,)?) => {
-        concat!("/static", $file)
+    ($name:ident, $file:expr) => {
+        pub fn $name() -> Icon {
+            concat!("/static", $file)
+        }
     };
 }
 
 #[cfg(feature = "client")]
 pub type Icon = &'static str;
 
-pub fn add_tab() -> Icon {
-    declare_icon!("/icons/plus-square.svg")
-}
-
-pub fn menu() -> Icon {
-    declare_icon!("/icons/signpost-split.svg")
-}
-
-pub fn close_tab() -> Icon {
-    declare_icon!("/icons/x-lg.svg")
-}
-
-pub fn terminal() -> Icon {
-    declare_icon!("/icons/terminal-dash.svg")
-}
-
-pub fn text_editor() -> Icon {
-    declare_icon!("/icons/layout-text-sidebar-reverse.svg")
-}
-
-pub fn key_icon() -> Icon {
-    declare_icon!("/icons/key.svg")
-}
-
-pub fn slash() -> Icon {
-    declare_icon!("/icons/slash.svg")
-}
-
-pub fn chevron_double_right() -> Icon {
-    declare_icon!("/icons/chevron-double-right.svg")
-}
+declare_icon!(add_tab, "/icons/plus-square.svg");
+declare_icon!(chevron_double_right, "/icons/chevron-double-right.svg");
+declare_icon!(close_tab, "/icons/x-lg.svg");
+declare_icon!(done, "/icons/done.svg");
+declare_icon!(key_icon, "/icons/key.svg");
+declare_icon!(loading, "/icons/loading2.svg");
+declare_icon!(menu, "/icons/signpost-split.svg");
+declare_icon!(slash, "/icons/slash.svg");
+declare_icon!(terminal, "/icons/terminal-dash.svg");
+declare_icon!(text_editor, "/icons/layout-text-sidebar-reverse.svg");
