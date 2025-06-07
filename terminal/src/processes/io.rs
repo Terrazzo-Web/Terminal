@@ -17,7 +17,7 @@ use crate::backend::throttling_stream::ThrottleProcessOutput;
 #[pin_project(project = HybridReaderProj)]
 pub enum HybridReader {
     Local(#[pin] ThrottleProcessOutput),
-    Remote(#[pin] Streaming<LeaseItemProto>),
+    Remote(#[pin] Box<Streaming<LeaseItemProto>>),
 }
 
 #[pin_project(project = LocalReaderProj)]

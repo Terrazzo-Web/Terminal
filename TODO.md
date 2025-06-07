@@ -10,13 +10,16 @@
 - `#·55`. Better way to do APIs. `server_fn`?
 - `#··6`. Text editor based on Monaco
 - `#··7`. Integration with Language Server
+- `#·89`. Anything parser: x509, base64, pem, yaml, json, toml, etc.
+- `#·90`. Figure out why server doesn't run when --action start
+- `#·91`. Port forwarding tool
 
 # Nice to have
 - `#·45`. Lazily load tab
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#·89`.
+Next: `#·92`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`

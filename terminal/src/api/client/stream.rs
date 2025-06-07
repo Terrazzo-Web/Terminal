@@ -217,8 +217,6 @@ static DISPATCHERS: Dispatchers = Dispatchers::new();
 
 struct Dispatchers(Mutex<Option<StreamDispatchers>>);
 
-unsafe impl Sync for Dispatchers {}
-
 impl Dispatchers {
     pub const fn new() -> Self {
         Self(Mutex::new(None))
