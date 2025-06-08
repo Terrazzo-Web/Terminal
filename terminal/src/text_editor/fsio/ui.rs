@@ -21,7 +21,7 @@ pub async fn store_file<P: Send + Sync + 'static>(
 }
 
 fn make_debounced_store_file_fn() -> StoreFileFn {
-    let debounced = Duration::from_secs(5).async_debounce(
+    let debounced = Duration::from_secs(3).async_debounce(
         |(base_path, file_path, content, pending)| async move {
             let () = super::store_file_impl(base_path, file_path, content)
                 .await

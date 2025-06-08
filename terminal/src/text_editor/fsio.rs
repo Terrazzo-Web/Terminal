@@ -20,5 +20,7 @@ async fn store_file_impl(
     file_path: Arc<str>,
     content: String,
 ) -> Result<(), ServerFnError> {
+    #[cfg(debug_assertions)]
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     service::store_file(base_path, file_path, content)
 }
