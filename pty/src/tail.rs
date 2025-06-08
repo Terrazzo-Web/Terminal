@@ -3,6 +3,7 @@ use std::io::ErrorKind;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::Weak;
 use std::task::Context;
 use std::task::Poll;
 
@@ -10,6 +11,7 @@ use bytes::Bytes;
 use futures::FutureExt as _;
 use futures::Stream;
 use futures::StreamExt as _;
+use futures::future::Shared;
 use nameth::NamedType as _;
 use nameth::nameth;
 use scopeguard::defer;
@@ -25,10 +27,10 @@ use tracing::warn;
 
 /// A stream that only remembers the last few elements.
 #[nameth]
+#[derive(Clone)]
 pub struct TailStream {
-    state: Arc<Mutex<BufferState>>,
-    #[expect(unused)]
-    worker_handle: AbortOnDrop<()>,
+    buffer_state: Arc<Mutex<BufferState>>,
+    stream_state: StreamState,
 }
 
 impl TailStream {
@@ -37,29 +39,32 @@ impl TailStream {
         S: Stream<Item = std::io::Result<Bytes>> + Send + 'static,
     {
         let state = Arc::new(Mutex::new(BufferState::default()));
-        let task = start_worker(state.clone(), stream, scrollback);
+        let task = worker(Arc::downgrade(&state), stream, scrollback);
         let worker = if span_enabled!(Level::TRACE) {
             tokio::spawn(task.instrument(trace_span!("Worker")))
         } else {
             tokio::spawn(task)
         };
         TailStream {
-            state,
-            worker_handle: AbortOnDrop(worker),
+            buffer_state: state,
+            stream_state: StreamState {
+                pos: 0,
+                future_rx: None,
+                worker_handle: AbortOnDrop(worker).into(),
+            },
         }
     }
 
     pub fn rewind(&mut self) {
-        let mut lock = self.state.lock().unwrap();
-        lock.pos = 0;
-        lock.pending = None;
+        self.stream_state.pos = 0;
+        self.stream_state.future_rx = None;
     }
 }
 
-/// Starts the worker that keeps reading and buffering elements.
+/// Runs the worker that keeps reading and buffering elements.
 ///
 /// When the buffer is full, old elements are discarded.
-async fn start_worker<S>(state: Arc<Mutex<BufferState>>, stream: S, scrollback: usize)
+async fn worker<S>(state: Weak<Mutex<BufferState>>, stream: S, scrollback: usize)
 where
     S: Stream<Item = std::io::Result<Bytes>> + Send + 'static,
 {
@@ -71,77 +76,67 @@ where
         let item = stream.next().await;
         trace!("Next: {item:?}");
         let end = item.is_none();
-        let signal_rx;
-        {
-            let mut lock = state.lock().expect("state");
+        let Some(state) = state.upgrade() else {
+            trace!("All the readers have dropped");
+            return;
+        };
+        let mut lock = state.lock().expect("state");
 
-            // [ C0 = oldest, C1, C2, ... Cp, ..., C(n-1) ]
-            let BufferState {
-                lines,
-                pos,
-                pending,
-            } = &mut *lock;
+        // [ C0 = oldest, C1, C2, ... Cp, ..., C(n-1) ]
+        let BufferState {
+            lines,
+            start,
+            pending,
+            ..
+        } = &mut *lock;
 
-            let item_len = if let Some(Ok(bytes)) = &item {
-                bytes.len()
-            } else {
-                0
-            };
+        let item_len = if let Some(Ok(bytes)) = &item {
+            bytes.len()
+        } else {
+            0
+        };
 
-            // There is an off-by-one acceptable issue that the last 'None' element counts as one.
-            while size + item_len > scrollback {
-                trace!("size:{size} > scrollback:{scrollback}");
-                // [ C1 = new oldest, C2, ... Cp, ..., C(n-1) ]
-                // --> Cp becomes the (p-1) element
-                let oldest = lines.drain(..1).next().unwrap();
-                if *pos > 0 {
-                    *pos -= 1;
-                    trace! { pos, "'pos' decremented" }
-                } else {
-                    trace! { pos, "Buffer full, the oldest item was dropped (item={oldest:?})" }
-                }
-                if let Some(Ok(bytes)) = oldest {
-                    size -= bytes.len();
-                }
-            }
-
-            // item becomes Cb
-            // [ C1 = new oldest, C2, ... Cp, ..., C(n-1), Cn = item ]
-            if let Some(Ok(bytes)) = &item {
-                size += bytes.len();
-            }
-            lines.push_back(item);
-
-            trace!("size:{size} <= scrollback:{scrollback} lines={lines:?}");
-            debug_assert!(size <= scrollback);
-
-            if let Some(PendingBufferState { worker, .. }) = pending {
-                trace! { "The stream is waiting for the next item" };
-                let Some((future_tx, signal_rx2)) = worker.take() else {
-                    warn! { "The {} is not waiting on the worker to produce the next item", TailStream::type_name() };
-                    return;
-                };
-                trace! { "The stream is waking up" };
-                let Ok(()) = future_tx.send(()) else {
-                    warn! { "The {}'s future_rx was dropped", TailStream::type_name() };
-                    return;
-                };
-                signal_rx = signal_rx2;
-            } else {
-                trace! { "The stream was not waiting on the worker to produce some data" };
-                if end {
-                    break; // i.e. return
-                } else {
-                    continue;
-                }
+        while size + item_len > scrollback {
+            trace!("size:{size} > scrollback:{scrollback}");
+            // [ C1 = new oldest, C2, ... Cp, ..., C(n-1) ]
+            // --> Cp becomes the (p-1) element
+            let oldest = lines.drain(..1).next().unwrap();
+            if let Some(Ok(bytes)) = oldest {
+                *start += 1;
+                trace! { start, "Buffer full, the oldest item was dropped (item={bytes:?})" }
+                size -= bytes.len();
             }
         }
 
-        // Await after releasing the lock.
-        trace! { "Wait for the stream to be woken up" };
-        let _ = signal_rx.await;
-        trace! { "The stream was woken up" };
-        // Now lock.pending should be reset to None.
+        // item becomes Cb
+        // [ C1 = new oldest, C2, ... Cp, ..., C(n-1), Cn = item ]
+        if let Some(Ok(bytes)) = &item {
+            size += bytes.len();
+        }
+        lines.push_back(item);
+
+        trace!("size:{size} <= scrollback:{scrollback} lines={lines:?}");
+        debug_assert!(size <= scrollback);
+
+        if let Some(PendingBufferState { worker, .. }) = pending {
+            trace! { "The stream is waiting for the next item" };
+            let Some(future_tx) = worker.take() else {
+                warn! { "The {} is not waiting on the worker to produce the next item", TailStream::type_name() };
+                return;
+            };
+            trace! { "The stream is waking up" };
+            let Ok(()) = future_tx.send(()) else {
+                warn! { "The {}'s future_rx was dropped", TailStream::type_name() };
+                return;
+            };
+        } else {
+            trace! { "The stream was not waiting on the worker to produce some data" };
+            if end {
+                break; // i.e. return
+            } else {
+                continue;
+            }
+        }
 
         if end {
             // return
@@ -151,13 +146,15 @@ where
 }
 
 impl Stream for TailStream {
+    // TODO: use Result<Bytes, Arc<std::io::Error>>
     type Item = std::io::Result<Bytes>;
 
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let mut state = self.state.lock().expect("state");
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let state = &self.buffer_state.clone();
+        let mut state = state.lock().expect("state");
+        let state = &mut *state;
         loop {
-            let state = &mut *state;
-            let result = process_state(cx, state);
+            let result = process_state(cx, state, &mut self.stream_state);
             if let Some(result) = result {
                 return result;
             }
@@ -167,90 +164,120 @@ impl Stream for TailStream {
 
 fn process_state(
     cx: &mut Context<'_>,
-    state: &mut BufferState,
+    buffer_state: &mut BufferState,
+    stream_state: &mut StreamState,
 ) -> Option<Poll<Option<std::io::Result<Bytes>>>> {
-    let BufferState {
-        lines,
-        pos,
-        pending,
-    } = state;
-    if let Some(PendingBufferState {
-        future_rx,
-        signal_tx,
-        worker,
-    }) = pending.as_mut()
-    {
-        // Don't read from lines yet, wait for the worker to produce elements.
-        match future_rx.poll_unpin(cx) {
-            Poll::Ready(Ok(())) => {
-                trace! { "The stream is waking up" };
-                // An item has just been added to lines.
-                assert!(worker.is_none());
-                let result = if let Some(signal_tx) = signal_tx.take() {
-                    if signal_tx.send(()).is_err() {
-                        warn! { "The worker has stopped without waiting for signal_tx" };
-                    }
-                    None
-                } else {
-                    warn! { "The worker is not expecting the {} to continue", TailStream::type_name() };
-                    Some(Poll::Ready(Some(Err(ErrorKind::BrokenPipe.into()))))
-                };
-                *pending = None;
-                result
-            }
-            Poll::Ready(Err(oneshot::error::RecvError { .. })) => {
-                warn! { "The worker has stopped without returning a new item" };
-                *pending = None;
-                Some(Poll::Ready(Some(Err(ErrorKind::BrokenPipe.into()))))
-            }
-            Poll::Pending => {
-                trace! { "Continue waiting" };
-                Some(Poll::Pending)
-            }
-        }
-    } else if *pos < lines.len() {
-        trace! { "Drain the first element, which is not a 'None'" };
-        let item = lines[*pos].take();
-        if let Some(Ok(bytes)) = &item {
-            lines[*pos] = Some(Ok(bytes.clone()));
-        }
-        *pos += 1;
-        Some(Poll::Ready(item))
-    } else {
-        trace! { "Starting to wait" };
-        assert_eq!(*pos, lines.len());
-        let (future_tx, future_rx) = oneshot::channel();
-        let (signal_tx, signal_rx) = oneshot::channel();
-        state.pending = Some(PendingBufferState {
-            future_rx,
-            signal_tx: Some(signal_tx),
-            worker: Some((future_tx, signal_rx)),
-        });
-        None
+    if stream_state.future_rx.is_some() {
+        return handle_pending_state(cx, buffer_state, stream_state);
     }
+
+    if stream_state.pos < buffer_state.start {
+        trace!("Skipped {} lines", buffer_state.start - stream_state.pos);
+        stream_state.pos = buffer_state.start;
+    }
+
+    if stream_state.pos - buffer_state.start < buffer_state.lines.len() {
+        trace! { "Drain the first element, which is not a 'None'" };
+        let item = buffer_state.lines[stream_state.pos - buffer_state.start].take();
+        if let Some(item) = &item {
+            buffer_state.lines[stream_state.pos - buffer_state.start] = match &item {
+                Ok(bytes) => Some(Ok(bytes.clone())),
+                Err(error) => Some(Err(std::io::Error::new(error.kind(), error.to_string()))),
+            }
+        }
+        stream_state.pos += 1;
+        return Some(Poll::Ready(item));
+    }
+
+    {
+        trace! { "Starting to wait" };
+        assert_eq!(
+            stream_state.pos - buffer_state.start,
+            buffer_state.lines.len()
+        );
+        if let Some(pending_buffer_state) = &mut buffer_state.pending {
+            stream_state.future_rx = Some(pending_buffer_state.future_rx.clone());
+        } else {
+            let (future_tx, future_rx) = oneshot::channel();
+            let future_rx = future_rx.shared();
+            stream_state.future_rx = Some(future_rx.clone());
+            buffer_state.pending = Some(PendingBufferState {
+                future_rx,
+                worker: Some(future_tx),
+            });
+        }
+        return None;
+    }
+}
+
+/// Handles the case when streams are waiting on the worker to produce some data.
+fn handle_pending_state(
+    cx: &mut Context<'_>,
+    buffer_state: &mut BufferState,
+    stream_state: &mut StreamState,
+) -> Option<Poll<Option<Result<Bytes, std::io::Error>>>> {
+    let future_rx = if let Some(future_rx) = &mut stream_state.future_rx {
+        future_rx
+    } else {
+        let pending_buffer_state = buffer_state.pending.as_mut()?;
+        stream_state.future_rx = pending_buffer_state.future_rx.clone().into();
+        unsafe { stream_state.future_rx.as_mut().unwrap_unchecked() }
+    };
+    match future_rx.poll_unpin(cx) {
+        Poll::Ready(Ok(())) => {}
+        Poll::Ready(Err(oneshot::error::RecvError { .. })) => {
+            warn! { "The worker has stopped without returning a new item" };
+            buffer_state.pending = None;
+            return Some(Poll::Ready(Some(Err(ErrorKind::BrokenPipe.into()))));
+        }
+        Poll::Pending => {
+            trace! { "Continue waiting" };
+            return Some(Poll::Pending);
+        }
+    }
+
+    stream_state.future_rx = None;
+    let pending_buffer_state = buffer_state.pending.take()?;
+
+    trace! { "The stream is waking up" };
+    // An item has just been added to lines.
+    assert!(pending_buffer_state.worker.is_none());
+    return None;
 }
 
 #[derive(Default)]
 struct BufferState {
     lines: VecDeque<Option<std::io::Result<Bytes>>>,
 
-    /// The lines that have already been read.
-    pos: usize,
+    /// The line number at which 'lines' starts, ie, the number of lines that were discarded.
+    start: usize,
 
     /// Waiting for some lines to be read
     pending: Option<PendingBufferState>,
 }
 
+struct StreamState {
+    pos: usize,
+    future_rx: Option<Shared<oneshot::Receiver<()>>>,
+    worker_handle: Arc<AbortOnDrop<()>>,
+}
+
+impl Clone for StreamState {
+    fn clone(&self) -> Self {
+        Self {
+            pos: 0,
+            future_rx: None,
+            worker_handle: self.worker_handle.clone(),
+        }
+    }
+}
+
 struct PendingBufferState {
     /// Signal when the worker has added an item to the list.
-    future_rx: oneshot::Receiver<()>,
+    future_rx: Shared<oneshot::Receiver<()>>,
 
-    /// Signal that the stream has consumed the item
-    /// and that the worker may continue.
-    signal_tx: Option<oneshot::Sender<()>>,
-
-    /// State of the worker to send the pending buffer and wait for the stream to consume it.
-    worker: Option<(oneshot::Sender<()>, oneshot::Receiver<()>)>,
+    /// State of the worker to send the pending buffer.
+    worker: Option<oneshot::Sender<()>>,
 }
 
 struct AbortOnDrop<T>(JoinHandle<T>);
@@ -351,7 +378,61 @@ mod tests {
             assert_eq!(tail_stream.pos(), 3);
             tail_stream.rewind();
             assert_eq!(tail_stream.pos(), 0);
+            trace!("Read the last 3 items -- after rewind");
             assert_eq!(vec!["7", "8", "9"], tail_stream.data(3).await);
+        }
+        .instrument(info_span!("Test"))
+        .await
+    }
+
+    #[tokio::test]
+    async fn shared() {
+        enable_tracing_for_tests();
+        async {
+            let (tx, rx) = mpsc::unbounded_channel();
+            let stream = UnboundedReceiverStream::new(rx)
+                .map(|i: i32| Ok(Bytes::from(i.to_string().into_bytes())));
+
+            trace!("Create TailStream");
+            let mut tail_stream1 = TailStream::new(stream, 3);
+            let mut tail_stream2 = tail_stream1.clone();
+            tokio::task::yield_now().await;
+
+            trace!("Check TailStream is empty");
+            assert!(tail_stream1.data(1).await.is_empty());
+            assert!(tail_stream2.data(1).await.is_empty());
+
+            trace!("Send 1 single item");
+            let () = tx.send(1).unwrap();
+
+            trace!("Read the single item");
+            assert_eq!(vec!["1"], tail_stream1.data(1).await);
+            assert_eq!(vec!["1"], tail_stream2.data(1).await);
+            tokio::time::sleep(TIMEOUT).await;
+
+            trace!("Send 10 items");
+            for i in 2..10 {
+                let () = tx.send(i).unwrap();
+            }
+
+            tokio::time::sleep(TIMEOUT).await;
+
+            trace!("Read the last 3 items");
+            assert_eq!(vec!["7", "8", "9"], tail_stream1.data(3).await);
+            assert_eq!(vec!["7", "8", "9"], tail_stream2.data(3).await);
+            trace!("Read the last 3 items -- noop already read");
+            assert_eq!(Vec::<String>::default(), tail_stream1.data(3).await);
+            assert_eq!(Vec::<String>::default(), tail_stream2.data(3).await);
+
+            assert_eq!(tail_stream1.pos(), 3);
+            assert_eq!(tail_stream2.pos(), 3);
+            tail_stream1.rewind();
+            assert_eq!(tail_stream1.pos(), 0);
+            trace!("Read the last 3 items -- after rewind");
+            assert_eq!(vec!["7", "8", "9"], tail_stream1.data(3).await);
+
+            let mut tail_stream3 = tail_stream1.clone();
+            assert_eq!(vec!["7", "8", "9"], tail_stream3.data(3).await);
         }
         .instrument(info_span!("Test"))
         .await
@@ -370,7 +451,9 @@ mod tests {
         }
 
         fn pos(&self) -> usize {
-            self.state.lock().unwrap().pos
+            self.stream_state
+                .pos
+                .saturating_sub(self.buffer_state.lock().unwrap().start)
         }
     }
 }
