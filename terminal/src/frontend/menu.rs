@@ -1,6 +1,6 @@
-use std::cell::OnceCell;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use terrazzo::autoclone;
@@ -12,6 +12,8 @@ use terrazzo::widgets::debounce::DoDebounce as _;
 use web_sys::MouseEvent;
 
 use crate::assets::icons;
+use crate::state::app;
+use crate::state::app::App;
 
 stylance::import_crate_style!(style, "src/frontend/menu.scss");
 
@@ -64,6 +66,12 @@ fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -
                 show_menu_mut.clone(),
                 hide_menu.clone(),
             ),
+            menu_item(
+                App::TextEditor,
+                app(),
+                show_menu_mut.clone(),
+                hide_menu.clone(),
+            ),
         )
     } else {
         tag(style::visibility = "hidden", style::display = "none")
@@ -94,47 +102,41 @@ fn menu_item(
     )
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum App {
-    Terminal,
-}
-
-impl std::fmt::Display for App {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            App::Terminal => "Terminal",
-        }
-        .fmt(f)
-    }
-}
-
 impl App {
-    #[allow(unused)]
-    pub fn icon(&self) -> &'static str {
+    pub fn icon(&self) -> icons::Icon {
         match self {
             App::Terminal => icons::terminal(),
+            App::TextEditor => icons::text_editor(),
         }
     }
 }
 
+#[autoclone]
 pub fn app() -> XSignal<App> {
-    struct Static(OnceCell<XSignal<App>>);
-    unsafe impl Sync for Static {}
-
-    static STATIC: Static = Static(OnceCell::new());
+    static STATIC: OnceLock<XSignal<App>> = OnceLock::new();
     STATIC
-        .0
-        .get_or_init(|| XSignal::new("app", App::Terminal))
+        .get_or_init(|| {
+            let app = XSignal::new("app", App::Terminal);
+            wasm_bindgen_futures::spawn_local(async move {
+                autoclone!(app);
+                if let Ok(p) = app::state::get().await {
+                    app.set(p);
+                }
+            });
+            static CONSUMER: OnceLock<Consumers> = OnceLock::new();
+            let _ = CONSUMER.set(app.add_subscriber(|app| {
+                wasm_bindgen_futures::spawn_local(async move {
+                    let _ = app::state::set(app).await;
+                })
+            }));
+            app
+        })
         .clone()
 }
 
 fn show_menu() -> XSignal<bool> {
-    struct Static(OnceCell<XSignal<bool>>);
-    unsafe impl Sync for Static {}
-
-    static STATIC: Static = Static(OnceCell::new());
+    static STATIC: OnceLock<XSignal<bool>> = OnceLock::new();
     STATIC
-        .0
         .get_or_init(|| XSignal::new("show-menu", false))
         .clone()
 }

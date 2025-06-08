@@ -10,12 +10,20 @@ html {
     border-width: 0px;
 }
 
-body {
-    border: 1px solid black;
+@mixin trz-font {
+    font-family: var(--font-family);
+    font-size: var(--font-size);
+    font-kerning: var(--font-kerning);
+}
 
-    font-family: courier-new, courier, monospace;
-    font-size: 15px;
-    font-kerning: none;
+body {
+    border: 0;
+
+    --font-family: courier-new, courier, monospace;
+    --font-size: 15px;
+    --font-kerning: none;
+
+    @include trz-font;
 
     --color: green;
     --link-color: green;
@@ -23,6 +31,7 @@ body {
     --padding: 5px;
     background-color: var(--background-color);
 }
+
 
 @mixin nowrap {
     overflow-x: hidden;
@@ -71,4 +80,32 @@ body {
 
 #main {
     height: 100%;
+}
+
+@mixin trz-menu {
+    position: absolute;
+    left: 0;
+    top: 25px;
+
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+
+    z-index: 1000;
+
+    display: flex;
+    flex-direction: column;
+
+    >li {
+        &:hover {
+            background-color: var(--link-color);
+            cursor: pointer;
+        }
+
+        padding: var(--padding);
+        margin: 0px;
+
+        @include nowrap;
+    }
 }

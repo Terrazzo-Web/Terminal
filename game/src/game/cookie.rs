@@ -154,7 +154,7 @@ fn make_cookie_move(game: Game, c: Cookie) {
             }
         }
     });
-    let closure = closure.as_function().or_throw("as_function");
+    let closure = closure.as_function();
     handle.set(Some(
         game.window
             .set_interval_with_callback_and_timeout_and_arguments_0(&closure, 1000 / 30)

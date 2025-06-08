@@ -74,15 +74,12 @@ impl Registration {
     ) {
         let (tx, rx) = mpsc::channel(10);
         let (timeout_tx, timeout_rx) = oneshot::channel();
-        if let Some(old_registration) = std::mem::replace(
-            &mut *REGISTRATION.lock().unwrap(),
-            Some(Registration {
-                correlation_id: correlation_id.clone(),
-                tx,
-                timeout_tx: Some(timeout_tx),
-                timeout_handle: timeout_handle(correlation_id),
-            }),
-        ) {
+        if let Some(old_registration) = (*REGISTRATION.lock().unwrap()).replace(Registration {
+            correlation_id: correlation_id.clone(),
+            tx,
+            timeout_tx: Some(timeout_tx),
+            timeout_handle: timeout_handle(correlation_id),
+        }) {
             drop(old_registration);
             debug!("Removed previous registration");
         }

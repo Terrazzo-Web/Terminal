@@ -1,4 +1,4 @@
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
 use terrazzo::autoclone;
 use terrazzo::html;
@@ -12,10 +12,11 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
 use web_sys::HtmlInputElement;
 
-use super::menu::App;
-use super::menu::app;
 use crate::assets::icons;
+use crate::frontend::menu::app;
+use crate::state::app::App;
 use crate::terminal::terminals;
+use crate::text_editor::ui::text_editor;
 
 stylance::import_crate_style!(style, "src/frontend/login.scss");
 
@@ -70,15 +71,11 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
 }
 
 pub fn logged_in() -> XSignal<LoggedInStatus> {
-    static LOGGED_IN: LoggedIn = LoggedIn(OnceCell::new());
+    static LOGGED_IN: OnceLock<XSignal<LoggedInStatus>> = OnceLock::new();
     LOGGED_IN
-        .0
         .get_or_init(|| XSignal::new("logged-in", LoggedInStatus::Unknown))
         .clone()
 }
-
-struct LoggedIn(OnceCell<XSignal<LoggedInStatus>>);
-unsafe impl Sync for LoggedIn {}
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 pub enum LoggedInStatus {
@@ -94,5 +91,6 @@ pub enum LoggedInStatus {
 fn show_app(#[signal] app: App) -> XElement {
     match app {
         App::Terminal => div(|t| terminals(t)),
+        App::TextEditor => div(|t| text_editor(t)),
     }
 }

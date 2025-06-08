@@ -103,7 +103,7 @@ impl DistributedCallback for RegisterCallback {
         let address = def.address.get_or_insert_default();
         address.via = Some(ClientAddress::of(client_address));
         let stream = client.register(request).await?.into_inner();
-        Ok(HybridReader::Remote(stream))
+        Ok(HybridReader::Remote(Box::new(stream)))
     }
 }
 

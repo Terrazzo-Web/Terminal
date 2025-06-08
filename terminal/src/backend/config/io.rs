@@ -8,7 +8,6 @@ use super::ConfigFile;
 
 impl ConfigFile {
     pub fn load(path: impl AsRef<Path>) -> Result<Self, ConfigFileError> {
-        // TODO if file does not exist, return a default config
         let path = path.as_ref();
         let content = if std::fs::exists(path).map_err(|error| ConfigFileError::IO {
             config_file: path.to_owned(),
@@ -26,14 +25,14 @@ impl ConfigFile {
         }
         return toml::from_str(&content).map_err(|error| ConfigFileError::Deserialize {
             config_file: path.to_owned(),
-            error,
+            error: error.into(),
         });
     }
 }
 
 impl ConfigFile {
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), ConfigFileError> {
-        let json = toml::to_string_pretty(self)?;
+        let json = toml::to_string_pretty(self).map_err(Box::from)?;
         std::fs::write(path.as_ref(), &json).map_err(|error| ConfigFileError::IO {
             config_file: path.as_ref().to_owned(),
             error,
@@ -54,9 +53,9 @@ pub enum ConfigFileError {
     #[error("[{n}] Failed to parse config file {config_file:?}: {error}", n = self.name())]
     Deserialize {
         config_file: PathBuf,
-        error: toml::de::Error,
+        error: Box<toml::de::Error>,
     },
 
     #[error("[{n}] Failed to serialize config file: {0}", n = self.name())]
-    Serialize(#[from] toml::ser::Error),
+    Serialize(#[from] Box<toml::ser::Error>),
 }

@@ -1,7 +1,5 @@
 #![cfg(feature = "client")]
 
-use std::rc::Rc;
-
 use terminal_tab::TerminalTab;
 use terrazzo::html;
 use terrazzo::prelude::*;
@@ -34,7 +32,7 @@ pub struct TerminalsState {
 pub fn terminals(template: XTemplate) -> Consumers {
     let terminal_id = TerminalId::from("Terminal");
     let selected_tab = XSignal::new("selected_tab", terminal_id.clone());
-    let terminal_tabs = XSignal::new("terminal_tabs", TerminalTabs::from(Rc::new(vec![])));
+    let terminal_tabs = XSignal::new("terminal_tabs", TerminalTabs::from(Ptr::new(vec![])));
     refresh_terminal_tabs(selected_tab.clone(), terminal_tabs.clone());
     let state = TerminalsState {
         selected_tab,
@@ -55,7 +53,7 @@ pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: Terminal
             tabs(
                 terminal_tabs,
                 state,
-                Rc::new(TabsOptions {
+                Ptr::new(TabsOptions {
                     tabs_class: Some(style::tabs.into()),
                     titles_class: Some(style::titles.into()),
                     title_class: Some(style::title.into()),
@@ -88,7 +86,7 @@ fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSign
                 selected_tab.force(first_terminal.address.id.clone());
             }
         }
-        terminal_tabs.set(TerminalTabs::from(Rc::new(
+        terminal_tabs.set(TerminalTabs::from(Ptr::new(
             terminal_defs
                 .into_iter()
                 .map(|def| TerminalTab::of(def, &selected_tab))

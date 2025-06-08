@@ -1,0 +1,26 @@
+use std::sync::Arc;
+
+use server_fn::ServerFnError;
+use terrazzo::server;
+
+mod service;
+pub mod ui;
+
+#[server]
+pub async fn load_file(
+    base_path: Arc<str>,
+    file_path: Arc<str>,
+) -> Result<Option<Arc<str>>, ServerFnError> {
+    service::load_file(base_path, file_path)
+}
+
+#[server]
+async fn store_file_impl(
+    base_path: Arc<str>,
+    file_path: Arc<str>,
+    content: String,
+) -> Result<(), ServerFnError> {
+    #[cfg(debug_assertions)]
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    service::store_file(base_path, file_path, content)
+}

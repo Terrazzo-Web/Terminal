@@ -32,30 +32,13 @@ div.menu {
 }
 
 ul.menu-items {
-    position: absolute;
-    left: 0;
-    top: 25px;
-
-    list-style: none;
-    margin: 0;
-    padding: 0;
+    @include trz-menu;
 
     border: 1px solid white;
-    background-color: var(--background-color);
 
     >li {
         display: flex;
         flex-direction: row;
-
-        &:hover {
-            background-color: var(--link-color);
-            cursor: pointer;
-        }
-
-        padding: var(--padding);
-        margin: 0px;
-
-        @include nowrap;
 
         img.app-icon {
             @include trz-icon;
