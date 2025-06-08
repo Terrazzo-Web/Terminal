@@ -1,3 +1,5 @@
+#![cfg(feature = "client")]
+
 use std::sync::Arc;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::Ordering::SeqCst;
@@ -11,8 +13,8 @@ use tracing::warn;
 use wasm_bindgen::JsValue;
 
 use super::code_mirror::CodeMirrorJs;
-use crate::text_editor::store_file;
-use crate::text_editor::ui::SynchronizedState;
+use super::fsio::store_file;
+use super::synchronized_state::SynchronizedState;
 
 #[derive(Clone)]
 pub struct EditorState {

@@ -1,9 +1,8 @@
 #![cfg(feature = "client")]
 
-use std::num::NonZero;
-use std::num::NonZeroU32;
 use std::sync::Arc;
 
+use nameth::nameth;
 use server_fn::ServerFnError;
 use terrazzo::autoclone;
 use terrazzo::html;
@@ -12,24 +11,18 @@ use terrazzo::template;
 use tracing::warn;
 use wasm_bindgen_futures::spawn_local;
 
-use self::editor::editor;
-use self::path_selector::base_path_selector;
-use self::path_selector::file_path_selector;
-use super::load_file;
+use super::editor::EditorState;
+use super::editor::editor;
+use super::fsio::load_file;
+use super::path_selector::ui::base_path_selector;
+use super::path_selector::ui::file_path_selector;
 use super::state;
+use super::style;
+use super::synchronized_state::SynchronizedState;
+use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
-use crate::text_editor::ui::editor::EditorState;
-use crate::text_editor::ui::sync_status::sync_status_icon;
 
-mod autocomplete;
-mod code_mirror;
-mod editor;
-mod path_selector;
-mod sync_status;
-
-stylance::import_crate_style!(style, "src/text_editor/text_editor.scss");
-
-#[autoclone]
+/// The UI for the text editor app.
 #[html]
 #[template]
 pub fn text_editor() -> XElement {
@@ -38,20 +31,62 @@ pub fn text_editor() -> XElement {
     let editor_state = XSignal::new("editor-state", None);
     let synchronized_state = XSignal::new("synchronized-state", SynchronizedState::Sync);
 
+    restore_paths(&base_path, &file_path);
+    let base_path_subscriber = save_on_change(base_path.clone(), state::base_path::set);
+    let file_path_subscriber = save_on_change(file_path.clone(), state::file_path::set);
+    let file_async_view = make_file_async_view(&base_path, &file_path, &editor_state);
+
+    div(
+        style = "height: 100%;",
+        div(
+            key = "text-editor",
+            class = style::text_editor,
+            div(
+                class = style::header,
+                menu(),
+                base_path_selector(base_path.clone()),
+                file_path_selector(base_path, file_path),
+                show_synchronized_state(synchronized_state.clone()),
+            ),
+            editor(editor_state, synchronized_state),
+            after_render = move |_| {
+                let _moved = &base_path_subscriber;
+                let _moved = &file_path_subscriber;
+                let _moved = &file_async_view;
+            },
+        ),
+    )
+}
+
+/// Restores the paths
+#[autoclone]
+#[nameth]
+fn restore_paths(base_path: &XSignal<Arc<str>>, file_path: &XSignal<Arc<str>>) {
     spawn_local(async move {
         autoclone!(base_path, file_path);
-        if let Ok(p) = state::base_path::get().await {
+        let (get_base_path, get_file_path) =
+            futures::future::join(state::base_path::get(), state::file_path::get()).await;
+        if get_base_path.is_err() && get_file_path.is_err() {
+            return;
+        }
+        let batch = Batch::use_batch(RESTORE_PATHS);
+        if let Ok(p) = get_base_path {
             base_path.set(p);
         }
-        if let Ok(p) = state::file_path::get().await {
+        if let Ok(p) = get_file_path {
             file_path.set(p);
         }
+        drop(batch);
     });
+}
 
-    let base_path_subscriber = make_subs("base_path", base_path.clone(), state::base_path::set);
-    let file_path_subscriber = make_subs("file_path", file_path.clone(), state::file_path::set);
-
-    let file_async_view = file_path.add_subscriber(move |file_path| {
+#[autoclone]
+fn make_file_async_view(
+    base_path: &XSignal<Arc<str>>,
+    file_path: &XSignal<Arc<str>>,
+    editor_state: &XSignal<Option<EditorState>>,
+) -> Consumers {
+    file_path.add_subscriber(move |file_path| {
         autoclone!(base_path, editor_state);
         editor_state.force(None);
         let task = async move {
@@ -70,33 +105,10 @@ pub fn text_editor() -> XElement {
             }
         };
         spawn_local(task);
-    });
-    div(
-        style = "height: 100%;",
-        div(
-            key = "text-editor",
-            class = style::text_editor,
-            div(
-                class = style::header,
-                before_render = move |_| {
-                    let _moved = &file_async_view;
-                },
-                menu(),
-                base_path_selector(base_path.clone()),
-                file_path_selector(base_path, file_path),
-                sync_status_icon(synchronized_state.clone()),
-            ),
-            editor(editor_state, synchronized_state),
-            after_render = move |_| {
-                let _ = &base_path_subscriber;
-                let _ = &file_path_subscriber;
-            },
-        ),
-    )
+    })
 }
 
-fn make_subs(
-    name: &'static str,
+fn save_on_change(
     path: XSignal<Arc<str>>,
     setter: impl AsyncFn(Arc<str>) -> Result<(), ServerFnError> + Copy + 'static,
 ) -> Consumers {
@@ -104,38 +116,7 @@ fn make_subs(
         spawn_local(async move {
             let () = setter(p)
                 .await
-                .unwrap_or_else(|error| warn!("Failed to set {name}: {error}"));
+                .unwrap_or_else(|error| warn!("Failed to save path: {error}"));
         })
     })
-}
-
-#[derive(Clone, Copy, Debug)]
-enum SynchronizedState {
-    Sync,
-    Pending(NonZero<u32>),
-}
-
-impl SynchronizedState {
-    fn enqueue(state: XSignal<SynchronizedState>) -> impl Drop {
-        state.update(|state| {
-            Some(match state {
-                Self::Sync => Self::Pending(NonZeroU32::MIN),
-                Self::Pending(c) => Self::Pending(c.saturating_add(1)),
-            })
-        });
-        scopeguard::guard(state, |state| {
-            state.update(|state| {
-                Some(match state {
-                    Self::Sync => {
-                        warn!("Impossible state:");
-                        Self::Sync
-                    }
-                    Self::Pending(c) => (c.get() - 1)
-                        .try_into()
-                        .map(Self::Pending)
-                        .unwrap_or(SynchronizedState::Sync),
-                })
-            });
-        })
-    }
 }

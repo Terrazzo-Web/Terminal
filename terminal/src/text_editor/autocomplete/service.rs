@@ -17,7 +17,7 @@ use tracing::debug_span;
 use trz_gateway_common::http_error::HttpError;
 use trz_gateway_common::http_error::IsHttpError;
 
-use crate::text_editor::PathSelector;
+use crate::text_editor::path_selector::PathSelector;
 
 const ROOT: &str = "/";
 const MAX_RESULTS: usize = 20;
@@ -303,11 +303,12 @@ mod tests {
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         assert_that!(&root).ends_with("/terminal");
 
-        let autocomplete = call_autocomplete(&root, root.clone());
-        assert_that!(&autocomplete).contains(&"ROOT/assets".into());
+        let autocomplete = call_autocomplete(&root, format!("{root}/src/text_editor"));
         assert_that!(&autocomplete).contains(&"ROOT/src".into());
-        assert_that!(&autocomplete).contains(&"ROOT/build.rs".into());
-        assert_that!(&autocomplete).contains(&"ROOT/Cargo.toml".into());
+        assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/autocomplete".into());
+        assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/autocomplete.rs".into());
+        assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/path_selector".into());
+        assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/path_selector.rs".into());
         assert_that!(&autocomplete).does_not_contain_any(&[&"ROOT/xyz".into()]);
     }
 
@@ -319,26 +320,37 @@ mod tests {
         assert_that!(&autocomplete).is_not_empty();
         assert_that!(&autocomplete).contains(&"ROOT/build.rs".into());
 
-        const AUTOCOMPLETE_RS_PATH: &str = "ROOT/src/text_editor/ui/autocomplete.rs";
-        const PATH_SELECTOR_RS_PATH: &str = "ROOT/src/text_editor/ui/path_selector.rs";
+        const SERVICE_PATH: &str = "ROOT/src/text_editor/path_selector/service.rs";
+        const UI_PATH: &str = "ROOT/src/text_editor/path_selector/ui.rs";
+        const PARENT_PATH: &str = "ROOT/src/text/path";
 
-        let autocomplete = call_autocomplete(&root, format!("{root}/src/text/ui/path"));
+        let autocomplete = call_autocomplete(&root, format!("{root}/src/text/path/ui"));
         assert_that!(&autocomplete).is_not_empty();
-        assert_that!(&autocomplete).does_not_contain_any(&[&AUTOCOMPLETE_RS_PATH.into()]);
-        assert_that!(&autocomplete).contains(&PATH_SELECTOR_RS_PATH.into());
+        assert_that!(&autocomplete).does_not_contain_any(&[&SERVICE_PATH.into()]);
+        assert_that!(&autocomplete).contains(&UI_PATH.into());
+        assert_that!(&autocomplete).contains(&PARENT_PATH.into());
 
-        let autocomplete = call_autocomplete(&root, format!("{root}/src/text/ui/rs"));
+        let autocomplete = call_autocomplete(&root, format!("{root}/src/text/path/rs"));
         assert_that!(&autocomplete).is_not_empty();
-        assert_that!(&autocomplete).contains(&AUTOCOMPLETE_RS_PATH.into());
-        assert_that!(&autocomplete).contains(&PATH_SELECTOR_RS_PATH.into());
+        assert_that!(&autocomplete).contains(&SERVICE_PATH.into());
+        assert_that!(&autocomplete).contains(&UI_PATH.into());
+        assert_that!(&autocomplete).contains(&PARENT_PATH.into());
     }
 
     #[test]
     fn match_dirs() {
         enable_tracing_for_tests();
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-        let autocomplete = call_autocomplete_dir(&root, format!("{root}/src/text/i"));
-        assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/ui".into());
+        let autocomplete = call_autocomplete_dir(&root, format!("{root}/src/text/e"));
+        assert_that!(&autocomplete).is_equal_to(
+            &[
+                "ROOT/src/text",
+                "ROOT/src/text_editor/autocomplete",
+                "ROOT/src/text_editor/path_selector",
+            ]
+            .map(Into::into)
+            .into(),
+        );
     }
 
     #[test]
@@ -346,8 +358,12 @@ mod tests {
         enable_tracing_for_tests();
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         let autocomplete = call_autocomplete_files(&root, format!("{root}/src/text/u"));
-        assert_that!(&autocomplete)
-            .is_equal_to(&["text".into(), "text_editor/ui.rs".into()].into());
+        dbg!(&autocomplete);
+        assert_that!(&autocomplete).is_equal_to(
+            &["text", "text_editor/autocomplete.rs", "text_editor/ui.rs"]
+                .map(Into::into)
+                .into(),
+        );
     }
 
     fn call_autocomplete(prefix: &str, path: String) -> Vec<String> {
