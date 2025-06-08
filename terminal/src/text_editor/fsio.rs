@@ -4,6 +4,7 @@ use server_fn::ServerFnError;
 use terrazzo::server;
 
 mod service;
+pub mod ui;
 
 #[server]
 pub async fn load_file(
@@ -14,7 +15,7 @@ pub async fn load_file(
 }
 
 #[server]
-pub async fn store_file(
+async fn store_file_impl(
     base_path: Arc<str>,
     file_path: Arc<str>,
     content: String,

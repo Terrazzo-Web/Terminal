@@ -9,12 +9,11 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use tracing::debug;
-use tracing::warn;
 use wasm_bindgen::JsValue;
 
 use super::code_mirror::CodeMirrorJs;
-use super::fsio::store_file;
 use super::synchronized_state::SynchronizedState;
+use crate::text_editor::fsio::ui::store_file;
 
 #[derive(Clone)]
 pub struct EditorState {
@@ -60,9 +59,7 @@ pub fn editor(
         let write = async move {
             autoclone!(base_path, file_path, synchronized_state);
             let pending = SynchronizedState::enqueue(synchronized_state);
-            let result = store_file(base_path, file_path, content).await;
-            drop(pending);
-            return result.unwrap_or_else(|error| warn!("Failed to save file {error}"));
+            let () = store_file(base_path, file_path, content, pending).await;
         };
         wasm_bindgen_futures::spawn_local(write);
     });

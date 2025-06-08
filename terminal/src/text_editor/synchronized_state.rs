@@ -35,7 +35,7 @@ fn icon_src(#[signal] synchronized_state: SynchronizedState) -> XAttributeValue 
 }
 
 impl SynchronizedState {
-    pub fn enqueue(state: XSignal<SynchronizedState>) -> impl Drop {
+    pub fn enqueue(state: XSignal<SynchronizedState>) -> impl Drop + Send + Sync {
         state.update(|state| {
             Some(match state {
                 Self::Sync => Self::Pending(NonZero::<u32>::MIN),
