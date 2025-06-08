@@ -1,10 +1,9 @@
-use std::rc::Rc;
-
 use futures::Stream;
 use futures::StreamExt as _;
 use futures::channel::oneshot;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use terrazzo::prelude::Ptr;
 use tracing::debug;
 use tracing::warn;
 use tracing_futures::Instrument;
@@ -24,7 +23,7 @@ pub fn setup_acks(
     terminal: TerminalAddress,
     stream_reader: impl Stream<Item = Option<Vec<u8>>>,
 ) -> impl Stream<Item = Option<Vec<u8>>> {
-    let terminal = Rc::new(terminal);
+    let terminal = Ptr::new(terminal);
     let unack = 0;
     let prev_ack = {
         let (tx, rx) = oneshot::channel();

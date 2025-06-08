@@ -87,7 +87,7 @@ impl TerminalTab {
                 }
             });
         });
-        Self(Rc::new(TerminalTabInner {
+        Self(Ptr::new(TerminalTabInner {
             def: LiveTerminalDef {
                 address,
                 title,

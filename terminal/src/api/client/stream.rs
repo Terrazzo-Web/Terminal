@@ -15,6 +15,7 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
 use terrazzo::prelude::OrElseLog as _;
+use terrazzo::prelude::Ptr;
 use tracing::debug;
 use tracing::info;
 use tracing::warn;
@@ -89,7 +90,7 @@ where
             StreamStatus::EndOfStream => return Ok(()),
         };
         info!("Streaming stopped");
-        let streaming_state = Rc::new(Cell::new(None));
+        let streaming_state = Ptr::new(Cell::new(None));
 
         let closure = make_wake_closure(element.clone(), streaming_state.clone());
         let () = element

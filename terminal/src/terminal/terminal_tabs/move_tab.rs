@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use terrazzo::prelude::*;
 use tracing::warn;
 
@@ -51,7 +49,7 @@ pub fn move_tab(state: TerminalsState, after_tab: Option<TerminalTab>, moved_tab
                 .collect();
             state.selected_tab.set(moved_tab.address.id.clone());
             let tabs = TerminalTabs {
-                terminal_tabs: Rc::new(tabs),
+                terminal_tabs: Ptr::new(tabs),
             };
             return Some(tabs.clone()).and_return(tabs);
         });

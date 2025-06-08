@@ -71,13 +71,13 @@ impl TabsDescriptor for TerminalTabs {
 
 impl TerminalTabs {
     pub fn add_tab(mut self, new: TerminalTab) -> Self {
-        let terminal_tabs = Rc::make_mut(&mut self.terminal_tabs);
+        let terminal_tabs = Ptr::make_mut(&mut self.terminal_tabs);
         terminal_tabs.push(new);
         self
     }
 
     pub fn remove_tab(mut self, id: &TerminalId) -> Self {
-        let terminal_tabs = Rc::make_mut(&mut self.terminal_tabs);
+        let terminal_tabs = Ptr::make_mut(&mut self.terminal_tabs);
         terminal_tabs.retain(|tab| tab.address.id != *id);
         self
     }
