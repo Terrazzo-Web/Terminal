@@ -83,7 +83,7 @@ impl SynchronizedState {
                             before_unload: before_unload.clone(),
                         },
                         Err(_zero) => {
-                            unset_beforeunload_event(&before_unload);
+                            unset_beforeunload_event(before_unload);
                             Self::Sync
                         }
                     },
@@ -104,7 +104,7 @@ fn set_beforeunload_event() -> UiThreadSafe<BeforeUnloadCallback> {
         return JsValue::from_str("There are pending changes.");
     });
     let () = window
-        .add_event_listener_with_callback(BEFORE_UNLOAD, &listener.as_ref().unchecked_ref())
+        .add_event_listener_with_callback(BEFORE_UNLOAD, listener.as_ref().unchecked_ref())
         .unwrap_or_else(|error| warn!("Failed to register {BEFORE_UNLOAD} event: {error:?}"));
     return UiThreadSafe::from(listener);
 }
@@ -112,6 +112,6 @@ fn set_beforeunload_event() -> UiThreadSafe<BeforeUnloadCallback> {
 fn unset_beforeunload_event(listener: &BeforeUnloadCallback) {
     let window = web_sys::window().or_throw("window");
     let () = window
-        .remove_event_listener_with_callback(BEFORE_UNLOAD, &listener.as_ref().unchecked_ref())
+        .remove_event_listener_with_callback(BEFORE_UNLOAD, listener.as_ref().unchecked_ref())
         .unwrap_or_else(|error| warn!("Failed to unregister {BEFORE_UNLOAD} event: {error:?}"));
 }
