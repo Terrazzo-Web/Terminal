@@ -1,20 +1,36 @@
 #![cfg(feature = "client")]
 
 use std::num::NonZero;
+use std::sync::Arc;
 
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use tracing::warn;
+use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
+use web_sys::Event;
 
 use super::style;
 use crate::assets::icons;
 
 /// State shows a spinner when the file is being saved.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone)]
 pub enum SynchronizedState {
     Sync,
-    Pending(NonZero<u32>),
+    Pending {
+        count: NonZero<u32>,
+        before_unload: Arc<UiThreadSafe<BeforeUnloadCallback>>,
+    },
+}
+
+impl std::fmt::Debug for SynchronizedState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Sync => write!(f, "Sync"),
+            Self::Pending { count, .. } => f.debug_struct("Pending").field("count", count).finish(),
+        }
+    }
 }
 
 #[html]
@@ -38,8 +54,17 @@ impl SynchronizedState {
     pub fn enqueue(state: XSignal<SynchronizedState>) -> impl Drop + Send + Sync {
         state.update(|state| {
             Some(match state {
-                Self::Sync => Self::Pending(NonZero::<u32>::MIN),
-                Self::Pending(c) => Self::Pending(c.saturating_add(1)),
+                Self::Sync => Self::Pending {
+                    count: NonZero::<u32>::MIN,
+                    before_unload: set_beforeunload_event().into(),
+                },
+                Self::Pending {
+                    count,
+                    before_unload,
+                } => Self::Pending {
+                    count: count.saturating_add(1),
+                    before_unload: before_unload.clone(),
+                },
             })
         });
         scopeguard::guard(state, |state| {
@@ -49,12 +74,44 @@ impl SynchronizedState {
                         warn!("Impossible state");
                         Self::Sync
                     }
-                    Self::Pending(c) => (c.get() - 1)
-                        .try_into()
-                        .map(Self::Pending)
-                        .unwrap_or(SynchronizedState::Sync),
+                    Self::Pending {
+                        count,
+                        before_unload,
+                    } => match (count.get() - 1).try_into() {
+                        Ok(count) => Self::Pending {
+                            count,
+                            before_unload: before_unload.clone(),
+                        },
+                        Err(_zero) => {
+                            unset_beforeunload_event(&before_unload);
+                            Self::Sync
+                        }
+                    },
                 })
             });
         })
     }
+}
+
+const BEFORE_UNLOAD: &str = "beforeunload";
+type BeforeUnloadCallback = Closure<dyn Fn(Event) -> JsValue>;
+
+fn set_beforeunload_event() -> UiThreadSafe<BeforeUnloadCallback> {
+    let window = web_sys::window().or_throw("window");
+    let listener: Closure<dyn Fn(Event) -> JsValue> = Closure::new(|event: Event| {
+        warn!("Prevent closing window while there are pending changes");
+        event.prevent_default();
+        return JsValue::from_str("There are pending changes.");
+    });
+    let () = window
+        .add_event_listener_with_callback(BEFORE_UNLOAD, &listener.as_ref().unchecked_ref())
+        .unwrap_or_else(|error| warn!("Failed to register {BEFORE_UNLOAD} event: {error:?}"));
+    return UiThreadSafe::from(listener);
+}
+
+fn unset_beforeunload_event(listener: &BeforeUnloadCallback) {
+    let window = web_sys::window().or_throw("window");
+    let () = window
+        .remove_event_listener_with_callback(BEFORE_UNLOAD, &listener.as_ref().unchecked_ref())
+        .unwrap_or_else(|error| warn!("Failed to unregister {BEFORE_UNLOAD} event: {error:?}"));
 }
