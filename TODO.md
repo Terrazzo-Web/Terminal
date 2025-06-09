@@ -1,4 +1,6 @@
 # TODO
+- `#101`. Renew client certificates
+- `#103`. Renew LE certificate
 - `#102`. Text editor: support remote
 - `#·93`. File explorer: opened files
 - `#·94`. File explorer: all files
@@ -10,7 +12,6 @@
 - `#·97`. Text editor: show files list on opening folder
 - `#·98`. Text editor: highlight git changes
 - `#·99`. Text editor: status bar: last change, pointer position, branch name
-- `#101`. Renew client certificates
 - `#·91`. Port forwarding tool
 - `#·91`. Configuration tool: show current auth token
 - `#·91`. Configuration tool: password reset
@@ -28,7 +29,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#103`.
+Next: `#104`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
