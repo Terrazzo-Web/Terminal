@@ -7,7 +7,6 @@ use terrazzo::template;
 use terrazzo::widgets::cancellable::Cancellable;
 use terrazzo::widgets::debounce::DoDebounce as _;
 use tracing::debug;
-use tracing::info;
 use tracing::warn;
 use web_sys::MouseEvent;
 
@@ -43,7 +42,7 @@ pub fn show_clients_dropdown(
     #[signal] remotes: Remotes,
     hide_clients: Cancellable<Duration>,
 ) -> XElement {
-    info!("Render client names");
+    debug!("Render client names");
     if let Remotes::Some(remotes) = remotes {
         if !remotes.is_empty() {
             let client_names = remotes.into_iter().map(|client_address| {
