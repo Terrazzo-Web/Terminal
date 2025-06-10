@@ -112,7 +112,7 @@ fn do_autocomplete_impl(
 ) {
     let input_element = input.get().or_throw("Input element not set");
     let value = input_element.value();
-    let address = ClientAddress::default(); // TODO
+    let address: Option<ClientAddress> = None; // TODO
     spawn_local(async move {
         autoclone!(autocomplete);
         let autocompletes = autocomplete_path(
