@@ -10,7 +10,7 @@ use tracing::warn;
 
 use crate::api::client_address::ClientAddress;
 
-pub async fn store_file<P: Send + Sync + 'static>(
+pub async fn store_file<P: Send + 'static>(
     base_path: Arc<str>,
     file_path: Arc<str>,
     content: String,
@@ -36,5 +36,5 @@ fn make_debounced_store_file_fn() -> StoreFileFn {
 }
 
 type StoreFileFn =
-    Box<dyn Fn((Arc<str>, Arc<str>, String, Box<dyn Send + Sync>)) -> BoxFuture + Send + Sync>;
+    Box<dyn Fn((Arc<str>, Arc<str>, String, Box<dyn Send>)) -> BoxFuture + Send + Sync>;
 type BoxFuture = Pin<Box<dyn Future<Output = ()>>>;
