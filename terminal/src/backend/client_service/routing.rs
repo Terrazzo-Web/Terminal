@@ -18,8 +18,8 @@ use crate::backend::protos::terrazzo::gateway::client::client_service_client::Cl
 pub trait DistributedCallback {
     type Request;
     type Response;
-    type LocalError: IsHttpError;
-    type RemoteError: IsHttpError;
+    type LocalError: std::error::Error;
+    type RemoteError: std::error::Error;
 
     fn process(
         server: &Server,

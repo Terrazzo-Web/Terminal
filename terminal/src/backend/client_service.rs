@@ -24,7 +24,7 @@ use super::protos::terrazzo::gateway::client::SetTitleRequest;
 use super::protos::terrazzo::gateway::client::TerminalAddress;
 use super::protos::terrazzo::gateway::client::WriteRequest;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
-use crate::backend::protos::terrazzo::gateway::client::ServerFnRequest;
+use crate::backend::protos::terrazzo::gateway::client::RemoteFnRequest;
 use crate::backend::protos::terrazzo::gateway::client::ServerFnResponse;
 use crate::processes::io::RemoteReader;
 
@@ -34,7 +34,7 @@ pub mod convert;
 pub mod grpc_error;
 pub mod new_id;
 pub mod register;
-pub mod remote_server_fn;
+pub mod remote_fn;
 pub mod remotes;
 pub mod resize;
 mod routing;
@@ -160,12 +160,12 @@ impl ClientService for ClientServiceImpl {
 
     async fn call_server_fn(
         &self,
-        request: Request<ServerFnRequest>,
+        request: Request<RemoteFnRequest>,
     ) -> Result<Response<ServerFnResponse>, Status> {
         let mut request = request.into_inner();
         let address = request.address.get_or_insert_default();
         let address = std::mem::take(&mut address.via);
-        let response = remote_server_fn::call_internal(&self.server, &address, request).await;
+        let response = remote_fn::dispatch(&self.server, &address, request).await;
         Ok(Response::new(ServerFnResponse { json: response? }))
     }
 }
