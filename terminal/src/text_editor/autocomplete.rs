@@ -31,7 +31,7 @@ async fn autocomplete_path(
             prefix,
             input,
         };
-        return Ok(remote::AUTOCOMPLETE_PATH_SERVER_FN
+        return Ok(remote::AUTOCOMPLETE_PATH_REMOTE_FN
             .call(address.unwrap_or_default(), request)
             .await?);
     }

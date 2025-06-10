@@ -12,12 +12,12 @@ use crate::backend::client_service::remote_fn::RemoteFn;
 use crate::backend::client_service::remote_fn::RemoteFnResult;
 use crate::text_editor::path_selector::PathSelector;
 
-pub static AUTOCOMPLETE_PATH_SERVER_FN: RemoteFn = RemoteFn {
+pub static AUTOCOMPLETE_PATH_REMOTE_FN: RemoteFn = RemoteFn {
     name: super::AUTOCOMPLETE_PATH,
     callback: autocomplete_path,
 };
 
-inventory::submit! { AUTOCOMPLETE_PATH_SERVER_FN }
+inventory::submit! { AUTOCOMPLETE_PATH_REMOTE_FN }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AutoCompletePathRequest {

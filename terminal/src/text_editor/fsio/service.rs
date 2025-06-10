@@ -5,12 +5,11 @@ use std::sync::Arc;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use server_fn::ServerFnError;
+use tonic::Code;
 
-pub fn load_file(
-    base_path: Arc<str>,
-    file_path: Arc<str>,
-) -> Result<Option<Arc<str>>, ServerFnError> {
+use crate::backend::client_service::grpc_error::IsGrpcError;
+
+pub fn load_file(base_path: Arc<str>, file_path: Arc<str>) -> Result<Option<Arc<str>>, FsioError> {
     let path = PathBuf::from(format!("{base_path}/{file_path}"));
     if !file_path.is_empty() && path.exists() {
         Ok(Some(Arc::from(std::fs::read_to_string(&path)?)))
@@ -23,29 +22,30 @@ pub fn store_file(
     base_path: Arc<str>,
     file_path: Arc<str>,
     content: String,
-) -> Result<(), ServerFnError> {
-    return Ok(store_file_impl(base_path, file_path, content)?);
-}
-
-fn store_file_impl(
-    base_path: Arc<str>,
-    file_path: Arc<str>,
-    content: String,
-) -> Result<(), StoreFileError> {
+) -> Result<(), FsioError> {
     let path = PathBuf::from(format!("{base_path}/{file_path}"));
     return if !file_path.is_empty() && path.exists() {
         Ok(std::fs::write(&path, content)?)
     } else {
-        Err(StoreFileError::InvalidPath)
+        Err(FsioError::InvalidPath)
     };
 }
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-enum StoreFileError {
+pub enum FsioError {
     #[error("[{n}] {0}", n = self.name())]
     IO(#[from] std::io::Error),
 
     #[error("[{n}] Invalid path", n = self.name())]
     InvalidPath,
+}
+
+impl IsGrpcError for FsioError {
+    fn code(&self) -> Code {
+        match self {
+            Self::IO { .. } => Code::FailedPrecondition,
+            Self::InvalidPath => Code::InvalidArgument,
+        }
+    }
 }

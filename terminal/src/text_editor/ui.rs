@@ -20,6 +20,7 @@ use super::state;
 use super::style;
 use super::synchronized_state::SynchronizedState;
 use super::synchronized_state::show_synchronized_state;
+use crate::api::client_address::ClientAddress;
 use crate::frontend::menu::menu;
 
 /// The UI for the text editor app.
@@ -92,7 +93,8 @@ fn make_file_async_view(
         let task = async move {
             autoclone!(base_path, file_path, editor_state);
             let base_path = base_path.get_value_untracked();
-            let data = load_file(base_path.clone(), file_path.clone())
+            let address: Option<ClientAddress> = None; // TODO
+            let data = load_file(address, base_path.clone(), file_path.clone())
                 .await
                 .unwrap_or_else(|error| Some(error.to_string().into()));
 

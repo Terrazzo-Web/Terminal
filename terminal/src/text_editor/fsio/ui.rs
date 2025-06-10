@@ -8,6 +8,8 @@ use std::time::Duration;
 use terrazzo::widgets::debounce::DoDebounce;
 use tracing::warn;
 
+use crate::api::client_address::ClientAddress;
+
 pub async fn store_file<P: Send + Sync + 'static>(
     base_path: Arc<str>,
     file_path: Arc<str>,
@@ -23,7 +25,8 @@ pub async fn store_file<P: Send + Sync + 'static>(
 fn make_debounced_store_file_fn() -> StoreFileFn {
     let debounced = Duration::from_secs(3).async_debounce(
         |(base_path, file_path, content, pending)| async move {
-            let () = super::store_file_impl(base_path, file_path, content)
+            let address: Option<ClientAddress> = None; // TODO
+            let () = super::store_file_impl(address, base_path, file_path, content)
                 .await
                 .unwrap_or_else(|error| warn!("Failed to store file: {error}"));
             drop(pending);
