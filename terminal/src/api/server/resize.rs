@@ -14,7 +14,7 @@ pub async fn resize(
     server: Arc<Server>,
     Json(request): Json<ResizeRequest>,
 ) -> Result<(), HttpError<ResizeError>> {
-    let client_address = &request.terminal.via.to_vec();
+    let client_address = request.terminal.via.to_vec();
     let response = resize::resize(
         &server,
         &client_address,
