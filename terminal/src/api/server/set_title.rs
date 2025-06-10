@@ -14,7 +14,7 @@ pub async fn set_title(
     server: Arc<Server>,
     Json(request): Json<SetTitleRequest>,
 ) -> Result<(), HttpError<SetTitleError>> {
-    let client_address = request.terminal.via.as_slice().to_vec();
+    let client_address = &request.terminal.via.to_vec();
     Ok(set_title::set_title(
         &server,
         &client_address,

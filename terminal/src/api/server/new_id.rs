@@ -18,7 +18,7 @@ pub async fn new_id(
     server: Arc<Server>,
     Json(client_address): Json<ClientAddress>,
 ) -> Result<Json<TerminalDef>, HttpError<NewIdError>> {
-    let next = new_id::new_id(&server, client_address.as_slice()).await?;
+    let next = new_id::new_id(&server, &client_address).await?;
     let client_name = client_address.last().or(my_client_name.as_ref());
 
     let title = if let Some(client_name) = client_name {

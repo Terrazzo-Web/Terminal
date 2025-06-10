@@ -13,7 +13,7 @@ pub async fn ack(
     server: Arc<Server>,
     Json(request): Json<AckRequest>,
 ) -> Result<(), HttpError<AckError>> {
-    let client_address = request.terminal.via.as_slice().to_vec();
+    let client_address = &request.terminal.via.to_vec();
     let response = ack::ack(
         &server,
         &client_address,

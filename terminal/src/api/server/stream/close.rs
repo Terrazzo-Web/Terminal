@@ -12,6 +12,5 @@ pub async fn close(
     server: Arc<Server>,
     Json(request): Json<TerminalAddress>,
 ) -> Result<(), HttpError<CloseError>> {
-    let client_address = request.via.as_slice();
-    Ok(close::close(&server, client_address, request.id).await?)
+    Ok(close::close(&server, &request.via, request.id).await?)
 }
