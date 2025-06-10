@@ -1,6 +1,7 @@
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
+use terrazzo::http::StatusCode;
 use tonic::Status;
 use tonic::body::Body as BoxBody;
 use tonic::client::GrpcService;
@@ -42,7 +43,7 @@ impl DistributedCallback for SetTitleCallback {
     type Request = SetTitleRequest;
     type Response = ();
     type LocalError = SetTitleErrorImpl;
-    type RemoteError = tonic::Status;
+    type RemoteError = Status;
 
     async fn local(_: &Server, request: SetTitleRequest) -> Result<(), SetTitleErrorImpl> {
         let terminal_id = request.address.unwrap_or_default().terminal_id.into();
@@ -59,7 +60,7 @@ impl DistributedCallback for SetTitleCallback {
         mut client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
         mut request: SetTitleRequest,
-    ) -> Result<(), tonic::Status>
+    ) -> Result<(), Status>
     where
         T: GrpcService<BoxBody>,
         T::Error: Into<StdError>,
@@ -76,11 +77,11 @@ impl DistributedCallback for SetTitleCallback {
 #[derive(thiserror::Error, Debug)]
 pub enum SetTitleError {
     #[error("[{n}] {0}", n = self.name())]
-    SetTitleError(#[from] DistributedCallbackError<SetTitleErrorImpl, tonic::Status>),
+    SetTitleError(#[from] DistributedCallbackError<SetTitleErrorImpl, Status>),
 }
 
 impl IsHttpError for SetTitleError {
-    fn status_code(&self) -> terrazzo::http::StatusCode {
+    fn status_code(&self) -> StatusCode {
         match self {
             Self::SetTitleError(error) => error.status_code(),
         }
