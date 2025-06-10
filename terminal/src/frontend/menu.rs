@@ -11,6 +11,7 @@ use terrazzo::widgets::cancellable::Cancellable;
 use terrazzo::widgets::debounce::DoDebounce as _;
 use web_sys::MouseEvent;
 
+use crate::api::client_address::ClientAddress;
 use crate::assets::icons;
 use crate::state::app;
 use crate::state::app::App;
@@ -126,7 +127,9 @@ pub fn app() -> XSignal<App> {
             static CONSUMER: OnceLock<Consumers> = OnceLock::new();
             let _ = CONSUMER.set(app.add_subscriber(|app| {
                 wasm_bindgen_futures::spawn_local(async move {
-                    let _ = app::state::set(app).await;
+                    // The client address is set per app, not globally.
+                    let address: Option<ClientAddress> = None;
+                    let _ = app::state::set(address, app).await;
                 })
             }));
             app

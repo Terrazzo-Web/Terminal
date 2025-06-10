@@ -26,6 +26,7 @@ base64 = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
+const_format = { workspace = true, optional = true }
 humantime = { workspace = true, optional = true }
 inventory = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
@@ -105,6 +106,7 @@ server = [
     "dep:axum-extra",
     "dep:base64",
     "dep:clap",
+    "dep:const_format",
     "dep:dashmap",
     "dep:humantime",
     "dep:inventory",

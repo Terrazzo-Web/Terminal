@@ -25,7 +25,7 @@ pub async fn store_file<P: Send + 'static>(
 fn make_debounced_store_file_fn() -> StoreFileFn {
     let debounced = Duration::from_secs(3).async_debounce(
         |(base_path, file_path, content, pending)| async move {
-            let address: Option<ClientAddress> = None; // TODO
+            let address: Option<ClientAddress> = None; // TODO: define remote address in text editor
             let () = super::store_file_impl(address, base_path, file_path, content)
                 .await
                 .unwrap_or_else(|error| warn!("Failed to store file: {error}"));

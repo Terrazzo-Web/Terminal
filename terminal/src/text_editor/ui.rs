@@ -33,8 +33,10 @@ pub fn text_editor() -> XElement {
     let synchronized_state = XSignal::new("synchronized-state", SynchronizedState::Sync);
 
     restore_paths(&base_path, &file_path);
-    let base_path_subscriber = save_on_change(base_path.clone(), state::base_path::set);
-    let file_path_subscriber = save_on_change(file_path.clone(), state::file_path::set);
+    let address: Option<ClientAddress> = None; // TODO: define remote address in text editor
+    let base_path_subscriber =
+        save_on_change(address.clone(), base_path.clone(), state::base_path::set);
+    let file_path_subscriber = save_on_change(address, file_path.clone(), state::file_path::set);
     let file_async_view = make_file_async_view(&base_path, &file_path, &editor_state);
 
     div(
@@ -93,7 +95,7 @@ fn make_file_async_view(
         let task = async move {
             autoclone!(base_path, file_path, editor_state);
             let base_path = base_path.get_value_untracked();
-            let address: Option<ClientAddress> = None; // TODO
+            let address: Option<ClientAddress> = None; // TODO: define remote address in text editor
             let data = load_file(address, base_path.clone(), file_path.clone())
                 .await
                 .unwrap_or_else(|error| Some(error.to_string().into()));
@@ -110,13 +112,16 @@ fn make_file_async_view(
     })
 }
 
+#[autoclone]
 fn save_on_change(
+    address: Option<ClientAddress>,
     path: XSignal<Arc<str>>,
-    setter: impl AsyncFn(Arc<str>) -> Result<(), ServerFnError> + Copy + 'static,
+    setter: impl AsyncFn(Option<ClientAddress>, Arc<str>) -> Result<(), ServerFnError> + Copy + 'static,
 ) -> Consumers {
     path.add_subscriber(move |p| {
         spawn_local(async move {
-            let () = setter(p)
+            autoclone!(address);
+            let () = setter(address, p)
                 .await
                 .unwrap_or_else(|error| warn!("Failed to save path: {error}"));
         })
