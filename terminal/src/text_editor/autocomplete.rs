@@ -14,17 +14,27 @@ pub mod ui;
 #[server]
 #[nameth]
 async fn autocomplete_path(
-    address: ClientAddress,
+    address: Option<ClientAddress>,
     kind: PathSelector,
     prefix: Arc<str>,
     input: String,
 ) -> Result<Vec<String>, ServerFnError> {
-    let request = remote::AutoCompletePathRequest {
-        kind,
-        prefix,
-        input,
-    };
-    return Ok(remote::AUTOCOMPLETE_PATH_SERVER_FN
-        .call(address, request)
-        .await?);
+    use scopeguard::defer;
+    use tracing::Instrument as _;
+    use tracing::debug;
+    use tracing::debug_span;
+    async move {
+        debug!("Start");
+        defer!(debug!("End"));
+        let request = remote::AutoCompletePathRequest {
+            kind,
+            prefix,
+            input,
+        };
+        return Ok(remote::AUTOCOMPLETE_PATH_SERVER_FN
+            .call(address.unwrap_or_default(), request)
+            .await?);
+    }
+    .instrument(debug_span!("Autocomplete"))
+    .await
 }

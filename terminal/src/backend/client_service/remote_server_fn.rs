@@ -72,35 +72,41 @@ pub type RemoteServerFnResult =
     Pin<Box<dyn Future<Output = Result<String, RemoteServerFnError>> + Send>>;
 
 impl RemoteServerFn {
-    pub async fn call<Req, Res>(
+    pub fn call<Req, Res>(
         &self,
         address: ClientAddress,
         request: Req,
-    ) -> Result<Res, RemoteServerFnError>
+    ) -> impl Future<Output = Result<Res, RemoteServerFnError>>
     where
         Req: serde::Serialize,
         Res: for<'de> serde::Deserialize<'de>,
     {
-        let server = SERVER.get().ok_or(RemoteServerFnError::ServerNotSet)?;
-        let server = server
-            .upgrade()
-            .ok_or(RemoteServerFnError::ServerWasDropped)?;
+        async move {
+            debug!("Start");
+            defer!(debug!("End"));
+            let server = SERVER.get().ok_or(RemoteServerFnError::ServerNotSet)?;
+            let server = server
+                .upgrade()
+                .ok_or(RemoteServerFnError::ServerWasDropped)?;
 
-        let request =
-            serde_json::to_string(&request).map_err(RemoteServerFnError::SerializeRequest)?;
+            let request =
+                serde_json::to_string(&request).map_err(RemoteServerFnError::SerializeRequest)?;
 
-        let response = call_internal(
-            &server,
-            &address,
-            ServerFnRequest {
-                address: Default::default(),
-                server_fn_name: self.name.to_string(),
-                json: request,
-            },
-        )
-        .await?;
+            let response = call_internal(
+                &server,
+                &address,
+                ServerFnRequest {
+                    address: Default::default(),
+                    server_fn_name: self.name.to_string(),
+                    json: request,
+                },
+            )
+            .await?;
 
-        return serde_json::from_str(&response).map_err(RemoteServerFnError::DeserializeResponse);
+            return serde_json::from_str(&response)
+                .map_err(RemoteServerFnError::DeserializeResponse);
+        }
+        .instrument(debug_span!("RemoteServerFn"))
     }
 }
 
@@ -164,7 +170,9 @@ impl DistributedCallback for ServerFnCallback {
             return Err(RemoteServerFnError::RemoteServerFnNotSet);
         };
         let Some(remote_server_fn) = remote_server_fns.get(request.server_fn_name.as_str()) else {
-            return Err(RemoteServerFnError::RemoteServerFnNotFound);
+            return Err(RemoteServerFnError::RemoteServerFnNotFound(
+                request.server_fn_name,
+            ));
         };
         let callback = &remote_server_fn.callback;
         return callback(server, request.json).await;
@@ -196,8 +204,8 @@ pub enum RemoteServerFnError {
     #[error("[{n}] REMOTE_SERVER_FNS was not set", n = self.name())]
     RemoteServerFnNotSet,
 
-    #[error("[{n}] REMOTE_SERVER_FNS was not found", n = self.name())]
-    RemoteServerFnNotFound,
+    #[error("[{n}] The RemoteServerFn was not found: {0}", n = self.name())]
+    RemoteServerFnNotFound(String),
 
     #[error("[{n}] The Server instance was not set", n = self.name())]
     ServerNotSet,
@@ -239,7 +247,9 @@ mod server_fn_errors_to_status {
                 RemoteServerFnError::RemoteServerFnNotSet
                 | RemoteServerFnError::ServerNotSet
                 | RemoteServerFnError::ServerWasDropped => Status::internal(error.to_string()),
-                RemoteServerFnError::RemoteServerFnNotFound => Status::not_found(error.to_string()),
+                RemoteServerFnError::RemoteServerFnNotFound { .. } => {
+                    Status::not_found(error.to_string())
+                }
                 RemoteServerFnError::ServerFn(error) => error,
                 RemoteServerFnError::SerializeRequest(error)
                 | RemoteServerFnError::DeserializeRequest(error)
@@ -260,7 +270,7 @@ impl IsHttpError for RemoteServerFnError {
             Self::RemoteServerFnNotSet | Self::ServerNotSet | Self::ServerWasDropped => {
                 StatusCode::INTERNAL_SERVER_ERROR
             }
-            Self::RemoteServerFnNotFound => StatusCode::NOT_FOUND,
+            Self::RemoteServerFnNotFound { .. } => StatusCode::NOT_FOUND,
             Self::ServerFn { .. } => StatusCode::BAD_REQUEST,
             Self::SerializeRequest { .. }
             | Self::DeserializeRequest { .. }

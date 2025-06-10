@@ -17,6 +17,8 @@ pub static AUTOCOMPLETE_PATH_SERVER_FN: RemoteServerFn = RemoteServerFn {
     callback: autocomplete_path,
 };
 
+inventory::submit! { AUTOCOMPLETE_PATH_SERVER_FN }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AutoCompletePathRequest {
     pub kind: PathSelector,
