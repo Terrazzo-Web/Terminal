@@ -1,15 +1,10 @@
 use std::ops::Deref;
+use std::sync::Arc;
 
 use super::ClientName;
 
-#[cfg(all(feature = "client", not(feature = "server")))]
-type Ptr<T> = std::rc::Rc<T>;
-
-#[cfg(feature = "server")]
-type Ptr<T> = std::sync::Arc<T>;
-
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct ClientAddress(Ptr<Vec<ClientName>>);
+pub struct ClientAddress(Arc<Vec<ClientName>>);
 
 impl Deref for ClientAddress {
     type Target = Vec<ClientName>;

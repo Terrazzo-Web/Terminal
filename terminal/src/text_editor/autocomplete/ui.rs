@@ -14,6 +14,7 @@ use web_sys::FocusEvent;
 use web_sys::HtmlInputElement;
 use web_sys::MouseEvent;
 
+use crate::api::client_address::ClientAddress;
 use crate::frontend::menu::before_menu;
 use crate::text_editor::autocomplete::autocomplete_path;
 use crate::text_editor::path_selector::PathSelector;
@@ -111,9 +112,11 @@ fn do_autocomplete_impl(
 ) {
     let input_element = input.get().or_throw("Input element not set");
     let value = input_element.value();
+    let address = ClientAddress::default();
     spawn_local(async move {
         autoclone!(autocomplete);
         let autocompletes = autocomplete_path(
+            address,
             kind,
             prefix
                 .as_ref()

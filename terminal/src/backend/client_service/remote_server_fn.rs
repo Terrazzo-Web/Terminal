@@ -24,7 +24,8 @@ use trz_gateway_server::server::Server;
 
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
+use crate::api::client_address::ClientAddress;
+use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
 use crate::backend::protos::terrazzo::gateway::client::ServerFnRequest;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 
@@ -69,15 +70,34 @@ pub type RemoteServerFnResult =
     Pin<Box<dyn Future<Output = Result<String, RemoteServerFnError>> + Send>>;
 
 impl RemoteServerFn {
-    pub async fn call<Req, Res>(&self, request: Req) -> Result<Res, RemoteServerFnError>
+    pub async fn call<Req, Res>(
+        &self,
+        address: ClientAddress,
+        request: Req,
+    ) -> Result<Res, RemoteServerFnError>
     where
         Req: serde::Serialize,
         Res: for<'de> serde::Deserialize<'de>,
     {
+        let server = SERVER.get().ok_or(RemoteServerFnError::ServerNotSet)?;
+        let server = server
+            .upgrade()
+            .ok_or(RemoteServerFnError::ServerWasDropped)?;
+
         let request =
             serde_json::to_string(&request).map_err(RemoteServerFnError::SerializeRequest)?;
-        let callback = self.callback;
-        let response = callback(request).await?;
+
+        let response = call_internal(
+            &server,
+            &address,
+            ServerFnRequest {
+                address: Default::default(),
+                server_fn_name: self.name.to_string(),
+                json: request,
+            },
+        )
+        .await?;
+
         return serde_json::from_str(&response).map_err(RemoteServerFnError::DeserializeResponse);
     }
 }
@@ -85,8 +105,6 @@ impl RemoteServerFn {
 /// Helper to uplift a remote server function into a String -> String server_fn.
 pub async fn call<Req, F, Res, E>(
     remote_server_fn: impl Fn(&Server, Req) -> F,
-    address: ClientAddress,
-    server_fn_name: String,
     request: String,
 ) -> Result<String, RemoteServerFnError>
 where
@@ -100,38 +118,26 @@ where
         .upgrade()
         .ok_or(RemoteServerFnError::ServerWasDropped)?;
 
-    let c = call_internal(
-        &server,
-        &address.via,
-        ServerFnRequest {
-            address: Default::default(),
-            server_fn_name,
-            json: request,
-        },
-    )
-    .await;
-
     let request =
         serde_json::from_str::<Req>(&request).map_err(RemoteServerFnError::DeserializeRequest)?;
     let response = remote_server_fn(&server, request)
         .await
         .map_err(|error| RemoteServerFnError::ServerFn(error.into()))?;
     let response = serde_json::to_string(&response);
-    return Ok(response.map_err(RemoteServerFnError::SerializeResponse)?);
+    return response.map_err(RemoteServerFnError::SerializeResponse);
 }
 
 pub fn call_internal(
     server: &Server,
     client_address: &[impl AsRef<str>],
     request: ServerFnRequest,
-) -> impl Future<Output = Result<String, DistributedServerFnError>> {
+) -> impl Future<Output = Result<String, RemoteServerFnError>> {
     async {
         debug!("Start");
         defer!(debug!("Done"));
-        let result = ServerFnCallback::process(server, client_address, request)
+        ServerFnCallback::process(server, client_address, request)
             .await
-            .map_err(DistributedServerFnError::Distributed);
-        Ok(result?)
+            .map_err(|error| RemoteServerFnError::Distributed(Box::new(error)))
     }
     .instrument(debug_span!("ServerFn"))
 }
@@ -169,7 +175,7 @@ impl DistributedCallback for ServerFnCallback {
         T::ResponseBody: Body<Data = Bytes> + Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
-        request.address = Some(ClientAddress::of(client_address));
+        request.address = Some(ClientAddressProto::of(client_address));
         let result = client.call_server_fn(request).await?.into_inner();
         Ok(result.json)
     }
@@ -177,14 +183,10 @@ impl DistributedCallback for ServerFnCallback {
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-pub enum DistributedServerFnError {
-    #[error("[{n}] {0}", n = self.name())]
-    Distributed(#[from] DistributedCallbackError<RemoteServerFnError, tonic::Status>),
-}
-
-#[nameth]
-#[derive(thiserror::Error, Debug)]
 pub enum RemoteServerFnError {
+    #[error("[{n}] {0}", n = self.name())]
+    Distributed(#[from] Box<DistributedCallbackError<RemoteServerFnError, tonic::Status>>),
+
     #[error("[{n}] REMOTE_SERVER_FNS was not set", n = self.name())]
     RemoteServerFnNotSet,
 
@@ -217,20 +219,17 @@ pub enum RemoteServerFnError {
 mod server_fn_errors_to_status {
     use tonic::Status;
 
-    use super::DistributedServerFnError;
     use super::RemoteServerFnError;
-
-    impl From<DistributedServerFnError> for Status {
-        fn from(error: DistributedServerFnError) -> Self {
-            match error {
-                DistributedServerFnError::Distributed(error) => error.into(),
-            }
-        }
-    }
+    use crate::backend::client_service::routing::DistributedCallbackError;
 
     impl From<RemoteServerFnError> for Status {
         fn from(error: RemoteServerFnError) -> Self {
             match error {
+                RemoteServerFnError::Distributed(mut error) => std::mem::replace(
+                    error.as_mut(),
+                    DistributedCallbackError::LocalError(RemoteServerFnError::RemoteServerFnNotSet),
+                )
+                .into(),
                 RemoteServerFnError::RemoteServerFnNotSet
                 | RemoteServerFnError::ServerNotSet
                 | RemoteServerFnError::ServerWasDropped => Status::internal(error.to_string()),
@@ -251,6 +250,7 @@ mod server_fn_errors_to_status {
 impl IsHttpError for RemoteServerFnError {
     fn status_code(&self) -> StatusCode {
         match self {
+            Self::Distributed(error) => error.status_code(),
             Self::RemoteServerFnNotSet | Self::ServerNotSet | Self::ServerWasDropped => {
                 StatusCode::INTERNAL_SERVER_ERROR
             }

@@ -6,16 +6,10 @@ use terrazzo::server;
 
 use super::path_selector::PathSelector;
 use crate::api::client_address::ClientAddress;
-use crate::backend::client_service::remote_server_fn::RemoteServerFn;
 
 mod remote;
 mod service;
 pub mod ui;
-
-static AUTOCOMPLETE_PATH_SERVER_FN: RemoteServerFn = RemoteServerFn {
-    name: AUTOCOMPLETE_PATH,
-    callback: remote::autocomplete_path,
-};
 
 #[server]
 #[nameth]
@@ -25,11 +19,12 @@ async fn autocomplete_path(
     prefix: Arc<str>,
     input: String,
 ) -> Result<Vec<String>, ServerFnError> {
-    let args = remote::AutoCompletePathArg {
-        address,
+    let request = remote::AutoCompletePathRequest {
         kind,
         prefix,
         input,
     };
-    return Ok(AUTOCOMPLETE_PATH_SERVER_FN.call(args).await?);
+    return Ok(remote::AUTOCOMPLETE_PATH_SERVER_FN
+        .call(address, request)
+        .await?);
 }
