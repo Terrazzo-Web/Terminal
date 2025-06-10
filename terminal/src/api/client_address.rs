@@ -4,7 +4,7 @@ use std::sync::Arc;
 use super::ClientName;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(transparent)]
+#[serde(default, transparent)]
 pub struct ClientAddress(Arc<Vec<ClientName>>);
 
 impl Deref for ClientAddress {

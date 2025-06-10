@@ -102,7 +102,8 @@ impl RemoteFn {
             )
             .await?;
 
-            return serde_json::from_str(&response).map_err(RemoteFnError::DeserializeResponse);
+            return serde_json::from_str(&response)
+                .map_err(|error| RemoteFnError::DeserializeResponse(error, response));
         }
         .instrument(debug_span!("RemoteFn"))
     }
@@ -119,8 +120,8 @@ where
     Status: From<E>,
 {
     move |server, request| {
-        let request =
-            serde_json::from_str::<Req>(request).map_err(RemoteFnError::DeserializeRequest);
+        let request = serde_json::from_str::<Req>(request)
+            .map_err(|error| RemoteFnError::DeserializeRequest(error, request.into()));
         match request {
             Ok(request) => UpliftFuture::Future(function(server, request)),
             Err(error) => UpliftFuture::DeserializeRequest(error),
@@ -233,13 +234,13 @@ pub enum RemoteFnError {
     SerializeRequest(serde_json::Error),
 
     #[error("[{n}] Failed to deserialize request: {0}", n = self.name())]
-    DeserializeRequest(serde_json::Error),
+    DeserializeRequest(serde_json::Error, String),
 
     #[error("[{n}] Failed to serialize response: {0}", n = self.name())]
     SerializeResponse(serde_json::Error),
 
-    #[error("[{n}] Failed to deserialize response: {0}", n = self.name())]
-    DeserializeResponse(serde_json::Error),
+    #[error("[{n}] Failed to deserialize response: {0}, json='{1}'", n = self.name())]
+    DeserializeResponse(serde_json::Error, String),
 
     #[error("[{n}] {0}", n = self.name())]
     Distributed(#[from] Box<DistributedCallbackError<RemoteFnError, tonic::Status>>),
@@ -265,10 +266,10 @@ mod remote_fn_errors_to_status {
                 | RemoteFnError::ServerWasDropped => Status::internal(error.to_string()),
                 RemoteFnError::RemoteFnNotFound { .. } => Status::not_found(error.to_string()),
                 RemoteFnError::ServerFn(error) => error,
-                RemoteFnError::SerializeRequest(error)
-                | RemoteFnError::DeserializeRequest(error)
-                | RemoteFnError::SerializeResponse(error)
-                | RemoteFnError::DeserializeResponse(error) => {
+                RemoteFnError::SerializeRequest { .. }
+                | RemoteFnError::DeserializeRequest { .. }
+                | RemoteFnError::SerializeResponse { .. }
+                | RemoteFnError::DeserializeResponse { .. } => {
                     Status::invalid_argument(error.to_string())
                 }
             }

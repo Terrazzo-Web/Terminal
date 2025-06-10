@@ -67,8 +67,12 @@ pub fn text_editor() -> XElement {
 fn restore_paths(base_path: &XSignal<Arc<str>>, file_path: &XSignal<Arc<str>>) {
     spawn_local(async move {
         autoclone!(base_path, file_path);
-        let (get_base_path, get_file_path) =
-            futures::future::join(state::base_path::get(), state::file_path::get()).await;
+        let address: Option<ClientAddress> = None; // TODO: define remote address in text editor
+        let (get_base_path, get_file_path) = futures::future::join(
+            state::base_path::get(address.clone()),
+            state::file_path::get(address),
+        )
+        .await;
         if get_base_path.is_err() && get_file_path.is_err() {
             return;
         }

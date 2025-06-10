@@ -120,7 +120,9 @@ pub fn app() -> XSignal<App> {
             let app = XSignal::new("app", App::Terminal);
             wasm_bindgen_futures::spawn_local(async move {
                 autoclone!(app);
-                if let Ok(p) = app::state::get().await {
+                // The client address is set per app, not globally.
+                let address: Option<ClientAddress> = None;
+                if let Ok(p) = app::state::get(address).await {
                     app.set(p);
                 }
             });
