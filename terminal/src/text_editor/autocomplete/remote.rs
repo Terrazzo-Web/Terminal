@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use serde::Deserialize;
 use serde::Serialize;
+use trz_gateway_server::server::Server;
 
 use crate::backend::client_service::remote_server_fn;
 use crate::backend::client_service::remote_server_fn::RemoteServerFn;
@@ -23,8 +24,9 @@ pub struct AutoCompletePathRequest {
     pub input: String,
 }
 
-fn autocomplete_path(arg: String) -> RemoteServerFnResult {
+fn autocomplete_path(server: &Server, arg: String) -> RemoteServerFnResult {
     Box::pin(remote_server_fn::call(
+        server,
         |_server, arg: AutoCompletePathRequest| {
             ready(super::service::autocomplete_path(
                 arg.kind,

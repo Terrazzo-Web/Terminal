@@ -1,11 +1,13 @@
 //! Forward server_fn calls to mesh clients.
 
 use std::collections::HashMap;
+use std::future::ready;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use std::sync::Weak;
 
+use futures::FutureExt;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
@@ -62,7 +64,7 @@ pub fn setup(server: &Arc<Server>) {
 #[derive(Clone, Copy)]
 pub struct RemoteServerFn {
     pub name: &'static str,
-    pub callback: fn(String) -> RemoteServerFnResult,
+    pub callback: fn(server: &Server, String) -> RemoteServerFnResult,
 }
 
 /// Shorthand for the result of remote server functions.
@@ -103,28 +105,32 @@ impl RemoteServerFn {
 }
 
 /// Helper to uplift a remote server function into a String -> String server_fn.
-pub async fn call<Req, F, Res, E>(
-    remote_server_fn: impl Fn(&Server, Req) -> F,
+pub fn call<Req, F, Res, E>(
+    server: &Server,
+    function: impl Fn(&Server, Req) -> F + 'static,
     request: String,
-) -> Result<String, RemoteServerFnError>
+) -> impl Future<Output = Result<String, RemoteServerFnError>> + 'static
 where
     Req: for<'de> serde::Deserialize<'de>,
-    F: Future<Output = Result<Res, E>>,
+    F: Future<Output = Result<Res, E>> + 'static,
     Res: serde::Serialize,
     Status: From<E>,
 {
-    let server = SERVER.get().ok_or(RemoteServerFnError::ServerNotSet)?;
-    let server = server
-        .upgrade()
-        .ok_or(RemoteServerFnError::ServerWasDropped)?;
-
     let request =
-        serde_json::from_str::<Req>(&request).map_err(RemoteServerFnError::DeserializeRequest)?;
-    let response = remote_server_fn(&server, request)
-        .await
-        .map_err(|error| RemoteServerFnError::ServerFn(error.into()))?;
-    let response = serde_json::to_string(&response);
-    return response.map_err(RemoteServerFnError::SerializeResponse);
+        serde_json::from_str::<Req>(&request).map_err(RemoteServerFnError::DeserializeRequest);
+    let request = match request {
+        Ok(request) => request,
+        Err(error) => return ready(Err(error)).left_future(),
+    };
+    let task = function(server, request);
+    async move {
+        let response = task
+            .await
+            .map_err(|error| RemoteServerFnError::ServerFn(error.into()))?;
+        let response = serde_json::to_string(&response);
+        return response.map_err(RemoteServerFnError::SerializeResponse);
+    }
+    .right_future()
 }
 
 pub fn call_internal(
@@ -151,7 +157,7 @@ impl DistributedCallback for ServerFnCallback {
     type RemoteError = tonic::Status;
 
     async fn local(
-        _server: &Server,
+        server: &Server,
         request: ServerFnRequest,
     ) -> Result<String, RemoteServerFnError> {
         let Some(remote_server_fns) = REMOTE_SERVER_FNS.get() else {
@@ -161,7 +167,7 @@ impl DistributedCallback for ServerFnCallback {
             return Err(RemoteServerFnError::RemoteServerFnNotFound);
         };
         let callback = &remote_server_fn.callback;
-        return callback(request.json).await;
+        return callback(server, request.json).await;
     }
 
     async fn remote<T>(
