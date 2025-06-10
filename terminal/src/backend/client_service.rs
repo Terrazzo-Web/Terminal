@@ -24,6 +24,8 @@ use super::protos::terrazzo::gateway::client::SetTitleRequest;
 use super::protos::terrazzo::gateway::client::TerminalAddress;
 use super::protos::terrazzo::gateway::client::WriteRequest;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
+use crate::backend::protos::terrazzo::gateway::client::ServerFnRequest;
+use crate::backend::protos::terrazzo::gateway::client::ServerFnResponse;
 use crate::processes::io::RemoteReader;
 
 pub mod ack;
@@ -31,6 +33,7 @@ pub mod close;
 pub mod convert;
 pub mod new_id;
 pub mod register;
+pub mod remote_server_fn;
 pub mod remotes;
 pub mod resize;
 mod routing;
@@ -152,5 +155,11 @@ impl ClientService for ClientServiceImpl {
         let client_address = terminal.client_address().to_vec();
         let () = ack::ack(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
+    }
+
+    async fn call_server_fn(
+        &self,
+        request: Request<ServerFnRequest>,
+    ) -> Result<Response<ServerFnResponse>, Status> {
     }
 }

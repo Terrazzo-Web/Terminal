@@ -27,6 +27,7 @@ clap = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
 humantime = { workspace = true, optional = true }
+inventory = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
@@ -106,6 +107,7 @@ server = [
     "dep:clap",
     "dep:dashmap",
     "dep:humantime",
+    "dep:inventory",
     "dep:jsonwebtoken",
     "dep:nix",
     "dep:openssl",

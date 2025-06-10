@@ -13,6 +13,7 @@ service ClientService {
   rpc SetTitle(SetTitleRequest) returns (Empty);
   rpc SetOrder(SetOrderRequest) returns (Empty);
   rpc Ack(AckRequest) returns (Empty);
+  rpc CallServerFn(ServerFnRequest) returns (ServerFnResponse);
 }
 
 message ListRemotesRequest { repeated string visited = 1; }
@@ -89,4 +90,14 @@ message OrderedTerminal {
 message AckRequest {
   TerminalAddress terminal = 1;
   uint64 ack = 3;
+}
+
+message ServerFnRequest {
+  ClientAddress address = 1;
+  string server_fn_name = 2;
+  string json = 2;
+}
+
+message ServerFnResponse {
+  string json = 1;
 }
