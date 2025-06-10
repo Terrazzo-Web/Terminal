@@ -95,7 +95,7 @@ message AckRequest {
 message ServerFnRequest {
   ClientAddress address = 1;
   string server_fn_name = 2;
-  string json = 2;
+  string json = 3;
 }
 
 message ServerFnResponse {

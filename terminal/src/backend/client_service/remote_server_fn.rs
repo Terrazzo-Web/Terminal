@@ -7,6 +7,7 @@ use std::sync::OnceLock;
 use std::sync::Weak;
 
 use scopeguard::defer;
+use tonic::Status;
 use tracing::Instrument as _;
 use tracing::debug;
 use tracing::debug_span;
@@ -42,7 +43,7 @@ pub fn set_server(server: &Arc<Server>) {
 #[derive(Clone, Copy)]
 pub struct RemoteServerFn {
     pub name: &'static str,
-    pub callback: fn(String) -> String,
+    pub callback: fn(String) -> Result<String, Box<dyn std::error::Error>>,
 }
 
 pub(super) fn handle_call(
@@ -62,24 +63,26 @@ struct ServerFnCallback;
 
 impl DistributedCallback for ServerFnCallback {
     type Request = ServerFnRequest;
-    type Response = ();
+    type Response = String;
     type LocalError = ServerFnErrorImpl;
     type RemoteError = tonic::Status;
 
-    async fn local(server: &Server, request: ServerFnRequest) -> Result<(), ServerFnErrorImpl> {
+    async fn local(server: &Server, request: ServerFnRequest) -> Result<String, ServerFnErrorImpl> {
         let Some(remote_server_fns) = REMOTE_SERVER_FNS.get() else {
-            panic!()
+            return Err(ServerFnErrorImpl::RemoteServerFnNotSet);
         };
-        let Some(remote_server_fn) = remote_server_fns.get(request) else {
-            todo!()
+        let Some(remote_server_fn) = remote_server_fns.get(&request.server_fn_name) else {
+            return Err(ServerFnErrorImpl::RemoteServerFnNotFound);
         };
+        let callback = &remote_server_fn.callback;
+        return Ok(callback(request.json)?);
     }
 
     async fn remote<T>(
         mut client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
         mut request: ServerFnRequest,
-    ) -> Result<(), tonic::Status>
+    ) -> Result<String, tonic::Status>
     where
         T: GrpcService<BoxBody>,
         T::Error: Into<StdError>,
@@ -87,8 +90,8 @@ impl DistributedCallback for ServerFnCallback {
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         request.address.get_or_insert_default().via = Some(ClientAddress::of(client_address));
-        let Empty {} = client.set_title(request).await?.into_inner();
-        Ok(())
+        let result = client.call_server_fn(request).await?.into_inner();
+        Ok(result.json)
     }
 }
 
@@ -97,6 +100,19 @@ impl DistributedCallback for ServerFnCallback {
 pub enum ServerFnError {
     #[error("[{n}] {0}", n = self.name())]
     ServerFnError(#[from] DistributedCallbackError<ServerFnErrorImpl, tonic::Status>),
+}
+
+#[nameth]
+#[derive(thiserror::Error, Debug)]
+pub enum ServerFnErrorImpl {
+    #[error("[{n}] REMOTE_SERVER_FNS was not set", n = self.name())]
+    RemoteServerFnNotSet,
+
+    #[error("[{n}] REMOTE_SERVER_FNS was not found", n = self.name())]
+    RemoteServerFnNotFound,
+
+    #[error("[{n}] {0}", n = self.name())]
+    ServerFn(Box<dyn std::error::Error>)
 }
 
 impl IsHttpError for ServerFnError {
@@ -117,10 +133,10 @@ impl From<ServerFnError> for Status {
 
 impl From<ServerFnErrorImpl> for Status {
     fn from(error: ServerFnErrorImpl) -> Self {
-        match error {
-            error @ ServerFnErrorImpl::TerminalNotFound { .. } => {
-                Status::not_found(error.to_string())
-            }
+        match &error {
+            ServerFnErrorImpl::RemoteServerFnNotSet => Status::internal(error.to_string()),
+            ServerFnErrorImpl::RemoteServerFnNotFound => Status::not_found(error.to_string()),
+            ServerFnErrorImpl::ServerFn(error) => Status::(error.to_string()),
         }
     }
 }
