@@ -11,12 +11,12 @@ use std::time::SystemTime;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use terrazzo::http::StatusCode;
+use tonic::Code;
 use tracing::debug;
 use tracing::debug_span;
-use trz_gateway_common::http_error::HttpError;
-use trz_gateway_common::http_error::IsHttpError;
 
+use crate::backend::client_service::grpc_error::GrpcError;
+use crate::backend::client_service::grpc_error::IsGrpcError;
 use crate::text_editor::path_selector::PathSelector;
 
 const ROOT: &str = "/";
@@ -26,7 +26,7 @@ pub fn autocomplete_path(
     kind: PathSelector,
     prefix: &str,
     input: &str,
-) -> Result<Vec<String>, HttpError<AutoCompleteError>> {
+) -> Result<Vec<String>, GrpcError<AutoCompleteError>> {
     let prefix = prefix.trim();
     let input = input.trim();
     let input = if prefix.is_empty() && input.is_empty() {
@@ -37,12 +37,12 @@ pub fn autocomplete_path(
     } else {
         format!("{prefix}/{input}")
     };
-    Ok(autocomplete_path_impl(prefix.as_ref(), input, |m| {
+    return Ok(autocomplete_path_impl(prefix.as_ref(), input, |m| {
         kind.accept(m)
-    })?)
+    })?);
 }
 
-pub fn autocomplete_path_impl(
+fn autocomplete_path_impl(
     prefix: &Path,
     input: String,
     leaf_filter: impl Fn(&Metadata) -> bool,
@@ -280,10 +280,10 @@ pub enum AutoCompleteError {
     ListDir(std::io::Error),
 }
 
-impl IsHttpError for AutoCompleteError {
-    fn status_code(&self) -> StatusCode {
+impl IsGrpcError for AutoCompleteError {
+    fn code(&self) -> Code {
         match self {
-            AutoCompleteError::ListDir { .. } => StatusCode::NOT_FOUND,
+            Self::ListDir { .. } => Code::NotFound,
         }
     }
 }

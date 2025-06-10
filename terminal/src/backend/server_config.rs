@@ -30,6 +30,7 @@ use super::auth::AuthLayer;
 use super::config::DynConfig;
 use super::root_ca_config::PrivateRootCa;
 use crate::api;
+use crate::backend::client_service::remote_server_fn;
 
 #[nameth]
 pub struct TerminalBackendServer {
@@ -97,6 +98,7 @@ impl GatewayConfig for TerminalBackendServer {
         let auth_config = self.auth_config.clone();
         let active_challenges = self.active_challenges.clone();
         move |server: Arc<Server>, router: Router| {
+            remote_server_fn::setup(&server);
             let router = router
                 .route("/", get(|| static_assets::get("index.html")))
                 .route(
