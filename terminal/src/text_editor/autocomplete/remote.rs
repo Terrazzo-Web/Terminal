@@ -26,16 +26,13 @@ pub struct AutoCompletePathRequest {
     pub input: String,
 }
 
-fn autocomplete_path(server: &Server, arg: String) -> RemoteFnResult {
-    Box::pin(remote_fn::call(
-        server,
-        |_server, arg: AutoCompletePathRequest| {
-            ready(super::service::autocomplete_path(
-                arg.kind,
-                &arg.prefix,
-                &arg.input,
-            ))
-        },
-        arg,
-    ))
+fn autocomplete_path(server: &Server, arg: &str) -> RemoteFnResult {
+    let autocomplete_path = remote_fn::uplift(|_server, arg: AutoCompletePathRequest| {
+        ready(super::service::autocomplete_path(
+            arg.kind,
+            &arg.prefix,
+            &arg.input,
+        ))
+    });
+    Box::pin(autocomplete_path(server, arg))
 }

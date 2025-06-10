@@ -1,16 +1,19 @@
 //! Forward [server_fn] calls to mesh clients.
 
 use std::collections::HashMap;
-use std::future::ready;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use std::sync::Weak;
+use std::task::Context;
+use std::task::Poll;
+use std::task::ready;
 
-use futures::FutureExt;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use pin_project::pin_project;
 use scopeguard::defer;
+use serde::Serialize;
 use tonic::Status;
 use tonic::body::Body as BoxBody;
 use tonic::client::GrpcService;
@@ -58,13 +61,18 @@ pub fn setup(server: &Arc<Server>) {
 #[derive(Clone, Copy)]
 pub struct RemoteFn {
     pub name: &'static str,
-    pub callback: fn(server: &Server, String) -> RemoteFnResult,
+    pub callback: fn(server: &Server, &str) -> RemoteFnResult,
 }
 
 /// Shorthand for the result of remote functions.
 pub type RemoteFnResult = Pin<Box<dyn Future<Output = Result<String, RemoteFnError>> + Send>>;
 
 impl RemoteFn {
+    /// Calls the remote function.
+    ///
+    /// The remote function will be called on the client indicated by `address`.
+    ///
+    /// Takes care of serializing the request and then deserializing the response.
     pub fn call<Req, Res>(
         &self,
         address: ClientAddress,
@@ -101,31 +109,54 @@ impl RemoteFn {
 }
 
 /// Helper to uplift a remote function into a String -> String server_fn.
-pub fn call<Req, F, Res, E>(
-    server: &Server,
+pub const fn uplift<Req, F, Res, E>(
     function: impl Fn(&Server, Req) -> F + 'static,
-    request: String,
-) -> impl Future<Output = Result<String, RemoteFnError>> + 'static
+) -> impl Fn(&Server, &str) -> UpliftFuture<F>
 where
     Req: for<'de> serde::Deserialize<'de>,
     F: Future<Output = Result<Res, E>> + 'static,
     Res: serde::Serialize,
     Status: From<E>,
 {
-    let request = serde_json::from_str::<Req>(&request).map_err(RemoteFnError::DeserializeRequest);
-    let request = match request {
-        Ok(request) => request,
-        Err(error) => return ready(Err(error)).left_future(),
-    };
-    let task = function(server, request);
-    async move {
-        let response = task
-            .await
-            .map_err(|error| RemoteFnError::ServerFn(error.into()))?;
-        let response = serde_json::to_string(&response);
-        return response.map_err(RemoteFnError::SerializeResponse);
+    move |server, request| {
+        let request =
+            serde_json::from_str::<Req>(request).map_err(RemoteFnError::DeserializeRequest);
+        match request {
+            Ok(request) => UpliftFuture::Future(function(server, request)),
+            Err(error) => UpliftFuture::DeserializeRequest(error),
+        }
     }
-    .right_future()
+}
+
+#[pin_project(project=UpliftFutureProj)]
+pub enum UpliftFuture<F> {
+    DeserializeRequest(RemoteFnError),
+    Future(#[pin] F),
+}
+
+impl<F, Res, E> Future for UpliftFuture<F>
+where
+    F: Future<Output = Result<Res, E>>,
+    Res: Serialize,
+    Status: From<E>,
+{
+    type Output = Result<String, RemoteFnError>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match self.project() {
+            UpliftFutureProj::DeserializeRequest(error) => {
+                let error = std::mem::replace(error, RemoteFnError::RemoteFnsNotSet);
+                Err(error)
+            }
+            UpliftFutureProj::Future(future) => match ready!(future.poll(cx)) {
+                Ok(response) => {
+                    serde_json::to_string(&response).map_err(RemoteFnError::SerializeResponse)
+                }
+                Err(error) => Err(RemoteFnError::ServerFn(error.into())),
+            },
+        }
+        .into()
+    }
 }
 
 /// Calls a [RemoteFn] using the [DistributedCallback] framework.
@@ -160,7 +191,7 @@ impl DistributedCallback for DistributedFn {
             return Err(RemoteFnError::RemoteFnNotFound(request.server_fn_name));
         };
         let callback = &remote_server_fn.callback;
-        return callback(server, request.json).await;
+        return callback(server, &request.json).await;
     }
 
     async fn remote<T>(
@@ -183,9 +214,6 @@ impl DistributedCallback for DistributedFn {
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum RemoteFnError {
-    #[error("[{n}] {0}", n = self.name())]
-    Distributed(#[from] Box<DistributedCallbackError<RemoteFnError, tonic::Status>>),
-
     #[error("[{n}] REMOTE_FNS was not set", n = self.name())]
     RemoteFnsNotSet,
 
@@ -212,6 +240,9 @@ pub enum RemoteFnError {
 
     #[error("[{n}] Failed to deserialize response: {0}", n = self.name())]
     DeserializeResponse(serde_json::Error),
+
+    #[error("[{n}] {0}", n = self.name())]
+    Distributed(#[from] Box<DistributedCallbackError<RemoteFnError, tonic::Status>>),
 }
 
 /// Convert Remote Server function errors into gRPC status.
