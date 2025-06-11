@@ -10,7 +10,7 @@
     margin: 0px;
     padding: 0px;
 
-    div {
+    >div {
         padding: 3px;
         margin-right: 2px;
 
@@ -26,28 +26,5 @@
             background-color: var(--link-color);
             cursor: pointer;
         }
-    }
-}
-
-ul.add-client-tab {
-    position: absolute;
-    right: 0;
-    top: 25px;
-
-    list-style: none;
-    margin: 0;
-    padding: 0;
-
-    border: 1px solid white;
-    background-color: var(--background-color);
-
-    li {
-        &:hover {
-            background-color: var(--link-color);
-            cursor: pointer;
-        }
-
-        padding: var(--padding);
-        margin: 1px;
     }
 }

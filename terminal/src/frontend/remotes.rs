@@ -1,0 +1,112 @@
+use std::time::Duration;
+
+use terrazzo::autoclone;
+use terrazzo::html;
+use terrazzo::prelude::*;
+use terrazzo::template;
+use terrazzo::widgets::cancellable::Cancellable;
+use terrazzo::widgets::debounce::DoDebounce as _;
+use tracing::debug;
+use web_sys::MouseEvent;
+
+use crate::api;
+use crate::api::client_address::ClientAddress;
+
+stylance::import_crate_style!(style, "src/frontend/remotes.scss");
+
+#[derive(Clone)]
+pub struct RemotesState {
+    pub remotes: XSignal<Remotes>,
+    show_remotes: Cancellable<()>,
+    hide_remotes: Cancellable<Duration>,
+}
+
+pub type Remote = Option<ClientAddress>;
+pub type Remotes = Option<Vec<ClientAddress>>;
+
+impl RemotesState {
+    pub fn new() -> Self {
+        Self {
+            remotes: XSignal::new("remotes", None),
+            show_remotes: Cancellable::new(),
+            hide_remotes: Duration::from_millis(250).cancellable(),
+        }
+    }
+
+    pub fn show_remotes_dropdown(
+        &self,
+        click: impl Fn(MouseEvent, ClientAddress) + Clone + 'static,
+    ) -> XElement {
+        show_remotes_dropdown(click, self.remotes.clone(), self.hide_remotes.clone())
+    }
+
+    #[autoclone]
+    pub fn mouseenter(&self) -> impl Fn(MouseEvent) + 'static {
+        let remote_names_state = self.clone();
+        move |_| {
+            let Self {
+                remotes,
+                show_remotes,
+                hide_remotes,
+            } = &remote_names_state;
+            show_remotes.cancel();
+
+            let update_remotes = show_remotes.capture(move |new_remotes| {
+                autoclone!(remotes);
+                remotes.set(new_remotes)
+            });
+            hide_remotes.cancel();
+            wasm_bindgen_futures::spawn_local(async move {
+                let remotes = api::client::remotes::remotes()
+                    .await
+                    .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
+                if update_remotes(remotes).is_none() {
+                    debug!("Updating remotes was canceled");
+                }
+            });
+        }
+    }
+
+    #[autoclone]
+    pub fn mouseleave(&self) -> impl Fn(MouseEvent) + 'static {
+        let Self {
+            remotes,
+            hide_remotes,
+            ..
+        } = self;
+        hide_remotes.wrap(move |_| {
+            autoclone!(remotes);
+            remotes.set(Remotes::None);
+        })
+    }
+}
+
+#[autoclone]
+#[html]
+#[template(tag = ul)]
+fn show_remotes_dropdown(
+    click: impl Fn(MouseEvent, ClientAddress) + Clone + 'static,
+    #[signal] remotes: Remotes,
+    hide_remotes: Cancellable<Duration>,
+) -> XElement {
+    debug!("Render remote names");
+    if let Remotes::Some(remotes) = remotes {
+        if !remotes.is_empty() {
+            let remote_names = remotes.into_iter().map(|remote| {
+                li(
+                    "{remote} ⏎",
+                    mouseenter = move |_ev| {
+                        autoclone!(hide_remotes);
+                        hide_remotes.cancel();
+                    },
+                    click = move |ev| {
+                        autoclone!(click);
+                        click(ev, remote.clone())
+                    },
+                )
+            });
+            return tag(class = style::remotes, remote_names..);
+        }
+    }
+    return tag(style::visibility = "hidden", style::display = "none");
+}

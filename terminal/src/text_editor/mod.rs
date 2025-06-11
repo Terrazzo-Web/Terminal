@@ -3,6 +3,7 @@ mod code_mirror;
 mod editor;
 mod fsio;
 mod path_selector;
+mod remotes;
 mod state;
 mod synchronized_state;
 pub mod ui;

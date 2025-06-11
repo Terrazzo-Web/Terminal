@@ -17,11 +17,10 @@ use super::fsio::load_file;
 use super::state;
 use super::style;
 use super::synchronized_state::SynchronizedState;
-use crate::api::client_address::ClientAddress;
 use crate::frontend::menu::menu;
+use crate::frontend::remotes::Remote;
+use crate::text_editor::remotes::show_remote;
 use crate::text_editor::synchronized_state::show_synchronized_state;
-
-type Remote = Option<ClientAddress>;
 
 /// The UI for the text editor app.
 #[html]
@@ -61,7 +60,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
             text_editor.base_path_selector(),
             text_editor.file_path_selector(),
             show_synchronized_state(text_editor.synchronized_state.clone()),
-            show_remote(text_editor.clone(), remote_signal),
+            show_remote(remote_signal),
         ),
         editor(
             text_editor.editor_state.clone(),
@@ -73,12 +72,6 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
             let _moved = &file_async_view;
         },
     )
-}
-
-#[html]
-#[template(tag = div)]
-fn show_remote(_text_editor: Arc<TextEditor>, #[signal] mut _remote: Remote) -> XElement {
-    tag()
 }
 
 impl TextEditor {

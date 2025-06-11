@@ -11,8 +11,8 @@ use terrazzo::widgets::cancellable::Cancellable;
 use terrazzo::widgets::debounce::DoDebounce as _;
 use web_sys::MouseEvent;
 
-use crate::api::client_address::ClientAddress;
 use crate::assets::icons;
+use crate::frontend::remotes::Remote;
 use crate::state::app;
 use crate::state::app::App;
 
@@ -121,7 +121,7 @@ pub fn app() -> XSignal<App> {
             wasm_bindgen_futures::spawn_local(async move {
                 autoclone!(app);
                 // The client address is set per app, not globally.
-                let address: Option<ClientAddress> = None;
+                let address: Remote = None;
                 if let Ok(p) = app::state::get(address).await {
                     app.set(p);
                 }
@@ -130,7 +130,7 @@ pub fn app() -> XSignal<App> {
             let _ = CONSUMER.set(app.add_subscriber(|app| {
                 wasm_bindgen_futures::spawn_local(async move {
                     // The client address is set per app, not globally.
-                    let address: Option<ClientAddress> = None;
+                    let address: Remote = None;
                     let _ = app::state::set(address, app).await;
                 })
             }));

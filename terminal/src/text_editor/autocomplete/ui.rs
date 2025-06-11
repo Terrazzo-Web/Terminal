@@ -14,8 +14,8 @@ use web_sys::FocusEvent;
 use web_sys::HtmlInputElement;
 use web_sys::MouseEvent;
 
-use crate::api::client_address::ClientAddress;
 use crate::frontend::menu::before_menu;
+use crate::frontend::remotes::Remote;
 use crate::text_editor::autocomplete::autocomplete_path;
 use crate::text_editor::path_selector::PathSelector;
 use crate::text_editor::style;
@@ -112,7 +112,7 @@ fn do_autocomplete_impl(
 ) {
     let input_element = input.get().or_throw("Input element not set");
     let value = input_element.value();
-    let address: Option<ClientAddress> = None; // TODO: define remote address in text editor
+    let address: Remote = None; // TODO: define remote address in text editor
     spawn_local(async move {
         autoclone!(autocomplete);
         let autocompletes = autocomplete_path(
