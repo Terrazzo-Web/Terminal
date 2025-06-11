@@ -38,7 +38,6 @@ async fn store_file_impl(
 ) -> Result<(), ServerFnError> {
     #[cfg(debug_assertions)]
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-
     Ok(remote::STORE_FILE_REMOTE_FN
         .call(
             address.unwrap_or_default(),

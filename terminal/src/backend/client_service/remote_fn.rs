@@ -276,3 +276,34 @@ mod remote_fn_errors_to_status {
         }
     }
 }
+
+macro_rules! declare_remote_fn {
+    ($remote_fn:ident, $remote_fn_name:expr, $implem:expr) => {
+        pub static $remote_fn: remote_fn::RemoteFn = {
+            fn callback(
+                server: &trz_gateway_server::server::Server,
+                arg: &str,
+            ) -> remote_fn::RemoteFnResult {
+                let callback = remote_fn::uplift({
+                    #[allow(unused)]
+                    use super::*;
+                    $implem
+                });
+                Box::pin(callback(server, arg))
+            }
+
+            remote_fn::RemoteFn {
+                name: {
+                    #[allow(unused)]
+                    use super::*;
+                    $remote_fn_name
+                },
+                callback,
+            }
+        };
+
+        inventory::submit! { $remote_fn }
+    };
+}
+
+pub(crate) use declare_remote_fn;
