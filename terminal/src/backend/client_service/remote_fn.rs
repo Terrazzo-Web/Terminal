@@ -284,20 +284,12 @@ macro_rules! declare_remote_fn {
                 server: &trz_gateway_server::server::Server,
                 arg: &str,
             ) -> remote_fn::RemoteFnResult {
-                let callback = remote_fn::uplift({
-                    #[allow(unused)]
-                    use super::*;
-                    $implem
-                });
+                let callback = remote_fn::uplift($implem);
                 Box::pin(callback(server, arg))
             }
 
             remote_fn::RemoteFn {
-                name: {
-                    #[allow(unused)]
-                    use super::*;
-                    $remote_fn_name
-                },
+                name: $remote_fn_name,
                 callback,
             }
         };
