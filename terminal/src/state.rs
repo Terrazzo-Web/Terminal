@@ -44,39 +44,12 @@ macro_rules! make_state {
                 use const_format::formatcp;
                 use serde::Deserialize;
                 use serde::Serialize;
-                use trz_gateway_server::server::Server;
 
                 use crate::backend::client_service::remote_fn;
-                use crate::backend::client_service::remote_fn::RemoteFn;
-                use crate::backend::client_service::remote_fn::RemoteFnResult;
-
-                pub static GET_REMOTE_FN: RemoteFn = RemoteFn {
-                    name: formatcp!("{}-state-{}", super::GET, stringify!($name)),
-                    callback: get_state,
-                };
-
-                inventory::submit! { GET_REMOTE_FN }
 
                 #[derive(Debug, Default, Serialize, Deserialize)]
                 #[serde(default)]
                 pub struct GetRequest {}
-
-                fn get_state(server: &Server, arg: &str) -> RemoteFnResult {
-                    let get_state = remote_fn::uplift(|_server, _: GetRequest| {
-                        let state = super::STATE.lock().expect(stringify!($name));
-                        ready(Ok::<super::ty::Type, StateError>(
-                            state.as_ref().cloned().unwrap_or_default(),
-                        ))
-                    });
-                    Box::pin(get_state(server, arg))
-                }
-
-                pub static SET_REMOTE_FN: RemoteFn = RemoteFn {
-                    name: formatcp!("{}-state-{}", super::SET, stringify!($name)),
-                    callback: set_state,
-                };
-
-                inventory::submit! { SET_REMOTE_FN }
 
                 #[derive(Debug, Default, Serialize, Deserialize)]
                 #[serde(default)]
@@ -84,14 +57,26 @@ macro_rules! make_state {
                     pub value: super::ty::Type,
                 }
 
-                fn set_state(server: &Server, arg: &str) -> RemoteFnResult {
-                    let set_state = remote_fn::uplift(|_server, arg: SetRequest| {
+                remote_fn::declare_remote_fn!(
+                    GET_REMOTE_FN,
+                    formatcp!("{}-state-{}", super::GET, stringify!($name)),
+                    |_server, _: GetRequest| {
+                        let state = super::STATE.lock().expect(stringify!($name));
+                        ready(Ok::<super::ty::Type, StateError>(
+                            state.as_ref().cloned().unwrap_or_default(),
+                        ))
+                    }
+                );
+
+                remote_fn::declare_remote_fn!(
+                    SET_REMOTE_FN,
+                    formatcp!("{}-state-{}", super::SET, stringify!($name)),
+                    |_server, arg: SetRequest| {
                         let mut state = super::STATE.lock().expect(stringify!($name));
                         *state = Some(arg.value);
                         ready(Ok::<(), StateError>(()))
-                    });
-                    Box::pin(set_state(server, arg))
-                }
+                    }
+                );
 
                 enum StateError {}
 
