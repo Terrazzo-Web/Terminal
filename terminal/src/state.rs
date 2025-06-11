@@ -19,9 +19,9 @@ macro_rules! make_state {
             #[cfg_attr(feature = "server", allow(unused))]
             #[server]
             #[cfg_attr(feature = "server", nameth::nameth)]
-            pub async fn get(address: Option<ClientAddress>) -> Result<ty::Type, ServerFnError> {
+            pub async fn get(remote: Option<ClientAddress>) -> Result<ty::Type, ServerFnError> {
                 Ok(remote::GET_REMOTE_FN
-                    .call(address.unwrap_or_default(), remote::GetRequest {})
+                    .call(remote.unwrap_or_default(), remote::GetRequest {})
                     .await?)
             }
 
@@ -29,11 +29,11 @@ macro_rules! make_state {
             #[server]
             #[cfg_attr(feature = "server", nameth::nameth)]
             pub async fn set(
-                address: Option<ClientAddress>,
+                remote: Option<ClientAddress>,
                 value: ty::Type,
             ) -> Result<(), ServerFnError> {
                 Ok(remote::SET_REMOTE_FN
-                    .call(address.unwrap_or_default(), remote::SetRequest { value })
+                    .call(remote.unwrap_or_default(), remote::SetRequest { value })
                     .await?)
             }
 

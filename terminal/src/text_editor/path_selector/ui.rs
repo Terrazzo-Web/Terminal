@@ -18,13 +18,20 @@ use crate::text_editor::autocomplete::ui::show_autocomplete;
 use crate::text_editor::autocomplete::ui::start_autocomplete;
 use crate::text_editor::autocomplete::ui::stop_autocomplete;
 use crate::text_editor::style;
+use crate::text_editor::ui::TextEditor;
 
-pub fn base_path_selector(base_path: XSignal<Arc<str>>) -> XElement {
-    path_selector_impll(PathSelector::BasePath, None, base_path)
-}
+impl TextEditor {
+    pub fn base_path_selector(&self) -> XElement {
+        path_selector_impll(PathSelector::BasePath, None, self.base_path.clone())
+    }
 
-pub fn file_path_selector(base_path: XSignal<Arc<str>>, file_path: XSignal<Arc<str>>) -> XElement {
-    path_selector_impll(PathSelector::FilePath, Some(base_path), file_path)
+    pub fn file_path_selector(&self) -> XElement {
+        path_selector_impll(
+            PathSelector::FilePath,
+            Some(self.base_path.clone()),
+            self.file_path.clone(),
+        )
+    }
 }
 
 #[autoclone]

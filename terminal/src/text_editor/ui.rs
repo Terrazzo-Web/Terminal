@@ -14,120 +14,152 @@ use wasm_bindgen_futures::spawn_local;
 use super::editor::EditorState;
 use super::editor::editor;
 use super::fsio::load_file;
-use super::path_selector::ui::base_path_selector;
-use super::path_selector::ui::file_path_selector;
 use super::state;
 use super::style;
 use super::synchronized_state::SynchronizedState;
-use super::synchronized_state::show_synchronized_state;
 use crate::api::client_address::ClientAddress;
 use crate::frontend::menu::menu;
+use crate::text_editor::synchronized_state::show_synchronized_state;
+
+type Remote = Option<ClientAddress>;
 
 /// The UI for the text editor app.
 #[html]
 #[template]
 pub fn text_editor() -> XElement {
-    let base_path = XSignal::new("base-path", Arc::default());
-    let file_path = XSignal::new("file-path", Arc::default());
-    let editor_state = XSignal::new("editor-state", None);
-    let synchronized_state = XSignal::new("synchronized-state", SynchronizedState::Sync);
-
-    restore_paths(&base_path, &file_path);
-    let address: Option<ClientAddress> = None; // TODO: define remote address in text editor
-    let base_path_subscriber =
-        save_on_change(address.clone(), base_path.clone(), state::base_path::set);
-    let file_path_subscriber = save_on_change(address, file_path.clone(), state::file_path::set);
-    let file_async_view = make_file_async_view(&base_path, &file_path, &editor_state);
-
+    let remote = XSignal::new("remote", None);
     div(
         style = "height: 100%;",
-        div(
-            key = "text-editor",
-            class = style::text_editor,
-            div(
-                class = style::header,
-                menu(),
-                base_path_selector(base_path.clone()),
-                file_path_selector(base_path, file_path),
-                show_synchronized_state(synchronized_state.clone()),
-            ),
-            editor(editor_state, synchronized_state),
-            after_render = move |_| {
-                let _moved = &base_path_subscriber;
-                let _moved = &file_path_subscriber;
-                let _moved = &file_async_view;
-            },
-        ),
+        text_editor_impl(remote.clone(), remote),
     )
 }
 
-/// Restores the paths
-#[autoclone]
-#[nameth]
-fn restore_paths(base_path: &XSignal<Arc<str>>, file_path: &XSignal<Arc<str>>) {
-    spawn_local(async move {
-        autoclone!(base_path, file_path);
-        let address: Option<ClientAddress> = None; // TODO: define remote address in text editor
-        let (get_base_path, get_file_path) = futures::future::join(
-            state::base_path::get(address.clone()),
-            state::file_path::get(address),
-        )
-        .await;
-        if get_base_path.is_err() && get_file_path.is_err() {
-            return;
-        }
-        let batch = Batch::use_batch(RESTORE_PATHS);
-        if let Ok(p) = get_base_path {
-            base_path.set(p);
-        }
-        if let Ok(p) = get_file_path {
-            file_path.set(p);
-        }
-        drop(batch);
+#[html]
+#[template(tag = div)]
+fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) -> XElement {
+    let text_editor = Arc::new(TextEditor {
+        remote,
+        base_path: XSignal::new("base-path", Arc::default()),
+        file_path: XSignal::new("file-path", Arc::default()),
+        editor_state: XSignal::new("editor-state", None),
+        synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
     });
+
+    text_editor.restore_paths();
+    let base_path_subscriber =
+        text_editor.save_on_change(text_editor.base_path.clone(), state::base_path::set);
+    let file_path_subscriber =
+        text_editor.save_on_change(text_editor.file_path.clone(), state::file_path::set);
+    let file_async_view = text_editor.make_file_async_view();
+
+    div(
+        key = "text-editor",
+        class = style::text_editor,
+        div(
+            class = style::header,
+            menu(),
+            text_editor.base_path_selector(),
+            text_editor.file_path_selector(),
+            show_synchronized_state(text_editor.synchronized_state.clone()),
+            show_remote(text_editor.clone(), remote_signal),
+        ),
+        editor(
+            text_editor.editor_state.clone(),
+            text_editor.synchronized_state.clone(),
+        ),
+        after_render = move |_| {
+            let _moved = &base_path_subscriber;
+            let _moved = &file_path_subscriber;
+            let _moved = &file_async_view;
+        },
+    )
 }
 
-#[autoclone]
-fn make_file_async_view(
-    base_path: &XSignal<Arc<str>>,
-    file_path: &XSignal<Arc<str>>,
-    editor_state: &XSignal<Option<EditorState>>,
-) -> Consumers {
-    file_path.add_subscriber(move |file_path| {
-        autoclone!(base_path, editor_state);
-        editor_state.force(None);
-        let task = async move {
-            autoclone!(base_path, file_path, editor_state);
-            let base_path = base_path.get_value_untracked();
-            let address: Option<ClientAddress> = None; // TODO: define remote address in text editor
-            let data = load_file(address, base_path.clone(), file_path.clone())
-                .await
-                .unwrap_or_else(|error| Some(error.to_string().into()));
-
-            if let Some(data) = data {
-                editor_state.force(EditorState {
-                    base_path,
-                    file_path,
-                    data,
-                })
-            }
-        };
-        spawn_local(task);
-    })
+#[html]
+#[template(tag = div)]
+fn show_remote(_text_editor: Arc<TextEditor>, #[signal] mut _remote: Remote) -> XElement {
+    tag()
 }
 
-#[autoclone]
-fn save_on_change(
-    address: Option<ClientAddress>,
-    path: XSignal<Arc<str>>,
-    setter: impl AsyncFn(Option<ClientAddress>, Arc<str>) -> Result<(), ServerFnError> + Copy + 'static,
-) -> Consumers {
-    path.add_subscriber(move |p| {
+impl TextEditor {
+    /// Restores the paths
+    #[autoclone]
+    #[nameth]
+    fn restore_paths(&self) {
+        let Self {
+            base_path,
+            file_path,
+            ..
+        } = self;
         spawn_local(async move {
-            autoclone!(address);
-            let () = setter(address, p)
-                .await
-                .unwrap_or_else(|error| warn!("Failed to save path: {error}"));
+            autoclone!(base_path, file_path);
+            let address: Remote = None; // TODO: define remote address in text editor
+            let (get_base_path, get_file_path) = futures::future::join(
+                state::base_path::get(address.clone()),
+                state::file_path::get(address),
+            )
+            .await;
+            if get_base_path.is_err() && get_file_path.is_err() {
+                return;
+            }
+            let batch = Batch::use_batch(Self::RESTORE_PATHS);
+            if let Ok(p) = get_base_path {
+                base_path.set(p);
+            }
+            if let Ok(p) = get_file_path {
+                file_path.set(p);
+            }
+            drop(batch);
+        });
+    }
+
+    #[autoclone]
+    fn make_file_async_view(self: &Arc<Self>) -> Consumers {
+        let this = self;
+        this.file_path.add_subscriber(move |file_path| {
+            autoclone!(this);
+            this.editor_state.force(None);
+            let task = async move {
+                autoclone!(this);
+                let base_path = this.base_path.get_value_untracked();
+                let data = load_file(this.remote.clone(), base_path.clone(), file_path.clone())
+                    .await
+                    .unwrap_or_else(|error| Some(error.to_string().into()));
+
+                if let Some(data) = data {
+                    this.editor_state.force(EditorState {
+                        base_path,
+                        file_path,
+                        data,
+                    })
+                }
+            };
+            spawn_local(task);
         })
-    })
+    }
+
+    #[autoclone]
+    fn save_on_change(
+        &self,
+        path: XSignal<Arc<str>>,
+        setter: impl AsyncFn(Remote, Arc<str>) -> Result<(), ServerFnError> + Copy + 'static,
+    ) -> Consumers {
+        let remote = self.remote.clone();
+        path.add_subscriber(move |p| {
+            spawn_local(async move {
+                autoclone!(remote);
+                let () = setter(remote, p)
+                    .await
+                    .unwrap_or_else(|error| warn!("Failed to save path: {error}"));
+            })
+        })
+    }
+}
+
+pub(super) struct TextEditor {
+    pub remote: Remote,
+    pub base_path: XSignal<Arc<str>>,
+    pub file_path: XSignal<Arc<str>>,
+    pub editor_state: XSignal<Option<EditorState>>,
+    pub synchronized_state: XSignal<SynchronizedState>,
 }
