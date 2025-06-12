@@ -15,15 +15,12 @@
 - `#·91`. Configuration tool: show current auth token
 - `#·91`. Configuration tool: password reset
 - `#·91`. Configuration tool: info page (version, metrics, etc.)
-- `#·90`. Figure out why server doesn't run when --action start
 - `#·81`. Announce open source autoclone.
 - `#·79`. Announce open source named.
 - `#·32`. Announce open source terrazzo client
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
 - `#·52`. Drag n Drop to create tiles
 - `#··8`. Resizeable component
-- `#104`. Debounce set-title
-- `#105`. Check why the client hangs
 
 # Nice to have
 - `#·45`. Lazily load tab
@@ -115,3 +112,6 @@ Next: `#106`.
 - `#·86`. Remove static state from the client -- search for "([^']|\n)static ". Ambient ctx on spawn_local, events, timers -- rejected
 - `#·82`. (rejected)
 - `#102`. Text editor: support remote
+- `#·90`. Figure out why server doesn't run when --action start
+- `#105`. Check why the client hangs
+- `#104`. Debounce set-title

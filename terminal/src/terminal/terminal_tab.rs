@@ -1,6 +1,8 @@
 use std::ops::Deref;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::Duration;
 
 use nameth::NamedType;
 use nameth::nameth;
@@ -8,6 +10,7 @@ use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
+use terrazzo::widgets::debounce::DoDebounce;
 use terrazzo::widgets::editable::editable;
 use terrazzo::widgets::tabs::TabDescriptor;
 use tracing::Level;
@@ -20,6 +23,7 @@ use super::javascript::TerminalJs;
 use super::style;
 use crate::api;
 use crate::api::TabTitle;
+use crate::api::TerminalAddress;
 use crate::api::TerminalDef;
 use crate::api::client::LiveTerminalDef;
 use crate::assets::icons;
@@ -76,15 +80,23 @@ impl TerminalTab {
             };
             XSignal::new(signal_name, title.map(XString::from))
         };
-        let registrations = title.add_subscriber(move |title: TabTitle<XString>| {
-            autoclone!(address);
-            wasm_bindgen_futures::spawn_local(async move {
-                autoclone!(address);
+
+        let set_title = Duration::from_secs(1).async_debounce(
+            |(address, title): (TerminalAddress, TabTitle<XString>)| async move {
                 let result =
                     api::client::set_title::set_title(&address, title.map(|t| t.to_string()));
                 if let Err(error) = result.await {
                     warn!("Failed to update title: {error}")
                 }
+            },
+        );
+        let set_title = Arc::new(set_title);
+
+        let registrations = title.add_subscriber(move |title: TabTitle<XString>| {
+            autoclone!(address);
+            wasm_bindgen_futures::spawn_local(async move {
+                autoclone!(address, set_title);
+                set_title((address, title)).await
             });
         });
         Self(Ptr::new(TerminalTabInner {
