@@ -1,7 +1,6 @@
 # TODO
 - `#101`. Renew client certificates
 - `#103`. Renew LE certificate
-- `#102`. Text editor: support remote
 - `#·93`. File explorer: opened files
 - `#·94`. File explorer: all files
 - `#·95`. File explorer: search tool
@@ -115,3 +114,4 @@ Next: `#106`.
 - `#·55`. Better way to do APIs. `server_fn`?
 - `#·86`. Remove static state from the client -- search for "([^']|\n)static ". Ambient ctx on spawn_local, events, timers -- rejected
 - `#·82`. (rejected)
+- `#102`. Text editor: support remote

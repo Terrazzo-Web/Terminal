@@ -183,11 +183,12 @@ async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError
 
     let mut terminate = signal(SignalKind::terminate()).map_err(RunServerError::Signal)?;
     tokio::select! {
-        _ = terminate.recv() => {
-            server_handle.stop("Quit").await?;
-        }
+        biased;
         crash = crash.clone() => {
             server_handle.stop(crash).await?;
+        }
+        _ = terminate.recv() => {
+            server_handle.stop("Quit").await?;
         }
     }
     drop(server);
@@ -286,8 +287,8 @@ async fn run_client_async(
 
     tokio::spawn(async move {
         let () = shutdown_rx.await;
-        let _terminated = terminated_all_tx.await;
         drop(dynamic_client);
+        let _terminated = terminated_all_tx.await;
         let _ = terminated_tx.send(());
     });
 
