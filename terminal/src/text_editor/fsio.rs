@@ -13,13 +13,13 @@ pub mod ui;
 #[server]
 #[nameth]
 pub async fn load_file(
-    address: Option<ClientAddress>,
+    remote: Option<ClientAddress>,
     base_path: Arc<str>,
     file_path: Arc<str>,
 ) -> Result<Option<Arc<str>>, ServerFnError> {
     Ok(remote::LOAD_FILE_REMOTE_FN
         .call(
-            address.unwrap_or_default(),
+            remote.unwrap_or_default(),
             remote::LoadFileRequest {
                 base_path,
                 file_path,
@@ -31,7 +31,7 @@ pub async fn load_file(
 #[server]
 #[nameth]
 async fn store_file_impl(
-    address: Option<ClientAddress>,
+    remote: Option<ClientAddress>,
     base_path: Arc<str>,
     file_path: Arc<str>,
     content: String,
@@ -40,7 +40,7 @@ async fn store_file_impl(
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     Ok(remote::STORE_FILE_REMOTE_FN
         .call(
-            address.unwrap_or_default(),
+            remote.unwrap_or_default(),
             remote::StoreFileRequest {
                 base_path,
                 file_path,

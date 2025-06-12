@@ -23,13 +23,15 @@
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
 - `#·52`. Drag n Drop to create tiles
 - `#··8`. Resizeable component
+- `#104`. Debounce set-title
+- `#105`. Check why the client hangs
 
 # Nice to have
 - `#·45`. Lazily load tab
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#104`.
+Next: `#106`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`

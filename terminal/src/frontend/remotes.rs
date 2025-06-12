@@ -1,6 +1,8 @@
+use std::iter::once;
 use std::time::Duration;
 
 use terrazzo::autoclone;
+use terrazzo::declare_trait_aliias;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
@@ -24,6 +26,13 @@ pub struct RemotesState {
 pub type Remote = Option<ClientAddress>;
 pub type Remotes = Option<Vec<ClientAddress>>;
 
+declare_trait_aliias!(
+    DisplayRemoteFn,
+    Fn(Option<&ClientAddress>) -> (String, Option<&'static str>) + Clone + 'static
+);
+
+declare_trait_aliias!(ClickRemoteFn, Fn(MouseEvent, Remote) + Clone + 'static);
+
 impl RemotesState {
     pub fn new() -> Self {
         Self {
@@ -35,9 +44,15 @@ impl RemotesState {
 
     pub fn show_remotes_dropdown(
         &self,
-        click: impl Fn(MouseEvent, ClientAddress) + Clone + 'static,
+        display_remote: impl DisplayRemoteFn,
+        click: impl ClickRemoteFn,
     ) -> XElement {
-        show_remotes_dropdown(click, self.remotes.clone(), self.hide_remotes.clone())
+        show_remotes_dropdown(
+            display_remote,
+            click,
+            self.remotes.clone(),
+            self.hide_remotes.clone(),
+        )
     }
 
     #[autoclone]
@@ -85,16 +100,20 @@ impl RemotesState {
 #[html]
 #[template(tag = ul)]
 fn show_remotes_dropdown(
-    click: impl Fn(MouseEvent, ClientAddress) + Clone + 'static,
+    display_remote: impl DisplayRemoteFn,
+    click: impl ClickRemoteFn,
     #[signal] remotes: Remotes,
     hide_remotes: Cancellable<Duration>,
 ) -> XElement {
     debug!("Render remote names");
     if let Remotes::Some(remotes) = remotes {
         if !remotes.is_empty() {
-            let remote_names = remotes.into_iter().map(|remote| {
+            let local_and_remotes = once(None).chain(remotes.into_iter().map(Some));
+            let remote_names = local_and_remotes.map(|remote| {
+                let (remote_name, remote_class) = display_remote(remote.as_ref());
                 li(
-                    "{remote} ⏎",
+                    class = remote_class,
+                    "{remote_name}",
                     mouseenter = move |_ev| {
                         autoclone!(hide_remotes);
                         hide_remotes.cancel();

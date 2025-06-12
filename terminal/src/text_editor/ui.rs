@@ -62,10 +62,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
             show_synchronized_state(text_editor.synchronized_state.clone()),
             show_remote(remote_signal),
         ),
-        editor(
-            text_editor.editor_state.clone(),
-            text_editor.synchronized_state.clone(),
-        ),
+        editor(text_editor.editor_state.clone(), text_editor.clone()),
         after_render = move |_| {
             let _moved = &base_path_subscriber;
             let _moved = &file_path_subscriber;
@@ -80,16 +77,17 @@ impl TextEditor {
     #[nameth]
     fn restore_paths(&self) {
         let Self {
+            remote,
             base_path,
             file_path,
             ..
         } = self;
         spawn_local(async move {
-            autoclone!(base_path, file_path);
-            let address: Remote = None; // TODO: define remote address in text editor
+            autoclone!(remote, base_path, file_path);
+            let remote: Remote = remote.clone();
             let (get_base_path, get_file_path) = futures::future::join(
-                state::base_path::get(address.clone()),
-                state::file_path::get(address),
+                state::base_path::get(remote.clone()),
+                state::file_path::get(remote),
             )
             .await;
             if get_base_path.is_err() && get_file_path.is_err() {

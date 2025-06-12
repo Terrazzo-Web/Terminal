@@ -15,15 +15,16 @@ use web_sys::HtmlInputElement;
 use web_sys::MouseEvent;
 
 use crate::frontend::menu::before_menu;
-use crate::frontend::remotes::Remote;
 use crate::text_editor::autocomplete::autocomplete_path;
 use crate::text_editor::path_selector::PathSelector;
 use crate::text_editor::style;
+use crate::text_editor::ui::TextEditor;
 
 #[autoclone]
 #[html]
 #[template(tag = ul)]
 pub fn show_autocomplete(
+    text_editor: Arc<TextEditor>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
@@ -43,13 +44,14 @@ pub fn show_autocomplete(
         li(
             "{item}",
             mousedown = move |ev: MouseEvent| {
-                autoclone!(input, autocomplete_sig, prefix, path);
+                autoclone!(text_editor, input, autocomplete_sig, prefix, path);
                 ev.prevent_default();
                 ev.stop_propagation();
                 let input_element = input.get().or_throw("Input element not set");
                 input_element.set_value(&item);
                 path.set(item.clone());
                 do_autocomplete_impl(
+                    text_editor.clone(),
                     kind,
                     prefix.clone(),
                     input.clone(),
@@ -63,6 +65,7 @@ pub fn show_autocomplete(
 
 #[autoclone]
 pub fn start_autocomplete(
+    text_editor: Arc<TextEditor>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
@@ -75,7 +78,13 @@ pub fn start_autocomplete(
             input_element.blur().or_throw("Can't blur() input element")
         }));
         autocomplete.set(Some(Default::default()));
-        do_autocomplete_impl(kind, prefix.clone(), input.clone(), autocomplete.clone());
+        do_autocomplete_impl(
+            text_editor.clone(),
+            kind,
+            prefix.clone(),
+            input.clone(),
+            autocomplete.clone(),
+        );
     }
 }
 
@@ -93,18 +102,26 @@ pub fn stop_autocomplete(
 }
 
 pub fn do_autocomplete(
+    text_editor: Arc<TextEditor>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete: XSignal<Option<Vec<String>>>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
 ) -> impl Fn(()) {
     Duration::from_millis(250).debounce(move |()| {
-        do_autocomplete_impl(kind, prefix.clone(), input.clone(), autocomplete.clone())
+        do_autocomplete_impl(
+            text_editor.clone(),
+            kind,
+            prefix.clone(),
+            input.clone(),
+            autocomplete.clone(),
+        )
     })
 }
 
 #[autoclone]
 fn do_autocomplete_impl(
+    text_editor: Arc<TextEditor>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
@@ -112,11 +129,10 @@ fn do_autocomplete_impl(
 ) {
     let input_element = input.get().or_throw("Input element not set");
     let value = input_element.value();
-    let address: Remote = None; // TODO: define remote address in text editor
     spawn_local(async move {
         autoclone!(autocomplete);
         let autocompletes = autocomplete_path(
-            address,
+            text_editor.remote.clone(),
             kind,
             prefix
                 .as_ref()

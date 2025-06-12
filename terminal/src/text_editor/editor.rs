@@ -14,6 +14,7 @@ use wasm_bindgen::JsValue;
 use super::code_mirror::CodeMirrorJs;
 use super::synchronized_state::SynchronizedState;
 use crate::text_editor::fsio::ui::store_file;
+use crate::text_editor::ui::TextEditor;
 
 #[derive(Clone)]
 pub struct EditorState {
@@ -37,7 +38,7 @@ impl std::fmt::Debug for EditorState {
 #[template(tag = div)]
 pub fn editor(
     #[signal] editor_state: Option<EditorState>,
-    synchronized_state: XSignal<SynchronizedState>,
+    text_editor: Arc<TextEditor>,
 ) -> XElement {
     static NEXT: AtomicI32 = AtomicI32::new(1);
     let key = format!("editor-{}", NEXT.fetch_add(1, SeqCst));
@@ -57,9 +58,16 @@ pub fn editor(
             return;
         };
         let write = async move {
-            autoclone!(base_path, file_path, synchronized_state);
-            let pending = SynchronizedState::enqueue(synchronized_state);
-            let () = store_file(base_path, file_path, content, pending).await;
+            autoclone!(base_path, file_path, text_editor);
+            let pending = SynchronizedState::enqueue(text_editor.synchronized_state.clone());
+            let () = store_file(
+                text_editor.remote.clone(),
+                base_path,
+                file_path,
+                content,
+                pending,
+            )
+            .await;
         };
         wasm_bindgen_futures::spawn_local(write);
     });

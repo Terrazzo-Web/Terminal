@@ -14,7 +14,7 @@ pub mod ui;
 #[server]
 #[nameth]
 async fn autocomplete_path(
-    address: Option<ClientAddress>,
+    remote: Option<ClientAddress>,
     kind: PathSelector,
     prefix: Arc<str>,
     input: String,
@@ -32,7 +32,7 @@ async fn autocomplete_path(
             input,
         };
         return Ok(remote::AUTOCOMPLETE_PATH_REMOTE_FN
-            .call(address.unwrap_or_default(), request)
+            .call(remote.unwrap_or_default(), request)
             .await?);
     }
     .instrument(debug_span!("Autocomplete"))
