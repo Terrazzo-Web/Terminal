@@ -62,7 +62,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
             show_synchronized_state(text_editor.synchronized_state.clone()),
             show_remote(remote_signal),
         ),
-        editor(text_editor.editor_state.clone(), text_editor.clone()),
+        editor(text_editor.clone(), text_editor.editor_state.clone()),
         after_render = move |_| {
             let _moved = &base_path_subscriber;
             let _moved = &file_path_subscriber;
@@ -109,6 +109,7 @@ impl TextEditor {
         let this = self;
         this.file_path.add_subscriber(move |file_path| {
             autoclone!(this);
+            let loading = SynchronizedState::enqueue(this.synchronized_state.clone());
             this.editor_state.force(None);
             let task = async move {
                 autoclone!(this);
@@ -124,6 +125,7 @@ impl TextEditor {
                         data,
                     })
                 }
+                drop(loading);
             };
             spawn_local(task);
         })

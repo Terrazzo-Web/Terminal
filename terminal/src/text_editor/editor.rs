@@ -37,8 +37,8 @@ impl std::fmt::Debug for EditorState {
 #[html]
 #[template(tag = div)]
 pub fn editor(
-    #[signal] editor_state: Option<EditorState>,
     text_editor: Arc<TextEditor>,
+    #[signal] editor_state: Option<EditorState>,
 ) -> XElement {
     static NEXT: AtomicI32 = AtomicI32::new(1);
     let key = format!("editor-{}", NEXT.fetch_add(1, SeqCst));
