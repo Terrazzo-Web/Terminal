@@ -55,23 +55,21 @@ fn create_timer(timer: &Mutex<WeakTimer>, period: Duration) -> Timer {
 
 fn create_timer_impl(period: Duration) -> Timer {
     debug!("Create timer for period={period:?}");
-    let timer = XSignal::new(
-        "second-timer",
-        Tick(Arc::new(Mutex::new(TickInner {
-            period,
-            now: Utc::now(),
-            on_drop: None,
-        }))),
-    );
+    let timer = Timer::new("second-timer", Tick::new(period));
     let timer_weak = timer.downgrade();
+
     let closure: Closure<dyn Fn()> = Closure::new(move || {
         let Some(timer) = timer_weak.upgrade() else {
             return;
         };
+
+        debug!(?period, "Update tick.now and force trigger the signal");
         let tick = timer.get_value_untracked();
         tick.0.lock().unwrap().now = Utc::now();
         timer.force(tick)
     });
+
+    // Create the interval timer.
     let window = window().unwrap();
     let Ok(handle) = window.set_interval_with_callback_and_timeout_and_arguments_0(
         closure.as_ref().unchecked_ref(),
@@ -99,10 +97,10 @@ struct WeakTimer(XSignalWeak<Tick>);
 unsafe impl Send for WeakTimer {}
 unsafe impl Sync for WeakTimer {}
 
-/// A wrapper for the [Closure] and the handle ID.
+/// A wrapper for the [Closure] and the interval timer handle ID.
 #[nameth]
 #[derive(Clone)]
-struct Tick(Arc<Mutex<TickInner>>);
+pub struct Tick(Arc<Mutex<TickInner>>);
 
 struct TickInner {
     period: Duration,
@@ -115,14 +113,13 @@ struct AbortTickOnDrop {
     handle: i32,
 }
 
-impl Drop for TickInner {
-    fn drop(&mut self) {
-        debug!("Drop timer for period={:?}", self.period);
-        let Some(AbortTickOnDrop { handle, .. }) = &self.on_drop else {
-            return;
-        };
-        let window = window().unwrap();
-        window.clear_interval_with_handle(*handle);
+impl Tick {
+    fn new(period: Duration) -> Self {
+        Self(Arc::new(Mutex::new(TickInner {
+            period,
+            now: Utc::now(),
+            on_drop: None,
+        })))
     }
 }
 
@@ -136,19 +133,34 @@ impl std::fmt::Debug for Tick {
     }
 }
 
+impl Drop for TickInner {
+    fn drop(&mut self) {
+        debug!("Drop timer for period={:?}", self.period);
+        let Some(AbortTickOnDrop { handle, .. }) = &self.on_drop else {
+            return;
+        };
+        let window = window().unwrap();
+        window.clear_interval_with_handle(*handle);
+    }
+}
+
 /// Creates a signal that produces a friendly representation of a timetamp.
 #[autoclone]
-pub fn display_timestamp<TZ: TimeZone + 'static>(value: DateTime<TZ>) -> XSignal<Timestamp<TZ>> {
+pub fn display_timestamp<TZ: TimeZone + 'static>(
+    value: DateTime<TZ>,
+) -> XSignal<Box<Timestamp<TZ>>> {
     let timer_mode_signal = XSignal::new("timer-mode", TimerMode::AbsoluteTime);
     let timestamp_signal = XSignal::new(
-        "display_timetamp",
-        Timestamp {
-            timer_mode_signal: timer_mode_signal.clone(),
-            timer_mode_consumers: None,
-            timer_consumers: None,
+        "display-timetamp",
+        Box::new(Timestamp {
             display: String::new(),
-            value,
-        },
+            inner: Ptr::new(TimestampInner {
+                timer_mode_signal: timer_mode_signal.clone(),
+                timer_mode_consumers: None.into(),
+                timer_consumers: None.into(),
+                value,
+            }),
+        }),
     );
 
     timestamp_signal.update_mut(move |timestamp| {
@@ -156,11 +168,12 @@ pub fn display_timestamp<TZ: TimeZone + 'static>(value: DateTime<TZ>) -> XSignal
 
         // Subscribe to timer mode changes.
         let timer_mode_consumers = timer_mode_signal.add_subscriber(move |timer_mode| {
+            debug!("Update timer_mode to {timer_mode:?}");
             let timer_consumers = if let Some(timer) = timer_mode.timer() {
                 // Subscribe to the timer.
                 Some(timer.add_subscriber(move |_tick| {
-                    // On tick
                     autoclone!(timer_mode, timestamp_signal);
+                    debug!("Tick");
                     timestamp_signal.update_mut(|timestamp| timestamp.recompute(&timer_mode))
                 }))
             } else {
@@ -168,17 +181,25 @@ pub fn display_timestamp<TZ: TimeZone + 'static>(value: DateTime<TZ>) -> XSignal
             };
 
             // Record the ticks event.
-            timestamp_signal.update_mut(|timestamp| Timestamp {
-                timer_consumers,
-                ..timestamp.take()
-            });
+            timestamp_signal.update_mut(|timestamp| {
+                Box::new(Timestamp {
+                    display: std::mem::take(&mut timestamp.display),
+                    inner: Ptr::new(TimestampInner {
+                        timer_consumers: Ptr::new(timer_consumers),
+                        ..timestamp.inner.as_ref().clone()
+                    }),
+                })
+            })
         });
 
         // Record the timer mode event.
-        Timestamp {
-            timer_mode_consumers: Some(timer_mode_consumers),
-            ..timestamp.take()
-        }
+        Box::new(Timestamp {
+            display: std::mem::take(&mut timestamp.display),
+            inner: Ptr::new(TimestampInner {
+                timer_mode_consumers: Ptr::new(Some(timer_mode_consumers)),
+                ..timestamp.inner.as_ref().clone()
+            }),
+        })
     });
     return timestamp_signal;
 }
@@ -188,89 +209,82 @@ pub fn display_timestamp<TZ: TimeZone + 'static>(value: DateTime<TZ>) -> XSignal
 /// The string representation is computed to
 /// - an intuitive representation of some time ago for recent timestamps
 /// - a formal timstamp for older timestamps
+#[derive(Clone)]
 pub struct Timestamp<TZ: TimeZone> {
+    /// The display value of the timestamp.
+    display: String,
+
+    inner: Ptr<TimestampInner<TZ>>,
+}
+
+#[derive(Clone)]
+struct TimestampInner<TZ: TimeZone> {
     /// A signal that indicates how the timestamp should be printed.
     /// As the timestamp becomes older, the [TimerMode] will change.
     timer_mode_signal: XSignal<TimerMode>,
 
     /// Holds a reference to the closure that reacts to timer mode changes.
-    timer_mode_consumers: Option<Consumers>,
+    timer_mode_consumers: Ptr<Option<Consumers>>,
 
     /// Holds a reference to the closure that reacts to timer ticks.
     /// The timer depends on the timer mode.
-    timer_consumers: Option<Consumers>,
-
-    /// The display value of the timestamp.
-    display: String,
+    timer_consumers: Ptr<Option<Consumers>>,
 
     /// The formal value of the timestamp.
     value: DateTime<TZ>,
 }
 
 impl<TZ: TimeZone> Timestamp<TZ> {
-    fn recompute(&mut self, timer_mode: &TimerMode) -> Self {
+    pub fn value(&self) -> DateTime<TZ> {
+        self.inner.value.clone()
+    }
+
+    fn recompute(&mut self, timer_mode: &TimerMode) -> Box<Self> {
+        let printed = self.print(timer_mode);
+        debug!("Updating timestamp to show {printed}");
+        return Box::new(Self {
+            display: printed,
+            inner: self.inner.clone(),
+        });
+    }
+
+    fn print(&mut self, timer_mode: &TimerMode) -> String {
+        let timestamp = &self.inner.value;
         let now = timer_mode
             .now()
-            .map(|now| now.with_timezone(&self.value.timezone()));
+            .map(|now| now.with_timezone(&timestamp.timezone()));
 
         if let Some(now) = &now {
             {
-                let ago = now.clone() - self.value.clone();
+                let ago = now.clone() - timestamp.clone();
                 if ago <= chrono::Duration::minutes(30) {
-                    self.timer_mode_signal
+                    self.inner
+                        .timer_mode_signal
                         .set(TimerMode::MomentsAgo(minute_timer()));
-                    return Self {
-                        display: print_ago(ago),
-                        ..self.take()
-                    };
+                    return print_ago(ago);
                 }
             }
 
             if let (Some(now_start_of_day), Some(timestamp_start_of_day)) =
-                (from_ymd_opt(&now), from_ymd_opt(&self.value))
+                (from_ymd_opt(&now), from_ymd_opt(timestamp))
             {
                 if timestamp_start_of_day == now_start_of_day {
-                    self.timer_mode_signal
+                    self.inner
+                        .timer_mode_signal
                         .set(TimerMode::DaysAgo(minute_timer()));
-                    return Self {
-                        display: format!("Today, {}", hour_minute(&self.value)),
-                        ..self.take()
-                    };
+                    return format!("Today, {}", hour_minute(timestamp));
                 }
                 if Some(timestamp_start_of_day) == now_start_of_day.checked_sub_days(Days::new(1)) {
-                    self.timer_mode_signal
+                    self.inner
+                        .timer_mode_signal
                         .set(TimerMode::DaysAgo(minute_timer()));
-                    return Self {
-                        display: format!("Yesterday, {}", hour_minute(&self.value)),
-                        ..self.take()
-                    };
+                    return format!("Yesterday, {}", hour_minute(timestamp));
                 }
             }
         }
 
-        self.timer_mode_signal.set(TimerMode::AbsoluteTime);
-        return Self {
-            display: format!(
-                "{}, {}",
-                day_month_year(&self.value),
-                hour_minute(&self.value)
-            ),
-            ..self.take()
-        };
-    }
-
-    fn take(&mut self) -> Self {
-        let timezone = self.value.timezone();
-        Self {
-            timer_mode_signal: self.timer_mode_signal.clone(),
-            timer_mode_consumers: self.timer_mode_consumers.take(),
-            timer_consumers: self.timer_mode_consumers.take(),
-            display: std::mem::take(&mut self.display),
-            value: std::mem::replace(
-                &mut self.value,
-                DateTime::UNIX_EPOCH.with_timezone(&timezone),
-            ),
-        }
+        self.inner.timer_mode_signal.set(TimerMode::AbsoluteTime);
+        return format!("{}, {}", day_month_year(timestamp), hour_minute(timestamp));
     }
 }
 
@@ -283,12 +297,24 @@ impl<TZ: TimeZone> std::fmt::Display for Timestamp<TZ> {
 impl<TZ: TimeZone> std::fmt::Debug for Timestamp<TZ> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Timestamp")
-            .field("timer_mode_consumers", &self.timer_mode_consumers.is_some())
-            .field("timer_consumers", &self.timer_consumers.is_some())
+            .field(
+                "timer_mode_consumers",
+                &self.inner.timer_mode_consumers.is_some(),
+            )
+            .field("timer_consumers", &self.inner.timer_consumers.is_some())
             .field("value", &self.display)
             .finish()
     }
 }
+
+impl<TZ: TimeZone> PartialEq for Timestamp<TZ> {
+    fn eq(&self, other: &Self) -> bool {
+        self.display == other.display
+            && self.inner.value.timestamp_millis() == other.inner.value.timestamp_millis()
+    }
+}
+
+impl<TZ: TimeZone> Eq for Timestamp<TZ> {}
 
 #[derive(Clone, Debug)]
 enum TimerMode {
