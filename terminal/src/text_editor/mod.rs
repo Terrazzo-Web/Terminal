@@ -5,6 +5,7 @@ mod folder;
 mod fsio;
 mod path_selector;
 mod remotes;
+mod side;
 mod state;
 mod synchronized_state;
 pub mod ui;
