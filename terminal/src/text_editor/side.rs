@@ -205,5 +205,70 @@ mod tests {
             .trim(),
             format!("{tree:#?}")
         );
+
+        // Folder --> File
+        let tree = super::add_file(
+            tree,
+            &[&Arc::from("a1"), &Arc::from("b1")],
+            make_file("b1.txt"),
+        );
+        assert_eq!(
+            r#"
+{
+    "a1": Folder {
+        name: "a1",
+        children: {
+            "b1": File(
+                "b1.txt",
+            ),
+            "b2": Folder {
+                name: "b2",
+                children: {
+                    "c3.txt": File(
+                        "c2.txt",
+                    ),
+                },
+            },
+        },
+    },
+}"#
+            .trim(),
+            format!("{tree:#?}")
+        );
+
+        // File --> Folder
+        let tree = super::add_file(
+            tree,
+            &[&Arc::from("a1"), &Arc::from("b1"), &Arc::from("c1.txt")],
+            make_file("c1.txt"),
+        );
+        assert_eq!(
+            r#"
+{
+    "a1": Folder {
+        name: "a1",
+        children: {
+            "b1": Folder {
+                name: "b1",
+                children: {
+                    "c1.txt": File(
+                        "c1.txt",
+                    ),
+                },
+            },
+            "b2": Folder {
+                name: "b2",
+                children: {
+                    "c3.txt": File(
+                        "c2.txt",
+                    ),
+                },
+            },
+        },
+    },
+}"#
+            .trim(),
+            format!("{tree:#?}")
+        );
     }
 }
