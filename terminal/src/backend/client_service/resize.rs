@@ -1,6 +1,7 @@
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
+use terrazzo::http::StatusCode;
 use tonic::Status;
 use tonic::body::Body as BoxBody;
 use tonic::client::GrpcService;
@@ -47,7 +48,7 @@ impl DistributedCallback for ResizeCallback {
     type Request = ResizeRequest;
     type Response = ();
     type LocalError = ResizeErrorImpl;
-    type RemoteError = tonic::Status;
+    type RemoteError = Status;
 
     async fn local(_: &Server, request: ResizeRequest) -> Result<(), ResizeErrorImpl> {
         let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
@@ -59,7 +60,7 @@ impl DistributedCallback for ResizeCallback {
         mut client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
         mut request: ResizeRequest,
-    ) -> Result<(), tonic::Status>
+    ) -> Result<(), Status>
     where
         T: GrpcService<BoxBody>,
         T::Error: Into<StdError>,
@@ -76,11 +77,11 @@ impl DistributedCallback for ResizeCallback {
 #[derive(thiserror::Error, Debug)]
 pub enum ResizeError {
     #[error("[{n}] {0}", n = self.name())]
-    ResizeError(#[from] DistributedCallbackError<ResizeErrorImpl, tonic::Status>),
+    ResizeError(#[from] DistributedCallbackError<ResizeErrorImpl, Status>),
 }
 
 impl IsHttpError for ResizeError {
-    fn status_code(&self) -> terrazzo::http::StatusCode {
+    fn status_code(&self) -> StatusCode {
         match self {
             Self::ResizeError(error) => error.status_code(),
         }

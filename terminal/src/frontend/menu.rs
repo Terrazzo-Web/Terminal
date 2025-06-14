@@ -12,6 +12,7 @@ use terrazzo::widgets::debounce::DoDebounce as _;
 use web_sys::MouseEvent;
 
 use crate::assets::icons;
+use crate::frontend::remotes::Remote;
 use crate::state::app;
 use crate::state::app::App;
 
@@ -119,14 +120,18 @@ pub fn app() -> XSignal<App> {
             let app = XSignal::new("app", App::Terminal);
             wasm_bindgen_futures::spawn_local(async move {
                 autoclone!(app);
-                if let Ok(p) = app::state::get().await {
+                // The client address is set per app, not globally.
+                let address: Remote = None;
+                if let Ok(p) = app::state::get(address).await {
                     app.set(p);
                 }
             });
             static CONSUMER: OnceLock<Consumers> = OnceLock::new();
             let _ = CONSUMER.set(app.add_subscriber(|app| {
                 wasm_bindgen_futures::spawn_local(async move {
-                    let _ = app::state::set(app).await;
+                    // The client address is set per app, not globally.
+                    let address: Remote = None;
+                    let _ = app::state::set(address, app).await;
                 })
             }));
             app

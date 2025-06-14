@@ -52,6 +52,7 @@ use self::server_config::TerminalBackendServer;
 use self::tls_config::TlsConfigError;
 use self::tls_config::make_tls_config;
 use crate::assets;
+use crate::backend::client_service::remote_fn;
 
 mod agent;
 pub mod auth;
@@ -158,6 +159,7 @@ async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError
     assets::install::install_assets();
     let config = backend_config.config.clone();
     let (server, server_handle, crash) = Server::run(backend_config).await?;
+    remote_fn::setup(&server);
     let crash = crash
         .then(|crash| {
             let crash = crash
@@ -181,11 +183,12 @@ async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError
 
     let mut terminate = signal(SignalKind::terminate()).map_err(RunServerError::Signal)?;
     tokio::select! {
-        _ = terminate.recv() => {
-            server_handle.stop("Quit").await?;
-        }
+        biased;
         crash = crash.clone() => {
             server_handle.stop(crash).await?;
+        }
+        _ = terminate.recv() => {
+            server_handle.stop("Quit").await?;
         }
     }
     drop(server);
@@ -284,8 +287,8 @@ async fn run_client_async(
 
     tokio::spawn(async move {
         let () = shutdown_rx.await;
-        let _terminated = terminated_all_tx.await;
         drop(dynamic_client);
+        let _terminated = terminated_all_tx.await;
         let _ = terminated_tx.send(());
     });
 

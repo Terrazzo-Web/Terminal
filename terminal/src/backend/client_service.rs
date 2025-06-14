@@ -24,13 +24,17 @@ use super::protos::terrazzo::gateway::client::SetTitleRequest;
 use super::protos::terrazzo::gateway::client::TerminalAddress;
 use super::protos::terrazzo::gateway::client::WriteRequest;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
+use crate::backend::protos::terrazzo::gateway::client::RemoteFnRequest;
+use crate::backend::protos::terrazzo::gateway::client::ServerFnResponse;
 use crate::processes::io::RemoteReader;
 
 pub mod ack;
 pub mod close;
 pub mod convert;
+pub mod grpc_error;
 pub mod new_id;
 pub mod register;
+pub mod remote_fn;
 pub mod remotes;
 pub mod resize;
 mod routing;
@@ -106,7 +110,7 @@ impl ClientService for ClientServiceImpl {
     async fn write(&self, request: Request<WriteRequest>) -> Result<Response<Empty>, Status> {
         let mut request = request.into_inner();
         let terminal = request.terminal.get_or_insert_default();
-        let client_address = terminal.client_address().to_vec();
+        let client_address = std::mem::take(&mut terminal.via.get_or_insert_default().via);
         let () = write::write(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
     }
@@ -114,7 +118,7 @@ impl ClientService for ClientServiceImpl {
     async fn resize(&self, request: Request<ResizeRequest>) -> Result<Response<Empty>, Status> {
         let mut request = request.into_inner();
         let terminal = request.terminal.get_or_insert_default();
-        let client_address = terminal.client_address().to_vec();
+        let client_address = std::mem::take(&mut terminal.via.get_or_insert_default().via);
         let () = resize::resize(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
     }
@@ -133,7 +137,7 @@ impl ClientService for ClientServiceImpl {
     ) -> Result<Response<Empty>, Status> {
         let mut request = request.into_inner();
         let terminal = request.address.get_or_insert_default();
-        let client_address = terminal.client_address().to_vec();
+        let client_address = std::mem::take(&mut terminal.via.get_or_insert_default().via);
         let () = set_title::set_title(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
     }
@@ -149,8 +153,19 @@ impl ClientService for ClientServiceImpl {
     async fn ack(&self, request: Request<AckRequest>) -> Result<Response<Empty>, Status> {
         let mut request = request.into_inner();
         let terminal = request.terminal.get_or_insert_default();
-        let client_address = terminal.client_address().to_vec();
+        let client_address = std::mem::take(&mut terminal.via.get_or_insert_default().via);
         let () = ack::ack(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
+    }
+
+    async fn call_server_fn(
+        &self,
+        request: Request<RemoteFnRequest>,
+    ) -> Result<Response<ServerFnResponse>, Status> {
+        let mut request = request.into_inner();
+        let address = request.address.get_or_insert_default();
+        let address = std::mem::take(&mut address.via);
+        let response = remote_fn::dispatch(&self.server, &address, request).await;
+        Ok(Response::new(ServerFnResponse { json: response? }))
     }
 }

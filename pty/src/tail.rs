@@ -120,15 +120,13 @@ where
 
         if let Some(PendingBufferState { worker, .. }) = pending {
             trace! { "The stream is waiting for the next item" };
-            let Some(future_tx) = worker.take() else {
-                warn! { "The {} is not waiting on the worker to produce the next item", TailStream::type_name() };
-                return;
-            };
-            trace! { "The stream is waking up" };
-            let Ok(()) = future_tx.send(()) else {
-                warn! { "The {}'s future_rx was dropped", TailStream::type_name() };
-                return;
-            };
+            if let Some(future_tx) = worker.take() {
+                trace! { "The stream is waking up" };
+                let Ok(()) = future_tx.send(()) else {
+                    warn! { "The {}'s future_rx was dropped", TailStream::type_name() };
+                    return;
+                };
+            }
         } else {
             trace! { "The stream was not waiting on the worker to produce some data" };
             if end {

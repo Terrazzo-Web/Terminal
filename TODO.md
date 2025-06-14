@@ -1,7 +1,6 @@
 # TODO
 - `#101`. Renew client certificates
 - `#103`. Renew LE certificate
-- `#102`. Text editor: support remote
 - `#·93`. File explorer: opened files
 - `#·94`. File explorer: all files
 - `#·95`. File explorer: search tool
@@ -16,7 +15,6 @@
 - `#·91`. Configuration tool: show current auth token
 - `#·91`. Configuration tool: password reset
 - `#·91`. Configuration tool: info page (version, metrics, etc.)
-- `#·90`. Figure out why server doesn't run when --action start
 - `#·81`. Announce open source autoclone.
 - `#·79`. Announce open source named.
 - `#·32`. Announce open source terrazzo client
@@ -29,7 +27,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#104`.
+Next: `#106`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -113,3 +111,7 @@ Next: `#104`.
 - `#·55`. Better way to do APIs. `server_fn`?
 - `#·86`. Remove static state from the client -- search for "([^']|\n)static ". Ambient ctx on spawn_local, events, timers -- rejected
 - `#·82`. (rejected)
+- `#102`. Text editor: support remote
+- `#·90`. Figure out why server doesn't run when --action start
+- `#105`. Check why the client hangs
+- `#104`. Debounce set-title

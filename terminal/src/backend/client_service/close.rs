@@ -1,6 +1,7 @@
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
+use terrazzo::http::StatusCode;
 use tonic::Status;
 use tonic::body::Body as BoxBody;
 use tonic::client::GrpcService;
@@ -42,7 +43,7 @@ impl DistributedCallback for CloseCallback {
     type Request = TerminalId;
     type Response = ();
     type LocalError = CloseProcessError;
-    type RemoteError = tonic::Status;
+    type RemoteError = Status;
 
     async fn local(_: &Server, terminal_id: TerminalId) -> Result<(), CloseProcessError> {
         processes::close::close(&terminal_id)
@@ -52,7 +53,7 @@ impl DistributedCallback for CloseCallback {
         mut client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
         terminal_id: TerminalId,
-    ) -> Result<(), tonic::Status>
+    ) -> Result<(), Status>
     where
         T: GrpcService<BoxBody>,
         T::Error: Into<StdError>,
@@ -74,11 +75,11 @@ impl DistributedCallback for CloseCallback {
 #[derive(thiserror::Error, Debug)]
 pub enum CloseError {
     #[error("[{n}] {0}", n = self.name())]
-    CloseError(#[from] DistributedCallbackError<CloseProcessError, tonic::Status>),
+    CloseError(#[from] DistributedCallbackError<CloseProcessError, Status>),
 }
 
 impl IsHttpError for CloseError {
-    fn status_code(&self) -> terrazzo::http::StatusCode {
+    fn status_code(&self) -> StatusCode {
         match self {
             Self::CloseError(error) => error.status_code(),
         }

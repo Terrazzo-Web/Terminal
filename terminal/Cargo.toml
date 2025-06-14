@@ -23,11 +23,15 @@ required-features = ["server"]
 [dependencies]
 axum-extra = { workspace = true, optional = true, features = ["cookie"] }
 base64 = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
+const_format = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
 humantime = { workspace = true, optional = true }
+inventory = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
+libc = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 openssl = { workspace = true, optional = true }
@@ -92,9 +96,10 @@ fluent-asserter = { workspace = true }
 [features]
 default = ["server", "max_level_info"]
 client = [
+    "dep:chrono",
     "dep:stylance",
-    "dep:wasm-bindgen",
     "dep:wasm-bindgen-futures",
+    "dep:wasm-bindgen",
     "dep:wasm-streams",
     "dep:web-sys",
     "server_fn/browser",
@@ -104,9 +109,12 @@ server = [
     "dep:axum-extra",
     "dep:base64",
     "dep:clap",
+    "dep:const_format",
     "dep:dashmap",
     "dep:humantime",
+    "dep:inventory",
     "dep:jsonwebtoken",
+    "dep:libc",
     "dep:nix",
     "dep:openssl",
     "dep:pbkdf2",

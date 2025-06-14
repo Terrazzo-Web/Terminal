@@ -8,6 +8,7 @@ use futures::channel::mpsc;
 use futures::channel::oneshot;
 use pin_project::pin_project;
 use terrazzo::autoclone;
+use terrazzo::declare_trait_aliias;
 use terrazzo::prelude::OrElseLog as _;
 use tracing::info;
 use tracing::info_span;
@@ -25,8 +26,7 @@ use crate::api::RegisterTerminalRequest;
 use crate::api::client::stream::ShutdownPipe;
 use crate::terminal_id::TerminalId;
 
-pub trait TerminalStream: Stream<Item = Vec<Option<Vec<u8>>>> + Unpin {}
-impl<S: Stream<Item = Vec<Option<Vec<u8>>>> + Unpin> TerminalStream for S {}
+declare_trait_aliias!(TerminalStream, Stream<Item = Vec<Option<Vec<u8>>>> + Unpin);
 
 pub async fn get(request: RegisterTerminalRequest) -> Result<impl TerminalStream, RegisterError> {
     let span = info_span!("Get", terminal_id = %request.def.address.id);

@@ -13,7 +13,7 @@ pub async fn write(
     server: Arc<Server>,
     Json(request): Json<WriteRequest>,
 ) -> Result<(), HttpError<WriteError>> {
-    let client_address = request.terminal.via.as_slice().to_vec();
+    let client_address = request.terminal.via.to_vec();
     Ok(write::write(
         &server,
         &client_address,
