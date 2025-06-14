@@ -1,14 +1,50 @@
 use std::sync::Arc;
+use std::time::Duration;
 
+use nameth::NamedEnumValues;
 use nameth::nameth;
 use server_fn::ServerFnError;
 use terrazzo::server;
 
 use crate::api::client_address::ClientAddress;
 
+mod fsmetadata;
 mod remote;
 mod service;
 pub mod ui;
+
+#[nameth]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub enum File {
+    TextFile(Arc<str>),
+    Folder(Arc<Vec<FileMetadata>>),
+    Error(String),
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct FileMetadata {
+    pub name: Arc<str>,
+    pub size: Option<u64>,
+    pub is_dir: bool,
+    pub created: Option<Duration>,
+    pub accessed: Option<Duration>,
+    pub modified: Option<Duration>,
+    pub mode: Option<u32>,
+    pub user: Option<Arc<str>>,
+    pub group: Option<Arc<str>>,
+}
+
+impl std::fmt::Debug for File {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut f = f.debug_tuple(self.name());
+        match self {
+            Self::TextFile(text_file) => f.field(&text_file.len()),
+            Self::Folder(folder) => f.field(&folder.len()),
+            Self::Error(error) => f.field(error),
+        }
+        .finish()
+    }
+}
 
 #[server]
 #[nameth]
@@ -16,7 +52,7 @@ pub async fn load_file(
     remote: Option<ClientAddress>,
     base_path: Arc<str>,
     file_path: Arc<str>,
-) -> Result<Option<Arc<str>>, ServerFnError> {
+) -> Result<Option<File>, ServerFnError> {
     Ok(remote::LOAD_FILE_REMOTE_FN
         .call(
             remote.unwrap_or_default(),

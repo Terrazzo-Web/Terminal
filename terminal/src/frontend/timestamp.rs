@@ -279,6 +279,7 @@ struct TimestampInner<TZ: TimeZone> {
 }
 
 impl<TZ: TimeZone> Timestamp<TZ> {
+    #[allow(unused)]
     pub fn value(&self) -> DateTime<TZ> {
         self.inner.value.clone()
     }

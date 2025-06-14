@@ -1,6 +1,8 @@
 #![cfg(feature = "client")]
 
 use std::sync::Arc;
+use std::sync::atomic::AtomicI32;
+use std::sync::atomic::Ordering::SeqCst;
 
 use nameth::nameth;
 use server_fn::ServerFnError;
@@ -11,14 +13,15 @@ use terrazzo::template;
 use tracing::warn;
 use wasm_bindgen_futures::spawn_local;
 
-use super::editor::EditorState;
-use super::editor::editor;
 use super::fsio::load_file;
 use super::state;
 use super::style;
 use super::synchronized_state::SynchronizedState;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
+use crate::text_editor::editor::editor;
+use crate::text_editor::folder::folder;
+use crate::text_editor::fsio::File;
 use crate::text_editor::remotes::show_remote;
 use crate::text_editor::synchronized_state::show_synchronized_state;
 
@@ -62,13 +65,41 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
             show_synchronized_state(text_editor.synchronized_state.clone()),
             show_remote(remote_signal),
         ),
-        editor(text_editor.clone(), text_editor.editor_state.clone()),
+        editor_body(text_editor.clone(), text_editor.editor_state.clone()),
         after_render = move |_| {
             let _moved = &base_path_subscriber;
             let _moved = &file_path_subscriber;
             let _moved = &file_async_view;
         },
     )
+}
+
+#[html]
+#[template(tag = div)]
+fn editor_body(
+    text_editor: Arc<TextEditor>,
+    #[signal] editor_state: Option<EditorState>,
+) -> XElement {
+    static NEXT: AtomicI32 = AtomicI32::new(1);
+    let key = format!("editor-{}", NEXT.fetch_add(1, SeqCst));
+
+    let Some(editor_state) = editor_state else {
+        return tag(class = super::style::body, div(key = key));
+    };
+
+    let body = match &*editor_state.data {
+        File::TextFile(content) => {
+            let content = content.clone();
+            editor(text_editor, editor_state, content)
+        }
+        File::Folder(list) => {
+            let list = list.clone();
+            folder(text_editor, editor_state, list)
+        }
+        File::Error(_error) => todo!(),
+    };
+
+    tag(class = super::style::body, div(key = key, body))
 }
 
 impl TextEditor {
@@ -116,7 +147,8 @@ impl TextEditor {
                 let base_path = this.base_path.get_value_untracked();
                 let data = load_file(this.remote.clone(), base_path.clone(), file_path.clone())
                     .await
-                    .unwrap_or_else(|error| Some(error.to_string().into()));
+                    .unwrap_or_else(|error| Some(File::Error(error.to_string())))
+                    .map(Arc::new);
 
                 if let Some(data) = data {
                     this.editor_state.force(EditorState {
@@ -155,4 +187,21 @@ pub(super) struct TextEditor {
     pub file_path: XSignal<Arc<str>>,
     pub editor_state: XSignal<Option<EditorState>>,
     pub synchronized_state: XSignal<SynchronizedState>,
+}
+
+#[derive(Clone)]
+pub(super) struct EditorState {
+    pub base_path: Arc<str>,
+    pub file_path: Arc<str>,
+    pub data: Arc<File>,
+}
+
+impl std::fmt::Debug for EditorState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Editor")
+            .field("base_path", &self.base_path)
+            .field("file_path", &self.file_path)
+            .field("data", &self.data)
+            .finish()
+    }
 }

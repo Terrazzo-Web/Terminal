@@ -31,6 +31,7 @@ futures = { workspace = true }
 humantime = { workspace = true, optional = true }
 inventory = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
+libc = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 openssl = { workspace = true, optional = true }
@@ -113,6 +114,7 @@ server = [
     "dep:humantime",
     "dep:inventory",
     "dep:jsonwebtoken",
+    "dep:libc",
     "dep:nix",
     "dep:openssl",
     "dep:pbkdf2",
