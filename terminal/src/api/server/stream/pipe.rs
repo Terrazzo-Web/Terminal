@@ -66,7 +66,7 @@ pub fn pipe(server: Arc<Server>, correlation_id: CorrelationId) -> impl IntoResp
         // Debug logs
         #[cfg(debug_assertions)]
         let lease = lease.inspect(|chunk| {
-            use nameth::NamedEnumValues;
+            use nameth::NamedEnumValues as _;
             match chunk {
                 LeaseItem::EOS => tracing::debug!("{}", chunk.name()),
                 LeaseItem::Data(data) => assert!(!data.is_empty(), "Unexpected empty chunk"),

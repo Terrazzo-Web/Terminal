@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use nameth::NamedEnumValues;
+use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use server_fn::ServerFnError;
 use terrazzo::server;

@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use std::sync::OnceLock;
 
-use nameth::NamedEnumValues;
+use nameth::NamedEnumValues as _;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;

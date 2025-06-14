@@ -24,8 +24,8 @@ use crate::text_editor::editor::editor;
 use crate::text_editor::folder::folder;
 use crate::text_editor::fsio::File;
 use crate::text_editor::remotes::show_remote;
+use crate::text_editor::side;
 use crate::text_editor::side::SideViewList;
-use crate::text_editor::side::add_file;
 use crate::text_editor::side::ui::show_side_view;
 use crate::text_editor::synchronized_state::show_synchronized_state;
 
@@ -165,7 +165,7 @@ impl TextEditor {
                         .map(|leg| Arc::from(leg.to_string_lossy().to_string()))
                         .collect::<Vec<_>>();
                     this.side_view.update(|tree| {
-                        Some(add_file(
+                        Some(side::mutation::add_file(
                             tree.clone(),
                             relative_path.as_slice(),
                             super::side::SideViewNode::File(metadata.clone()),

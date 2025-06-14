@@ -347,6 +347,7 @@ mod tests {
                 "ROOT/src/text",
                 "ROOT/src/text_editor/autocomplete",
                 "ROOT/src/text_editor/path_selector",
+                "ROOT/src/text_editor/side",
             ]
             .map(Into::into)
             .into(),

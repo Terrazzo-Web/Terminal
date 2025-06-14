@@ -9,7 +9,7 @@ use chrono::NaiveDate;
 use chrono::TimeZone;
 use chrono::Timelike;
 use chrono::Utc;
-use nameth::NamedEnumValues;
+use nameth::NamedEnumValues as _;
 use nameth::NamedType;
 use nameth::nameth;
 use terrazzo::autoclone;
@@ -108,7 +108,7 @@ unsafe impl Sync for WeakTimer {}
 /// A wrapper for the [Closure] and the interval timer handle ID.
 #[nameth]
 #[derive(Clone)]
-pub struct Tick(Arc<Mutex<TickInner>>);
+pub struct Tick(Ptr<Mutex<TickInner>>);
 
 struct TickInner {
     period: Duration,
@@ -124,7 +124,7 @@ struct AbortTickOnDrop {
 
 impl Tick {
     fn new(period: Duration) -> Self {
-        Self(Arc::new(Mutex::new(TickInner {
+        Self(Ptr::new(Mutex::new(TickInner {
             period,
             now: Utc::now(),
             on_drop: None,
@@ -208,11 +208,9 @@ fn setup_timer_mode_signal<TZ: TimeZone + 'static>(
     move |timer_mode| {
         autoclone!(timestamp_signal_weak);
         debug!("Update timer_mode to {timer_mode:?}");
-        let timer_consumers = if let Some(timer) = timer_mode.timer() {
-            Some(timer.add_subscriber(setup_timer_signal(&timestamp_signal_weak, timer_mode)))
-        } else {
-            None
-        };
+        let timer_consumers = timer_mode.timer().map(|timer| {
+            timer.add_subscriber(setup_timer_signal(&timestamp_signal_weak, timer_mode))
+        });
 
         let Some(timestamp_signal) = timestamp_signal_weak.upgrade() else {
             return;
@@ -316,7 +314,7 @@ impl<TZ: TimeZone> Timestamp<TZ> {
             }
 
             if let (Some(now_start_of_day), Some(timestamp_start_of_day)) =
-                (from_ymd_opt(&now), from_ymd_opt(timestamp))
+                (from_ymd_opt(now), from_ymd_opt(timestamp))
             {
                 if timestamp_start_of_day == now_start_of_day {
                     self.inner.timer_mode_signal.set(TimerMode::days_ago());
@@ -397,7 +395,7 @@ impl TimerMode {
 
     fn now(&self) -> Option<DateTime<Utc>> {
         self.timer()
-            .map(|timer| timer.get_value_untracked().0.lock().unwrap().now.clone())
+            .map(|timer| timer.get_value_untracked().0.lock().unwrap().now)
     }
 
     fn timer(&self) -> Option<Timer> {
@@ -421,9 +419,9 @@ fn print_fractions_ago(ago: chrono::Duration) -> String {
 
 fn print_ago(mut ago: chrono::Duration) -> String {
     let hours = ago.num_hours();
-    ago = ago - chrono::Duration::hours(hours);
+    ago -= chrono::Duration::hours(hours);
     let minutes = ago.num_minutes();
-    ago = ago - chrono::Duration::minutes(minutes);
+    ago -= chrono::Duration::minutes(minutes);
     let seconds = ago.num_seconds();
     if hours != 0 {
         return format!("{:0>2}:{:0>2}:{:0>2}s ago", hours, minutes, seconds);

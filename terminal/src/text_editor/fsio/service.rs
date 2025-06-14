@@ -36,7 +36,6 @@ pub fn load_file(base_path: Arc<str>, file_path: Arc<str>) -> Result<Option<File
                 let mut gids = HashMap::default();
                 for file in path
                     .read_dir()?
-                    .into_iter()
                     .filter_map(|f| f.ok())
                     .take(MAX_FILES_SORTED)
                 {
