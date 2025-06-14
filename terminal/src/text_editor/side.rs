@@ -1,29 +1,27 @@
-#![allow(unused)]
-
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use tracing::debug;
-use tracing::warn;
 
 use crate::text_editor::fsio::FileMetadata;
 
-mod ui;
+pub mod ui;
 
 #[derive(Clone)]
-pub enum SideView {
+pub enum SideViewNode {
     Folder {
         name: Arc<str>,
-        children: Arc<Children>,
+        children: Arc<SideViewList>,
     },
+    #[cfg_attr(feature = "server", allow(dead_code))]
     File(Arc<FileMetadata>),
 }
 
-type Children = BTreeMap<Arc<str>, Arc<SideView>>;
+pub type SideViewList = BTreeMap<Arc<str>, Arc<SideViewNode>>;
 
-impl std::fmt::Debug for SideView {
+impl std::fmt::Debug for SideViewNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Folder { name, children } => f
@@ -36,34 +34,37 @@ impl std::fmt::Debug for SideView {
     }
 }
 
-fn add_file(
-    into_children: Arc<Children>,
-    relative_path: &[&Arc<str>],
-    file: Arc<FileMetadata>,
-) -> Arc<Children> {
+#[cfg(feature = "client")]
+pub fn add_file(
+    tree: Arc<SideViewList>,
+    relative_path: &[Arc<str>],
+    node: SideViewNode,
+) -> Arc<SideViewList> {
+    use tracing::warn;
     match relative_path {
-        [] => add_file(into_children, &[&"/".into()], file),
+        [] => add_file(tree, &["/".into()], node),
         [child_name] => {
             #[cfg(debug_assertions)]
-            match into_children.get(*child_name) {
+            #[cfg(debug_assertions)]
+            match tree.get(child_name) {
                 Some(child) => match &**child {
-                    SideView::Folder { .. } => warn!("Replace folder {child_name}"),
-                    SideView::File { .. } => debug!("Replace file {child_name}"),
+                    SideViewNode::Folder { .. } => warn!("Replace folder {child_name}"),
+                    SideViewNode::File { .. } => debug!("Replace file {child_name}"),
                 },
                 None => debug!("Add new file {child_name}"),
             }
-            let mut into_children = (*into_children).clone();
-            into_children.insert((*child_name).clone(), Arc::new(SideView::File(file)));
-            Arc::new(into_children)
+            let mut new_tree = (*tree).clone();
+            new_tree.insert((*child_name).clone(), Arc::new(node));
+            Arc::new(new_tree)
         }
         [folder_name, rest @ ..] => {
-            let children = match into_children.get(*folder_name) {
+            let children = match tree.get(folder_name) {
                 Some(child) => match &**child {
-                    SideView::Folder { name: _, children } => {
+                    SideViewNode::Folder { name: _, children } => {
                         debug!("Adding to folder {folder_name}");
                         children.clone()
                     }
-                    SideView::File { .. } => {
+                    SideViewNode::File { .. } => {
                         warn!("Replace file {folder_name}");
                         Arc::default()
                     }
@@ -73,51 +74,51 @@ fn add_file(
                     Arc::default()
                 }
             };
-            let mut into_children = (*into_children).clone();
-            let rec = add_file(children, rest, file);
-            into_children.insert(
+            let mut new_tree = (*tree).clone();
+            let rec = add_file(children, rest, node);
+            new_tree.insert(
                 (*folder_name).clone(),
-                Arc::new(SideView::Folder {
-                    name: (**folder_name).clone(),
+                Arc::new(SideViewNode::Folder {
+                    name: folder_name.clone(),
                     children: rec,
                 }),
             );
-            Arc::new(into_children)
+            Arc::new(new_tree)
         }
     }
 }
 
-fn remove_file(
-    into_children: Arc<Children>,
-    relative_path: &[&Arc<str>],
-) -> Result<Arc<Children>, RemoveFileError> {
+#[allow(unused)]
+pub fn remove_file(
+    tree: Arc<SideViewList>,
+    relative_path: &[Arc<str>],
+) -> Result<Arc<SideViewList>, RemoveFileError> {
     match relative_path {
-        [] => remove_file(into_children, &[&"/".into()]),
+        [] => remove_file(tree, &["/".into()]),
         [child_name] => {
             #[cfg(debug_assertions)]
-            match into_children.get(*child_name) {
+            match tree.get(child_name) {
                 Some(child) => match &**child {
-                    SideView::Folder { .. } => debug!("Remove folder {child_name}"),
-                    SideView::File { .. } => debug!("Remove file {child_name}"),
+                    SideViewNode::Folder { .. } => debug!("Remove folder {child_name}"),
+                    SideViewNode::File { .. } => debug!("Remove file {child_name}"),
                 },
                 None => {
                     debug!("The file wasn't here {child_name}");
                     return Err(RemoveFileError::FileNotFound);
                 }
             }
-            let mut into_children = (*into_children).clone();
-            into_children.remove(*child_name);
-            Ok(Arc::new(into_children))
+            let mut new_tree = (*tree).clone();
+            new_tree.remove(child_name);
+            Ok(Arc::new(new_tree))
         }
         [folder_name, rest @ ..] => {
-            let folder_name = *folder_name;
-            let children = match into_children.get(folder_name) {
+            let children = match tree.get(folder_name) {
                 Some(child) => match &**child {
-                    SideView::Folder { name: _, children } => {
+                    SideViewNode::Folder { name: _, children } => {
                         debug!("Removing from folder {folder_name}");
                         children.clone()
                     }
-                    SideView::File(expected_folder) => {
+                    SideViewNode::File(expected_folder) => {
                         return Err(RemoveFileError::ExpectedFolder(
                             expected_folder.name.clone(),
                         ));
@@ -127,16 +128,16 @@ fn remove_file(
                     return Err(RemoveFileError::ParentNotFound(folder_name.clone()));
                 }
             };
-            let mut into_children = (*into_children).clone();
+            let mut new_tree = (*tree).clone();
             let new_children = remove_file(children, rest)?;
-            into_children.insert(
+            new_tree.insert(
                 folder_name.clone(),
-                Arc::new(SideView::Folder {
+                Arc::new(SideViewNode::Folder {
                     name: folder_name.clone(),
                     children: new_children,
                 }),
             );
-            Ok(Arc::new(into_children))
+            Ok(Arc::new(new_tree))
         }
     }
 }
@@ -158,20 +159,15 @@ pub enum RemoveFileError {
 mod tests {
     use std::sync::Arc;
 
-    use openssl::x509::store::File;
-
-    use super::BTreeMap;
-    use super::Children;
     use super::FileMetadata;
-    use super::SideView;
-    use super::debug;
-    use super::warn;
+    use super::SideViewList;
+    use super::SideViewNode;
 
     #[test]
     fn add_file() {
-        let tree = Arc::<Children>::default();
+        let tree = Arc::<SideViewList>::default();
         let make_file = |name: &str| {
-            Arc::new(FileMetadata {
+            SideViewNode::File(Arc::new(FileMetadata {
                 name: Arc::from(name),
                 size: Some(12),
                 is_dir: false,
@@ -181,11 +177,11 @@ mod tests {
                 mode: None,
                 user: None,
                 group: None,
-            })
+            }))
         };
         let tree = super::add_file(
             tree,
-            &[&Arc::from("a1"), &Arc::from("b1"), &Arc::from("c1.txt")],
+            &[Arc::from("a1"), Arc::from("b1"), Arc::from("c1.txt")],
             make_file("c1.txt"),
         );
         assert_eq!(
@@ -211,7 +207,7 @@ mod tests {
 
         let tree = super::add_file(
             tree,
-            &[&Arc::from("a1"), &Arc::from("b1"), &Arc::from("c2.txt")],
+            &[Arc::from("a1"), Arc::from("b1"), Arc::from("c2.txt")],
             make_file("c2.txt"),
         );
         assert_eq!(
@@ -240,7 +236,7 @@ mod tests {
 
         let tree = super::add_file(
             tree,
-            &[&Arc::from("a1"), &Arc::from("b2"), &Arc::from("c3.txt")],
+            &[Arc::from("a1"), Arc::from("b2"), Arc::from("c3.txt")],
             make_file("c2.txt"),
         );
         assert_eq!(
@@ -278,7 +274,7 @@ mod tests {
         // Folder --> File
         let tree = super::add_file(
             tree,
-            &[&Arc::from("a1"), &Arc::from("b1")],
+            &[Arc::from("a1"), Arc::from("b1")],
             make_file("b1.txt"),
         );
         assert_eq!(
@@ -308,7 +304,7 @@ mod tests {
         // File --> Folder
         let tree = super::add_file(
             tree,
-            &[&Arc::from("a1"), &Arc::from("b1"), &Arc::from("c1.txt")],
+            &[Arc::from("a1"), Arc::from("b1"), Arc::from("c1.txt")],
             make_file("c1.txt"),
         );
         assert_eq!(
@@ -343,9 +339,9 @@ mod tests {
 
     #[test]
     fn remove_file() {
-        let tree = Arc::<Children>::default();
+        let tree = Arc::<SideViewList>::default();
         let make_file = |name: &str| {
-            Arc::new(FileMetadata {
+            SideViewNode::File(Arc::new(FileMetadata {
                 name: Arc::from(name),
                 size: Some(12),
                 is_dir: false,
@@ -355,11 +351,11 @@ mod tests {
                 mode: None,
                 user: None,
                 group: None,
-            })
+            }))
         };
         let tree = super::add_file(
             tree,
-            &[&Arc::from("a1"), &Arc::from("b1"), &Arc::from("c1.txt")],
+            &[Arc::from("a1"), Arc::from("b1"), Arc::from("c1.txt")],
             make_file("c1.txt"),
         );
         assert_eq!(
@@ -385,7 +381,7 @@ mod tests {
 
         let tree = super::add_file(
             tree,
-            &[&Arc::from("a1"), &Arc::from("b1"), &Arc::from("c2.txt")],
+            &[Arc::from("a1"), Arc::from("b1"), Arc::from("c2.txt")],
             make_file("c2.txt"),
         );
         assert_eq!(
@@ -416,10 +412,10 @@ mod tests {
         let error = super::remove_file(
             tree.clone(),
             &[
-                &Arc::from("a1"),
-                &Arc::from("b1"),
-                &Arc::from("c2.txt"),
-                &Arc::from("not_found.txt"),
+                Arc::from("a1"),
+                Arc::from("b1"),
+                Arc::from("c2.txt"),
+                Arc::from("not_found.txt"),
             ],
         )
         .unwrap_err();
@@ -432,10 +428,10 @@ mod tests {
         let error = super::remove_file(
             tree.clone(),
             &[
-                &Arc::from("a1"),
-                &Arc::from("b1"),
-                &Arc::from("c3.txt"),
-                &Arc::from("not_found.txt"),
+                Arc::from("a1"),
+                Arc::from("b1"),
+                Arc::from("c3.txt"),
+                Arc::from("not_found.txt"),
             ],
         )
         .unwrap_err();
@@ -447,7 +443,7 @@ mod tests {
         // Remove file: FileNotFound
         let error = super::remove_file(
             tree.clone(),
-            &[&Arc::from("a1"), &Arc::from("b1"), &Arc::from("c3.txt")],
+            &[Arc::from("a1"), Arc::from("b1"), Arc::from("c3.txt")],
         )
         .unwrap_err();
         assert_eq!("[FileNotFound] The file was not found", format!("{error}"));
@@ -455,7 +451,7 @@ mod tests {
         // Remove file
         let tree = super::remove_file(
             tree,
-            &[&Arc::from("a1"), &Arc::from("b1"), &Arc::from("c2.txt")],
+            &[Arc::from("a1"), Arc::from("b1"), Arc::from("c2.txt")],
         )
         .unwrap();
         assert_eq!(
@@ -480,7 +476,7 @@ mod tests {
         );
 
         // Remove folder
-        let tree = super::remove_file(tree, &[&Arc::from("a1"), &Arc::from("b1")]).unwrap();
+        let tree = super::remove_file(tree, &[Arc::from("a1"), Arc::from("b1")]).unwrap();
         assert_eq!(
             r#"
 {

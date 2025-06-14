@@ -1,5 +1,6 @@
 #![cfg(feature = "client")]
 
+use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::Ordering::SeqCst;
@@ -23,6 +24,9 @@ use crate::text_editor::editor::editor;
 use crate::text_editor::folder::folder;
 use crate::text_editor::fsio::File;
 use crate::text_editor::remotes::show_remote;
+use crate::text_editor::side::SideViewList;
+use crate::text_editor::side::add_file;
+use crate::text_editor::side::ui::show_side_view;
 use crate::text_editor::synchronized_state::show_synchronized_state;
 
 /// The UI for the text editor app.
@@ -45,6 +49,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
         file_path: XSignal::new("file-path", Arc::default()),
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
+        side_view: XSignal::new("side-view", Default::default()),
     });
 
     text_editor.restore_paths();
@@ -88,18 +93,22 @@ fn editor_body(
     };
 
     let body = match &*editor_state.data {
-        File::TextFile(content) => {
+        File::TextFile { content, .. } => {
             let content = content.clone();
-            editor(text_editor, editor_state, content)
+            editor(text_editor.clone(), editor_state, content)
         }
         File::Folder(list) => {
             let list = list.clone();
-            folder(text_editor, editor_state, list)
+            folder(text_editor.clone(), editor_state, list)
         }
         File::Error(_error) => todo!(),
     };
 
-    tag(class = super::style::body, div(key = key, body))
+    tag(
+        class = super::style::body,
+        show_side_view(text_editor.clone(), text_editor.side_view.clone()),
+        div(key = key, body),
+    )
 }
 
 impl TextEditor {
@@ -150,6 +159,20 @@ impl TextEditor {
                     .unwrap_or_else(|error| Some(File::Error(error.to_string())))
                     .map(Arc::new);
 
+                if let Some(File::TextFile { metadata, .. }) = data.as_deref() {
+                    let relative_path = Path::new(file_path.as_ref())
+                        .iter()
+                        .map(|leg| Arc::from(leg.to_string_lossy().to_string()))
+                        .collect::<Vec<_>>();
+                    this.side_view.update(|tree| {
+                        Some(add_file(
+                            tree.clone(),
+                            relative_path.as_slice(),
+                            super::side::SideViewNode::File(metadata.clone()),
+                        ))
+                    });
+                }
+
                 if let Some(data) = data {
                     this.editor_state.force(EditorState {
                         base_path,
@@ -187,6 +210,7 @@ pub(super) struct TextEditor {
     pub file_path: XSignal<Arc<str>>,
     pub editor_state: XSignal<Option<EditorState>>,
     pub synchronized_state: XSignal<SynchronizedState>,
+    pub side_view: XSignal<Arc<SideViewList>>,
 }
 
 #[derive(Clone)]

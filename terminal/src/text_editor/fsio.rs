@@ -16,7 +16,10 @@ pub mod ui;
 #[nameth]
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum File {
-    TextFile(Arc<str>),
+    TextFile {
+        metadata: Arc<FileMetadata>,
+        content: Arc<str>,
+    },
     Folder(Arc<Vec<FileMetadata>>),
     Error(String),
 }
@@ -38,7 +41,7 @@ impl std::fmt::Debug for File {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut f = f.debug_tuple(self.name());
         match self {
-            Self::TextFile(text_file) => f.field(&text_file.len()),
+            Self::TextFile { content, .. } => f.field(&content.len()),
             Self::Folder(folder) => f.field(&folder.len()),
             Self::Error(error) => f.field(error),
         }

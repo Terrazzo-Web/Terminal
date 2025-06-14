@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::ffi::CStr;
 use std::fs::Metadata;
 use std::os::unix::fs::MetadataExt as _;
+use std::path::Path;
 use std::sync::Arc;
 use std::time::SystemTime;
 
@@ -13,14 +14,37 @@ use libc::getpwuid;
 use crate::text_editor::fsio::FileMetadata;
 
 impl FileMetadata {
+    pub fn single(path: &Path, metadata: &Metadata) -> Self {
+        Self::make(
+            path.file_name()
+                .map(|n| n.to_string_lossy().to_string().into())
+                .unwrap_or_else(|| "/".into()),
+            Ok(metadata),
+            &mut HashMap::new(),
+            &mut HashMap::new(),
+        )
+    }
+
     pub fn of(
         file: std::fs::DirEntry,
         gids: &mut HashMap<u32, Option<Arc<str>>>,
         uids: &mut HashMap<u32, Option<Arc<str>>>,
     ) -> Self {
-        let metadata = file.metadata();
-        let metadata = metadata.as_ref().ok();
-        let name = file.file_name().to_string_lossy().to_string().into();
+        Self::make(
+            file.file_name().to_string_lossy().to_string().into(),
+            file.metadata().as_ref(),
+            gids,
+            uids,
+        )
+    }
+
+    fn make(
+        name: Arc<str>,
+        metadata: Result<&Metadata, &std::io::Error>,
+        gids: &mut HashMap<u32, Option<Arc<str>>>,
+        uids: &mut HashMap<u32, Option<Arc<str>>>,
+    ) -> Self {
+        let metadata = metadata.ok();
         let size = metadata.map(|m| m.len());
 
         FileMetadata {

@@ -24,7 +24,10 @@ pub fn load_file(base_path: Arc<str>, file_path: Arc<str>) -> Result<Option<File
             if metadata.is_file() {
                 debug!("Loading file {path:?}");
                 let data = std::fs::read_to_string(&path)?;
-                return Ok(Some(File::TextFile(Arc::from(data))));
+                return Ok(Some(File::TextFile {
+                    metadata: FileMetadata::single(&path, &metadata).into(),
+                    content: Arc::from(data),
+                }));
             }
             if metadata.is_dir() {
                 debug!("Loading file {path:?}");

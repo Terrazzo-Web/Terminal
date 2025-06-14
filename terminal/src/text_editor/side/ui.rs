@@ -6,27 +6,41 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 
-use crate::text_editor::side::SideView;
+use crate::text_editor::side::SideViewList;
+use crate::text_editor::side::SideViewNode;
+use crate::text_editor::ui::TextEditor;
 
 #[html]
 #[template(tag = div)]
-fn show_side_view(side_view: Arc<SideView>) -> XElement {
+pub fn show_side_view(
+    text_editor: Arc<TextEditor>,
+    #[signal] side_view: Arc<SideViewList>,
+) -> XElement {
+    tag(side_view
+        .values()
+        .map(|child| li(show_side_view_node(&text_editor, child.clone())))
+        .collect::<Vec<_>>()..)
+}
+
+#[html]
+fn show_side_view_node(text_editor: &Arc<TextEditor>, side_view: Arc<SideViewNode>) -> XElement {
     match &*side_view {
-        SideView::Folder { name, children } => tag(
+        SideViewNode::Folder { name, children } => div(
             key = "folder",
-            div("{name}"),
-            children
-                .values()
-                .map(show_side_view_rec)
-                .collect::<Vec<_>>()..,
+            span("{name}"),
+            show_side_view_list(text_editor, children.clone()),
         ),
-        SideView::File(file_metadata) => {
+        SideViewNode::File(file_metadata) => {
             let name = &file_metadata.name;
-            tag(key = "file", div("{name}"))
+            div(key = "file", div("{name}"))
         }
     }
 }
 
-fn show_side_view_rec(side_view: &Arc<SideView>) -> XElement {
-    show_side_view(side_view.clone())
+#[html]
+fn show_side_view_list(text_editor: &Arc<TextEditor>, side_view: Arc<SideViewList>) -> XElement {
+    ul(side_view
+        .values()
+        .map(|child| li(show_side_view_node(text_editor, child.clone())))
+        .collect::<Vec<_>>()..)
 }
