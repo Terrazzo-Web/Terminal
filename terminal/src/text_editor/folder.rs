@@ -14,6 +14,8 @@ use crate::text_editor::fsio::FileMetadata;
 use crate::text_editor::ui::EditorState;
 use crate::text_editor::ui::TextEditor;
 
+stylance::import_crate_style!(style, "src/text_editor/folder.scss");
+
 #[autoclone]
 #[html]
 #[template(tag = div)]
@@ -38,9 +40,7 @@ pub fn folder(
             group,
         } = file;
         let name = name.clone();
-        let size = size
-            .map(|s| format!("{s}"))
-            .unwrap_or_else(|| "-".to_owned());
+        let size = size.map(print_size).unwrap_or_else(|| "-".to_owned());
         let modified = modified
             .as_ref()
             .and_then(|m| DateTime::from_timestamp_millis(m.as_millis() as i64))
@@ -72,17 +72,20 @@ pub fn folder(
             td("{permissions}"),
         ));
     }
-    tag(table(
-        thead(tr(
-            td("Name"),
-            td("Size"),
-            td("Modified"),
-            td("User"),
-            td("Group"),
-            td("Permissions"),
-        )),
-        tbody(rows..),
-    ))
+    tag(
+        class = style::folder,
+        table(
+            thead(tr(
+                th("Name"),
+                th("Size"),
+                th("Modified"),
+                th("User"),
+                th("Group"),
+                th("Permissions"),
+            )),
+            tbody(rows..),
+        ),
+    )
 }
 
 #[html]
@@ -114,4 +117,38 @@ fn mode_to_permissions(mode: u32) -> String {
         .iter()
         .map(|(bit, ch)| if mode & bit != 0 { *ch } else { '-' })
         .collect()
+}
+
+fn print_size(size: u64) -> String {
+    if size < 1000 {
+        return format!("{size}b");
+    }
+
+    let mut sizef = size as f64 / 1024.;
+    for suffix in ["Kb", "Mb", "Gb", "Tb"] {
+        if sizef < 1000. {
+            return format!("{sizef:.2}{suffix}");
+        }
+        sizef /= 1024.
+    }
+    return format!("{sizef:.2}Pb");
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn print_size() {
+        assert_eq!(
+            "[123b, 120.24Kb, 117.42Mb, 114.67Gb, 111.98Tb, 109.36Pb]",
+            format!(
+                "[{}, {}, {}, {}, {}, {}]",
+                super::print_size(123),
+                super::print_size(123123),
+                super::print_size(123123123),
+                super::print_size(123123123123),
+                super::print_size(123123123123123),
+                super::print_size(123123123123123123)
+            )
+        )
+    }
 }
