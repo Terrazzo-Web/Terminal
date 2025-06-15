@@ -228,19 +228,16 @@ fn print_editable_title(
             editing.clone(),
             move || {
                 autoclone!(terminal_id, title);
-                [span(move |t| {
-                    terrazzo::widgets::link::link(
-                        t,
-                        move |_ev| {
-                            autoclone!(terminal_id);
-                            debug!("Clicks selected on terminal_id:{terminal_id}");
-                        },
-                        move || {
-                            autoclone!(title);
-                            [span(move |t| print_title(t, title.clone()))]
-                        },
-                    )
-                })]
+                [terrazzo::widgets::link::link(
+                    move |_ev| {
+                        autoclone!(terminal_id);
+                        debug!("Clicks selected on terminal_id:{terminal_id}");
+                    },
+                    move || {
+                        autoclone!(title);
+                        [span(move |t| print_title(t, title.clone()))]
+                    },
+                )]
             },
         )
     })
