@@ -7,14 +7,13 @@ div.folder {
         width: 100%;
 
         >thead {
-            position: sticky;
-            top: 0;
-
             >tr {
                 border-bottom: 1px solid var(--link-color);
 
                 >th {
-                    padding: 10px;
+                    position: sticky;
+                    top: 0;
+                    background-color: var(--background-color);
                     z-index: 1;
                     color: var(--link-color);
                     padding: var(--padding);

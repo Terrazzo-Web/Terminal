@@ -24,7 +24,7 @@
 - `#106`. Reduce size of WASM file
 - `#107`. (a) Timestamps should show on up immediately, not just on the first tick;
 - `#107`. (b) Ticks should be aligned with round time;
-- `#107`. (c) Folder tree should clear on base path change;
+- `#107`. (c) Folder tree should clear on base path change; DONE
 - `#107`. (d). Headers should be fixed.
 
 # Nice to have

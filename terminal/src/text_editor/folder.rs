@@ -1,6 +1,6 @@
 #![cfg(feature = "client")]
 
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Arc;
 
 use chrono::DateTime;
@@ -42,7 +42,12 @@ pub fn folder(
             user,
             group,
         } = file;
-        let name = name.clone();
+        let is_dir = *is_dir;
+        let display_name = if is_dir {
+            format!("{name}/")
+        } else {
+            name.to_string()
+        };
         let size = size.map(print_size).unwrap_or_else(|| "-".to_owned());
         let modified = modified
             .as_ref()
@@ -55,20 +60,22 @@ pub fn folder(
             .map(|m| {
                 format!(
                     "{}{}",
-                    if *is_dir { 'd' } else { '-' },
+                    if is_dir { 'd' } else { '-' },
                     mode_to_permissions(m)
                 )
             })
             .unwrap_or_default();
         rows.push(tr(
             click = move |_| {
-                autoclone!(text_editor, file_path);
-                let mut file = PathBuf::from(file_path.as_ref());
-                file.push(name.as_ref());
-                let file = file.to_string_lossy().to_string();
+                autoclone!(text_editor, file_path, name);
+                let file = Path::new(&*file_path).join(&*name);
+                let mut file = file.to_string_lossy().to_string();
+                if is_dir {
+                    file.push('/');
+                };
                 text_editor.file_path.set(Arc::from(file))
             },
-            td("{name}"),
+            td("{display_name}"),
             td("{size}"),
             td(modified),
             td("{user}"),

@@ -12,6 +12,7 @@ use wasm_bindgen::JsValue;
 use super::code_mirror::CodeMirrorJs;
 use super::synchronized_state::SynchronizedState;
 use crate::text_editor::fsio::ui::store_file;
+use crate::text_editor::style;
 use crate::text_editor::ui::EditorState;
 use crate::text_editor::ui::TextEditor;
 
@@ -49,11 +50,14 @@ pub fn editor(
         wasm_bindgen_futures::spawn_local(write);
     });
 
-    tag(after_render = move |element| {
-        drop(CodeMirrorJs::new(
-            element,
-            content.as_ref().into(),
-            &on_change,
-        ))
-    })
+    tag(
+        class = style::editor,
+        after_render = move |element| {
+            drop(CodeMirrorJs::new(
+                element,
+                content.as_ref().into(),
+                &on_change,
+            ))
+        },
+    )
 }

@@ -40,18 +40,28 @@ pub fn text_editor() -> XElement {
     )
 }
 
+#[autoclone]
 #[html]
 #[template(tag = div)]
 fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) -> XElement {
+    let side_view: XSignal<Arc<SideViewList>> = XSignal::new("side-view", Default::default());
     let base_path = XSignal::new("base-path", Arc::default());
-    let file_path = base_path.derive("file-path", |_| Arc::default(), |_, _| None);
+    let file_path = base_path.derive(
+        "file-path",
+        move |_base_path| {
+            autoclone!(side_view);
+            side_view.force(Arc::default());
+            Arc::default()
+        },
+        |_, _| None,
+    );
     let text_editor = Arc::new(TextEditor {
         remote,
         base_path,
         file_path,
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
-        side_view: XSignal::new("side-view", Default::default()),
+        side_view,
     });
 
     text_editor.restore_paths();
@@ -109,7 +119,7 @@ fn editor_body(
     tag(
         class = super::style::body,
         show_side_view(text_editor.clone(), text_editor.side_view.clone()),
-        div(key = key, body),
+        div(key = key, style = "height: 100%;", body),
     )
 }
 
