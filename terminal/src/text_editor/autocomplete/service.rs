@@ -18,6 +18,8 @@ use tracing::debug_span;
 use crate::backend::client_service::grpc_error::GrpcError;
 use crate::backend::client_service::grpc_error::IsGrpcError;
 use crate::text_editor::autocomplete::AutocompleteItem;
+use crate::text_editor::fsio::canonical::canonicalize;
+use crate::text_editor::fsio::canonical::concat_base_file_path;
 use crate::text_editor::path_selector::PathSelector;
 
 const ROOT: &str = "/";
@@ -33,9 +35,9 @@ pub fn autocomplete_path(
     let path = if kind == PathSelector::BasePath && input.is_empty() {
         std::env::home_dir().unwrap_or_else(|| Path::new(ROOT).to_owned())
     } else if Path::new(prefix).is_absolute() {
-        Path::new(prefix).join(input)
+        concat_base_file_path(prefix, input)
     } else {
-        Path::new(&format!("{ROOT}{prefix}")).join(input)
+        concat_base_file_path(format!("{ROOT}{prefix}"), input)
     };
     return Ok(autocomplete_path_impl(prefix.as_ref(), &path, |m| {
         kind.accept(m)
@@ -63,20 +65,6 @@ fn autocomplete_path_impl(
         }
     }
     return resolve_path(prefix, &path, leaf_filter);
-}
-
-fn canonicalize(path: &Path) -> PathBuf {
-    let mut canonicalized = PathBuf::new();
-    for leg in path {
-        if leg == ".." {
-            if let Some(parent) = canonicalized.parent() {
-                canonicalized = parent.to_owned();
-            }
-        } else {
-            canonicalized.push(leg);
-        }
-    }
-    return canonicalized;
 }
 
 fn list_folders(
@@ -293,11 +281,9 @@ impl IsGrpcError for AutoCompleteError {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
     use std::path::Path;
 
     use fluent_asserter::prelude::*;
-    use nix::NixPath;
     use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;
 
     #[test]
@@ -396,59 +382,5 @@ mod tests {
         .iter_mut()
         .map(|p| p.path.replace(prefix, "ROOT"))
         .collect()
-    }
-
-    #[test]
-    fn canonicalize() {
-        assert_that!(
-            super::canonicalize("/a/b".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["/", "a", "b"].map(Cow::from).into());
-        assert_that!(
-            super::canonicalize("a/b".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["a", "b"].map(Cow::from).into());
-        assert_that!(
-            super::canonicalize("/a/b/.".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["/", "a", "b"].map(Cow::from).into());
-        assert_that!(
-            super::canonicalize("/a/./b/.".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["/", "a", "b"].map(Cow::from).into());
-        assert_that!(
-            super::canonicalize("/a/./b/../c/.".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["/", "a", "c"].map(Cow::from).into());
-        assert_that!(
-            super::canonicalize("/a/../../b/./c/.".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["/", "b", "c"].map(Cow::from).into());
-    }
-
-    #[test]
-    fn is_empty_behavior() {
-        let empty: &Path = "".as_ref();
-        assert_that!(empty.is_empty()).is_true();
-        let slash: &Path = "/".as_ref();
-        assert_that!(slash.is_empty()).is_false();
     }
 }

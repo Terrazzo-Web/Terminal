@@ -8,6 +8,7 @@ use terrazzo::server;
 
 use crate::api::client_address::ClientAddress;
 
+pub mod canonical;
 mod fsmetadata;
 mod remote;
 mod service;
@@ -24,7 +25,7 @@ pub enum File {
     Error(String),
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct FileMetadata {
     pub name: Arc<str>,
     pub size: Option<u64>,

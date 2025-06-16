@@ -45,20 +45,10 @@ pub fn text_editor() -> XElement {
 #[template(tag = div)]
 fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) -> XElement {
     let side_view: XSignal<Arc<SideViewList>> = XSignal::new("side-view", Default::default());
-    let base_path = XSignal::new("base-path", Arc::default());
-    let file_path = base_path.derive(
-        "file-path",
-        move |_base_path| {
-            autoclone!(side_view);
-            side_view.force(Arc::default());
-            Arc::default()
-        },
-        |_, _| None,
-    );
     let text_editor = Arc::new(TextEditor {
         remote,
-        base_path,
-        file_path,
+        base_path: XSignal::new("base-path", Arc::default()),
+        file_path: XSignal::new("file-path", Arc::default()),
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
         side_view,
@@ -70,6 +60,16 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
     let file_path_subscriber =
         text_editor.save_on_change(text_editor.file_path.clone(), state::file_path::set);
     let file_async_view = text_editor.make_file_async_view();
+    let reset_on_base_path_change = (
+        text_editor.base_path.add_subscriber(move |_base_path| {
+            autoclone!(text_editor);
+            text_editor.side_view.force(Arc::default());
+        }),
+        text_editor.base_path.add_subscriber(move |_base_path| {
+            autoclone!(text_editor);
+            text_editor.file_path.force(Arc::default());
+        }),
+    );
 
     div(
         key = "text-editor",
@@ -87,6 +87,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
             let _moved = &base_path_subscriber;
             let _moved = &file_path_subscriber;
             let _moved = &file_async_view;
+            let _moved = &reset_on_base_path_change;
         },
     )
 }

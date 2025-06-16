@@ -2,7 +2,6 @@
 
 use std::cmp::Reverse;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use nameth::NamedEnumValues as _;
@@ -13,42 +12,41 @@ use tracing::debug;
 use crate::backend::client_service::grpc_error::IsGrpcError;
 use crate::text_editor::fsio::File;
 use crate::text_editor::fsio::FileMetadata;
+use crate::text_editor::fsio::canonical::concat_base_file_path;
 
 const MAX_FILES_SORTED: usize = 5000;
 const MAX_FILES_RETURNED: usize = 1000;
 
 pub fn load_file(base_path: Arc<str>, file_path: Arc<str>) -> Result<Option<File>, FsioError> {
-    let path = PathBuf::from(format!("{base_path}/{file_path}"));
-    if !file_path.is_empty() {
-        if let Ok(metadata) = path.metadata() {
-            if metadata.is_file() {
-                debug!("Loading file {path:?}");
-                let data = std::fs::read_to_string(&path)?;
-                return Ok(Some(File::TextFile {
-                    metadata: FileMetadata::single(&path, &metadata).into(),
-                    content: Arc::from(data),
-                }));
+    let path = concat_base_file_path(base_path, file_path);
+    if let Ok(metadata) = path.metadata() {
+        if metadata.is_file() {
+            debug!("Loading file {path:?}");
+            let data = std::fs::read_to_string(&path)?;
+            return Ok(Some(File::TextFile {
+                metadata: FileMetadata::single(&path, &metadata).into(),
+                content: Arc::from(data),
+            }));
+        }
+        if metadata.is_dir() {
+            debug!("Loading file {path:?}");
+            let mut files = vec![];
+            let mut uids = HashMap::default();
+            let mut gids = HashMap::default();
+            for file in path
+                .read_dir()?
+                .filter_map(|f| f.ok())
+                .take(MAX_FILES_SORTED)
+            {
+                files.push(FileMetadata::of(file, &mut uids, &mut gids));
             }
-            if metadata.is_dir() {
-                debug!("Loading file {path:?}");
-                let mut files = vec![];
-                let mut uids = HashMap::default();
-                let mut gids = HashMap::default();
-                for file in path
-                    .read_dir()?
-                    .filter_map(|f| f.ok())
-                    .take(MAX_FILES_SORTED)
-                {
-                    files.push(FileMetadata::of(file, &mut uids, &mut gids));
-                }
-                files.sort_by_key(|f| Reverse(f.modified));
-                let mut files = files
-                    .into_iter()
-                    .take(MAX_FILES_RETURNED)
-                    .collect::<Vec<_>>();
-                files.sort_by(|a, b| Ord::cmp(&a.name, &b.name));
-                return Ok(Some(File::Folder(Arc::from(files))));
-            }
+            files.sort_by_key(|f| Reverse(f.modified));
+            let mut files = files
+                .into_iter()
+                .take(MAX_FILES_RETURNED)
+                .collect::<Vec<_>>();
+            files.sort_by(|a, b| Ord::cmp(&a.name, &b.name));
+            return Ok(Some(File::Folder(Arc::from(files))));
         }
     }
     debug!("Not found {path:?}");
@@ -60,8 +58,8 @@ pub fn store_file(
     file_path: Arc<str>,
     content: String,
 ) -> Result<(), FsioError> {
-    let path = PathBuf::from(format!("{base_path}/{file_path}"));
-    return if !file_path.is_empty() && path.exists() {
+    let path = concat_base_file_path(base_path, file_path);
+    return if path.exists() {
         Ok(std::fs::write(&path, content)?)
     } else {
         Err(FsioError::InvalidPath)

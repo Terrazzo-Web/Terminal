@@ -30,33 +30,31 @@ pub fn folder(
     let EditorState { file_path, .. } = editor_state;
 
     let mut rows = vec![];
-    for file in list.iter() {
-        let FileMetadata {
-            name,
-            size,
-            is_dir,
-            created: _,
-            accessed: _,
-            modified,
-            mode,
-            user,
-            group,
-        } = file;
-        let is_dir = *is_dir;
+    let parent_path = Path::new(&*file_path).parent();
+    let parent = parent_path.map(|_| FileMetadata {
+        name: "..".into(),
+        is_dir: true,
+        ..FileMetadata::default()
+    });
+    for file in parent.iter().chain(list.iter()) {
+        let name = &file.name;
+        let is_dir = file.is_dir;
         let display_name = if is_dir {
             format!("{name}/")
         } else {
             name.to_string()
         };
-        let size = size.map(print_size).unwrap_or_else(|| "-".to_owned());
-        let modified = modified
+        let size = file.size.map(print_size).unwrap_or_else(|| "-".to_owned());
+        let modified = file
+            .modified
             .as_ref()
             .and_then(|m| DateTime::from_timestamp_millis(m.as_millis() as i64))
             .map(|m| timestamp(display_timestamp(m)))
             .unwrap_or_else(|| span("-"));
-        let user = user.clone().unwrap_or_default();
-        let group = group.clone().unwrap_or_default();
-        let permissions = mode
+        let user = file.user.clone().unwrap_or_default();
+        let group = file.group.clone().unwrap_or_default();
+        let permissions = file
+            .mode
             .map(|m| {
                 format!(
                     "{}{}",
@@ -68,7 +66,16 @@ pub fn folder(
         rows.push(tr(
             click = move |_| {
                 autoclone!(text_editor, file_path, name);
-                let file = Path::new(&*file_path).join(&*name);
+                let file_path = &*file_path;
+                let file_path = file_path.trim_start_matches('/');
+                let file = if &*name == ".." {
+                    Path::new(file_path)
+                        .parent()
+                        .map(Path::to_owned)
+                        .unwrap_or_default()
+                } else {
+                    Path::new(file_path).join(&*name)
+                };
                 let mut file = file.to_string_lossy().to_string();
                 if is_dir {
                     file.push('/');
