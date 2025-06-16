@@ -13,6 +13,7 @@ use web_sys::HtmlInputElement;
 
 use super::PathSelector;
 use crate::assets::icons;
+use crate::text_editor::autocomplete::AutocompleteItem;
 use crate::text_editor::autocomplete::ui::do_autocomplete;
 use crate::text_editor::autocomplete::ui::show_autocomplete;
 use crate::text_editor::autocomplete::ui::start_autocomplete;
@@ -49,7 +50,7 @@ fn path_selector_impll(
     prefix: Option<XSignal<Arc<str>>>,
     path: XSignal<Arc<str>>,
 ) -> XElement {
-    let autocomplete: XSignal<Option<Vec<String>>> = XSignal::new(kind.name(), None);
+    let autocomplete: XSignal<Option<Vec<AutocompleteItem>>> = XSignal::new(kind.name(), None);
     let input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>> = OnceLock::new().into();
     let do_autocomplete = Ptr::new(do_autocomplete(
         text_editor.clone(),

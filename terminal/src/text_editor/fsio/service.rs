@@ -46,7 +46,7 @@ pub fn load_file(base_path: Arc<str>, file_path: Arc<str>) -> Result<Option<File
                     .into_iter()
                     .take(MAX_FILES_RETURNED)
                     .collect::<Vec<_>>();
-                files.sort_by_key(|f| f.name.clone());
+                files.sort_by(|a, b| Ord::cmp(&a.name, &b.name));
                 return Ok(Some(File::Folder(Arc::from(files))));
             }
         }

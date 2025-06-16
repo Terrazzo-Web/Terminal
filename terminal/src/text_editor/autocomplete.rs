@@ -18,7 +18,7 @@ async fn autocomplete_path(
     kind: PathSelector,
     prefix: Arc<str>,
     input: String,
-) -> Result<Vec<String>, ServerFnError> {
+) -> Result<Vec<AutocompleteItem>, ServerFnError> {
     use scopeguard::defer;
     use tracing::Instrument as _;
     use tracing::debug;
@@ -37,4 +37,10 @@ async fn autocomplete_path(
     }
     .instrument(debug_span!("Autocomplete"))
     .await
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct AutocompleteItem {
+    pub path: String,
+    pub is_dir: bool,
 }

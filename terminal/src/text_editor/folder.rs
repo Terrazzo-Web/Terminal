@@ -1,5 +1,6 @@
 #![cfg(feature = "client")]
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use chrono::DateTime;
@@ -7,7 +8,9 @@ use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
+use web_sys::MouseEvent;
 
+use crate::frontend::menu::before_menu;
 use crate::frontend::timestamp;
 use crate::frontend::timestamp::display_timestamp;
 use crate::text_editor::fsio::FileMetadata;
@@ -60,9 +63,10 @@ pub fn folder(
         rows.push(tr(
             click = move |_| {
                 autoclone!(text_editor, file_path);
-                text_editor
-                    .file_path
-                    .set(Arc::from(format!("{file_path}/{name}")))
+                let mut file = PathBuf::from(file_path.as_ref());
+                file.push(name.as_ref());
+                let file = file.to_string_lossy().to_string();
+                text_editor.file_path.set(Arc::from(file))
             },
             td("{name}"),
             td("{size}"),
@@ -83,7 +87,14 @@ pub fn folder(
                 th("Group"),
                 th("Permissions"),
             )),
-            tbody(rows..),
+            tbody(
+                mouseover = move |_: MouseEvent| {
+                    if let Some(f) = before_menu().take() {
+                        f()
+                    };
+                },
+                rows..,
+            ),
         ),
     )
 }

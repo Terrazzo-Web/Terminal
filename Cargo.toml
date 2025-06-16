@@ -23,9 +23,6 @@ lto = "fat"              # Sets link-time optimization.
 panic = "abort"          # The panic strategy.
 incremental = true       # Incremental compilation.
 
-[profile.release.package.terrazzo-client]
-opt-level = "s"
-
 [workspace.dependencies]
 terrazzo-pty = { version = "0.1.14", path = "pty" }
 
@@ -35,7 +32,11 @@ axum = { version = "0.8.4" }
 axum-extra = { version = "0.10.1" }
 base64 = { version = "0.22.1" }
 bytes = { version = "1.10.1" }
-chrono = { version = "0.4.41" }
+chrono = { version = "0.4.41", default-features = false, features = [
+    "now",
+    "std",
+    "wasmbind",
+] }
 clap = { version = "4.5.40", features = ["derive"] }
 const_format = { version = "0.2.34" }
 darling = { version = "0.20.11" }

@@ -43,10 +43,12 @@ pub fn text_editor() -> XElement {
 #[html]
 #[template(tag = div)]
 fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) -> XElement {
+    let base_path = XSignal::new("base-path", Arc::default());
+    let file_path = base_path.derive("file-path", |_| Arc::default(), |_, _| None);
     let text_editor = Arc::new(TextEditor {
         remote,
-        base_path: XSignal::new("base-path", Arc::default()),
-        file_path: XSignal::new("file-path", Arc::default()),
+        base_path,
+        file_path,
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
         side_view: XSignal::new("side-view", Default::default()),
