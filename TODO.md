@@ -22,7 +22,6 @@
 - `#·52`. Drag n Drop to create tiles
 - `#··8`. Resizeable component
 - `#106`. Reduce size of WASM file
-- `#107`. (a) Timestamps should show on up immediately, not just on the first tick;
 - `#107`. (b) Ticks should be aligned with round time;
 
 # Nice to have
@@ -120,3 +119,4 @@ Next: `#108`.
 - `#104`. Debounce set-title
 - `#107`. (c) Folder tree should clear on base path change
 - `#107`. (d). Headers should be fixed.
+- `#107`. (a) Timestamps should show on up immediately, not just on the first tick;

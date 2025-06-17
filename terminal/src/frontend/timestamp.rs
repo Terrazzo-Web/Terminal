@@ -157,10 +157,10 @@ impl Drop for TickInner {
 pub fn display_timestamp<TZ: TimeZone + 'static>(
     value: DateTime<TZ>,
 ) -> XSignal<Box<Timestamp<TZ>>> {
-    let timer_mode_signal = XSignal::new("timer-mode", TimerMode::AbsoluteTime);
+    let timer_mode_signal = XSignal::new("timer-mode", TimerMode::fractions_ago());
     let timestamp_signal = XSignal::new(
         "display-timetamp",
-        Box::new(Timestamp {
+        Timestamp {
             display: Arc::default(),
             inner: Ptr::new(TimestampInner {
                 timer_mode_signal: timer_mode_signal.clone(),
@@ -168,7 +168,8 @@ pub fn display_timestamp<TZ: TimeZone + 'static>(
                 timer_consumers: None.into(),
                 value,
             }),
-        }),
+        }
+        .recompute(&TimerMode::fractions_ago()),
     );
 
     timestamp_signal.update(setup_display_timestamp_signals(
