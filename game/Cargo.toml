@@ -47,9 +47,9 @@ max_level_debug = ["tracing/max_level_debug", "tracing/release_max_level_debug"]
 max_level_info = [
     "tracing/max_level_info",
     "tracing/release_max_level_info",
-    "concise_traces",
+    "concise-traces",
 ]
-concise_traces = ["terrazzo/concise_traces"]
+concise-traces = ["terrazzo/concise-traces"]
 
 [package.metadata.stylance]
 output_file = "./target/css/game.scss"

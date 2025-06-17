@@ -27,7 +27,7 @@ pub async fn new_id(
         format!("Terminal {next}")
     };
 
-    let id = if cfg!(feature = "concise_traces") {
+    let id = if cfg!(feature = "concise-traces") {
         Uuid::new_v4().to_string()
     } else if let Some(client_name) = client_name {
         format!("T-{client_name}-{next}")

@@ -33,13 +33,13 @@ use crate::api::server::correlation_id::CorrelationId;
 use crate::api::server::stream::registration::Registration;
 use crate::backend::client_service;
 
-pub const PIPE_TTL: Duration = if cfg!(feature = "concise_traces") {
+pub const PIPE_TTL: Duration = if cfg!(feature = "concise-traces") {
     Duration::from_secs(3600)
 } else {
     Duration::from_secs(5)
 };
 
-pub const KEEPALIVE_TTL: Duration = if cfg!(feature = "concise_traces") {
+pub const KEEPALIVE_TTL: Duration = if cfg!(feature = "concise-traces") {
     Duration::from_secs(20)
 } else {
     Duration::from_secs(3)
