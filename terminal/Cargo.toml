@@ -47,7 +47,7 @@ server_fn = { workspace = true }
 sha2 = { workspace = true, optional = true }
 static_assertions = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
-terrazzo = { workspace = true }
+terrazzo = { workspace = true, optional = true }
 terrazzo-pty = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
@@ -58,8 +58,10 @@ tower-http = { workspace = true, optional = true, features = [
     "sensitive-headers",
     "trace",
 ] }
-tracing = { workspace = true }
-tracing-futures = { workspace = true, features = ["futures-03"] }
+tracing = { workspace = true, optional = true }
+tracing-futures = { workspace = true, features = [
+    "futures-03",
+], optional = true }
 trz-gateway-client = { workspace = true, optional = true }
 trz-gateway-common = { workspace = true, optional = true }
 trz-gateway-server = { workspace = true, optional = true, features = ["acme"] }
@@ -129,6 +131,8 @@ server = [
     "dep:tonic",
     "dep:tower-http",
     "dep:tower",
+    "dep:tracing-futures",
+    "dep:tracing",
     "dep:trz-gateway-client",
     "dep:trz-gateway-common",
     "dep:trz-gateway-server",
@@ -137,13 +141,19 @@ server = [
     "server_fn/browser",
     "terrazzo/server",
 ]
-max_level_debug = ["tracing/max_level_debug", "tracing/release_max_level_debug"]
+max_level_debug = [
+    "terrazzo?/max_client_level_debug",
+    "tracing?/max_level_debug",
+    "tracing?/release_max_level_debug",
+]
 max_level_info = [
-    "tracing/max_level_info",
-    "tracing/release_max_level_info",
+    "terrazzo?/max_client_level_info",
+    "tracing?/max_level_info",
+    "tracing?/release_max_level_info",
     "concise-traces",
 ]
-concise-traces = ["terrazzo/concise-traces"]
+concise-traces = ["terrazzo?/concise-traces"]
+diagnostics = ["terrazzo?/diagnostics"]
 no_wasm_build = []
 
 [package.metadata.stylance]

@@ -8,9 +8,9 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::cancellable::Cancellable;
 use terrazzo::widgets::debounce::DoDebounce as _;
-use tracing::debug;
 use web_sys::MouseEvent;
 
+use self::diagnostics::debug;
 use crate::api;
 use crate::api::client_address::ClientAddress;
 

@@ -5,13 +5,13 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::more_event::MoreEvent as _;
-use tracing::info;
-use tracing::warn;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
 use web_sys::HtmlInputElement;
 
+use self::diagnostics::info;
+use self::diagnostics::warn;
 use crate::assets::icons;
 use crate::frontend::menu::app;
 use crate::state::app::App;

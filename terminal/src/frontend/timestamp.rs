@@ -14,10 +14,11 @@ use nameth::NamedType;
 use nameth::nameth;
 use terrazzo::autoclone;
 use terrazzo::prelude::*;
-use tracing::debug;
-use tracing::warn;
 use wasm_bindgen::JsCast;
 use web_sys::window;
+
+use self::diagnostics::debug;
+use self::diagnostics::warn;
 
 /// Represents a signal that updates at regular intervals.
 pub type Timer = XSignal<Tick>;

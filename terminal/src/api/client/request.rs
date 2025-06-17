@@ -2,8 +2,7 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use serde::Serialize;
 use terrazzo::prelude::OrElseLog;
-use tracing::debug;
-use tracing::warn;
+use terrazzo::prelude::diagnostics;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
@@ -13,6 +12,8 @@ use web_sys::RequestInit;
 use web_sys::RequestMode;
 use web_sys::Response;
 
+use self::diagnostics::debug;
+use self::diagnostics::warn;
 use crate::api::APPLICATION_JSON;
 use crate::api::CORRELATION_ID;
 use crate::frontend::login::LoggedInStatus;

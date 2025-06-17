@@ -1,8 +1,8 @@
 use terrazzo::autoclone;
 use terrazzo::prelude::*;
 use terrazzo::template;
-use tracing::warn;
 
+use self::diagnostics::warn;
 use crate::api;
 use crate::api::client_address::ClientAddress;
 use crate::frontend::remotes::Remotes;

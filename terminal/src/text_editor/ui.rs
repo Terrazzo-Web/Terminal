@@ -13,9 +13,9 @@ use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
-use tracing::warn;
 use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::warn;
 use super::fsio::load_file;
 use super::state;
 use super::style;

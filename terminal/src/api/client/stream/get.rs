@@ -10,11 +10,12 @@ use pin_project::pin_project;
 use terrazzo::autoclone;
 use terrazzo::declare_trait_aliias;
 use terrazzo::prelude::OrElseLog as _;
-use tracing::info;
-use tracing::info_span;
-use tracing_futures::Instrument as _;
+use terrazzo::prelude::diagnostics;
 use web_sys::js_sys::Math;
 
+use self::diagnostics::Instrument as _;
+use self::diagnostics::info;
+use self::diagnostics::info_span;
 use super::DISPATCHERS;
 use super::StreamDispatchers;
 use super::ack;
@@ -34,7 +35,7 @@ pub async fn get(request: RegisterTerminalRequest) -> Result<impl TerminalStream
         let stream_reader = add_dispatcher(&request.def.address.id).await?;
         let stream_reader = ack::setup_acks(request.def.address.clone(), stream_reader);
         register(request).await?;
-        return Ok(stream_reader.ready_chunks(10).in_current_span());
+        return Ok(stream_reader.ready_chunks(10));
     }
     .instrument(span)
     .await

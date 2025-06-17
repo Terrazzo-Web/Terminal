@@ -5,11 +5,11 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::resize_event::ResizeEvent;
-use tracing::info;
 use web_sys::window;
 
 use self::cookie::Cookie;
 use self::cookies::show_cookies;
+use self::diagnostics::info;
 use self::state::Game;
 
 mod cookie;

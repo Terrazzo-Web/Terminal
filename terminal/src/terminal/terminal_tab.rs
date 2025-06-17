@@ -13,10 +13,11 @@ use terrazzo::template;
 use terrazzo::widgets::debounce::DoDebounce;
 use terrazzo::widgets::editable::editable;
 use terrazzo::widgets::tabs::TabDescriptor;
-use tracing::Level;
-use tracing::debug;
-use tracing::warn;
 
+use self::diagnostics::Level;
+use self::diagnostics::debug;
+use self::diagnostics::enabled;
+use self::diagnostics::warn;
 use super::TerminalsState;
 use super::attach;
 use super::javascript::TerminalJs;
@@ -55,7 +56,7 @@ impl TerminalTab {
         } = terminal_definition;
         let terminal_id = &address.id;
         let selected = {
-            let name: XString = if tracing::enabled!(Level::DEBUG) {
+            let name: XString = if enabled!(Level::DEBUG) {
                 format!("is_selected_tab:{terminal_id}").into()
             } else {
                 "is_selected_tab".into()
@@ -73,7 +74,7 @@ impl TerminalTab {
             )
         };
         let title = {
-            let signal_name: XString = if tracing::enabled!(Level::DEBUG) {
+            let signal_name: XString = if enabled!(Level::DEBUG) {
                 format!("terminal_title:{terminal_id}").into()
             } else {
                 "terminal_title".into()

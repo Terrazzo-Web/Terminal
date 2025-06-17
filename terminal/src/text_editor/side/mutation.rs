@@ -4,9 +4,10 @@ use std::sync::Arc;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use tracing::debug;
-use tracing::warn;
+use terrazzo::prelude::diagnostics;
 
+use self::diagnostics::debug;
+use self::diagnostics::warn;
 use super::SideViewList;
 use super::SideViewNode;
 

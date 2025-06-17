@@ -7,11 +7,11 @@ use terrazzo::template;
 use terrazzo::widgets::tabs::TabsDescriptor as _;
 use terrazzo::widgets::tabs::TabsOptions;
 use terrazzo::widgets::tabs::tabs;
-use tracing::debug;
-use tracing::info;
-use tracing::warn;
 use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::debug;
+use self::diagnostics::info;
+use self::diagnostics::warn;
 use self::terminal_tabs::TerminalTabs;
 use crate::api;
 use crate::terminal_id::TerminalId;

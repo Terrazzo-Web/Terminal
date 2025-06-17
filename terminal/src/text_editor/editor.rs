@@ -6,9 +6,9 @@ use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
-use tracing::debug;
 use wasm_bindgen::JsValue;
 
+use self::diagnostics::debug;
 use super::code_mirror::CodeMirrorJs;
 use super::synchronized_state::SynchronizedState;
 use crate::text_editor::fsio::ui::store_file;

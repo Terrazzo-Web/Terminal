@@ -1,6 +1,6 @@
 use terrazzo::prelude::*;
-use tracing::warn;
 
+use self::diagnostics::warn;
 use super::TerminalTabs;
 use crate::api;
 use crate::terminal::TerminalsState;

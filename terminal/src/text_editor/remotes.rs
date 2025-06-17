@@ -3,8 +3,8 @@
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
-use tracing::debug;
 
+use self::diagnostics::debug;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes::RemotesState;
 use crate::text_editor::style;

@@ -9,6 +9,7 @@ const CLIENT_FEATURE: &str = "CARGO_FEATURE_CLIENT";
 const MAX_LEVEL_INFO: &str = "CARGO_FEATURE_MAX_LEVEL_INFO";
 const MAX_LEVEL_DEBUG: &str = "CARGO_FEATURE_MAX_LEVEL_DEBUG";
 const NO_WASM_BUILD: &str = "CARGO_FEATURE_NO_WASM_BUILD";
+const DIAGNOSTICS: &str = "CARGO_FEATURE_DIAGNOSTICS";
 
 fn main() {
     build_client();
@@ -45,6 +46,9 @@ fn build_client() {
     }
     if env::var(MAX_LEVEL_DEBUG).is_ok() {
         wasm_pack_options.extend(["--features", "max_level_debug"]);
+    }
+    if env::var(DIAGNOSTICS).is_ok() {
+        wasm_pack_options.extend(["--features", "diagnostics"]);
     }
     let wasm_pack_options = &wasm_pack_options;
     terrazzo_build::build(BuildOptions {

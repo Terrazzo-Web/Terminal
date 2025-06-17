@@ -5,9 +5,10 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 use std::time::Duration;
 
+use terrazzo::prelude::diagnostics;
 use terrazzo::widgets::debounce::DoDebounce;
-use tracing::warn;
 
+use self::diagnostics::warn;
 use crate::frontend::remotes::Remote;
 
 pub async fn store_file<P: Send + 'static>(
