@@ -2,10 +2,12 @@
 
 use std::path::Path;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::Ordering::SeqCst;
 
 use nameth::nameth;
+use scopeguard::guard;
 use server_fn::ServerFnError;
 use terrazzo::autoclone;
 use terrazzo::html;
@@ -40,7 +42,6 @@ pub fn text_editor() -> XElement {
     )
 }
 
-#[autoclone]
 #[html]
 #[template(tag = div)]
 fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) -> XElement {
@@ -54,22 +55,8 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
         side_view,
     });
 
-    text_editor.restore_paths();
-    let base_path_subscriber =
-        text_editor.save_on_change(text_editor.base_path.clone(), state::base_path::set);
-    let file_path_subscriber =
-        text_editor.save_on_change(text_editor.file_path.clone(), state::file_path::set);
-    let file_async_view = text_editor.make_file_async_view();
-    let reset_on_base_path_change = (
-        text_editor.base_path.add_subscriber(move |_base_path| {
-            autoclone!(text_editor);
-            text_editor.side_view.force(Arc::default());
-        }),
-        text_editor.base_path.add_subscriber(move |_base_path| {
-            autoclone!(text_editor);
-            text_editor.file_path.force(Arc::default());
-        }),
-    );
+    let consumers = Arc::default();
+    text_editor.restore_paths(&consumers);
 
     div(
         key = "text-editor",
@@ -84,10 +71,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
         ),
         editor_body(text_editor.clone(), text_editor.editor_state.clone()),
         after_render = move |_| {
-            let _moved = &base_path_subscriber;
-            let _moved = &file_path_subscriber;
-            let _moved = &file_async_view;
-            let _moved = &reset_on_base_path_change;
+            let _moved = &consumers;
         },
     )
 }
@@ -128,16 +112,25 @@ impl TextEditor {
     /// Restores the paths
     #[autoclone]
     #[nameth]
-    fn restore_paths(&self) {
-        let Self {
-            remote,
-            base_path,
-            file_path,
-            ..
-        } = self;
+    fn restore_paths(self: &Arc<Self>, consumers: &Arc<Mutex<Consumers>>) {
+        let this = self;
         spawn_local(async move {
-            autoclone!(remote, base_path, file_path);
-            let remote: Remote = remote.clone();
+            autoclone!(this, consumers);
+            let registrations = Consumers::default().append(this.make_file_async_view());
+            let registrations = guard(registrations, |registrations| {
+                *consumers.lock().unwrap() = registrations
+                    .append(this.save_on_change(this.base_path.clone(), state::base_path::set))
+                    .append(this.save_on_change(this.file_path.clone(), state::file_path::set))
+                    .append(this.base_path.add_subscriber(move |_base_path| {
+                        autoclone!(this);
+                        this.side_view.force(Arc::default());
+                    }))
+                    .append(this.base_path.add_subscriber(move |_base_path| {
+                        autoclone!(this);
+                        this.file_path.force(Arc::default());
+                    }))
+            });
+            let remote: Remote = this.remote.clone();
             let (get_base_path, get_file_path) = futures::future::join(
                 state::base_path::get(remote.clone()),
                 state::file_path::get(remote),
@@ -148,12 +141,13 @@ impl TextEditor {
             }
             let batch = Batch::use_batch(Self::RESTORE_PATHS);
             if let Ok(p) = get_base_path {
-                base_path.set(p);
+                this.base_path.set(p);
             }
             if let Ok(p) = get_file_path {
-                file_path.set(p);
+                this.file_path.set(p);
             }
             drop(batch);
+            drop(registrations);
         });
     }
 

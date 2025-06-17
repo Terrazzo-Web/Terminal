@@ -24,8 +24,6 @@
 - `#106`. Reduce size of WASM file
 - `#107`. (a) Timestamps should show on up immediately, not just on the first tick;
 - `#107`. (b) Ticks should be aligned with round time;
-- `#107`. (c) Folder tree should clear on base path change; DONE
-- `#107`. (d). Headers should be fixed.
 
 # Nice to have
 - `#·45`. Lazily load tab
@@ -120,3 +118,5 @@ Next: `#108`.
 - `#·90`. Figure out why server doesn't run when --action start
 - `#105`. Check why the client hangs
 - `#104`. Debounce set-title
+- `#107`. (c) Folder tree should clear on base path change
+- `#107`. (d). Headers should be fixed.
