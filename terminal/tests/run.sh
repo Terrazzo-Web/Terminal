@@ -2,9 +2,8 @@
 
 cd "$(dirname "$0")" || exit
 cargo run \
-    --release \
     --bin terrazzo-terminal \
     --no-default-features \
-    --features server,max_level_off \
+    --features server,max_level_info,diagnostics \
     -- \
     $@
