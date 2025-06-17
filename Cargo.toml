@@ -49,7 +49,7 @@ humantime = { version = "2.2.0" }
 include_directory = { version = "0.1.1" }
 inventory = { version = "0.3.20" }
 jsonwebtoken = { version = "9.3.1" }
-libc = { version = "0.2.173" }
+libc = { version = "0.2.174" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.13" }
