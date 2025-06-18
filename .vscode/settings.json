@@ -2,6 +2,7 @@
     "rust-analyzer.cargo.features": [
         "client",
         "server",
-        "no_wasm_build"
+        "no_wasm_build",
+        "diagnostics"
     ],
 }

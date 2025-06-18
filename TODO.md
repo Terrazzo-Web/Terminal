@@ -1,7 +1,6 @@
 # TODO
 - `#101`. Renew client certificates
 - `#103`. Renew LE certificate
-- `#102`. Text editor: support remote
 - `#·93`. File explorer: opened files
 - `#·94`. File explorer: all files
 - `#·95`. File explorer: search tool
@@ -16,20 +15,21 @@
 - `#·91`. Configuration tool: show current auth token
 - `#·91`. Configuration tool: password reset
 - `#·91`. Configuration tool: info page (version, metrics, etc.)
-- `#·90`. Figure out why server doesn't run when --action start
 - `#·81`. Announce open source autoclone.
 - `#·79`. Announce open source named.
 - `#·32`. Announce open source terrazzo client
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
 - `#·52`. Drag n Drop to create tiles
 - `#··8`. Resizeable component
+- `#106`. Reduce size of WASM file
+- `#107`. (b) Ticks should be aligned with round time;
 
 # Nice to have
 - `#·45`. Lazily load tab
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#104`.
+Next: `#108`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -113,3 +113,10 @@ Next: `#104`.
 - `#·55`. Better way to do APIs. `server_fn`?
 - `#·86`. Remove static state from the client -- search for "([^']|\n)static ". Ambient ctx on spawn_local, events, timers -- rejected
 - `#·82`. (rejected)
+- `#102`. Text editor: support remote
+- `#·90`. Figure out why server doesn't run when --action start
+- `#105`. Check why the client hangs
+- `#104`. Debounce set-title
+- `#107`. (c) Folder tree should clear on base path change
+- `#107`. (d). Headers should be fixed.
+- `#107`. (a) Timestamps should show on up immediately, not just on the first tick;

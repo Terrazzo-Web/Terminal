@@ -9,7 +9,7 @@ runs:
         cargo build --bin terrazzo-terminal --no-default-features --features server
       shell: bash
     - name: Test client
-      run: cargo test --no-default-features --features client
+      run: cargo test --no-default-features --features client,diagnostics
       shell: bash
     - name: Test server
       run: cargo test --no-default-features --features server

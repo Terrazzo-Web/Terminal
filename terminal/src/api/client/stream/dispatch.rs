@@ -3,9 +3,10 @@ use futures::channel::mpsc::SendError;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::prelude::OrElseLog as _;
-use tracing::trace;
-use tracing::warn;
+use terrazzo::prelude::diagnostics;
 
+use self::diagnostics::trace;
+use self::diagnostics::warn;
 use super::DISPATCHERS;
 use crate::api::Chunk;
 use crate::api::NEWLINE;

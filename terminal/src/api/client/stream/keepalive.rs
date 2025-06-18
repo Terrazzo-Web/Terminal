@@ -4,9 +4,9 @@ use std::time::Duration;
 use futures::channel::oneshot;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use tracing::Instrument as _;
-use tracing::debug;
-use tracing::warn;
+use terrazzo::prelude::diagnostics::Instrument as _;
+use terrazzo::prelude::diagnostics::debug;
+use terrazzo::prelude::diagnostics::warn;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::api::client::request::BASE_URL;

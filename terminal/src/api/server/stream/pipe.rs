@@ -33,13 +33,13 @@ use crate::api::server::correlation_id::CorrelationId;
 use crate::api::server::stream::registration::Registration;
 use crate::backend::client_service;
 
-pub const PIPE_TTL: Duration = if cfg!(feature = "concise_traces") {
+pub const PIPE_TTL: Duration = if cfg!(feature = "concise-traces") {
     Duration::from_secs(3600)
 } else {
     Duration::from_secs(5)
 };
 
-pub const KEEPALIVE_TTL: Duration = if cfg!(feature = "concise_traces") {
+pub const KEEPALIVE_TTL: Duration = if cfg!(feature = "concise-traces") {
     Duration::from_secs(20)
 } else {
     Duration::from_secs(3)
@@ -66,7 +66,7 @@ pub fn pipe(server: Arc<Server>, correlation_id: CorrelationId) -> impl IntoResp
         // Debug logs
         #[cfg(debug_assertions)]
         let lease = lease.inspect(|chunk| {
-            use nameth::NamedEnumValues;
+            use nameth::NamedEnumValues as _;
             match chunk {
                 LeaseItem::EOS => tracing::debug!("{}", chunk.name()),
                 LeaseItem::Data(data) => assert!(!data.is_empty(), "Unexpected empty chunk"),

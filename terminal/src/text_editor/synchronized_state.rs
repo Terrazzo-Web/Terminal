@@ -6,11 +6,11 @@ use std::sync::Arc;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
-use tracing::warn;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::Event;
 
+use self::diagnostics::warn;
 use super::style;
 use crate::assets::icons;
 

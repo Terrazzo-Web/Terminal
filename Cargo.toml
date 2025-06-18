@@ -23,19 +23,22 @@ lto = "fat"              # Sets link-time optimization.
 panic = "abort"          # The panic strategy.
 incremental = true       # Incremental compilation.
 
-[profile.release.package.terrazzo-client]
-opt-level = "s"
-
 [workspace.dependencies]
 terrazzo-pty = { version = "0.1.14", path = "pty" }
 
 async-trait = { version = "0.1.88" }
-autoclone = { version = "0.1.13" }
+autoclone = { version = "0.1.14" }
 axum = { version = "0.8.4" }
 axum-extra = { version = "0.10.1" }
 base64 = { version = "0.22.1" }
 bytes = { version = "1.10.1" }
+chrono = { version = "0.4.41", default-features = false, features = [
+    "now",
+    "std",
+    "wasmbind",
+] }
 clap = { version = "4.5.40", features = ["derive"] }
+const_format = { version = "0.2.34" }
 darling = { version = "0.20.11" }
 dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
@@ -44,11 +47,12 @@ futures = { version = "0.3.31" }
 http = { version = "1.3.1" }
 humantime = { version = "2.2.0" }
 include_directory = { version = "0.1.1" }
+inventory = { version = "0.3.20" }
 jsonwebtoken = { version = "9.3.1" }
-libc = { version = "0.2.173" }
+libc = { version = "0.2.174" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
-nameth = { version = "0.1.13" }
+nameth = { version = "0.1.14" }
 nix = { version = "0.30.1" }
 openssl = { version = "0.10.73" }
 pbkdf2 = { version = "0.12.2" }
@@ -71,8 +75,8 @@ sha2 = { version = "0.10.9" }
 static_assertions = { version = "1.1.0" }
 stylance = { version = "0.6.0" }
 syn = { version = "2.0.103" }
-terrazzo = { version = "0.1.13", default-features = false }
-terrazzo-build = { version = "0.1.13" }
+terrazzo = { version = "0.1.14", default-features = false }
+terrazzo-build = { version = "0.1.14" }
 thiserror = { version = "2.0.12" }
 tokio = { version = "1.45.1" }
 tokio-stream = { version = "0.1.17" }
@@ -86,9 +90,9 @@ tracing = { version = "0.1.41" }
 tracing-futures = { version = "0.2.5" }
 tracing-subscriber = { version = "0.3.19" }
 tracing-subscriber-wasm = { version = "0.1.0" }
-trz-gateway-client = { version = "0.1.13" }
-trz-gateway-common = { version = "0.1.13" }
-trz-gateway-server = { version = "0.1.13" }
+trz-gateway-client = { version = "0.1.14" }
+trz-gateway-common = { version = "0.1.14" }
+trz-gateway-server = { version = "0.1.14" }
 uuid = { version = "1.17.0" }
 wasm-bindgen = { version = "0.2.100" }
 wasm-bindgen-futures = { version = "0.4.50" }

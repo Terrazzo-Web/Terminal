@@ -3,6 +3,7 @@ use std::future::ready;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
+use terrazzo::http::StatusCode;
 use tonic::Status;
 use tonic::body::Body as BoxBody;
 use tonic::client::GrpcService;
@@ -76,7 +77,7 @@ pub enum NewIdError {
 }
 
 impl IsHttpError for NewIdError {
-    fn status_code(&self) -> terrazzo::http::StatusCode {
+    fn status_code(&self) -> StatusCode {
         match self {
             Self::NewIdError(error) => error.status_code(),
         }

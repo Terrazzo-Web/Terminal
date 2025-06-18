@@ -7,11 +7,11 @@ use terrazzo::template;
 use terrazzo::widgets::tabs::TabsDescriptor as _;
 use terrazzo::widgets::tabs::TabsOptions;
 use terrazzo::widgets::tabs::tabs;
-use tracing::debug;
-use tracing::info;
-use tracing::warn;
 use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::debug;
+use self::diagnostics::info;
+use self::diagnostics::warn;
 use self::terminal_tabs::TerminalTabs;
 use crate::api;
 use crate::terminal_id::TerminalId;
@@ -31,8 +31,8 @@ pub struct TerminalsState {
 
 pub fn terminals(template: XTemplate) -> Consumers {
     let terminal_id = TerminalId::from("Terminal");
-    let selected_tab = XSignal::new("selected_tab", terminal_id.clone());
-    let terminal_tabs = XSignal::new("terminal_tabs", TerminalTabs::from(Ptr::new(vec![])));
+    let selected_tab = XSignal::new("selected-tab", terminal_id.clone());
+    let terminal_tabs = XSignal::new("terminal-tabs", TerminalTabs::from(Ptr::new(vec![])));
     refresh_terminal_tabs(selected_tab.clone(), terminal_tabs.clone());
     let state = TerminalsState {
         selected_tab,

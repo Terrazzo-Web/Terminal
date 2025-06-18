@@ -11,92 +11,80 @@ use std::time::SystemTime;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use terrazzo::http::StatusCode;
+use tonic::Code;
 use tracing::debug;
 use tracing::debug_span;
-use trz_gateway_common::http_error::HttpError;
-use trz_gateway_common::http_error::IsHttpError;
 
+use crate::backend::client_service::grpc_error::GrpcError;
+use crate::backend::client_service::grpc_error::IsGrpcError;
+use crate::text_editor::autocomplete::AutocompleteItem;
+use crate::text_editor::fsio::canonical::canonicalize;
+use crate::text_editor::fsio::canonical::concat_base_file_path;
 use crate::text_editor::path_selector::PathSelector;
 
 const ROOT: &str = "/";
-const MAX_RESULTS: usize = 20;
+const MAX_RESULTS: usize = 30;
 
 pub fn autocomplete_path(
     kind: PathSelector,
     prefix: &str,
     input: &str,
-) -> Result<Vec<String>, HttpError<AutoCompleteError>> {
+) -> Result<Vec<AutocompleteItem>, GrpcError<AutoCompleteError>> {
     let prefix = prefix.trim();
     let input = input.trim();
-    let input = if prefix.is_empty() && input.is_empty() {
-        std::env::home_dir()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .into_owned()
+    let path = if kind == PathSelector::BasePath && input.is_empty() {
+        std::env::home_dir().unwrap_or_else(|| Path::new(ROOT).to_owned())
+    } else if Path::new(prefix).is_absolute() {
+        concat_base_file_path(prefix, input)
     } else {
-        format!("{prefix}/{input}")
+        concat_base_file_path(format!("{ROOT}{prefix}"), input)
     };
-    Ok(autocomplete_path_impl(prefix.as_ref(), input, |m| {
+    return Ok(autocomplete_path_impl(prefix.as_ref(), &path, |m| {
         kind.accept(m)
-    })?)
+    })?);
 }
 
-pub fn autocomplete_path_impl(
+fn autocomplete_path_impl(
     prefix: &Path,
-    input: String,
+    path: &Path,
     leaf_filter: impl Fn(&Metadata) -> bool,
-) -> Result<Vec<String>, AutoCompleteError> {
-    let _span = debug_span!("Autocomplete", input).entered();
-    let path = canonicalize(if input.is_empty() { ROOT } else { &input }.as_ref());
-    let ends_with_slash = input.ends_with("/");
-    let ends_with_slashdot = input.ends_with("/.");
-    if !ends_with_slashdot {
-        if let Ok(metadata) = path
-            .metadata()
-            .inspect_err(|error| debug!("Path does not exist, finding best match. Error={error}"))
-        {
-            if metadata.is_dir() {
-                debug!("List directory");
-                return list_folders(prefix, &path, leaf_filter);
-            } else {
-                debug!("List parent directory");
-                let parent = path.parent().unwrap_or(ROOT.as_ref());
-                return list_folders(prefix, parent, leaf_filter);
-            }
-        }
-    }
-    return resolve_path(
-        prefix,
-        &path,
-        ends_with_slash,
-        ends_with_slashdot,
-        leaf_filter,
-    );
-}
-
-fn canonicalize(path: &Path) -> PathBuf {
-    let mut canonicalized = PathBuf::new();
-    for leg in path {
-        if leg == ".." {
-            if let Some(parent) = canonicalized.parent() {
-                canonicalized = parent.to_owned();
-            }
+) -> Result<Vec<AutocompleteItem>, AutoCompleteError> {
+    let _span = debug_span!("Autocomplete", ?path).entered();
+    let path = canonicalize(path);
+    if let Ok(metadata) = path
+        .metadata()
+        .inspect_err(|error| debug!("Path does not exist, finding best match. Error={error}"))
+    {
+        if metadata.is_dir() {
+            debug!("List directory");
+            return list_folders(prefix, path.parent(), &path, leaf_filter);
         } else {
-            canonicalized.push(leg);
+            debug!("List parent directory");
+            let parent = path.parent().unwrap_or(ROOT.as_ref());
+            return list_folders(prefix, Some(parent), parent, leaf_filter);
         }
     }
-    return canonicalized;
+    return resolve_path(prefix, &path, leaf_filter);
 }
 
 fn list_folders(
     prefix: &Path,
+    parent: Option<&Path>,
     path: &Path,
     leaf_filter: impl Fn(&Metadata) -> bool,
-) -> Result<Vec<String>, AutoCompleteError> {
+) -> Result<Vec<AutocompleteItem>, AutoCompleteError> {
     let mut result = vec![];
-    if let Some(parent) = path.parent() {
-        result.push(parent.to_owned());
+    if let Some(parent) = parent {
+        result.push(PathInfo {
+            path: parent.to_owned(),
+            metadata: parent.metadata().ok(),
+        })
+    }
+    if parent != Some(path) {
+        result.push(PathInfo {
+            path: path.to_owned(),
+            metadata: path.metadata().ok(),
+        });
     }
     for child in path.read_dir().map_err(AutoCompleteError::ListDir)? {
         let Ok(child) = child.map_err(|error| debug!("Error when reading {path:?}: {error}"))
@@ -119,58 +107,34 @@ fn list_folders(
         }
 
         // Check that it is a folder.
-        {
-            let Ok(metadata) = child_path
-                .metadata()
-                .map_err(|error| debug!("Error when getting metadata for {child_path:?}: {error}"))
-            else {
-                continue;
-            };
-            if !leaf_filter(&metadata) {
-                continue;
-            }
+        let Ok(metadata) = child_path
+            .metadata()
+            .map_err(|error| debug!("Error when getting metadata for {child_path:?}: {error}"))
+        else {
+            continue;
+        };
+        if !leaf_filter(&metadata) {
+            continue;
         }
-        result.push(child_path)
+        result.push(PathInfo {
+            path: child_path,
+            metadata: Some(metadata),
+        })
     }
     return Ok(sort_result(prefix, result));
-}
-
-fn sort_result(prefix: &Path, mut result: Vec<impl AsRef<Path>>) -> Vec<String> {
-    if result.len() > MAX_RESULTS {
-        result.sort_by_cached_key(|path| {
-            let age: Option<Duration> = path
-                .as_ref()
-                .metadata()
-                .ok()
-                .and_then(|metadata| metadata.modified().ok())
-                .and_then(|modified| modified.duration_since(SystemTime::UNIX_EPOCH).ok());
-            // Sort youngest first / oldest last or error.
-            Reverse(age.unwrap_or(Duration::ZERO))
-        });
-        result = result.into_iter().take(MAX_RESULTS).collect();
-    }
-
-    let mut result: Vec<String> = result
-        .into_iter()
-        .filter_map(|path| {
-            let path = path.as_ref().strip_prefix(prefix).ok()?;
-            Some(path.to_string_lossy().into_owned())
-        })
-        .collect();
-    result.sort();
-    return result;
 }
 
 fn resolve_path(
     prefix: &Path,
     path: &Path,
-    ends_with_slash: bool,
-    ends_with_slashdot: bool,
     leaf_filter: impl Fn(&Metadata) -> bool,
-) -> Result<Vec<String>, AutoCompleteError> {
+) -> Result<Vec<AutocompleteItem>, AutoCompleteError> {
     let mut result = vec![];
     if let Some(parent) = path.parent() {
-        result.push(parent.to_owned());
+        result.push(PathInfo {
+            path: parent.to_owned(),
+            metadata: parent.metadata().ok(),
+        });
     }
     let ancestors = {
         let mut ancestors = vec![];
@@ -183,11 +147,6 @@ fn resolve_path(
             ancestors.push(ROOT.as_ref());
         } else {
             ancestors.reverse();
-        }
-        if ends_with_slash {
-            ancestors.push("".as_ref());
-        } else if ends_with_slashdot {
-            ancestors.push(".".as_ref());
         }
         ancestors
     };
@@ -202,7 +161,7 @@ fn resolve_path(
 }
 
 fn populate_paths(
-    result: &mut Vec<PathBuf>,
+    result: &mut Vec<PathInfo>,
     accu: PathBuf,
     metadata: Option<Metadata>,
     ancestors: &[&OsStr],
@@ -210,12 +169,12 @@ fn populate_paths(
 ) {
     let [leg, ancestors @ ..] = &ancestors else {
         let metadata = metadata.or_else(|| accu.metadata().ok());
-        if metadata
-            .map(|metadata| leaf_filter(&metadata))
-            .unwrap_or(false)
-        {
+        if metadata.as_ref().map(leaf_filter).unwrap_or(false) {
             debug!("Found matching leaf {accu:?}");
-            result.push(accu);
+            result.push(PathInfo {
+                path: accu,
+                metadata,
+            });
         }
         return;
     };
@@ -273,6 +232,38 @@ fn populate_paths(
     }
 }
 
+fn sort_result(prefix: &Path, mut result: Vec<PathInfo>) -> Vec<AutocompleteItem> {
+    if result.len() > MAX_RESULTS {
+        result.sort_by_key(|path| {
+            let age: Option<Duration> = path
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.modified().ok())
+                .and_then(|modified| modified.duration_since(SystemTime::UNIX_EPOCH).ok());
+            // Sort youngest first / oldest last or error.
+            Reverse(age.unwrap_or(Duration::ZERO))
+        });
+        result = result.into_iter().take(MAX_RESULTS).collect();
+    }
+
+    let mut result: Vec<AutocompleteItem> = result
+        .into_iter()
+        .filter_map(|path_info| {
+            let path = path_info.path.strip_prefix(prefix).ok()?;
+            let path = path.to_string_lossy().into_owned();
+            let is_dir = path_info.metadata.map(|m| m.is_dir()).unwrap_or(false);
+            Some(AutocompleteItem { path, is_dir })
+        })
+        .collect();
+    result.sort_by(|a, b| Ord::cmp(&a.path, &b.path));
+    return result;
+}
+
+struct PathInfo {
+    path: PathBuf,
+    metadata: Option<Metadata>,
+}
+
 #[nameth]
 #[derive(Debug, thiserror::Error)]
 pub enum AutoCompleteError {
@@ -280,21 +271,19 @@ pub enum AutoCompleteError {
     ListDir(std::io::Error),
 }
 
-impl IsHttpError for AutoCompleteError {
-    fn status_code(&self) -> StatusCode {
+impl IsGrpcError for AutoCompleteError {
+    fn code(&self) -> Code {
         match self {
-            AutoCompleteError::ListDir { .. } => StatusCode::NOT_FOUND,
+            Self::ListDir { .. } => Code::NotFound,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
     use std::path::Path;
 
     use fluent_asserter::prelude::*;
-    use nix::NixPath;
     use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;
 
     #[test]
@@ -304,6 +293,7 @@ mod tests {
         assert_that!(&root).ends_with("/terminal");
 
         let autocomplete = call_autocomplete(&root, format!("{root}/src/text_editor"));
+        dbg!(&autocomplete);
         assert_that!(&autocomplete).contains(&"ROOT/src".into());
         assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/autocomplete".into());
         assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/autocomplete.rs".into());
@@ -347,6 +337,7 @@ mod tests {
                 "ROOT/src/text",
                 "ROOT/src/text_editor/autocomplete",
                 "ROOT/src/text_editor/path_selector",
+                "ROOT/src/text_editor/side",
             ]
             .map(Into::into)
             .into(),
@@ -367,84 +358,29 @@ mod tests {
     }
 
     fn call_autocomplete(prefix: &str, path: String) -> Vec<String> {
-        let mut autocomplete = super::autocomplete_path_impl("".as_ref(), path, |_| true).unwrap();
-        autocomplete
-            .iter_mut()
-            .for_each(|p| *p = p.replace(prefix, "ROOT"));
-        return autocomplete;
+        super::autocomplete_path_impl("".as_ref(), Path::new(&path), |_| true)
+            .unwrap()
+            .into_iter()
+            .map(|p| p.path.replace(prefix, "ROOT"))
+            .collect()
     }
 
     fn call_autocomplete_dir(prefix: &str, path: String) -> Vec<String> {
-        let mut autocomplete =
-            super::autocomplete_path_impl("".as_ref(), path, |m| m.is_dir()).unwrap();
-        autocomplete
-            .iter_mut()
-            .for_each(|p| *p = p.replace(prefix, "ROOT"));
-        return autocomplete;
+        super::autocomplete_path_impl("".as_ref(), Path::new(&path), |m| m.is_dir())
+            .unwrap()
+            .into_iter()
+            .map(|p| p.path.replace(prefix, "ROOT"))
+            .collect()
     }
 
     fn call_autocomplete_files(prefix: &str, path: String) -> Vec<String> {
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-        let mut autocomplete =
-            super::autocomplete_path_impl(format!("{root}/src").as_ref(), path, |m| m.is_file())
-                .unwrap();
-        autocomplete
-            .iter_mut()
-            .for_each(|p| *p = p.replace(prefix, "ROOT"));
-        return autocomplete;
-    }
-
-    #[test]
-    fn canonicalize() {
-        assert_that!(
-            super::canonicalize("/a/b".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["/", "a", "b"].map(Cow::from).into());
-        assert_that!(
-            super::canonicalize("a/b".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["a", "b"].map(Cow::from).into());
-        assert_that!(
-            super::canonicalize("/a/b/.".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["/", "a", "b"].map(Cow::from).into());
-        assert_that!(
-            super::canonicalize("/a/./b/.".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["/", "a", "b"].map(Cow::from).into());
-        assert_that!(
-            super::canonicalize("/a/./b/../c/.".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["/", "a", "c"].map(Cow::from).into());
-        assert_that!(
-            super::canonicalize("/a/../../b/./c/.".as_ref())
-                .iter()
-                .map(|leg| leg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-        .is_equal_to(["/", "b", "c"].map(Cow::from).into());
-    }
-
-    #[test]
-    fn is_empty_behavior() {
-        let empty: &Path = "".as_ref();
-        assert_that!(empty.is_empty()).is_true();
-        let slash: &Path = "/".as_ref();
-        assert_that!(slash.is_empty()).is_false();
+        super::autocomplete_path_impl(format!("{root}/src").as_ref(), Path::new(&path), |m| {
+            m.is_file()
+        })
+        .unwrap()
+        .iter_mut()
+        .map(|p| p.path.replace(prefix, "ROOT"))
+        .collect()
     }
 }

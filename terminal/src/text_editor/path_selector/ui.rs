@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use std::sync::OnceLock;
 
-use nameth::NamedEnumValues;
+use nameth::NamedEnumValues as _;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
@@ -13,31 +13,47 @@ use web_sys::HtmlInputElement;
 
 use super::PathSelector;
 use crate::assets::icons;
+use crate::text_editor::autocomplete::AutocompleteItem;
 use crate::text_editor::autocomplete::ui::do_autocomplete;
 use crate::text_editor::autocomplete::ui::show_autocomplete;
 use crate::text_editor::autocomplete::ui::start_autocomplete;
 use crate::text_editor::autocomplete::ui::stop_autocomplete;
 use crate::text_editor::style;
+use crate::text_editor::ui::TextEditor;
 
-pub fn base_path_selector(base_path: XSignal<Arc<str>>) -> XElement {
-    path_selector_impll(PathSelector::BasePath, None, base_path)
-}
+impl TextEditor {
+    pub fn base_path_selector(self: &Arc<Self>) -> XElement {
+        path_selector_impll(
+            self.clone(),
+            PathSelector::BasePath,
+            None,
+            self.base_path.clone(),
+        )
+    }
 
-pub fn file_path_selector(base_path: XSignal<Arc<str>>, file_path: XSignal<Arc<str>>) -> XElement {
-    path_selector_impll(PathSelector::FilePath, Some(base_path), file_path)
+    pub fn file_path_selector(self: &Arc<Self>) -> XElement {
+        path_selector_impll(
+            self.clone(),
+            PathSelector::FilePath,
+            Some(self.base_path.clone()),
+            self.file_path.clone(),
+        )
+    }
 }
 
 #[autoclone]
 #[html]
 #[template(tag = div)]
 fn path_selector_impll(
+    text_editor: Arc<TextEditor>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     path: XSignal<Arc<str>>,
 ) -> XElement {
-    let autocomplete: XSignal<Option<Vec<String>>> = XSignal::new(kind.name(), None);
+    let autocomplete: XSignal<Option<Vec<AutocompleteItem>>> = XSignal::new(kind.name(), None);
     let input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>> = OnceLock::new().into();
     let do_autocomplete = Ptr::new(do_autocomplete(
+        text_editor.clone(),
         input.clone(),
         autocomplete.clone(),
         kind,
@@ -56,19 +72,25 @@ fn path_selector_impll(
             class = style::path_selector_widget,
             input(
                 before_render = move |element| {
-                    autoclone!(input);
+                    autoclone!(input, path);
                     let _ = &onchange;
                     let element = element
                         .dyn_into::<HtmlInputElement>()
                         .or_throw("Not an HtmlInputElement");
+                    element.set_value(&path.get_value_untracked());
                     input
                         .set(element.into())
                         .or_throw("Input element already set");
                 },
                 r#type = "text",
                 class = style::path_selector_field,
-                focus =
-                    start_autocomplete(kind, prefix.clone(), input.clone(), autocomplete.clone()),
+                focus = start_autocomplete(
+                    text_editor.clone(),
+                    kind,
+                    prefix.clone(),
+                    input.clone(),
+                    autocomplete.clone(),
+                ),
                 blur = stop_autocomplete(path.clone(), input.clone(), autocomplete.clone()),
                 keydown = move |_| {
                     autoclone!(do_autocomplete);
@@ -80,6 +102,7 @@ fn path_selector_impll(
                 },
             ),
             show_autocomplete(
+                text_editor,
                 kind,
                 prefix.clone(),
                 input,

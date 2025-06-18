@@ -3,12 +3,13 @@ use std::sync::Arc;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::prelude::OrElseLog as _;
-use tracing::Instrument as _;
-use tracing::debug;
-use tracing::info_span;
-use tracing::warn;
+use terrazzo::prelude::diagnostics;
 use web_sys::Response;
 
+use self::diagnostics::Instrument as _;
+use self::diagnostics::debug;
+use self::diagnostics::info_span;
+use self::diagnostics::warn;
 use super::DISPATCHERS;
 use crate::api::TerminalAddress;
 use crate::api::client::request::BASE_URL;

@@ -15,4 +15,4 @@ impl std::fmt::Display for App {
     }
 }
 
-make_state!(state, super::App);
+make_state!(state, App);

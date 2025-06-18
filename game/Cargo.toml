@@ -16,14 +16,14 @@ required-features = ["server"]
 
 [dependencies]
 stylance = { workspace = true, optional = true }
-terrazzo = { workspace = true }
+terrazzo = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
 tower-http = { workspace = true, optional = true, features = [
     "fs",
     "sensitive-headers",
     "trace",
 ] }
-tracing = { workspace = true }
+tracing = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = [
     "env-filter",
 ] }
@@ -40,16 +40,23 @@ client = ["dep:stylance", "dep:wasm-bindgen", "dep:web-sys", "terrazzo/client"]
 server = [
     "dep:tokio",
     "dep:tower-http",
+    "dep:tracing",
     "dep:tracing-subscriber",
     "terrazzo/server",
 ]
-max_level_debug = ["tracing/max_level_debug", "tracing/release_max_level_debug"]
-max_level_info = [
-    "tracing/max_level_info",
-    "tracing/release_max_level_info",
-    "concise_traces",
+max_level_debug = [
+    "terrazzo?/max_client_level_debug",
+    "tracing?/max_level_debug",
+    "tracing?/release_max_level_debug",
 ]
-concise_traces = ["terrazzo/concise_traces"]
+max_level_info = [
+    "terrazzo?/max_client_level_info",
+    "tracing?/max_level_info",
+    "tracing?/release_max_level_info",
+    "concise-traces",
+]
+concise-traces = ["terrazzo?/concise-traces"]
+diagnostics = ["terrazzo?/diagnostics"]
 
 [package.metadata.stylance]
 output_file = "./target/css/game.scss"

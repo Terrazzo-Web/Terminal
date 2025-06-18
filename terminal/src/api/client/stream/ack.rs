@@ -4,12 +4,13 @@ use futures::channel::oneshot;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::prelude::Ptr;
-use tracing::debug;
-use tracing::warn;
-use tracing_futures::Instrument;
+use terrazzo::prelude::diagnostics;
+use terrazzo::prelude::diagnostics::Instrument as _;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::Response;
 
+use self::diagnostics::debug;
+use self::diagnostics::warn;
 use crate::api::AckRequest;
 use crate::api::STREAMING_WINDOW_SIZE;
 use crate::api::TerminalAddress;
