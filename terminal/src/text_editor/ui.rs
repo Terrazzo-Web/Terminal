@@ -15,6 +15,7 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::debug;
 use self::diagnostics::warn;
 use super::fsio::load_file;
 use super::state;
@@ -104,7 +105,7 @@ fn editor_body(
     tag(
         class = super::style::body,
         show_side_view(text_editor.clone(), text_editor.side_view.clone()),
-        div(key = key, style = "height: 100%;", body),
+        div(key = key, class = super::style::editor_container, body),
     )
 }
 
@@ -121,6 +122,7 @@ impl TextEditor {
                 *consumers.lock().unwrap() = registrations
                     .append(this.save_on_change(this.base_path.clone(), state::base_path::set))
                     .append(this.save_on_change(this.file_path.clone(), state::file_path::set))
+                    .append(this.save_on_change(this.side_view.clone(), state::side_view::set))
                     .append(this.base_path.add_subscriber(move |_base_path| {
                         autoclone!(this);
                         this.side_view.force(Arc::default());
@@ -131,9 +133,10 @@ impl TextEditor {
                     }))
             });
             let remote: Remote = this.remote.clone();
-            let (get_base_path, get_file_path) = futures::future::join(
+            let (get_side_view, get_base_path, get_file_path) = futures::future::join3(
+                state::side_view::get(remote.clone()),
                 state::base_path::get(remote.clone()),
-                state::file_path::get(remote),
+                state::file_path::get(remote.clone()),
             )
             .await;
             if get_base_path.is_err() && get_file_path.is_err() {
@@ -146,6 +149,11 @@ impl TextEditor {
             if let Ok(p) = get_file_path {
                 this.file_path.set(p);
             }
+            if let Ok(side_view) = get_side_view {
+                debug!("Setting side_view to {side_view:?}");
+                this.side_view.force(side_view);
+            }
+
             drop(batch);
             drop(registrations);
         });
@@ -194,11 +202,14 @@ impl TextEditor {
     }
 
     #[autoclone]
-    fn save_on_change(
+    fn save_on_change<T>(
         &self,
-        path: XSignal<Arc<str>>,
-        setter: impl AsyncFn(Remote, Arc<str>) -> Result<(), ServerFnError> + Copy + 'static,
-    ) -> Consumers {
+        path: XSignal<Arc<T>>,
+        setter: impl AsyncFn(Remote, Arc<T>) -> Result<(), ServerFnError> + Copy + 'static,
+    ) -> Consumers
+    where
+        T: ?Sized + 'static,
+    {
         let remote = self.remote.clone();
         path.add_subscriber(move |p| {
             spawn_local(async move {

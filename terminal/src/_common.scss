@@ -82,7 +82,7 @@ body {
 @mixin trz-menu {
     position: absolute;
     left: 0;
-    top: 25px;
+    top: calc(var(--header-height) - 5px);
 
     list-style: none;
     margin: 0;
@@ -103,6 +103,14 @@ body {
         padding: var(--padding);
         margin: 0px;
 
-        @include nowrap;
+        white-space: nowrap;
     }
+}
+
+@mixin trz-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    --header-height: 30px;
+    height: var(--header-height);
 }
