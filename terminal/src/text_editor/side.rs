@@ -6,7 +6,7 @@ use crate::text_editor::fsio::FileMetadata;
 pub mod mutation;
 pub mod ui;
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "server", allow(dead_code))]
 pub enum SideViewNode {
     Folder {

@@ -1,0 +1,47 @@
+div.side {
+    flex: 0 0 200px;
+    height: 100%;
+    overflow: auto;
+    margin: 5px;
+
+    div.folder>span,
+    div.file>span {
+        &:hover {
+            cursor: pointer;
+            background-color: var(--link-color);
+        }
+    }
+
+    ul {
+        list-style: none;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+
+        li {
+            position: relative;
+            padding-left: 16px;
+            margin-bottom: 5px;
+
+            &::before {
+                content: "";
+                position: absolute;
+                left: 0;
+                top: 5px;
+                width: 10px;
+                height: 10px;
+                background-size: contain;
+                background-repeat: no-repeat;
+                filter: invert(1);
+            }
+        }
+    }
+
+    li.folder::before {
+        background-image: url('/static/icons/folder2-open.svg');
+    }
+
+    li.file::before {
+        background-image: url('/static/icons/file-earmark-text.svg');
+    }
+}
