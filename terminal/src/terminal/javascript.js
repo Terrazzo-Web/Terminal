@@ -3,11 +3,11 @@ class TerminalJs {
     fitAddon;
     webLinksAddon;
     constructor() {
-        this.terminal = new Terminal({
+        this.terminal = new JsDeps.Terminal({
             convertEol: true,
         });
-        this.fitAddon = new FitAddon.FitAddon();
-        this.webLinksAddon = new WebLinksAddon.WebLinksAddon();
+        this.fitAddon = new JsDeps.FitAddon();
+        this.webLinksAddon = new JsDeps.WebLinksAddon();
     }
     open(node) {
         this.terminal.loadAddon(this.fitAddon);

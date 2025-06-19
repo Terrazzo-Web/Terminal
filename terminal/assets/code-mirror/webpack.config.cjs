@@ -4,9 +4,9 @@ module.exports = {
     mode: 'production',
     entry: './src/index.js',
     output: {
-        filename: 'codemirror.js',
+        filename: 'jsdeps.js',
         path: path.resolve(__dirname, 'dist'),
-        library: 'CodeMirror',
+        library: 'JsDeps',
         libraryTarget: 'window',
     },
     resolve: {
