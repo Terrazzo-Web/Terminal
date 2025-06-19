@@ -9,6 +9,7 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 
 use crate::assets::icons;
+use crate::text_editor::side;
 use crate::text_editor::side::SideViewList;
 use crate::text_editor::side::SideViewNode;
 use crate::text_editor::ui::TextEditor;
@@ -21,8 +22,6 @@ pub fn show_side_view(
     text_editor: Arc<TextEditor>,
     #[signal] side_view: Arc<SideViewList>,
 ) -> XElement {
-    let _ = icons::file(); // Referenced in CSS
-    let _ = icons::folder(); // Referenced in CSS
     tag(
         class = style::side,
         show_side_view_list(&text_editor, "".as_ref(), side_view),
@@ -48,44 +47,91 @@ fn show_side_view_node(
     path: &Path,
     side_view: Arc<SideViewNode>,
 ) -> XElement {
-    match &*side_view {
+    let path: Arc<Path> = match &*side_view {
+        SideViewNode::Folder { name, .. } => Arc::from(path.join(name.as_ref())),
+        SideViewNode::File(file_metadata) => {
+            let name = &file_metadata.name;
+            Arc::from(path.join(name.as_ref()))
+        }
+    };
+    li(match &*side_view {
         SideViewNode::Folder { name, children } => {
-            let path = path.join(name.as_ref());
             let file_path_signal = text_editor.file_path.clone();
-            li(
-                class = style::folder,
+            div(
+                key = "folder",
                 div(
-                    key = "folder",
                     class = style::folder,
-                    span(
-                        "{name}",
-                        click = move |_| {
-                            autoclone!(path);
-                            file_path_signal.set(path.to_string_lossy().to_string())
+                    img(src = icons::folder(), class = style::icon),
+                    div(
+                        class %= move |t| {
+                            autoclone!(text_editor, path);
+                            selected_item(t, text_editor.file_path.clone(), path.clone())
                         },
+                        span(
+                            "{name}",
+                            click = move |_| {
+                                autoclone!(path);
+                                file_path_signal.set(path.to_string_lossy().to_string())
+                            },
+                        ),
                     ),
+                    close_icon(&text_editor, &path),
+                ),
+                div(
+                    class = style::sub_folder,
                     show_side_view_list(text_editor, &path, children.clone()),
                 ),
             )
         }
         SideViewNode::File(file_metadata) => {
             let name = &file_metadata.name;
-            let path = path.join(name.as_ref());
             let file_path_signal = text_editor.file_path.clone();
-            li(
+            div(
+                key = "file",
                 class = style::file,
+                img(src = icons::file(), class = style::icon),
                 div(
-                    key = "file",
-                    class = style::file,
-                    span(
-                        "{name}",
-                        click = move |_| {
-                            autoclone!(path);
-                            file_path_signal.set(path.to_string_lossy().to_string())
-                        },
-                    ),
+                    class %= move |t| {
+                        autoclone!(text_editor, path);
+                        selected_item(t, text_editor.file_path.clone(), path.clone())
+                    },
+                    span("{name}"),
+                    click = move |_| {
+                        autoclone!(path);
+                        file_path_signal.set(path.to_string_lossy().to_string())
+                    },
                 ),
+                close_icon(&text_editor, &path),
             )
         }
+    })
+}
+
+#[template]
+pub fn selected_item(#[signal] file_path: Arc<str>, path: Arc<Path>) -> XAttributeValue {
+    let file_path: &Path = (*file_path).as_ref();
+    if file_path == path.as_ref() {
+        style::selected_label
+    } else {
+        style::label
     }
+}
+
+#[autoclone]
+#[html]
+fn close_icon(text_editor: &Arc<TextEditor>, path: &Arc<Path>) -> XElement {
+    img(
+        src = icons::close_tab(),
+        class = format!("{} {}", style::icon, style::close,),
+        click = move |_ev| {
+            autoclone!(text_editor, path);
+            text_editor.side_view.update(|side_view| {
+                let path: Vec<Arc<str>> = path
+                    .iter()
+                    .map(|leg| leg.to_string_lossy().to_string().into())
+                    .collect();
+                side::mutation::remove_file(side_view.clone(), &path).ok()
+            });
+        },
+    )
 }

@@ -3,14 +3,7 @@ div.side {
     height: 100%;
     overflow: auto;
     margin: 5px;
-
-    div.folder>span,
-    div.file>span {
-        &:hover {
-            cursor: pointer;
-            background-color: var(--link-color);
-        }
-    }
+    background-color: var(--background-color);
 
     ul {
         list-style: none;
@@ -19,29 +12,55 @@ div.side {
         margin: 0;
 
         li {
-            position: relative;
-            padding-left: 16px;
-            margin-bottom: 5px;
-
-            &::before {
-                content: "";
-                position: absolute;
-                left: 0;
-                top: 5px;
-                width: 10px;
-                height: 10px;
-                background-size: contain;
-                background-repeat: no-repeat;
-                filter: invert(1);
-            }
+            padding: 0;
+            margin: 0;
         }
     }
 
-    li.folder::before {
-        background-image: url('/static/icons/folder2-open.svg');
+    div.folder,
+    div.file {
+        display: flex;
+        flex-direction: row;
+
+        img.close {
+            @include trz-icon($display: none);
+            visibility: hidden;
+        }
+
+        &:hover img.close {
+            display: block;
+            visibility: visible;
+
+            &:hover {
+                background-color: var(--link-color);
+                filter: invert(0);
+                cursor: pointer;
+            }
+        }
+
     }
 
-    li.file::before {
-        background-image: url('/static/icons/file-earmark-text.svg');
+    div.label,
+    div.selected_label {
+        width: 100%;
+        margin-bottom: 5px;
+
+        >span:hover {
+            cursor: pointer;
+            background-color: var(--link-color);
+        }
+    }
+
+    div.selected_label>span {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    div.sub-folder {
+        margin-left: 15px;
+    }
+
+    img.icon {
+        @include trz-icon;
+        margin-right: var(--padding);
     }
 }

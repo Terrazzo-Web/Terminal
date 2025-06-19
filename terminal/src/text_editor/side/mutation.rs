@@ -63,7 +63,6 @@ pub fn add_file(
     }
 }
 
-#[allow(unused)]
 pub fn remove_file(
     tree: Arc<SideViewList>,
     relative_path: &[Arc<str>],
