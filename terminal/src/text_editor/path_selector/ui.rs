@@ -28,6 +28,7 @@ impl TextEditor {
             PathSelector::BasePath,
             None,
             self.base_path.clone(),
+            self.force_edit_path.clone(),
         )
     }
 
@@ -37,14 +38,36 @@ impl TextEditor {
             PathSelector::FilePath,
             Some(self.base_path.clone()),
             self.file_path.clone(),
+            XSignal::new("unused-force-edit-path", false),
         )
     }
 }
 
-#[autoclone]
 #[html]
 #[template(tag = div)]
 fn path_selector_impll(
+    text_editor: Arc<TextEditor>,
+    kind: PathSelector,
+    prefix: Option<XSignal<Arc<str>>>,
+    path: XSignal<Arc<str>>,
+    #[signal] mut force_edit_path: bool,
+) -> XElement {
+    let show_input = kind == PathSelector::FilePath || force_edit_path;
+    tag(
+        class = style::path_selector,
+        style = (!show_input).then_some("width: auto;"),
+        img(class = style::path_selector_icon, src = kind.icon()),
+        if show_input {
+            path_selector_input(text_editor, kind, prefix, path)
+        } else {
+            path_selector_display(path, force_edit_path_mut)
+        },
+    )
+}
+
+#[autoclone]
+#[html]
+fn path_selector_input(
     text_editor: Arc<TextEditor>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
@@ -65,51 +88,65 @@ fn path_selector_impll(
             input.set_value(&new);
         }
     });
-    tag(
-        class = style::path_selector,
-        img(class = style::path_selector_icon, src = kind.icon()),
-        div(
-            class = style::path_selector_widget,
-            input(
-                before_render = move |element| {
-                    autoclone!(input, path);
-                    let _ = &onchange;
-                    let element = element
-                        .dyn_into::<HtmlInputElement>()
-                        .or_throw("Not an HtmlInputElement");
-                    element.set_value(&path.get_value_untracked());
-                    input
-                        .set(element.into())
-                        .or_throw("Input element already set");
-                },
-                r#type = "text",
-                class = style::path_selector_field,
-                focus = start_autocomplete(
-                    text_editor.clone(),
-                    kind,
-                    prefix.clone(),
-                    input.clone(),
-                    autocomplete.clone(),
-                ),
-                blur = stop_autocomplete(path.clone(), input.clone(), autocomplete.clone()),
-                keydown = move |_| {
-                    autoclone!(do_autocomplete);
-                    do_autocomplete(())
-                },
-                click = move |_| {
-                    autoclone!(do_autocomplete);
-                    do_autocomplete(())
-                },
-            ),
-            show_autocomplete(
-                text_editor,
+    div(
+        class = style::path_selector_widget,
+        key = "input",
+        input(
+            before_render = move |element| {
+                autoclone!(input, path);
+                let _ = &onchange;
+                let element = element
+                    .dyn_into::<HtmlInputElement>()
+                    .or_throw("Not an HtmlInputElement");
+                element.set_value(&path.get_value_untracked());
+                input
+                    .set(element.into())
+                    .or_throw("Input element already set");
+            },
+            r#type = "text",
+            class = style::path_selector_field,
+            focus = start_autocomplete(
+                text_editor.clone(),
                 kind,
                 prefix.clone(),
-                input,
+                input.clone(),
                 autocomplete.clone(),
-                autocomplete,
-                path,
             ),
+            blur = stop_autocomplete(path.clone(), input.clone(), autocomplete.clone()),
+            keydown = move |_| {
+                autoclone!(do_autocomplete);
+                do_autocomplete(())
+            },
+            click = move |_| {
+                autoclone!(do_autocomplete);
+                do_autocomplete(())
+            },
+        ),
+        show_autocomplete(
+            text_editor,
+            kind,
+            prefix.clone(),
+            input,
+            autocomplete.clone(),
+            autocomplete,
+            path,
+        ),
+    )
+}
+
+#[html]
+#[template(tag = div)]
+fn path_selector_display(
+    #[signal] path: Arc<str>,
+    force_edit_path_mut: MutableSignal<bool>,
+) -> XElement {
+    div(
+        class = style::path_selector_widget,
+        key = "display",
+        span(
+            class = style::path_selector_field,
+            dblclick = move |_ev| force_edit_path_mut.set(true),
+            "{path}",
         ),
     )
 }

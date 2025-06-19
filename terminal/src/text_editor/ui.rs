@@ -51,6 +51,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
         remote,
         base_path: XSignal::new("base-path", Arc::default()),
         file_path: XSignal::new("file-path", Arc::default()),
+        force_edit_path: XSignal::new("force-edit-path", false),
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
         side_view,
@@ -139,9 +140,6 @@ impl TextEditor {
                 state::file_path::get(remote.clone()),
             )
             .await;
-            if get_base_path.is_err() && get_file_path.is_err() {
-                return;
-            }
             let batch = Batch::use_batch(Self::RESTORE_PATHS);
             if let Ok(p) = get_base_path {
                 this.base_path.set(p);
@@ -153,6 +151,10 @@ impl TextEditor {
                 debug!("Setting side_view to {side_view:?}");
                 this.side_view.force(side_view);
             }
+            this.force_edit_path.set(
+                this.base_path.get_value_untracked().is_empty()
+                    || this.file_path.get_value_untracked().is_empty(),
+            );
 
             drop(batch);
             drop(registrations);
@@ -186,6 +188,7 @@ impl TextEditor {
                             super::side::SideViewNode::File(metadata.clone()),
                         ))
                     });
+                    this.force_edit_path.set(false);
                 }
 
                 if let Some(data) = data {
@@ -226,6 +229,7 @@ pub(super) struct TextEditor {
     pub remote: Remote,
     pub base_path: XSignal<Arc<str>>,
     pub file_path: XSignal<Arc<str>>,
+    pub force_edit_path: XSignal<bool>,
     pub editor_state: XSignal<Option<EditorState>>,
     pub synchronized_state: XSignal<SynchronizedState>,
     pub side_view: XSignal<Arc<SideViewList>>,
