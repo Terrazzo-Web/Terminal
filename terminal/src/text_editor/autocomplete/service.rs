@@ -216,7 +216,7 @@ fn populate_paths(
                 Some(metadata),
                 ancestors,
                 leaf_filter,
-                &options,
+                options,
             );
             return;
         }
@@ -254,7 +254,7 @@ fn populate_paths(
         };
         if child_name.to_lowercase().contains(&leg_lc) {
             debug!("Child '{child_name}' matches '{leg}'");
-            populate_paths(result, child.path(), None, ancestors, leaf_filter, &options);
+            populate_paths(result, child.path(), None, ancestors, leaf_filter, options);
         } else {
             debug!("Child '{child_name}' does not match '{leg}'");
         }
