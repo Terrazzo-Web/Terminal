@@ -10,7 +10,7 @@ pub fn install_assets() {
         .mime(terrazzo::mime::TEXT_HTML_UTF_8.as_ref())
         .install();
     declare_asset!("/assets/bootstrap.js").install();
-    declare_asset!("/assets/code-mirror/dist/jsdeps.js").install();
+    declare_asset!("/assets/jsdeps/dist/jsdeps.js").install();
     declare_asset!("/assets/images/favicon.ico").install();
     declare_scss_asset!("target/css/terrazzo-terminal.scss").install();
     install_icons();
@@ -45,7 +45,7 @@ fn install_icons() {
 }
 
 fn install_xterm() {
-    declare_asset!("/assets/code-mirror/node_modules/@xterm/xterm/css/xterm.css").install();
+    declare_asset!("/assets/jsdeps/node_modules/@xterm/xterm/css/xterm.css").install();
 }
 
 fn install_wasm() {
