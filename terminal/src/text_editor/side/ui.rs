@@ -70,7 +70,7 @@ fn show_side_view_node(
                             },
                         ),
                     ),
-                    close_icon(&text_editor, &path),
+                    close_icon(text_editor, &path),
                 ),
                 div(
                     class = style::sub_folder,
@@ -96,7 +96,7 @@ fn show_side_view_node(
                         file_path_signal.set(path.to_string_lossy().to_string())
                     },
                 ),
-                close_icon(&text_editor, &path),
+                close_icon(text_editor, &path),
             )
         }
     })

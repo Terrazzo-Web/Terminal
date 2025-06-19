@@ -91,7 +91,7 @@ fn editor_body(
 }
 
 #[template(tag = div, key = {
-    static NEXT: AtomicI32 = AtomicI32::new(1);  
+    static NEXT: AtomicI32 = AtomicI32::new(1);
     format!("editor-{}", NEXT.fetch_add(1, SeqCst))
 })]
 #[html]
