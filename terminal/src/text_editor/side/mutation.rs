@@ -120,12 +120,15 @@ pub fn remove_file(
 #[derive(thiserror::Error, Debug, serde::Serialize, serde::Deserialize)]
 pub enum RemoveFileError {
     #[error("[{n}] File can't be a child of file {0}", n = self.name())]
+    #[cfg_attr(not(debug_assertions), serde(rename = "E"))]
     ExpectedFolder(Arc<str>),
 
     #[error("[{n}] Parent folder does not exist: {0}", n = self.name())]
+    #[cfg_attr(not(debug_assertions), serde(rename = "P"))]
     ParentNotFound(Arc<str>),
 
     #[error("[{n}] The file was not found", n = self.name())]
+    #[cfg_attr(not(debug_assertions), serde(rename = "F"))]
     FileNotFound,
 }
 
