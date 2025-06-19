@@ -11,8 +11,11 @@ use crate::text_editor::path_selector::PathSelector;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AutoCompletePathRequest {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "k"))]
     pub kind: PathSelector,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "p"))]
     pub prefix: Arc<str>,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "i"))]
     pub input: String,
 }
 

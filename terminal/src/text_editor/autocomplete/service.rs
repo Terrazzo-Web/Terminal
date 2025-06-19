@@ -32,6 +32,10 @@ pub fn autocomplete_path(
 ) -> Result<Vec<AutocompleteItem>, GrpcError<AutoCompleteError>> {
     let prefix = prefix.trim();
     let input = input.trim();
+    let options = Options {
+        show_hidden_files: input.ends_with('.'),
+        ends_with_slash: input.trim_end_matches('.').ends_with('/'),
+    };
     let path = if kind == PathSelector::BasePath && input.is_empty() {
         std::env::home_dir().unwrap_or_else(|| Path::new(ROOT).to_owned())
     } else if Path::new(prefix).is_absolute() {
@@ -39,14 +43,24 @@ pub fn autocomplete_path(
     } else {
         concat_base_file_path(format!("{ROOT}{prefix}"), input)
     };
-    return Ok(autocomplete_path_impl(prefix.as_ref(), &path, |m| {
-        kind.accept(m)
-    })?);
+    return Ok(autocomplete_path_impl(
+        prefix.as_ref(),
+        &path,
+        options,
+        |m| kind.accept(m),
+    )?);
+}
+
+#[derive(Debug, Default)]
+struct Options {
+    show_hidden_files: bool,
+    ends_with_slash: bool,
 }
 
 fn autocomplete_path_impl(
     prefix: &Path,
     path: &Path,
+    options: Options,
     leaf_filter: impl Fn(&Metadata) -> bool,
 ) -> Result<Vec<AutocompleteItem>, AutoCompleteError> {
     let _span = debug_span!("Autocomplete", ?path).entered();
@@ -64,7 +78,7 @@ fn autocomplete_path_impl(
             return list_folders(prefix, Some(parent), parent, leaf_filter);
         }
     }
-    return resolve_path(prefix, &path, leaf_filter);
+    return resolve_path(prefix, &path, options, leaf_filter);
 }
 
 fn list_folders(
@@ -127,6 +141,7 @@ fn list_folders(
 fn resolve_path(
     prefix: &Path,
     path: &Path,
+    options: Options,
     leaf_filter: impl Fn(&Metadata) -> bool,
 ) -> Result<Vec<AutocompleteItem>, AutoCompleteError> {
     let mut result = vec![];
@@ -148,6 +163,11 @@ fn resolve_path(
         } else {
             ancestors.reverse();
         }
+        if options.show_hidden_files {
+            ancestors.push(".".as_ref());
+        } else if options.ends_with_slash {
+            ancestors.push("".as_ref());
+        }
         ancestors
     };
     populate_paths(
@@ -156,6 +176,7 @@ fn resolve_path(
         None,
         &ancestors,
         &leaf_filter,
+        &options,
     );
     Ok(sort_result(prefix, result))
 }
@@ -166,6 +187,7 @@ fn populate_paths(
     metadata: Option<Metadata>,
     ancestors: &[&OsStr],
     leaf_filter: &impl Fn(&Metadata) -> bool,
+    options: &Options,
 ) {
     let [leg, ancestors @ ..] = &ancestors else {
         let metadata = metadata.or_else(|| accu.metadata().ok());
@@ -188,7 +210,14 @@ fn populate_paths(
         child_accu.push(leg);
         if let Ok(metadata) = child_accu.metadata() {
             debug!("Exact match {child_accu:?}");
-            populate_paths(result, child_accu, Some(metadata), ancestors, leaf_filter);
+            populate_paths(
+                result,
+                child_accu,
+                Some(metadata),
+                ancestors,
+                leaf_filter,
+                options,
+            );
             return;
         }
     }
@@ -214,7 +243,7 @@ fn populate_paths(
             }
 
             // Only match hidden files if leg starts with '.'
-            if !leg.starts_with('.') {
+            if !options.show_hidden_files && !leg.starts_with('.') {
                 continue;
             }
         }
@@ -225,7 +254,7 @@ fn populate_paths(
         };
         if child_name.to_lowercase().contains(&leg_lc) {
             debug!("Child '{child_name}' matches '{leg}'");
-            populate_paths(result, child.path(), None, ancestors, leaf_filter);
+            populate_paths(result, child.path(), None, ancestors, leaf_filter, options);
         } else {
             debug!("Child '{child_name}' does not match '{leg}'");
         }
@@ -285,6 +314,8 @@ mod tests {
 
     use fluent_asserter::prelude::*;
     use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;
+
+    use super::Options;
 
     #[test]
     fn exact_match() {
@@ -358,7 +389,7 @@ mod tests {
     }
 
     fn call_autocomplete(prefix: &str, path: String) -> Vec<String> {
-        super::autocomplete_path_impl("".as_ref(), Path::new(&path), |_| true)
+        super::autocomplete_path_impl("".as_ref(), Path::new(&path), Options::default(), |_| true)
             .unwrap()
             .into_iter()
             .map(|p| p.path.replace(prefix, "ROOT"))
@@ -366,18 +397,23 @@ mod tests {
     }
 
     fn call_autocomplete_dir(prefix: &str, path: String) -> Vec<String> {
-        super::autocomplete_path_impl("".as_ref(), Path::new(&path), |m| m.is_dir())
-            .unwrap()
-            .into_iter()
-            .map(|p| p.path.replace(prefix, "ROOT"))
-            .collect()
+        super::autocomplete_path_impl("".as_ref(), Path::new(&path), Options::default(), |m| {
+            m.is_dir()
+        })
+        .unwrap()
+        .into_iter()
+        .map(|p| p.path.replace(prefix, "ROOT"))
+        .collect()
     }
 
     fn call_autocomplete_files(prefix: &str, path: String) -> Vec<String> {
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-        super::autocomplete_path_impl(format!("{root}/src").as_ref(), Path::new(&path), |m| {
-            m.is_file()
-        })
+        super::autocomplete_path_impl(
+            format!("{root}/src").as_ref(),
+            Path::new(&path),
+            Options::default(),
+            |m| m.is_file(),
+        )
         .unwrap()
         .iter_mut()
         .map(|p| p.path.replace(prefix, "ROOT"))

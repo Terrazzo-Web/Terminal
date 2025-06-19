@@ -28,19 +28,25 @@ pub const STREAMING_WINDOW_SIZE: usize = 200 * 1000;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Size {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "r"))]
     pub rows: i32,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "c"))]
     pub cols: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Chunk {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "t"))]
     terminal_id: TerminalId,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "d"))]
     data: Option<Vec<u8>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TerminalAddress {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "t"))]
     pub id: TerminalId,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "a"))]
     pub via: ClientAddress,
 }
 
@@ -56,14 +62,19 @@ mod display_terminal_address {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TerminalDefImpl<T> {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "a"))]
     pub address: TerminalAddress,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "t"))]
     pub title: T,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "o"))]
     pub order: i32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TabTitle<T> {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "t"))]
     pub shell_title: T,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "o"))]
     pub override_title: Option<T>,
 }
 
@@ -81,13 +92,17 @@ pub type TerminalDef = TerminalDefImpl<TabTitle<String>>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RegisterTerminalRequest {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "m"))]
     pub mode: RegisterTerminalMode,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "d"))]
     pub def: TerminalDef,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RegisterTerminalMode {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "C"))]
     Create,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "R"))]
     Reopen,
 }
 
@@ -102,25 +117,34 @@ fn application_json_test() {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WriteRequest<T = TerminalAddress> {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "t"))]
     terminal: T,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "d"))]
     data: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ResizeRequest<T = TerminalAddress> {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "t"))]
     terminal: T,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "s"))]
     size: Size,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "f"))]
     force: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SetTitleRequest<T = TerminalAddress> {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "t"))]
     terminal: T,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "v"))]
     title: TabTitle<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AckRequest<T = TerminalAddress> {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "t"))]
     terminal: T,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "d"))]
     ack: usize,
 }

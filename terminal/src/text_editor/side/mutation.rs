@@ -35,7 +35,7 @@ pub fn add_file(
         [folder_name, rest @ ..] => {
             let children = match tree.get(folder_name) {
                 Some(child) => match &**child {
-                    SideViewNode::Folder { name: _, children } => {
+                    SideViewNode::Folder(children) => {
                         debug!("Adding to folder {folder_name}");
                         children.clone()
                     }
@@ -51,19 +51,12 @@ pub fn add_file(
             };
             let mut new_tree = (*tree).clone();
             let rec = add_file(children, rest, node);
-            new_tree.insert(
-                (*folder_name).clone(),
-                Arc::new(SideViewNode::Folder {
-                    name: folder_name.clone(),
-                    children: rec,
-                }),
-            );
+            new_tree.insert((*folder_name).clone(), Arc::new(SideViewNode::Folder(rec)));
             Arc::new(new_tree)
         }
     }
 }
 
-#[allow(unused)]
 pub fn remove_file(
     tree: Arc<SideViewList>,
     relative_path: &[Arc<str>],
@@ -89,7 +82,7 @@ pub fn remove_file(
         [folder_name, rest @ ..] => {
             let children = match tree.get(folder_name) {
                 Some(child) => match &**child {
-                    SideViewNode::Folder { name: _, children } => {
+                    SideViewNode::Folder(children) => {
                         debug!("Removing from folder {folder_name}");
                         children.clone()
                     }
@@ -107,10 +100,7 @@ pub fn remove_file(
             let new_children = remove_file(children, rest)?;
             new_tree.insert(
                 folder_name.clone(),
-                Arc::new(SideViewNode::Folder {
-                    name: folder_name.clone(),
-                    children: new_children,
-                }),
+                Arc::new(SideViewNode::Folder(new_children)),
             );
             Ok(Arc::new(new_tree))
         }
@@ -121,12 +111,15 @@ pub fn remove_file(
 #[derive(thiserror::Error, Debug, serde::Serialize, serde::Deserialize)]
 pub enum RemoveFileError {
     #[error("[{n}] File can't be a child of file {0}", n = self.name())]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
     ExpectedFolder(Arc<str>),
 
     #[error("[{n}] Parent folder does not exist: {0}", n = self.name())]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "P"))]
     ParentNotFound(Arc<str>),
 
     #[error("[{n}] The file was not found", n = self.name())]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "F"))]
     FileNotFound,
 }
 
@@ -162,19 +155,17 @@ mod tests {
         assert_eq!(
             r#"
 {
-    "a1": Folder {
-        name: "a1",
-        children: {
-            "b1": Folder {
-                name: "b1",
-                children: {
+    "a1": Folder(
+        {
+            "b1": Folder(
+                {
                     "c1.txt": File(
                         "c1.txt",
                     ),
                 },
-            },
+            ),
         },
-    },
+    ),
 }"#
             .trim(),
             format!("{tree:#?}")
@@ -188,12 +179,10 @@ mod tests {
         assert_eq!(
             r#"
 {
-    "a1": Folder {
-        name: "a1",
-        children: {
-            "b1": Folder {
-                name: "b1",
-                children: {
+    "a1": Folder(
+        {
+            "b1": Folder(
+                {
                     "c1.txt": File(
                         "c1.txt",
                     ),
@@ -201,9 +190,9 @@ mod tests {
                         "c2.txt",
                     ),
                 },
-            },
+            ),
         },
-    },
+    ),
 }"#
             .trim(),
             format!("{tree:#?}")
@@ -217,12 +206,10 @@ mod tests {
         assert_eq!(
             r#"
 {
-    "a1": Folder {
-        name: "a1",
-        children: {
-            "b1": Folder {
-                name: "b1",
-                children: {
+    "a1": Folder(
+        {
+            "b1": Folder(
+                {
                     "c1.txt": File(
                         "c1.txt",
                     ),
@@ -230,17 +217,16 @@ mod tests {
                         "c2.txt",
                     ),
                 },
-            },
-            "b2": Folder {
-                name: "b2",
-                children: {
+            ),
+            "b2": Folder(
+                {
                     "c3.txt": File(
                         "c2.txt",
                     ),
                 },
-            },
+            ),
         },
-    },
+    ),
 }"#
             .trim(),
             format!("{tree:#?}")
@@ -255,22 +241,20 @@ mod tests {
         assert_eq!(
             r#"
 {
-    "a1": Folder {
-        name: "a1",
-        children: {
+    "a1": Folder(
+        {
             "b1": File(
                 "b1.txt",
             ),
-            "b2": Folder {
-                name: "b2",
-                children: {
+            "b2": Folder(
+                {
                     "c3.txt": File(
                         "c2.txt",
                     ),
                 },
-            },
+            ),
         },
-    },
+    ),
 }"#
             .trim(),
             format!("{tree:#?}")
@@ -285,27 +269,24 @@ mod tests {
         assert_eq!(
             r#"
 {
-    "a1": Folder {
-        name: "a1",
-        children: {
-            "b1": Folder {
-                name: "b1",
-                children: {
+    "a1": Folder(
+        {
+            "b1": Folder(
+                {
                     "c1.txt": File(
                         "c1.txt",
                     ),
                 },
-            },
-            "b2": Folder {
-                name: "b2",
-                children: {
+            ),
+            "b2": Folder(
+                {
                     "c3.txt": File(
                         "c2.txt",
                     ),
                 },
-            },
+            ),
         },
-    },
+    ),
 }"#
             .trim(),
             format!("{tree:#?}")
@@ -336,19 +317,17 @@ mod tests {
         assert_eq!(
             r#"
 {
-    "a1": Folder {
-        name: "a1",
-        children: {
-            "b1": Folder {
-                name: "b1",
-                children: {
+    "a1": Folder(
+        {
+            "b1": Folder(
+                {
                     "c1.txt": File(
                         "c1.txt",
                     ),
                 },
-            },
+            ),
         },
-    },
+    ),
 }"#
             .trim(),
             format!("{tree:#?}")
@@ -362,12 +341,10 @@ mod tests {
         assert_eq!(
             r#"
 {
-    "a1": Folder {
-        name: "a1",
-        children: {
-            "b1": Folder {
-                name: "b1",
-                children: {
+    "a1": Folder(
+        {
+            "b1": Folder(
+                {
                     "c1.txt": File(
                         "c1.txt",
                     ),
@@ -375,9 +352,9 @@ mod tests {
                         "c2.txt",
                     ),
                 },
-            },
+            ),
         },
-    },
+    ),
 }"#
             .trim(),
             format!("{tree:#?}")
@@ -432,19 +409,17 @@ mod tests {
         assert_eq!(
             r#"
 {
-    "a1": Folder {
-        name: "a1",
-        children: {
-            "b1": Folder {
-                name: "b1",
-                children: {
+    "a1": Folder(
+        {
+            "b1": Folder(
+                {
                     "c1.txt": File(
                         "c1.txt",
                     ),
                 },
-            },
+            ),
         },
-    },
+    ),
 }"#
             .trim(),
             format!("{tree:#?}")
@@ -455,10 +430,9 @@ mod tests {
         assert_eq!(
             r#"
 {
-    "a1": Folder {
-        name: "a1",
-        children: {},
-    },
+    "a1": Folder(
+        {},
+    ),
 }"#
             .trim(),
             format!("{tree:#?}")

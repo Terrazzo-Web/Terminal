@@ -3,7 +3,9 @@ use std::time::Duration;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use server_fn::Http;
 use server_fn::ServerFnError;
+use server_fn::codec::Json;
 use terrazzo::server;
 
 use crate::api::client_address::ClientAddress;
@@ -17,24 +19,36 @@ pub mod ui;
 #[nameth]
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum File {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "D"))]
     TextFile {
         metadata: Arc<FileMetadata>,
         content: Arc<str>,
     },
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "F"))]
     Folder(Arc<Vec<FileMetadata>>),
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
     Error(String),
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct FileMetadata {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "n"))]
     pub name: Arc<str>,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "s"))]
     pub size: Option<u64>,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "d"))]
     pub is_dir: bool,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "ct"))]
     pub created: Option<Duration>,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "at"))]
     pub accessed: Option<Duration>,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "mt"))]
     pub modified: Option<Duration>,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "m"))]
     pub mode: Option<u32>,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "u"))]
     pub user: Option<Arc<str>>,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "g"))]
     pub group: Option<Arc<str>>,
 }
 
@@ -50,7 +64,7 @@ impl std::fmt::Debug for File {
     }
 }
 
-#[server]
+#[server(protocol = Http<Json, Json>)]
 #[nameth]
 pub async fn load_file(
     remote: Option<ClientAddress>,
@@ -68,7 +82,7 @@ pub async fn load_file(
         .await?)
 }
 
-#[server]
+#[server(protocol = Http<Json, Json>)]
 #[nameth]
 async fn store_file_impl(
     remote: Option<ClientAddress>,

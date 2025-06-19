@@ -15,6 +15,7 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::debug;
 use self::diagnostics::warn;
 use super::fsio::load_file;
 use super::state;
@@ -50,6 +51,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
         remote,
         base_path: XSignal::new("base-path", Arc::default()),
         file_path: XSignal::new("file-path", Arc::default()),
+        force_edit_path: XSignal::new("force-edit-path", false),
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
         side_view,
@@ -77,16 +79,28 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
 }
 
 #[html]
-#[template(tag = div)]
 fn editor_body(
+    text_editor: Arc<TextEditor>,
+    editor_state: XSignal<Option<EditorState>>,
+) -> XElement {
+    div(
+        class = super::style::body,
+        show_side_view(text_editor.clone(), text_editor.side_view.clone()),
+        editor_container(text_editor, editor_state),
+    )
+}
+
+#[template(tag = div, key = {
+    static NEXT: AtomicI32 = AtomicI32::new(1);
+    format!("editor-{}", NEXT.fetch_add(1, SeqCst))
+})]
+#[html]
+fn editor_container(
     text_editor: Arc<TextEditor>,
     #[signal] editor_state: Option<EditorState>,
 ) -> XElement {
-    static NEXT: AtomicI32 = AtomicI32::new(1);
-    let key = format!("editor-{}", NEXT.fetch_add(1, SeqCst));
-
     let Some(editor_state) = editor_state else {
-        return tag(class = super::style::body, div(key = key));
+        return tag(class = super::style::editor_container);
     };
 
     let body = match &*editor_state.data {
@@ -101,11 +115,7 @@ fn editor_body(
         File::Error(_error) => todo!(),
     };
 
-    tag(
-        class = super::style::body,
-        show_side_view(text_editor.clone(), text_editor.side_view.clone()),
-        div(key = key, style = "height: 100%;", body),
-    )
+    tag(class = super::style::editor_container, body)
 }
 
 impl TextEditor {
@@ -121,6 +131,7 @@ impl TextEditor {
                 *consumers.lock().unwrap() = registrations
                     .append(this.save_on_change(this.base_path.clone(), state::base_path::set))
                     .append(this.save_on_change(this.file_path.clone(), state::file_path::set))
+                    .append(this.save_on_change(this.side_view.clone(), state::side_view::set))
                     .append(this.base_path.add_subscriber(move |_base_path| {
                         autoclone!(this);
                         this.side_view.force(Arc::default());
@@ -131,14 +142,12 @@ impl TextEditor {
                     }))
             });
             let remote: Remote = this.remote.clone();
-            let (get_base_path, get_file_path) = futures::future::join(
+            let (get_side_view, get_base_path, get_file_path) = futures::future::join3(
+                state::side_view::get(remote.clone()),
                 state::base_path::get(remote.clone()),
-                state::file_path::get(remote),
+                state::file_path::get(remote.clone()),
             )
             .await;
-            if get_base_path.is_err() && get_file_path.is_err() {
-                return;
-            }
             let batch = Batch::use_batch(Self::RESTORE_PATHS);
             if let Ok(p) = get_base_path {
                 this.base_path.set(p);
@@ -146,6 +155,15 @@ impl TextEditor {
             if let Ok(p) = get_file_path {
                 this.file_path.set(p);
             }
+            if let Ok(side_view) = get_side_view {
+                debug!("Setting side_view to {side_view:?}");
+                this.side_view.force(side_view);
+            }
+            this.force_edit_path.set(
+                this.base_path.get_value_untracked().is_empty()
+                    || this.file_path.get_value_untracked().is_empty(),
+            );
+
             drop(batch);
             drop(registrations);
         });
@@ -178,6 +196,7 @@ impl TextEditor {
                             super::side::SideViewNode::File(metadata.clone()),
                         ))
                     });
+                    this.force_edit_path.set(false);
                 }
 
                 if let Some(data) = data {
@@ -194,11 +213,14 @@ impl TextEditor {
     }
 
     #[autoclone]
-    fn save_on_change(
+    fn save_on_change<T>(
         &self,
-        path: XSignal<Arc<str>>,
-        setter: impl AsyncFn(Remote, Arc<str>) -> Result<(), ServerFnError> + Copy + 'static,
-    ) -> Consumers {
+        path: XSignal<Arc<T>>,
+        setter: impl AsyncFn(Remote, Arc<T>) -> Result<(), ServerFnError> + Copy + 'static,
+    ) -> Consumers
+    where
+        T: ?Sized + 'static,
+    {
         let remote = self.remote.clone();
         path.add_subscriber(move |p| {
             spawn_local(async move {
@@ -215,6 +237,7 @@ pub(super) struct TextEditor {
     pub remote: Remote,
     pub base_path: XSignal<Arc<str>>,
     pub file_path: XSignal<Arc<str>>,
+    pub force_edit_path: XSignal<bool>,
     pub editor_state: XSignal<Option<EditorState>>,
     pub synchronized_state: XSignal<SynchronizedState>,
     pub side_view: XSignal<Arc<SideViewList>>,

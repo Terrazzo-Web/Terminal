@@ -1,7 +1,9 @@
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum App {
     #[default]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "T"))]
     Terminal,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
     TextEditor,
 }
 

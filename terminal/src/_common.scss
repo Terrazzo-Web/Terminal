@@ -1,13 +1,10 @@
 html,
 body {
     height: 100%;
-    margin: 0px;
-    padding: 0px;
-    border-width: 0px;
-}
-
-html {
-    border-width: 0px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
 }
 
 @mixin trz-font {
@@ -69,13 +66,15 @@ body {
     user-drag: none;
 }
 
-@mixin trz-icon($size: 15px) {
-    display: block;
+@mixin trz-icon($display: block,
+    $size: 15px,
+    $filter: invert(1)) {
+    display: $display;
     height: $size;
     border: 0;
     margin: 0px;
     padding: 0px;
-    filter: invert(1);
+    filter: $filter;
 }
 
 #main {
@@ -85,7 +84,7 @@ body {
 @mixin trz-menu {
     position: absolute;
     left: 0;
-    top: 25px;
+    top: calc(var(--header-height) - 5px);
 
     list-style: none;
     margin: 0;
@@ -106,6 +105,14 @@ body {
         padding: var(--padding);
         margin: 0px;
 
-        @include nowrap;
+        white-space: nowrap;
     }
+}
+
+@mixin trz-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    --header-height: 30px;
+    height: var(--header-height);
 }
