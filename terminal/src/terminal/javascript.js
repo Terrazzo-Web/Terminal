@@ -3,9 +3,7 @@ class TerminalJs {
     fitAddon;
     webLinksAddon;
     constructor() {
-        this.terminal = new JsDeps.Terminal({
-            convertEol: true,
-        });
+        this.terminal = new JsDeps.Terminal({});
         this.fitAddon = new JsDeps.FitAddon();
         this.webLinksAddon = new JsDeps.WebLinksAddon();
     }
