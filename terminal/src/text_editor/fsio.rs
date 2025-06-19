@@ -3,7 +3,9 @@ use std::time::Duration;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use server_fn::Http;
 use server_fn::ServerFnError;
+use server_fn::codec::Json;
 use terrazzo::server;
 
 use crate::api::client_address::ClientAddress;
@@ -50,7 +52,7 @@ impl std::fmt::Debug for File {
     }
 }
 
-#[server]
+#[server(protocol = Http<Json, Json>)]
 #[nameth]
 pub async fn load_file(
     remote: Option<ClientAddress>,
@@ -68,7 +70,7 @@ pub async fn load_file(
         .await?)
 }
 
-#[server]
+#[server(protocol = Http<Json, Json>)]
 #[nameth]
 async fn store_file_impl(
     remote: Option<ClientAddress>,

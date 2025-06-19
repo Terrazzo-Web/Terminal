@@ -17,7 +17,7 @@ macro_rules! make_state {
             static STATE: std::sync::Mutex<Option<ty::Type>> = std::sync::Mutex::new(None);
 
             #[cfg_attr(feature = "server", allow(unused))]
-            #[server]
+            #[server(protocol = ::server_fn::Http<::server_fn::codec::Json, ::server_fn::codec::Json>)]
             #[cfg_attr(feature = "server", nameth::nameth)]
             pub async fn get(remote: Option<ClientAddress>) -> Result<ty::Type, ServerFnError> {
                 Ok(remote::GET_REMOTE_FN
@@ -26,7 +26,7 @@ macro_rules! make_state {
             }
 
             #[cfg_attr(feature = "server", allow(unused))]
-            #[server]
+            #[server(protocol = ::server_fn::Http<::server_fn::codec::Json, ::server_fn::codec::Json>)]
             #[cfg_attr(feature = "server", nameth::nameth)]
             pub async fn set(
                 remote: Option<ClientAddress>,

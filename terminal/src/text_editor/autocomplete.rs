@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use nameth::nameth;
+use server_fn::Http;
 use server_fn::ServerFnError;
+use server_fn::codec::Json;
 use terrazzo::server;
 
 use super::path_selector::PathSelector;
@@ -11,7 +13,7 @@ mod remote;
 mod service;
 pub mod ui;
 
-#[server]
+#[server(protocol = Http<Json, Json>)]
 #[nameth]
 async fn autocomplete_path(
     remote: Option<ClientAddress>,

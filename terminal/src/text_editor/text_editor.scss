@@ -49,6 +49,7 @@ div.text_editor {
 
         div.remotes {
             position: relative;
+            padding-right: var(--padding);
 
             .current {
                 position: relative;
