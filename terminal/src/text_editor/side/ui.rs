@@ -17,7 +17,7 @@ use crate::text_editor::ui::TextEditor;
 stylance::import_crate_style!(style, "src/text_editor/side.scss");
 
 #[html]
-#[template(tag = div)]
+#[template(tag = div, key = "side-view")]
 pub fn show_side_view(
     text_editor: Arc<TextEditor>,
     #[signal] side_view: Arc<SideViewList>,

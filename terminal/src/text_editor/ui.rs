@@ -79,16 +79,28 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
 }
 
 #[html]
-#[template(tag = div)]
 fn editor_body(
+    text_editor: Arc<TextEditor>,
+    editor_state: XSignal<Option<EditorState>>,
+) -> XElement {
+    div(
+        class = super::style::body,
+        show_side_view(text_editor.clone(), text_editor.side_view.clone()),
+        editor_container(text_editor, editor_state),
+    )
+}
+
+#[template(tag = div, key = {
+    static NEXT: AtomicI32 = AtomicI32::new(1);  
+    format!("editor-{}", NEXT.fetch_add(1, SeqCst))
+})]
+#[html]
+fn editor_container(
     text_editor: Arc<TextEditor>,
     #[signal] editor_state: Option<EditorState>,
 ) -> XElement {
-    static NEXT: AtomicI32 = AtomicI32::new(1);
-    let key = format!("editor-{}", NEXT.fetch_add(1, SeqCst));
-
     let Some(editor_state) = editor_state else {
-        return tag(class = super::style::body, div(key = key));
+        return tag(class = super::style::editor_container);
     };
 
     let body = match &*editor_state.data {
@@ -103,11 +115,7 @@ fn editor_body(
         File::Error(_error) => todo!(),
     };
 
-    tag(
-        class = super::style::body,
-        show_side_view(text_editor.clone(), text_editor.side_view.clone()),
-        div(key = key, class = super::style::editor_container, body),
-    )
+    tag(class = super::style::editor_container, body)
 }
 
 impl TextEditor {
