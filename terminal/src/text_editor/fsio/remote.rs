@@ -8,19 +8,19 @@ use crate::backend::client_service::remote_fn;
 
 #[derive(Debug, serde::Serialize, serde:: Deserialize)]
 pub struct LoadFileRequest {
-    #[cfg_attr(not(debug_assertions), serde(rename = "b"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "b"))]
     pub base_path: Arc<str>,
-    #[cfg_attr(not(debug_assertions), serde(rename = "f"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "f"))]
     pub file_path: Arc<str>,
 }
 
 #[derive(Debug, serde::Serialize, serde:: Deserialize)]
 pub struct StoreFileRequest {
-    #[cfg_attr(not(debug_assertions), serde(rename = "b"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "b"))]
     pub base_path: Arc<str>,
-    #[cfg_attr(not(debug_assertions), serde(rename = "f"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "f"))]
     pub file_path: Arc<str>,
-    #[cfg_attr(not(debug_assertions), serde(rename = "c"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "c"))]
     pub content: String,
 }
 

@@ -9,12 +9,12 @@ pub mod ui;
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "server", allow(dead_code))]
 pub enum SideViewNode {
-    #[cfg_attr(not(debug_assertions), serde(rename = "D"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "D"))]
     Folder {
         name: Arc<str>,
         children: Arc<SideViewList>,
     },
-    #[cfg_attr(not(debug_assertions), serde(rename = "F"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "F"))]
     File(Arc<FileMetadata>),
 }
 

@@ -54,7 +54,7 @@ macro_rules! make_state {
                 #[derive(Debug, Default, Serialize, Deserialize)]
                 #[serde(default)]
                 pub struct SetRequest {
-                    #[cfg_attr(not(debug_assertions), serde(rename = "v"))]
+                    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "v"))]
                     pub value: super::ty::Type,
                 }
 

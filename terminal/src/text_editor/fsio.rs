@@ -19,36 +19,36 @@ pub mod ui;
 #[nameth]
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub enum File {
-    #[cfg_attr(not(debug_assertions), serde(rename = "D"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "D"))]
     TextFile {
         metadata: Arc<FileMetadata>,
         content: Arc<str>,
     },
-    #[cfg_attr(not(debug_assertions), serde(rename = "F"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "F"))]
     Folder(Arc<Vec<FileMetadata>>),
-    #[cfg_attr(not(debug_assertions), serde(rename = "E"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
     Error(String),
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct FileMetadata {
-    #[cfg_attr(not(debug_assertions), serde(rename = "n"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "n"))]
     pub name: Arc<str>,
-    #[cfg_attr(not(debug_assertions), serde(rename = "s"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "s"))]
     pub size: Option<u64>,
-    #[cfg_attr(not(debug_assertions), serde(rename = "d"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "d"))]
     pub is_dir: bool,
-    #[cfg_attr(not(debug_assertions), serde(rename = "ct"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "ct"))]
     pub created: Option<Duration>,
-    #[cfg_attr(not(debug_assertions), serde(rename = "at"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "at"))]
     pub accessed: Option<Duration>,
-    #[cfg_attr(not(debug_assertions), serde(rename = "mt"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "mt"))]
     pub modified: Option<Duration>,
-    #[cfg_attr(not(debug_assertions), serde(rename = "m"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "m"))]
     pub mode: Option<u32>,
-    #[cfg_attr(not(debug_assertions), serde(rename = "u"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "u"))]
     pub user: Option<Arc<str>>,
-    #[cfg_attr(not(debug_assertions), serde(rename = "g"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "g"))]
     pub group: Option<Arc<str>>,
 }
 

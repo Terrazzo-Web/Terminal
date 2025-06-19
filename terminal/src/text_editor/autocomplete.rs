@@ -43,8 +43,8 @@ async fn autocomplete_path(
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AutocompleteItem {
-    #[cfg_attr(not(debug_assertions), serde(rename = "p"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "p"))]
     pub path: String,
-    #[cfg_attr(not(debug_assertions), serde(rename = "d"))]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "d"))]
     pub is_dir: bool,
 }
