@@ -1,14 +1,12 @@
 # TODO
 - `#101`. Renew client certificates
 - `#103`. Renew LE certificate
-- `#·93`. File explorer: opened files
-- `#·94`. File explorer: all files
 - `#·95`. File explorer: search tool
+- `#·94`. File explorer: all files
 - `#·92`. File explorer: show files with git changes
 - `#·89`. Anything parser: x509, base64, pem, yaml, json, toml, etc.
 - `#·96`. Text editor: watch for changes on disk → refresh UI
 - `#··7`. Text editor: integration with Language Server
-- `#·97`. Text editor: show files list on opening folder
 - `#·98`. Text editor: highlight git changes
 - `#·99`. Text editor: status bar: last change, pointer position, branch name
 - `#·91`. Port forwarding tool
@@ -120,3 +118,5 @@ Next: `#108`.
 - `#107`. (c) Folder tree should clear on base path change
 - `#107`. (d). Headers should be fixed.
 - `#107`. (a) Timestamps should show on up immediately, not just on the first tick;
+- `#·97`. Text editor: show files list on opening folder
+- `#·93`. File explorer: opened files
