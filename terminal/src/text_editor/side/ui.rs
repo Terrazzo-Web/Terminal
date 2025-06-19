@@ -35,8 +35,8 @@ fn show_side_view_list(
     side_view: Arc<SideViewList>,
 ) -> XElement {
     ul(side_view
-        .values()
-        .map(|child| show_side_view_node(text_editor, path, child.clone()))
+        .iter()
+        .map(|(name, child)| show_side_view_node(text_editor, path, name, child))
         .collect::<Vec<_>>()..)
 }
 
@@ -45,17 +45,12 @@ fn show_side_view_list(
 fn show_side_view_node(
     text_editor: &Arc<TextEditor>,
     path: &Path,
-    side_view: Arc<SideViewNode>,
+    name: &Arc<str>,
+    side_view: &Arc<SideViewNode>,
 ) -> XElement {
-    let path: Arc<Path> = match &*side_view {
-        SideViewNode::Folder { name, .. } => Arc::from(path.join(name.as_ref())),
-        SideViewNode::File(file_metadata) => {
-            let name = &file_metadata.name;
-            Arc::from(path.join(name.as_ref()))
-        }
-    };
-    li(match &*side_view {
-        SideViewNode::Folder { name, children } => {
+    let path: Arc<Path> = Arc::from(path.join(name.as_ref()));
+    li(match &**side_view {
+        SideViewNode::Folder(children) => {
             let file_path_signal = text_editor.file_path.clone();
             div(
                 key = "folder",
