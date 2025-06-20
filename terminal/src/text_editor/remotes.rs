@@ -24,7 +24,11 @@ pub fn show_remote(#[signal] mut cur_remote: Remote) -> XElement {
     };
     tag(
         class = style::remotes,
-        div("{cur_remote_name}", mouseenter = remotes_state.mouseenter()),
+        div(
+            "{cur_remote_name}",
+            class = super::style::show_current,
+            mouseenter = remotes_state.mouseenter(),
+        ),
         mouseleave = remotes_state.mouseleave(),
         remotes_state.show_remotes_dropdown(
             move |remote| {

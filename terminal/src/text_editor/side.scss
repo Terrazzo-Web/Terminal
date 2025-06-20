@@ -45,9 +45,13 @@ div.side {
         width: 100%;
         margin-bottom: 5px;
 
-        >span:hover {
-            cursor: pointer;
-            background-color: var(--link-color);
+        >span {
+            white-space: nowrap;
+
+            &:hover {
+                cursor: pointer;
+                background-color: var(--link-color);
+            }
         }
     }
 
