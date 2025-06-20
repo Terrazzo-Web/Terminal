@@ -19,7 +19,6 @@
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
 - `#·52`. Drag n Drop to create tiles
 - `#··8`. Resizeable component
-- `#106`. Reduce size of WASM file
 - `#107`. (b) Ticks should be aligned with round time;
 
 # Nice to have
@@ -120,3 +119,4 @@ Next: `#108`.
 - `#107`. (a) Timestamps should show on up immediately, not just on the first tick;
 - `#·97`. Text editor: show files list on opening folder
 - `#·93`. File explorer: opened files
+- `#106`. Reduce size of WASM file
