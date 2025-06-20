@@ -42,8 +42,9 @@ div.side {
 
     div.label,
     div.selected_label {
-        width: 100%;
+        flex: 1 1 auto;
         margin-bottom: 5px;
+        overflow-x: hidden;
 
         >span {
             white-space: nowrap;
