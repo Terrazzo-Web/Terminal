@@ -14,6 +14,7 @@ use super::registration::Registration;
 use crate::api::RegisterTerminalRequest;
 use crate::api::TerminalAddress;
 use crate::backend::client_service::register;
+use crate::backend::client_service::register::RegisterStreamError as DistributedRegisterStreamError;
 use crate::processes;
 use crate::processes::io::LocalReader;
 
@@ -26,9 +27,7 @@ pub async fn register(
     debug!("Start");
     async {
         let terminal_address = request.def.address.clone();
-        let stream = register::register(my_client_name, server, request.into())
-            .await
-            .unwrap();
+        let stream = register::register(my_client_name, server, request.into()).await?;
         let stream = LocalReader(stream);
         push_lease(terminal_address, stream)?;
         Ok(())
@@ -58,6 +57,9 @@ pub enum RegisterStreamError {
 
     #[error("[{n}] {0}", n = self.name())]
     PushLeaseError(#[from] PushLeaseError),
+
+    #[error("[{n}] {0}", n = self.name())]
+    Distributed(#[from] DistributedRegisterStreamError),
 }
 
 impl IsHttpError for RegisterStreamError {
@@ -65,6 +67,7 @@ impl IsHttpError for RegisterStreamError {
         match self {
             Self::GetOrCreateProcessError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             Self::PushLeaseError(error) => error.status_code(),
+            Self::Distributed(error) => error.status_code(),
         }
     }
 }

@@ -9,8 +9,7 @@
     }
 
     .titles {
-        display: flex;
-        flex-direction: row;
+        @include trz-header;
 
         background-color: var(--background-color);
         border: 1px solid var(--color);
