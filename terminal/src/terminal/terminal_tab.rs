@@ -247,7 +247,7 @@ fn print_editable_title(
 #[html]
 #[template]
 fn print_title(#[signal] title: XString) -> XElement {
-    span("{title}")
+    span("{title}", class = style::title_span)
 }
 
 impl std::fmt::Debug for TerminalTab {
