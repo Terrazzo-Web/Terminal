@@ -1,17 +1,12 @@
 use std::sync::Arc;
+use std::time::Duration;
 
-use chrono::DateTime;
-use chrono::Datelike;
-use chrono::Days;
-use chrono::NaiveDate;
-use chrono::TimeZone;
-use chrono::Timelike;
-use chrono::Utc;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::autoclone;
 use terrazzo::prelude::*;
 
+use self::datetime::DateTime;
 use self::diagnostics::debug;
 use self::tick::Tick;
 use self::timer::Timer;
@@ -20,13 +15,12 @@ use self::timer::minute_timer;
 use self::timer::second_timer;
 use self::timer::ten_seconds_timer;
 
-pub mod tick;
-pub mod timer;
+pub mod datetime;
+mod tick;
+mod timer;
 
 /// Creates a signal that produces a friendly representation of a timetamp.
-pub fn display_timestamp<TZ: TimeZone + 'static>(
-    value: DateTime<TZ>,
-) -> XSignal<Box<Timestamp<TZ>>> {
+pub fn display_timestamp(value: DateTime) -> XSignal<Box<Timestamp>> {
     let timer_mode_signal = XSignal::new("timer-mode", TimerMode::fractions_ago());
     let timestamp_signal = XSignal::new(
         "display-timetamp",
@@ -52,10 +46,10 @@ pub fn display_timestamp<TZ: TimeZone + 'static>(
     return timestamp_signal;
 }
 
-fn setup_display_timestamp_signals<TZ: TimeZone + 'static>(
-    timestamp_signal_weak: XSignalWeak<Box<Timestamp<TZ>>>,
+fn setup_display_timestamp_signals(
+    timestamp_signal_weak: XSignalWeak<Box<Timestamp>>,
     timer_mode_signal_weak: XSignalWeak<TimerMode>,
-) -> impl FnOnce(&Box<Timestamp<TZ>>) -> Option<Box<Timestamp<TZ>>> {
+) -> impl FnOnce(&Box<Timestamp>) -> Option<Box<Timestamp>> {
     move |timestamp| {
         let timer_mode_signal = timer_mode_signal_weak.upgrade();
         let timer_mode_consumers =
@@ -73,8 +67,8 @@ fn setup_display_timestamp_signals<TZ: TimeZone + 'static>(
 }
 
 #[autoclone]
-fn setup_timer_mode_signal<TZ: TimeZone + 'static>(
-    timestamp_signal_weak: &XSignalWeak<Box<Timestamp<TZ>>>,
+fn setup_timer_mode_signal(
+    timestamp_signal_weak: &XSignalWeak<Box<Timestamp>>,
 ) -> impl Fn(TimerMode) + 'static {
     move |timer_mode| {
         autoclone!(timestamp_signal_weak);
@@ -101,8 +95,8 @@ fn setup_timer_mode_signal<TZ: TimeZone + 'static>(
 }
 
 #[autoclone]
-fn setup_timer_signal<TZ: TimeZone + 'static>(
-    timestamp_signal_weak: &XSignalWeak<Box<Timestamp<TZ>>>,
+fn setup_timer_signal(
+    timestamp_signal_weak: &XSignalWeak<Box<Timestamp>>,
     timer_mode: TimerMode,
 ) -> impl Fn(Tick) + 'static {
     move |_tick| {
@@ -123,15 +117,15 @@ fn setup_timer_signal<TZ: TimeZone + 'static>(
 /// - an intuitive representation of some time ago for recent timestamps
 /// - a formal timstamp for older timestamps
 #[derive(Clone)]
-pub struct Timestamp<TZ: TimeZone> {
+pub struct Timestamp {
     /// The display value of the timestamp.
     display: Arc<str>,
 
-    inner: Ptr<TimestampInner<TZ>>,
+    inner: Ptr<TimestampInner>,
 }
 
 #[derive(Clone)]
-struct TimestampInner<TZ: TimeZone> {
+struct TimestampInner {
     /// A signal that indicates how the timestamp should be printed.
     /// As the timestamp becomes older, the [TimerMode] will change.
     timer_mode_signal: XSignal<TimerMode>,
@@ -144,12 +138,12 @@ struct TimestampInner<TZ: TimeZone> {
     timer_consumers: Ptr<Option<Consumers>>,
 
     /// The formal value of the timestamp.
-    value: DateTime<TZ>,
+    value: DateTime,
 }
 
-impl<TZ: TimeZone> Timestamp<TZ> {
+impl Timestamp {
     #[allow(unused)]
-    pub fn value(&self) -> DateTime<TZ> {
+    pub fn value(&self) -> DateTime {
         self.inner.value.clone()
     }
 
@@ -163,53 +157,57 @@ impl<TZ: TimeZone> Timestamp<TZ> {
 
     fn print(&mut self, timer_mode: &TimerMode) -> String {
         let timestamp = &self.inner.value;
-        let now = timer_mode
-            .now()
-            .map(|now| now.with_timezone(&timestamp.timezone()));
+        let now = timer_mode.now();
 
         if let Some(now) = &now {
-            {
-                let ago = now.clone() - timestamp.clone();
-                if ago < chrono::Duration::seconds(15) {
+            if let Ok(ago) = now - timestamp {
+                if ago < Duration::from_secs(15) {
                     self.inner.timer_mode_signal.set(TimerMode::fractions_ago());
                     return print_fractions_ago(ago);
                 }
-                if ago <= chrono::Duration::minutes(5) {
+                if ago <= Duration::from_secs(5 * 60) {
                     self.inner.timer_mode_signal.set(TimerMode::moments_ago());
                     return print_ago(ago);
                 }
-                if ago <= chrono::Duration::minutes(60) {
+                if ago <= Duration::from_secs(3600) {
                     self.inner.timer_mode_signal.set(TimerMode::minutes_ago());
                     return print_ago(ago);
                 }
             }
 
-            if let (Some(now_start_of_day), Some(timestamp_start_of_day)) =
-                (from_ymd_opt(now), from_ymd_opt(timestamp))
             {
-                if timestamp_start_of_day == now_start_of_day {
+                let timestamp_start_of_day = timestamp.to_start_of_day();
+
+                let today_start_of_day = now.to_start_of_day();
+                if timestamp_start_of_day == today_start_of_day {
                     self.inner.timer_mode_signal.set(TimerMode::days_ago());
-                    return format!("Today, {}", hour_minute(timestamp));
+                    return format!("Today, {}", timestamp.hour_minute());
                 }
-                if Some(timestamp_start_of_day) == now_start_of_day.checked_sub_days(Days::new(1)) {
+
+                let yesterday_start_of_day = &today_start_of_day - Duration::from_secs(3600 * 24);
+                if timestamp_start_of_day == yesterday_start_of_day {
                     self.inner.timer_mode_signal.set(TimerMode::days_ago());
-                    return format!("Yesterday, {}", hour_minute(timestamp));
+                    return format!("Yesterday, {}", timestamp.hour_minute());
                 }
             }
         }
 
         self.inner.timer_mode_signal.set(TimerMode::AbsoluteTime);
-        return format!("{}, {}", day_month_year(timestamp), hour_minute(timestamp));
+        return format!(
+            "{}, {}",
+            timestamp.day_month_year(),
+            timestamp.hour_minute()
+        );
     }
 }
 
-impl<TZ: TimeZone> std::fmt::Display for Timestamp<TZ> {
+impl std::fmt::Display for Timestamp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.display.fmt(f)
     }
 }
 
-impl<TZ: TimeZone> std::fmt::Debug for Timestamp<TZ> {
+impl std::fmt::Debug for Timestamp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Timestamp")
             .field("display", &self.display)
@@ -220,14 +218,13 @@ impl<TZ: TimeZone> std::fmt::Debug for Timestamp<TZ> {
     }
 }
 
-impl<TZ: TimeZone> PartialEq for Timestamp<TZ> {
+impl PartialEq for Timestamp {
     fn eq(&self, other: &Self) -> bool {
-        self.display == other.display
-            && self.inner.value.timestamp_millis() == other.inner.value.timestamp_millis()
+        self.display == other.display && self.inner.value == other.inner.value
     }
 }
 
-impl<TZ: TimeZone> Eq for Timestamp<TZ> {}
+impl Eq for Timestamp {}
 
 #[nameth]
 #[derive(Clone, Debug)]
@@ -264,7 +261,7 @@ impl TimerMode {
         Self::DaysAgo(minute_timer())
     }
 
-    fn now(&self) -> Option<DateTime<Utc>> {
+    fn now(&self) -> Option<DateTime> {
         self.timer().map(|timer| timer.get_value_untracked().now())
     }
 
@@ -281,40 +278,48 @@ impl TimerMode {
     }
 }
 
-fn print_fractions_ago(ago: chrono::Duration) -> String {
-    let seconds = ago.num_seconds();
+fn print_fractions_ago(ago: Duration) -> String {
+    let seconds = ago.as_secs();
     let millis = ago.subsec_millis();
     return format!("{:0>2}.{:0>3}s ago", seconds, millis);
 }
 
-fn print_ago(mut ago: chrono::Duration) -> String {
-    let hours = ago.num_hours();
-    ago -= chrono::Duration::hours(hours);
-    let minutes = ago.num_minutes();
-    ago -= chrono::Duration::minutes(minutes);
-    let seconds = ago.num_seconds();
+fn print_ago(mut ago: Duration) -> String {
+    let hours = ago.as_secs() / 3600;
+    ago -= Duration::from_secs(hours * 3600);
+    let minutes = ago.as_secs() / 60;
+    ago -= Duration::from_secs(minutes * 60);
+    let seconds = ago.as_secs();
     if hours != 0 {
-        return format!("{:0>2}:{:0>2}:{:0>2}s ago", hours, minutes, seconds);
+        return format!("{hours}h {minutes}m {seconds}s ago");
     }
     if minutes != 0 {
-        return format!("{:0>2}:{:0>2}s ago", minutes, seconds);
+        return format!("{minutes}m {seconds}s ago");
     }
-    return format!("{:0>2}s ago", seconds);
+    return format!("{seconds}s ago");
 }
 
-fn from_ymd_opt(timestamp: &chrono::DateTime<impl TimeZone>) -> Option<NaiveDate> {
-    NaiveDate::from_ymd_opt(timestamp.year(), timestamp.month(), timestamp.day())
-}
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
 
-fn hour_minute(timestamp: &chrono::DateTime<impl TimeZone>) -> String {
-    format!("{:0>2}:{:0>2}", timestamp.hour(), timestamp.minute())
-}
+    #[test]
+    fn print_ago() {
+        assert_eq!(
+            ["3h 4m 5s ago", "35m 15s ago", "15s ago"],
+            [
+                super::print_ago(Duration::from_secs(3 * 3600 + 4 * 60 + 5)),
+                super::print_ago(Duration::from_secs(35 * 60 + 15)),
+                super::print_ago(Duration::from_secs(15))
+            ]
+        )
+    }
 
-fn day_month_year(timestamp: &chrono::DateTime<impl TimeZone>) -> String {
-    format!(
-        "{:0>2}.{:0>2}.{}",
-        timestamp.day(),
-        timestamp.month() as u8,
-        timestamp.year()
-    )
+    #[test]
+    fn print_fractions_ago() {
+        assert_eq!(
+            "15.345s ago",
+            super::print_fractions_ago(Duration::from_millis(15 * 1000 + 345))
+        )
+    }
 }

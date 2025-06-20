@@ -3,7 +3,6 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use chrono::DateTime;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
@@ -12,6 +11,7 @@ use web_sys::MouseEvent;
 
 use crate::frontend::menu::before_menu;
 use crate::frontend::timestamp;
+use crate::frontend::timestamp::datetime::DateTime;
 use crate::frontend::timestamp::display_timestamp;
 use crate::text_editor::fsio::FileMetadata;
 use crate::text_editor::ui::EditorState;
@@ -47,8 +47,7 @@ pub fn folder(
         let size = file.size.map(print_size).unwrap_or_else(|| "-".to_owned());
         let modified = file
             .modified
-            .as_ref()
-            .and_then(|m| DateTime::from_timestamp_millis(m.as_millis() as i64))
+            .map(DateTime::from_utc)
             .map(|m| timestamp(display_timestamp(m)))
             .unwrap_or_else(|| span("-"));
         let user = file.user.clone().unwrap_or_default();
@@ -115,7 +114,7 @@ pub fn folder(
 
 #[html]
 #[template(tag = span)]
-fn timestamp(#[signal] mut t: Box<timestamp::Timestamp<chrono::Utc>>) -> XElement {
+fn timestamp(#[signal] mut t: Box<timestamp::Timestamp>) -> XElement {
     tag(
         "{t}",
         before_render = move |_| {

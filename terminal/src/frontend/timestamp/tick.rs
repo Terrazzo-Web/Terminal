@@ -1,14 +1,13 @@
 use std::sync::Mutex;
 use std::time::Duration;
 
-use chrono::DateTime;
-use chrono::Utc;
 use nameth::NamedType;
 use nameth::nameth;
 use terrazzo::prelude::*;
 use web_sys::window;
 
 use self::diagnostics::debug;
+use super::datetime::DateTime;
 
 /// A wrapper for the [Closure] and the interval timer handle ID.
 #[nameth]
@@ -17,7 +16,7 @@ pub struct Tick(Ptr<Mutex<TickInner>>);
 
 struct TickInner {
     period: Duration,
-    now: DateTime<Utc>,
+    now: DateTime,
     on_drop: Option<AbortTickOnDrop>,
 }
 
@@ -31,17 +30,17 @@ impl Tick {
     pub fn new(period: Duration) -> Self {
         Self(Ptr::new(Mutex::new(TickInner {
             period,
-            now: Utc::now(),
+            now: DateTime::now(),
             on_drop: None,
         })))
     }
 
-    pub fn now(&self) -> DateTime<Utc> {
-        self.0.lock().unwrap().now
+    pub fn now(&self) -> DateTime {
+        self.0.lock().unwrap().now.clone()
     }
 
     pub fn tick(&self) {
-        self.0.lock().unwrap().now = Utc::now();
+        self.0.lock().unwrap().now = DateTime::now();
     }
 
     pub fn set_on_drop(&self, abort_tick_on_drop: AbortTickOnDrop) {
