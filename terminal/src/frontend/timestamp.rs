@@ -1,6 +1,4 @@
 use std::sync::Arc;
-use std::sync::Mutex;
-use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Datelike;
@@ -10,149 +8,20 @@ use chrono::TimeZone;
 use chrono::Timelike;
 use chrono::Utc;
 use nameth::NamedEnumValues as _;
-use nameth::NamedType;
 use nameth::nameth;
 use terrazzo::autoclone;
 use terrazzo::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::window;
 
 use self::diagnostics::debug;
-use self::diagnostics::warn;
+use self::tick::Tick;
+use self::timer::Timer;
+use self::timer::fraction_timer;
+use self::timer::minute_timer;
+use self::timer::second_timer;
+use self::timer::ten_seconds_timer;
 
-/// Represents a signal that updates at regular intervals.
-pub type Timer = XSignal<Tick>;
-
-/// Returns a signal that updates every second.
-///
-/// There is only ever one instance of the [second_timer].
-/// We keep a static weak reference to the timer to ensure we keep using the
-/// same instance until all references are dropped.
-pub fn second_timer() -> Timer {
-    static TIMER: Mutex<WeakTimer> = Mutex::new(WeakTimer(XSignalWeak::new()));
-    create_timer(&TIMER, Duration::from_secs(1))
-}
-
-/// Returns a signal that updates every minute.
-pub fn ten_seconds_timer() -> Timer {
-    static TIMER: Mutex<WeakTimer> = Mutex::new(WeakTimer(XSignalWeak::new()));
-    create_timer(&TIMER, Duration::from_secs(10))
-}
-
-/// Returns a signal that updates every fraction of a second.
-pub fn fraction_timer() -> Timer {
-    static TIMER: Mutex<WeakTimer> = Mutex::new(WeakTimer(XSignalWeak::new()));
-    create_timer(&TIMER, Duration::from_millis(50))
-}
-
-/// Returns a signal that updates every minute.
-pub fn minute_timer() -> Timer {
-    static TIMER: Mutex<WeakTimer> = Mutex::new(WeakTimer(XSignalWeak::new()));
-    create_timer(&TIMER, Duration::from_secs(60))
-}
-
-fn create_timer(timer: &Mutex<WeakTimer>, period: Duration) -> Timer {
-    let mut lock = timer.lock().unwrap();
-    if let Some(timer) = lock.0.upgrade() {
-        return timer;
-    }
-    let timer = create_timer_impl(period);
-    *lock = WeakTimer(timer.downgrade());
-    return timer;
-}
-
-fn create_timer_impl(period: Duration) -> Timer {
-    debug!("Create timer for period={period:?}");
-    let timer = Timer::new("second-timer", Tick::new(period));
-    let timer_weak = timer.downgrade();
-
-    let closure: Closure<dyn Fn()> = Closure::new(move || {
-        let Some(timer) = timer_weak.upgrade() else {
-            warn!("MISSING TIMER");
-            return;
-        };
-
-        debug!(?period, "Update tick.now and force trigger the signal");
-        let tick = timer.get_value_untracked();
-        tick.0.lock().unwrap().now = Utc::now();
-        timer.force(tick)
-    });
-
-    // Create the interval timer.
-    let window = window().unwrap();
-    let Ok(handle) = window.set_interval_with_callback_and_timeout_and_arguments_0(
-        closure.as_ref().unchecked_ref(),
-        period.as_millis() as i32,
-    ) else {
-        warn!("Can't create interval timer");
-        return timer;
-    };
-
-    // Record the closure and the handle inside the Tick.
-    // When the signal drops, the tick drops, and the interval timer is canceled.
-    let tick = timer.get_value_untracked();
-    tick.0.lock().unwrap().on_drop = Some(AbortTickOnDrop { closure, handle });
-
-    return timer;
-}
-
-/// A weak reference to the timer.
-///
-/// The static variable and the closure contain weak references.
-///
-/// Only places that actually use the timer need strong references.
-struct WeakTimer(XSignalWeak<Tick>);
-
-unsafe impl Send for WeakTimer {}
-unsafe impl Sync for WeakTimer {}
-
-/// A wrapper for the [Closure] and the interval timer handle ID.
-#[nameth]
-#[derive(Clone)]
-pub struct Tick(Ptr<Mutex<TickInner>>);
-
-struct TickInner {
-    period: Duration,
-    now: DateTime<Utc>,
-    on_drop: Option<AbortTickOnDrop>,
-}
-
-struct AbortTickOnDrop {
-    #[expect(unused)]
-    closure: Closure<dyn Fn()>,
-    handle: i32,
-}
-
-impl Tick {
-    fn new(period: Duration) -> Self {
-        Self(Ptr::new(Mutex::new(TickInner {
-            period,
-            now: Utc::now(),
-            on_drop: None,
-        })))
-    }
-}
-
-impl std::fmt::Debug for Tick {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let tick = self.0.lock().unwrap();
-        f.debug_struct(Tick::type_name())
-            .field("period", &tick.period)
-            .field("now", &tick.now)
-            .finish()
-    }
-}
-
-impl Drop for TickInner {
-    fn drop(&mut self) {
-        debug!("Drop timer for period={:?}", self.period);
-        let Some(AbortTickOnDrop { handle, .. }) = &self.on_drop else {
-            return;
-        };
-        let window = window().unwrap();
-        window.clear_interval_with_handle(*handle);
-    }
-}
+pub mod tick;
+pub mod timer;
 
 /// Creates a signal that produces a friendly representation of a timetamp.
 pub fn display_timestamp<TZ: TimeZone + 'static>(
@@ -396,8 +265,7 @@ impl TimerMode {
     }
 
     fn now(&self) -> Option<DateTime<Utc>> {
-        self.timer()
-            .map(|timer| timer.get_value_untracked().0.lock().unwrap().now)
+        self.timer().map(|timer| timer.get_value_untracked().now())
     }
 
     fn timer(&self) -> Option<Timer> {
