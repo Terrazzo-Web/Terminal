@@ -111,8 +111,10 @@ fn merge_server_config(
             .config_file_poll_strategy
             .clone()
             .unwrap_or_else(|| RetryStrategy::fixed(Duration::from_secs(60))),
-        certificate_renewal_threshold: parse_duration(server.token_refresh.as_deref())
-            .unwrap_or(Duration::from_secs(1) * 3600 * 24 * 30),
+        certificate_renewal_threshold: parse_duration(
+            server.certificate_renewal_threshold.as_deref(),
+        )
+        .unwrap_or(Duration::from_secs(1) * 3600 * 24 * 30),
     }
 }
 
