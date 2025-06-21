@@ -128,7 +128,12 @@ async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError
             let root_ca = root_ca.clone();
             let active_challenges = active_challenges.clone();
             let dynamic_acme_config = config.letsencrypt.clone();
-            config.letsencrypt.view(move |letsencrypt| {
+            let joined_config = config.letsencrypt.zip(
+                &config
+                    .server
+                    .view(|server_config| server_config.certificate_renewal_threshold),
+            );
+            joined_config.view(move |(letsencrypt, certificate_renewal_threshold)| {
                 debug!("Refresh TLS config");
                 if let Some(letsencrypt) = &**letsencrypt {
                     EitherConfig::Right(SecurityConfig {
@@ -137,6 +142,7 @@ async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError
                             dynamic_acme_config.clone(),
                             letsencrypt.clone(),
                             active_challenges.clone(),
+                            *certificate_renewal_threshold,
                         ),
                     })
                 } else {

@@ -110,3 +110,12 @@ enum_variant_names = "allow"
 needless_return = "allow"
 too_many_arguments = "allow"
 type_complexity = "allow"
+
+# <TODO>: remove
+[patch.crates-io]
+nameth = { path = "../Terrazzo/utils/nameth/nameth" }
+terrazzo = { path = "../Terrazzo/framework/terrazzo" }
+trz-gateway-client = { path = "../Terrazzo/remote/client" }
+trz-gateway-common = { path = "../Terrazzo/remote/common" }
+trz-gateway-server = { path = "../Terrazzo/remote/server" }
+# </TODO>
