@@ -42,12 +42,17 @@ div.side {
 
     div.label,
     div.selected_label {
-        width: 100%;
+        flex: 1 1 auto;
         margin-bottom: 5px;
+        overflow-x: hidden;
 
-        >span:hover {
-            cursor: pointer;
-            background-color: var(--link-color);
+        >span {
+            white-space: nowrap;
+
+            &:hover {
+                cursor: pointer;
+                background-color: var(--link-color);
+            }
         }
     }
 

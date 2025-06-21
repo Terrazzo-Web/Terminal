@@ -1,5 +1,6 @@
 use std::ops::Deref;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use nameth::nameth;
 use tracing::Instrument as _;
@@ -11,9 +12,10 @@ use trz_gateway_client::client::config::ClientConfig;
 use trz_gateway_client::client::service::ClientService;
 use trz_gateway_client::load_client_certificate::load_client_certificate;
 use trz_gateway_client::tunnel_config::TunnelConfig;
-use trz_gateway_common::certificate_info::CertificateInfo;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_common::retry_strategy::RetryStrategy;
+use trz_gateway_common::security_configuration::certificate::CertificateConfig;
+use trz_gateway_common::security_configuration::certificate::cache::MemoizedCertificate;
 use trz_gateway_common::security_configuration::certificate::pem::PemCertificate;
 use trz_gateway_common::security_configuration::trusted_store::cache::CachedTrustedStoreConfig;
 use trz_gateway_common::security_configuration::trusted_store::load::LoadTrustedStore;
@@ -26,9 +28,10 @@ use crate::backend::protos::terrazzo::gateway::client::client_service_server::Cl
 #[nameth]
 pub struct AgentTunnelConfig {
     client_config: AgentClientConfig,
-    client_certificate: Arc<PemCertificate>,
+    client_certificate: Arc<MemoizedCertificate<PemCertificate>>,
     retry_strategy: RetryStrategy,
     server: Arc<Server>,
+    current_auth_code: Arc<Mutex<AuthCode>>,
 }
 
 #[nameth]
@@ -38,13 +41,12 @@ pub struct AgentClientConfig {
     gateway_pki: CachedTrustedStoreConfig,
 }
 
-const CLIENT_CERTIFICATE_FILE_SUFFIX: CertificateInfo<&str> = CertificateInfo {
-    certificate: "cert",
-    private_key: "key",
-};
-
 impl AgentTunnelConfig {
-    pub async fn new(auth_code: AuthCode, mesh: &MeshConfig, server: &Arc<Server>) -> Option<Self> {
+    pub async fn new(
+        current_auth_code: Arc<Mutex<AuthCode>>,
+        mesh: &MeshConfig,
+        server: &Arc<Server>,
+    ) -> Option<Self> {
         async move {
             let client_name = mesh.client_name.as_str().into();
             let gateway_url = mesh.gateway_url.clone();
@@ -64,23 +66,19 @@ impl AgentTunnelConfig {
                 client_name,
             };
 
-            let client_certificate = Arc::new(
-                load_client_certificate(
-                    &client_config,
-                    auth_code,
-                    CLIENT_CERTIFICATE_FILE_SUFFIX
-                        .map(|suffix| format!("{}.{suffix}", mesh.client_certificate)),
-                )
-                .await
-                .inspect_err(|error| warn!("Failed to load Client Certificate: {error}"))
-                .ok()?,
-            );
+            let auth_code = current_auth_code.lock().unwrap().clone();
+            let client_certificate =
+                load_client_certificate(&client_config, auth_code, mesh.client_certificate_paths())
+                    .await
+                    .inspect_err(|error| warn!("Failed to load Client Certificate: {error}"))
+                    .ok()?;
 
             Some(Self {
                 client_config,
-                client_certificate,
+                client_certificate: client_certificate.memoize().into(),
                 retry_strategy: RetryStrategy::default(),
                 server: server.clone(),
+                current_auth_code,
             })
         }
         .instrument(info_span!("Agent tunnel config"))
@@ -104,7 +102,7 @@ impl ClientConfig for AgentTunnelConfig {
 }
 
 impl TunnelConfig for AgentTunnelConfig {
-    type ClientCertificate = Arc<PemCertificate>;
+    type ClientCertificate = Arc<MemoizedCertificate<PemCertificate>>;
     fn client_certificate(&self) -> Self::ClientCertificate {
         self.client_certificate.clone()
     }
@@ -123,6 +121,10 @@ impl TunnelConfig for AgentTunnelConfig {
 
     fn retry_strategy(&self) -> RetryStrategy {
         self.retry_strategy.clone()
+    }
+
+    fn current_auth_code(&self) -> Arc<Mutex<AuthCode>> {
+        self.current_auth_code.clone()
     }
 }
 

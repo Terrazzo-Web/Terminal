@@ -23,7 +23,6 @@ required-features = ["server"]
 [dependencies]
 axum-extra = { workspace = true, optional = true, features = ["cookie"] }
 base64 = { workspace = true, optional = true }
-chrono = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 const_format = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
@@ -98,7 +97,6 @@ fluent-asserter = { workspace = true }
 [features]
 default = ["server", "max_level_info"]
 client = [
-    "dep:chrono",
     "dep:stylance",
     "dep:wasm-bindgen-futures",
     "dep:wasm-bindgen",
