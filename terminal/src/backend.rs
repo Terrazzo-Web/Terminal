@@ -146,13 +146,13 @@ async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError
         };
 
         TerminalBackendServer {
+            config,
             root_ca,
             tls_config,
             auth_config: server_config
                 .view(|server| DiffArc::from(AuthConfig::new(server)))
                 .into(),
             active_challenges,
-            config,
         }
     };
 

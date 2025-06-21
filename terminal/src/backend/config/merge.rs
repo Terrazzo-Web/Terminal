@@ -48,6 +48,9 @@ impl Config {
                 token_lifetime: Some(humantime::format_duration(server.token_lifetime).to_string()),
                 token_refresh: Some(humantime::format_duration(server.token_refresh).to_string()),
                 config_file_poll_strategy: Some(server.config_file_poll_strategy.clone()),
+                certificate_renewal_threshold: Some(
+                    humantime::format_duration(server.certificate_renewal_threshold).to_string(),
+                ),
             }),
             mesh: DiffOption::from(mesh.as_ref().map(|mesh| {
                 DiffArc::from(MeshConfig {
@@ -108,6 +111,8 @@ fn merge_server_config(
             .config_file_poll_strategy
             .clone()
             .unwrap_or_else(|| RetryStrategy::fixed(Duration::from_secs(60))),
+        certificate_renewal_threshold: parse_duration(server.token_refresh.as_deref())
+            .unwrap_or(Duration::from_secs(1) * 3600 * 24 * 30),
     }
 }
 

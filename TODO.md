@@ -20,13 +20,14 @@
 - `#·52`. Drag n Drop to create tiles
 - `#··8`. Resizeable component
 - `#107`. (b) Ticks should be aligned with round time;
+- `#108`. Introduce shortcuts for unwrap(). Makes it easy to scan where unwrap() is used.
 
 # Nice to have
 - `#·45`. Lazily load tab
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#108`.
+Next: `#109`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
