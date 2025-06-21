@@ -10,6 +10,9 @@ import {
 } from "codemirror";
 import { EditorState } from '@codemirror/state';
 
+import { languageServer } from '@marimo-team/codemirror-languageserver';
+import { WebSocketTransport } from '@open-rpc/client-js';
+
 // Export them for Webpack to expose as globals
 export {
     Terminal,
@@ -19,4 +22,7 @@ export {
     basicSetup,
     EditorState,
     EditorView,
+
+    languageServer,
+    WebSocketTransport,
 };

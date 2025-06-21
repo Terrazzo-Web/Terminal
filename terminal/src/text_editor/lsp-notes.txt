@@ -1,0 +1,2 @@
+cargo install --locked -f lsp-ws-proxy
+lsp-ws-proxy --listen 127.0.0.1:3002 -- rust-analyzer
