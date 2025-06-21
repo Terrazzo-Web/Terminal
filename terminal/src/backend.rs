@@ -250,9 +250,8 @@ async fn run_client_async(
 ) -> Result<ServerHandle<()>, RunClientError> {
     let (shutdown_rx, terminated_tx, handle) = ServerHandle::new("Dynamic Client");
     let auth_code = AuthCode::from(cli.auth_code);
-    let (terminated_all_rx, terminated_all_tx) = oneshot::channel::<()>();
-    let terminated_all_rx = Arc::new(terminated_all_rx);
-    let terminated_all_tx = terminated_all_tx.shared();
+    let (terminated_all_tx, terminated_all_rx) = oneshot::channel::<()>();
+    let terminated_all_tx = Arc::new(terminated_all_tx);
 
     struct AbortOnDrop<T>(JoinHandle<T>);
 
@@ -270,7 +269,7 @@ async fn run_client_async(
         if let Some(mesh) = (**mesh).clone() {
             let auth_code = auth_code.clone();
             let server = server.clone();
-            let terminated_all_rx = terminated_all_rx.clone();
+            let terminated_all_tx = terminated_all_tx.clone();
             let task = async move {
                 let Some(agent_config) = AgentTunnelConfig::new(auth_code, &mesh, &server).await
                 else {
@@ -280,7 +279,7 @@ async fn run_client_async(
                 info!(?agent_config, "Gateway client enabled");
                 let client = Client::new(agent_config)?;
                 let result = client.run().await?;
-                drop(terminated_all_rx);
+                drop(terminated_all_tx);
                 return Ok(result);
             };
             DiffOption::from(DiffArc::from(AbortOnDrop(tokio::spawn(
@@ -294,7 +293,7 @@ async fn run_client_async(
     tokio::spawn(async move {
         let () = shutdown_rx.await;
         drop(dynamic_client);
-        let _terminated = terminated_all_tx.await;
+        let _terminated = terminated_all_rx.await;
         let _ = terminated_tx.send(());
     });
 
