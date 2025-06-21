@@ -4,11 +4,16 @@ use std::future::ready;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::time::Duration;
+use std::time::SystemTime;
 
 use clap::Parser as _;
 use futures::FutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use scopeguard::defer;
+use terrazzo::autoclone;
 use tokio::signal::unix::SignalKind;
 use tokio::signal::unix::signal;
 use tokio::sync::oneshot;
@@ -17,10 +22,14 @@ use tracing::Instrument as _;
 use tracing::debug;
 use tracing::info;
 use tracing::info_span;
+use tracing::warn;
 use trz_gateway_client::client::AuthCode;
 use trz_gateway_client::client::Client;
 use trz_gateway_client::client::NewClientError;
 use trz_gateway_client::client::connect::ConnectError;
+use trz_gateway_client::load_client_certificate::make_client_certificate;
+use trz_gateway_client::load_client_certificate::store_client_certificate;
+use trz_gateway_client::tunnel_config::TunnelConfig;
 use trz_gateway_common::crypto_provider::crypto_provider;
 use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 use trz_gateway_common::dynamic_config::has_diff::DiffOption;
@@ -28,8 +37,10 @@ use trz_gateway_common::dynamic_config::has_diff::HasDiff;
 use trz_gateway_common::handle::ServerHandle;
 use trz_gateway_common::handle::ServerStopError;
 use trz_gateway_common::security_configuration::SecurityConfig;
+use trz_gateway_common::security_configuration::certificate::CertificateConfig;
 use trz_gateway_common::security_configuration::either::EitherConfig;
 use trz_gateway_common::security_configuration::trusted_store::native::NativeTrustedStoreConfig;
+use trz_gateway_common::x509::time::asn1_to_system_time;
 use trz_gateway_server::server::GatewayError;
 use trz_gateway_server::server::Server;
 use trz_gateway_server::server::acme::active_challenges::ActiveChallenges;
@@ -53,6 +64,7 @@ use self::tls_config::TlsConfigError;
 use self::tls_config::make_tls_config;
 use crate::assets;
 use crate::backend::client_service::remote_fn;
+use crate::backend::config::mesh::DynamicMeshConfig;
 
 mod agent;
 pub mod auth;
@@ -68,6 +80,11 @@ mod tls_config;
 
 const HOST: &str = "localhost";
 const PORT: u16 = if cfg!(debug_assertions) { 3000 } else { 3001 };
+const MIN_CERTIFICATE_RENEWAL_DELAY: Duration = if cfg!(debug_assertions) {
+    Duration::from_secs(5)
+} else {
+    Duration::from_secs(60 * 5)
+};
 
 pub fn run_server() -> Result<(), RunServerError> {
     crypto_provider();
@@ -243,6 +260,7 @@ pub enum RunServerError {
     RunClient(#[from] RunClientError),
 }
 
+#[autoclone]
 async fn run_client_async(
     cli: Cli,
     config: DiffArc<DynConfig>,
@@ -264,26 +282,44 @@ async fn run_client_async(
 
     impl<T> HasDiff for AbortOnDrop<T> {}
 
+    let dynamic_mesh_config = config.mesh.clone();
     let dynamic_client = config.mesh.view(move |mesh| {
         debug!("Refresh mesh config");
         if let Some(mesh) = (**mesh).clone() {
-            let auth_code = auth_code.clone();
-            let server = server.clone();
-            let terminated_all_tx = terminated_all_tx.clone();
-            let task = async move {
+            let auth_code = Arc::new(Mutex::new(auth_code.clone()));
+
+            let client_task = async move {
+                autoclone!(server, terminated_all_tx, dynamic_mesh_config);
                 let Some(agent_config) = AgentTunnelConfig::new(auth_code, &mesh, &server).await
                 else {
                     info!("Gateway client disabled");
                     return Err(RunClientError::ClientNotEnabled);
                 };
+                let agent_config = Arc::new(agent_config);
                 info!(?agent_config, "Gateway client enabled");
+
+                let client_certificate_renewal_task = AbortOnDrop(tokio::spawn(
+                    schedule_client_certificate_renewal(
+                        dynamic_mesh_config.clone(),
+                        mesh.client_certificate_renewal_threshold,
+                        agent_config.clone(),
+                    )
+                    .instrument(info_span!(
+                        "Client certificate renewal",
+                        id = next_client_certificate_renewal_schedule_id()
+                    )),
+                ));
+
                 let client = Client::new(agent_config)?;
                 let result = client.run().await?;
+
                 drop(terminated_all_tx);
+                drop(client_certificate_renewal_task);
+
                 return Ok(result);
             };
             DiffOption::from(DiffArc::from(AbortOnDrop(tokio::spawn(
-                task.instrument(info_span!("Client")),
+                client_task.instrument(info_span!("Client")),
             ))))
         } else {
             None.into()
@@ -300,6 +336,73 @@ async fn run_client_async(
     return Ok(handle);
 }
 
+async fn schedule_client_certificate_renewal(
+    dynamic_mesh_config: DynamicMeshConfig,
+    client_certificate_renewal_threshold: Duration,
+    client_config: impl TunnelConfig,
+) {
+    debug!("Start");
+    defer!(debug!("Canceled"));
+    loop {
+        let client_certificate = client_config.client_certificate();
+        let expiration = if let Ok(Ok(expiration)) = client_certificate
+            .certificate()
+            .map(|certificate| asn1_to_system_time(certificate.certificate.not_after()))
+        {
+            expiration
+        } else {
+            debug!("Failed to parse certificat not_after date");
+            SystemTime::UNIX_EPOCH
+        };
+        let now = SystemTime::now();
+        let renew_in = if expiration <= now + client_certificate_renewal_threshold {
+            info!(
+                "Certificate is already expiring expiration:{expiration:?} <= now:{now:?} + client_certificate_renewal_threshold:{client_certificate_renewal_threshold:?}"
+            );
+            MIN_CERTIFICATE_RENEWAL_DELAY
+        } else {
+            let renew_at = expiration - client_certificate_renewal_threshold;
+            renew_at
+                .duration_since(now)
+                .unwrap_or(MIN_CERTIFICATE_RENEWAL_DELAY)
+        };
+
+        debug!(
+            "Renewing client certificate in {}",
+            humantime::format_duration(renew_in)
+        );
+        tokio::time::sleep(renew_in).await;
+
+        debug!("Renewing client certificate");
+        let auth_code = client_config.current_auth_code().lock().unwrap().clone();
+        let Ok(new_certificate) = make_client_certificate(&client_config, auth_code)
+            .await
+            .inspect_err(|error| warn!("Failed to renew client certificate: {error}"))
+        else {
+            continue;
+        };
+        dynamic_mesh_config.with(|mesh| {
+            if let Some(mesh) = &**mesh {
+                let result = store_client_certificate(
+                    mesh.client_certificate_paths().as_ref(),
+                    new_certificate,
+                );
+                match result {
+                    Ok(_pem) => info!("Renewed the client certificate"),
+                    Err(error) => warn!("Failed to store the new client certificate: {error}"),
+                }
+            }
+        });
+    }
+}
+
+fn next_client_certificate_renewal_schedule_id() -> i32 {
+    use std::sync::atomic::AtomicI32;
+    use std::sync::atomic::Ordering::SeqCst;
+    static NEXT: AtomicI32 = AtomicI32::new(1);
+    NEXT.fetch_add(1, SeqCst)
+}
+
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum RunClientError {
@@ -307,7 +410,7 @@ pub enum RunClientError {
     ClientNotEnabled,
 
     #[error("[{n}] {0}", n = self.name())]
-    NewClient(#[from] NewClientError<AgentTunnelConfig>),
+    NewClient(#[from] NewClientError<Arc<AgentTunnelConfig>>),
 
     #[error("[{n}] {0}", n = self.name())]
     RunClientError(#[from] ConnectError),
