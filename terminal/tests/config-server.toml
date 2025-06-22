@@ -8,4 +8,4 @@ token_refresh = "4m 50s"
 certificate_renewal_threshold = "30days"
 
 [server.config_file_poll_strategy]
-fixed = "1m"
+fixed = "5s"

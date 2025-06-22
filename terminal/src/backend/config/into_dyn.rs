@@ -101,6 +101,7 @@ async fn poll_config_file(config_file_path: String, config: DiffArc<DynConfig>) 
         let mut last_modified = None;
         loop {
             retry_strategy.wait().await;
+            debug!("Polling config file");
             let metadata = match std::fs::metadata(&config_file_path) {
                 Ok(metadata) => metadata,
                 Err(error) => {
