@@ -379,7 +379,7 @@ async fn schedule_client_certificate_renewal(
         .await
         {
             Either::Left((_abort, _sleep)) => return,
-            Either::Right(((), _b)) => {}
+            Either::Right(((), _abort_client_rx)) => {}
         }
 
         info!("Renewing client certificate");
