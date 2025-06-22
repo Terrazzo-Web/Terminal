@@ -148,7 +148,7 @@ async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError
             let joined_config = config.letsencrypt.zip(
                 &config
                     .server
-                    .view(|server_config| server_config.certificate_renewal_threshold),
+                    .view_diff(|server_config| server_config.certificate_renewal_threshold),
             );
             joined_config.view(move |(letsencrypt, certificate_renewal_threshold)| {
                 debug!("Refresh TLS config");
