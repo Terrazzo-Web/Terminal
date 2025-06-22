@@ -1,5 +1,4 @@
 # TODO
-- `#101`. Renew client certificates
 - `#·95`. File explorer: search tool
 - `#·94`. File explorer: all files
 - `#·92`. File explorer: show files with git changes
@@ -121,3 +120,4 @@ Next: `#109`.
 - `#·93`. File explorer: opened files
 - `#106`. Reduce size of WASM file
 - `#103`. Renew LE certificate
+- `#101`. Renew client certificates

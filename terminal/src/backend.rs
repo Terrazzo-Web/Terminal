@@ -289,14 +289,14 @@ async fn run_client_async(
                 let agent_config = Arc::new(agent_config);
                 info!(?agent_config, "Gateway client enabled");
 
+                let schedule_client_certificate_renewal_task = schedule_client_certificate_renewal(
+                    abort_client_rx.clone(),
+                    dynamic_mesh_config.clone(),
+                    mesh.client_certificate_renewal,
+                    agent_config.clone(),
+                );
                 tokio::spawn(
-                    schedule_client_certificate_renewal(
-                        abort_client_rx.clone(),
-                        dynamic_mesh_config.clone(),
-                        mesh.client_certificate_renewal,
-                        agent_config.clone(),
-                    )
-                    .instrument(info_span!(
+                    schedule_client_certificate_renewal_task.instrument(info_span!(
                         "Certificate renewal",
                         id = next_client_certificate_renewal_schedule_id()
                     )),
@@ -304,17 +304,14 @@ async fn run_client_async(
 
                 let client = Client::new(agent_config)?;
                 let client_handle = client.run().await?;
-
-                tokio::spawn(
-                    async move {
-                        let _ = abort_client_rx.await;
-                        match client_handle.stop("Updated mesh config").await {
-                            Ok(()) => debug!("The client was successfully stopped"),
-                            Err(error) => warn!("Failed to stop client: {error}"),
-                        };
-                    }
-                    .instrument(info_span!("Handle")),
-                );
+                let client_handle_task = async move {
+                    let _ = abort_client_rx.await;
+                    match client_handle.stop("Updated mesh config").await {
+                        Ok(()) => debug!("The client was successfully stopped"),
+                        Err(error) => warn!("Failed to stop client: {error}"),
+                    };
+                };
+                tokio::spawn(client_handle_task.instrument(info_span!("Handle")));
                 drop(terminated_all_tx);
 
                 return Ok(());
