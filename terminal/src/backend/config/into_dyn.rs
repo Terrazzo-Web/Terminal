@@ -121,7 +121,7 @@ async fn poll_config_file(config_file_path: String, config: DiffArc<DynConfig>) 
                 continue;
             };
 
-            debug!("Config file timestamp has changed");
+            info!("Config file timestamp has changed");
 
             let new_config_file = match ConfigFile::load(&config_file_path) {
                 Ok(new_config_file) => new_config_file,

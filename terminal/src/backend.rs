@@ -127,7 +127,7 @@ async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError
     {
         println!("server_fn paths:");
         for (m, p) in server_fn::axum::server_fn_paths() {
-            println!("{m} {p}");
+            println!("\t{m} {p}");
         }
         println!("server_fn paths END");
     }
