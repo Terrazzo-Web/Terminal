@@ -30,7 +30,7 @@ pub struct MeshConfig<T: ConfigTypes = RuntimeTypes> {
     /// The strategy to retry connecting.
     pub retry_strategy: T::RetryStrategy,
 
-    pub client_certificate_renewal_threshold: T::Duration,
+    pub client_certificate_renewal: T::Duration,
 }
 
 #[derive(Clone)]

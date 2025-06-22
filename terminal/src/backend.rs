@@ -10,6 +10,8 @@ use std::time::SystemTime;
 
 use clap::Parser as _;
 use futures::FutureExt as _;
+use futures::future::Either;
+use futures::future::Shared;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
@@ -17,7 +19,6 @@ use terrazzo::autoclone;
 use tokio::signal::unix::SignalKind;
 use tokio::signal::unix::signal;
 use tokio::sync::oneshot;
-use tokio::task::JoinHandle;
 use tracing::Instrument as _;
 use tracing::debug;
 use tracing::info;
@@ -33,7 +34,6 @@ use trz_gateway_client::tunnel_config::TunnelConfig;
 use trz_gateway_common::crypto_provider::crypto_provider;
 use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 use trz_gateway_common::dynamic_config::has_diff::DiffOption;
-use trz_gateway_common::dynamic_config::has_diff::HasDiff;
 use trz_gateway_common::handle::ServerHandle;
 use trz_gateway_common::handle::ServerStopError;
 use trz_gateway_common::security_configuration::SecurityConfig;
@@ -271,23 +271,14 @@ async fn run_client_async(
     let (terminated_all_tx, terminated_all_rx) = oneshot::channel::<()>();
     let terminated_all_tx = Arc::new(terminated_all_tx);
 
-    struct AbortOnDrop<T>(JoinHandle<T>);
-
-    impl<T> Drop for AbortOnDrop<T> {
-        fn drop(&mut self) {
-            debug!("Aborting the client");
-            self.0.abort();
-        }
-    }
-
-    impl<T> HasDiff for AbortOnDrop<T> {}
-
     let dynamic_mesh_config = config.mesh.clone();
     let dynamic_client = config.mesh.view(move |mesh| {
         debug!("Refresh mesh config");
         if let Some(mesh) = (**mesh).clone() {
             let auth_code = Arc::new(Mutex::new(auth_code.clone()));
 
+            let (abort_client_tx, abort_client_rx) = oneshot::channel();
+            let abort_client_rx = abort_client_rx.shared();
             let client_task = async move {
                 autoclone!(server, terminated_all_tx, dynamic_mesh_config);
                 let Some(agent_config) = AgentTunnelConfig::new(auth_code, &mesh, &server).await
@@ -298,29 +289,38 @@ async fn run_client_async(
                 let agent_config = Arc::new(agent_config);
                 info!(?agent_config, "Gateway client enabled");
 
-                let client_certificate_renewal_task = AbortOnDrop(tokio::spawn(
+                tokio::spawn(
                     schedule_client_certificate_renewal(
+                        abort_client_rx.clone(),
                         dynamic_mesh_config.clone(),
-                        mesh.client_certificate_renewal_threshold,
+                        mesh.client_certificate_renewal,
                         agent_config.clone(),
                     )
                     .instrument(info_span!(
-                        "Client certificate renewal",
+                        "Certificate renewal",
                         id = next_client_certificate_renewal_schedule_id()
                     )),
-                ));
+                );
 
                 let client = Client::new(agent_config)?;
-                let result = client.run().await?;
+                let client_handle = client.run().await?;
 
+                tokio::spawn(
+                    async move {
+                        let _ = abort_client_rx.await;
+                        match client_handle.stop("Updated mesh config").await {
+                            Ok(()) => debug!("The client was successfully stopped"),
+                            Err(error) => warn!("Failed to stop client: {error}"),
+                        };
+                    }
+                    .instrument(info_span!("Handle")),
+                );
                 drop(terminated_all_tx);
-                drop(client_certificate_renewal_task);
 
-                return Ok(result);
+                return Ok(());
             };
-            DiffOption::from(DiffArc::from(AbortOnDrop(tokio::spawn(
-                client_task.instrument(info_span!("Client")),
-            ))))
+            tokio::spawn(client_task.instrument(info_span!("Client")));
+            DiffOption::from(DiffArc::from(abort_client_tx))
         } else {
             None.into()
         }
@@ -337,8 +337,9 @@ async fn run_client_async(
 }
 
 async fn schedule_client_certificate_renewal(
+    abort_client_rx: Shared<oneshot::Receiver<()>>,
     dynamic_mesh_config: DynamicMeshConfig,
-    client_certificate_renewal_threshold: Duration,
+    client_certificate_renewal: Duration,
     client_config: impl TunnelConfig,
 ) {
     debug!("Start");
@@ -355,13 +356,16 @@ async fn schedule_client_certificate_renewal(
             SystemTime::UNIX_EPOCH
         };
         let now = SystemTime::now();
-        let renew_in = if expiration <= now + client_certificate_renewal_threshold {
+        let renew_in = if expiration <= now + client_certificate_renewal {
             info!(
-                "Certificate is already expiring expiration:{expiration:?} <= now:{now:?} + client_certificate_renewal_threshold:{client_certificate_renewal_threshold:?}"
+                "Certificate is already expiring expiration:{expiration} <= now:{now} + client_certificate_renewal:{client_certificate_renewal}",
+                expiration = humantime::format_rfc3339(expiration),
+                now = humantime::format_rfc3339(now),
+                client_certificate_renewal = humantime::format_duration(client_certificate_renewal),
             );
             MIN_CERTIFICATE_RENEWAL_DELAY
         } else {
-            let renew_at = expiration - client_certificate_renewal_threshold;
+            let renew_at = expiration - client_certificate_renewal;
             renew_at
                 .duration_since(now)
                 .unwrap_or(MIN_CERTIFICATE_RENEWAL_DELAY)
@@ -371,9 +375,17 @@ async fn schedule_client_certificate_renewal(
             "Renewing client certificate in {}",
             humantime::format_duration(renew_in)
         );
-        tokio::time::sleep(renew_in).await;
+        match futures::future::select(
+            abort_client_rx.clone(),
+            Box::pin(tokio::time::sleep(renew_in)),
+        )
+        .await
+        {
+            Either::Left((_abort, _sleep)) => return,
+            Either::Right(((), _b)) => {}
+        }
 
-        debug!("Renewing client certificate");
+        info!("Renewing client certificate");
         let auth_code = client_config.current_auth_code().lock().unwrap().clone();
         let Ok(new_certificate) = make_client_certificate(&client_config, auth_code)
             .await
@@ -381,18 +393,28 @@ async fn schedule_client_certificate_renewal(
         else {
             continue;
         };
-        dynamic_mesh_config.with(|mesh| {
+        let renewed = dynamic_mesh_config.with(|mesh| {
             if let Some(mesh) = &**mesh {
                 let result = store_client_certificate(
                     mesh.client_certificate_paths().as_ref(),
                     new_certificate,
                 );
-                match result {
-                    Ok(_pem) => info!("Renewed the client certificate"),
-                    Err(error) => warn!("Failed to store the new client certificate: {error}"),
-                }
+                return result
+                    .inspect(|_pem| info!("Renewed the client certificate"))
+                    .inspect_err(|error| {
+                        warn!("Failed to store the new client certificate: {error}")
+                    })
+                    .is_ok();
             }
+            false
         });
+        if renewed {
+            // Force restart the client
+            let dynamic_mesh_config = dynamic_mesh_config.clone();
+            tokio::spawn(async move {
+                dynamic_mesh_config.set(|mesh| mesh.clone());
+            });
+        }
     }
 }
 

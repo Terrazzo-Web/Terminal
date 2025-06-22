@@ -59,9 +59,8 @@ impl Config {
                     gateway_pki: mesh.gateway_pki.clone(),
                     client_certificate: Some(mesh.client_certificate.clone()),
                     retry_strategy: Some(mesh.retry_strategy.clone()),
-                    client_certificate_renewal_threshold: Some(
-                        humantime::format_duration(mesh.client_certificate_renewal_threshold)
-                            .to_string(),
+                    client_certificate_renewal: Some(
+                        humantime::format_duration(mesh.client_certificate_renewal).to_string(),
                     ),
                 })
             })),
@@ -154,8 +153,8 @@ fn merge_mesh_config(
         retry_strategy: mesh
             .and_then(|mesh| mesh.retry_strategy.clone())
             .unwrap_or_default(),
-        client_certificate_renewal_threshold: mesh
-            .and_then(|mesh| parse_duration(mesh.client_certificate_renewal_threshold.as_deref()))
+        client_certificate_renewal: mesh
+            .and_then(|mesh| parse_duration(mesh.client_certificate_renewal.as_deref()))
             .unwrap_or(Duration::from_secs(3600 * 24 * 30)),
     }))
 }

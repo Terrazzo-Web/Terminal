@@ -14,9 +14,7 @@ use trz_gateway_client::load_client_certificate::load_client_certificate;
 use trz_gateway_client::tunnel_config::TunnelConfig;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_common::retry_strategy::RetryStrategy;
-use trz_gateway_common::security_configuration::certificate::CertificateConfig;
-use trz_gateway_common::security_configuration::certificate::cache::MemoizedCertificate;
-use trz_gateway_common::security_configuration::certificate::pem::PemCertificate;
+use trz_gateway_common::security_configuration::certificate::cache::CachedCertificate;
 use trz_gateway_common::security_configuration::trusted_store::cache::CachedTrustedStoreConfig;
 use trz_gateway_common::security_configuration::trusted_store::load::LoadTrustedStore;
 use trz_gateway_server::server::Server;
@@ -28,7 +26,7 @@ use crate::backend::protos::terrazzo::gateway::client::client_service_server::Cl
 #[nameth]
 pub struct AgentTunnelConfig {
     client_config: AgentClientConfig,
-    client_certificate: Arc<MemoizedCertificate<PemCertificate>>,
+    client_certificate: CachedCertificate,
     retry_strategy: RetryStrategy,
     server: Arc<Server>,
     current_auth_code: Arc<Mutex<AuthCode>>,
@@ -75,7 +73,7 @@ impl AgentTunnelConfig {
 
             Some(Self {
                 client_config,
-                client_certificate: client_certificate.memoize().into(),
+                client_certificate,
                 retry_strategy: RetryStrategy::default(),
                 server: server.clone(),
                 current_auth_code,
@@ -102,7 +100,7 @@ impl ClientConfig for AgentTunnelConfig {
 }
 
 impl TunnelConfig for AgentTunnelConfig {
-    type ClientCertificate = Arc<MemoizedCertificate<PemCertificate>>;
+    type ClientCertificate = CachedCertificate;
     fn client_certificate(&self) -> Self::ClientCertificate {
         self.client_certificate.clone()
     }

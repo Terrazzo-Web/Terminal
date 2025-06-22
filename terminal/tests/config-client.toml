@@ -5,6 +5,7 @@ pidfile = "/home/richard/.terrazzo/terminal-3100.pid"
 private_root_ca = "/home/richard/.terrazzo/root_ca"
 token_lifetime = "5m"
 token_refresh = "4m 50s"
+certificate_renewal_threshold = "30days"
 
 [server.config_file_poll_strategy]
 fixed = "1m"
@@ -13,7 +14,8 @@ fixed = "1m"
 client_name = "Azerty"
 gateway_url = "https://localhost:3001"
 gateway_pki = "/home/richard/.terrazzo/root_ca.cert"
-client_certificate = "/home/richard/.terrazzo/client_certificate"
+client_certificate = "/home/richard/.terrazzo/test_certificate_azerty"
+client_certificate_renewal = "30days"
 
 [mesh.retry_strategy.exponential-backoff]
 exponent = 2.0

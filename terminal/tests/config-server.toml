@@ -5,6 +5,7 @@ pidfile = "/home/richard/.terrazzo/terminal-3001.pid"
 private_root_ca = "/home/richard/.terrazzo/root_ca"
 token_lifetime = "5m"
 token_refresh = "4m 50s"
+certificate_renewal_threshold = "30days"
 
 [server.config_file_poll_strategy]
 fixed = "1m"
