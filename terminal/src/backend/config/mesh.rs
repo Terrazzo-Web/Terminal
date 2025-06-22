@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use serde::Deserialize;
 use serde::Serialize;
+use trz_gateway_common::certificate_info::CertificateInfo;
 use trz_gateway_common::dynamic_config::DynamicConfig;
 use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 use trz_gateway_common::dynamic_config::has_diff::DiffOption;
@@ -28,6 +29,8 @@ pub struct MeshConfig<T: ConfigTypes = RuntimeTypes> {
 
     /// The strategy to retry connecting.
     pub retry_strategy: T::RetryStrategy,
+
+    pub client_certificate_renewal: T::Duration,
 }
 
 #[derive(Clone)]
@@ -44,5 +47,16 @@ impl Deref for DynamicMeshConfig {
 impl From<Arc<DynamicConfig<DiffOption<DiffArc<MeshConfig>>>>> for DynamicMeshConfig {
     fn from(value: Arc<DynamicConfig<DiffOption<DiffArc<MeshConfig>>>>) -> Self {
         Self(value)
+    }
+}
+
+impl MeshConfig {
+    pub fn client_certificate_paths(&self) -> CertificateInfo<String> {
+        const CLIENT_CERTIFICATE_FILE_SUFFIX: CertificateInfo<&str> = CertificateInfo {
+            certificate: "cert",
+            private_key: "key",
+        };
+
+        CLIENT_CERTIFICATE_FILE_SUFFIX.map(|suffix| format!("{}.{suffix}", self.client_certificate))
     }
 }

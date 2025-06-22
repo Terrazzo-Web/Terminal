@@ -1,6 +1,4 @@
 # TODO
-- `#101`. Renew client certificates
-- `#103`. Renew LE certificate
 - `#·95`. File explorer: search tool
 - `#·94`. File explorer: all files
 - `#·92`. File explorer: show files with git changes
@@ -19,15 +17,15 @@
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
 - `#·52`. Drag n Drop to create tiles
 - `#··8`. Resizeable component
-- `#106`. Reduce size of WASM file
 - `#107`. (b) Ticks should be aligned with round time;
+- `#108`. Introduce shortcuts for unwrap(). Makes it easy to scan where unwrap() is used.
 
 # Nice to have
 - `#·45`. Lazily load tab
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#108`.
+Next: `#109`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -120,3 +118,6 @@ Next: `#108`.
 - `#107`. (a) Timestamps should show on up immediately, not just on the first tick;
 - `#·97`. Text editor: show files list on opening folder
 - `#·93`. File explorer: opened files
+- `#106`. Reduce size of WASM file
+- `#103`. Renew LE certificate
+- `#101`. Renew client certificates

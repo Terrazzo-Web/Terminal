@@ -48,6 +48,9 @@ impl Config {
                 token_lifetime: Some(humantime::format_duration(server.token_lifetime).to_string()),
                 token_refresh: Some(humantime::format_duration(server.token_refresh).to_string()),
                 config_file_poll_strategy: Some(server.config_file_poll_strategy.clone()),
+                certificate_renewal_threshold: Some(
+                    humantime::format_duration(server.certificate_renewal_threshold).to_string(),
+                ),
             }),
             mesh: DiffOption::from(mesh.as_ref().map(|mesh| {
                 DiffArc::from(MeshConfig {
@@ -56,6 +59,9 @@ impl Config {
                     gateway_pki: mesh.gateway_pki.clone(),
                     client_certificate: Some(mesh.client_certificate.clone()),
                     retry_strategy: Some(mesh.retry_strategy.clone()),
+                    client_certificate_renewal: Some(
+                        humantime::format_duration(mesh.client_certificate_renewal).to_string(),
+                    ),
                 })
             })),
             letsencrypt: letsencrypt.clone(),
@@ -108,6 +114,10 @@ fn merge_server_config(
             .config_file_poll_strategy
             .clone()
             .unwrap_or_else(|| RetryStrategy::fixed(Duration::from_secs(60))),
+        certificate_renewal_threshold: parse_duration(
+            server.certificate_renewal_threshold.as_deref(),
+        )
+        .unwrap_or(Duration::from_secs(1) * 3600 * 24 * 30),
     }
 }
 
@@ -123,7 +133,6 @@ fn merge_mesh_config(
     mesh: Option<&MeshConfig<ConfigFileTypes>>,
     cli: &Cli,
 ) -> Option<DiffArc<MeshConfig<RuntimeTypes>>> {
-    let mesh = mesh.as_ref();
     let client_name = cli.client_name.as_ref().cloned();
     let gateway_url = cli.gateway_url.as_ref().cloned();
     let gateway_pki = cli.gateway_pki.as_ref().cloned();
@@ -144,5 +153,8 @@ fn merge_mesh_config(
         retry_strategy: mesh
             .and_then(|mesh| mesh.retry_strategy.clone())
             .unwrap_or_default(),
+        client_certificate_renewal: mesh
+            .and_then(|mesh| parse_duration(mesh.client_certificate_renewal.as_deref()))
+            .unwrap_or(Duration::from_secs(3600 * 24 * 30)),
     }))
 }

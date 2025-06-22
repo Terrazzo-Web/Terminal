@@ -31,6 +31,9 @@ pub struct ServerConfig<T: ConfigTypes = RuntimeTypes> {
 
     /// Polling strategy for the config file
     pub config_file_poll_strategy: T::RetryStrategy,
+
+    /// Certificates renewal strategy
+    pub certificate_renewal_threshold: T::Duration,
 }
 
 #[derive(Clone)]
