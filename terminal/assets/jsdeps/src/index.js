@@ -9,6 +9,9 @@ import {
     basicSetup
 } from "codemirror";
 import { EditorState } from '@codemirror/state';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { rust } from "@codemirror/lang-rust"
+import { LSPClient } from "@codemirror/language-server";
 
 import { languageServer } from '@marimo-team/codemirror-languageserver';
 import { WebSocketTransport } from '@open-rpc/client-js';
@@ -22,6 +25,9 @@ export {
     basicSetup,
     EditorState,
     EditorView,
+    oneDark,
+    rust,
+    LSPClient,
 
     languageServer,
     WebSocketTransport,
