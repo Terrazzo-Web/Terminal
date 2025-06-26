@@ -1,6 +1,17 @@
+const languageClient = new JsDeps.LanguageServerClient({
+    transport: new JsDeps.WebSocketTransport('ws://127.0.0.1:3002'),
+    autoClose: true,
+});
+
 class CodeMirrorJs {
     editorView;
-    constructor(element, content, onchange) {
+    constructor(
+        element,
+        content,
+        onchange,
+        basePath,
+        fullPath,
+    ) {
         const updateListener = JsDeps.EditorView.updateListener.of((update) => {
             if (update.docChanged) {
                 const content = update.state.doc.toString();
@@ -8,37 +19,29 @@ class CodeMirrorJs {
             }
         });
 
-        // // Configure the language server plugin
-        // const languageServer = JsDeps.languageServer({
-        //     serverUri: 'ws://127.0.0.1:3002',
-        //     rootUri: 'file:///home/richard/Documents/Terminal/terminal',
-        //     documentUri: 'file:///home/richard/Documents/Terminal/terminal/src/backend.rs',
-        //     languageId: 'rust',
-
-        //     // Optional: Customize keyboard shortcuts
-        //     keyboardShortcuts: {
-        //         rename: 'F2',                // Default: F2
-        //         goToDefinition: 'ctrlcmd',   // Ctrl/Cmd + Click
-        //     },
-
-        //     // Optional: Allow HTML content in tooltips
-        //     allowHTMLContent: true,
-        // });
+        let languageServer = JsDeps.languageServerWithClient({
+            client: languageClient,
+            rootUri: `file://${basePath}`,
+            documentUri: `file://${fullPath}`,
+            languageId: 'rust',
+            keyboardShortcuts: {
+                rename: 'F2',
+                goToDefinition: 'ctrlcmd',
+            },
+            allowHTMLContent: true,
+        });
 
         const state = JsDeps.EditorState.create({
             doc: content,
+            tooltips: JsDeps.tooltips({
+                position: "absolute",
+            }),
             extensions: [
                 JsDeps.basicSetup,
+                JsDeps.lintGutter(),
                 JsDeps.oneDark,
                 JsDeps.rust(),
-                JsDeps.LSPClient({
-                    serverUri: "ws://localhost:5000", // Your language server WebSocket URL
-                    capabilities: {
-                        textDocument: {
-                            inlayHints: true
-                        }
-                    }
-                }),
+                languageServer,
                 updateListener,
             ]
         });
