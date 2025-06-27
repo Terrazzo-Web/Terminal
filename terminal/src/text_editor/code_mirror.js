@@ -17,15 +17,109 @@ class CodeMirrorJs {
                 rootUri,
                 client: new JsDeps.LanguageServerClient({
                     rootUri,
+                    workspaceFolders: [{
+                        uri: rootUri,
+                        name: "Rust"
+                    }],
                     transport: new JsDeps.WebSocketTransport('ws://127.0.0.1:3002'),
                     autoClose: true,
+                    capabilities: {
+                        textDocument: {
+                            hover: {
+                                dynamicRegistration: true,
+                                contentFormat: ["markdown", "plaintext"],
+                            },
+                            publishDiagnostics: {
+                                relatedInformation: true,
+                                versionSupport: true,
+                                tagSupport: {
+                                    valueSet: [
+                                        1,
+                                        2
+                                    ]
+                                },
+                                codeDescriptionSupport: true,
+                                dataSupport: true
+                            },
+
+                            moniker: {},
+                            synchronization: {
+                                dynamicRegistration: true,
+                                willSave: true,
+                                didSave: true,
+                                willSaveWaitUntil: false,
+                                change: "full",  // send full document on every edit
+                            },
+                            codeAction: {
+                                dynamicRegistration: true,
+                                codeActionLiteralSupport: {
+                                    codeActionKind: {
+                                        valueSet: [
+                                            "",
+                                            "quickfix",
+                                            "refactor",
+                                            "refactor.extract",
+                                            "refactor.inline",
+                                            "refactor.rewrite",
+                                            "source",
+                                            "source.organizeImports",
+                                        ],
+                                    },
+                                },
+                                resolveSupport: {
+                                    properties: ["edit"],
+                                },
+                            },
+                            completion: {
+                                dynamicRegistration: true,
+                                completionItem: {
+                                    snippetSupport: true,
+                                    commitCharactersSupport: true,
+                                    documentationFormat: ["markdown", "plaintext"],
+                                    deprecatedSupport: false,
+                                    preselectSupport: false,
+                                },
+                                contextSupport: false,
+                            },
+                            signatureHelp: {
+                                dynamicRegistration: true,
+                                signatureInformation: {
+                                    documentationFormat: ["markdown", "plaintext"],
+                                },
+                            },
+                            declaration: {
+                                dynamicRegistration: true,
+                                linkSupport: true,
+                            },
+                            definition: {
+                                dynamicRegistration: true,
+                                linkSupport: true,
+                            },
+                            typeDefinition: {
+                                dynamicRegistration: true,
+                                linkSupport: true,
+                            },
+                            implementation: {
+                                dynamicRegistration: true,
+                                linkSupport: true,
+                            },
+                            rename: {
+                                dynamicRegistration: true,
+                                prepareSupport: true,
+                            },
+                        },
+                        workspace: {
+                            didChangeConfiguration: {
+                                dynamicRegistration: true,
+                            },
+                        },
+                    },
                 })
             };
         }
 
         let languageServer = JsDeps.languageServerWithClient({
             client: languageClient.client,
-            rootUri,
             documentUri,
             languageId: 'rust',
             keyboardShortcuts: {
