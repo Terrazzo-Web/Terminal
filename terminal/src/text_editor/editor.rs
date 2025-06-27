@@ -1,5 +1,6 @@
 #![cfg(feature = "client")]
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use terrazzo::autoclone;
@@ -31,6 +32,7 @@ pub fn editor(
     } = editor_state;
 
     let on_change: Closure<dyn FnMut(JsValue)> = Closure::new(move |content: JsValue| {
+        autoclone!(base_path, file_path);
         let Some(content) = content.as_string() else {
             debug!("Changed content is not a string");
             return;
@@ -53,10 +55,16 @@ pub fn editor(
     tag(
         class = style::editor,
         after_render = move |element| {
+            autoclone!(base_path, file_path);
             drop(CodeMirrorJs::new(
                 element,
                 content.as_ref().into(),
                 &on_change,
+                base_path.to_string(),
+                PathBuf::from(base_path.as_ref())
+                    .join(file_path.as_ref())
+                    .to_string_lossy()
+                    .to_string(),
             ))
         },
     )

@@ -15,5 +15,7 @@ extern "C" {
         element: Element,
         content: JsValue,
         onchange: &Closure<dyn FnMut(JsValue)>,
+        base_path: String,
+        full_path: String,
     ) -> CodeMirrorJs;
 }
