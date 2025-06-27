@@ -12,19 +12,10 @@ class CodeMirrorJs {
         basePath,
         fullPath,
     ) {
-        let docVersion = 1;
         const updateListener = JsDeps.EditorView.updateListener.of((update) => {
             if (update.docChanged) {
                 const content = update.state.doc.toString();
                 onchange(content);
-                docVersion++;
-                languageClient.sendNotification("textDocument/didChange", {
-                    textDocument: {
-                        uri: `file://${fullPath}`,
-                        version: docVersion,
-                    },
-                    contentChanges: [{ text: content }]
-                });
             }
         });
 

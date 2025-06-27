@@ -43,7 +43,7 @@ impl Pty {
 
     pub fn resize(&self, size: Size) -> Result<(), PtyError> {
         Ok(self.0.get_ref().set_term_size(size)?)
-    }2
+    }
 
     pub fn pts(&self) -> Result<Pts, PtyError> {
         Ok(self.0.get_ref().pts()?)
