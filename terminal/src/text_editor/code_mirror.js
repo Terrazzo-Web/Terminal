@@ -1,7 +1,4 @@
-const languageClient = new JsDeps.LanguageServerClient({
-    transport: new JsDeps.WebSocketTransport('ws://127.0.0.1:3002'),
-    autoClose: true,
-});
+let languageClient;
 
 class CodeMirrorJs {
     editorView;
@@ -12,23 +9,38 @@ class CodeMirrorJs {
         basePath,
         fullPath,
     ) {
-        const updateListener = JsDeps.EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-                const content = update.state.doc.toString();
-                onchange(content);
-            }
-        });
+        const rootUri = `file://${basePath}`;
+        const documentUri = `file://${fullPath}`;
+        if (languageClient?.rootUri != rootUri) {
+            languageClient?.client?.close();
+            languageClient = {
+                rootUri,
+                client: new JsDeps.LanguageServerClient({
+                    rootUri,
+                    transport: new JsDeps.WebSocketTransport('ws://127.0.0.1:3002'),
+                    autoClose: true,
+                })
+            };
+        }
 
         let languageServer = JsDeps.languageServerWithClient({
-            client: languageClient,
-            rootUri: `file://${basePath}`,
-            documentUri: `file://${fullPath}`,
+            client: languageClient.client,
+            rootUri,
+            documentUri,
             languageId: 'rust',
             keyboardShortcuts: {
                 rename: 'F2',
                 goToDefinition: 'ctrlcmd',
             },
             allowHTMLContent: true,
+        });
+
+
+        const updateListener = JsDeps.EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+                const content = update.state.doc.toString();
+                onchange(content);
+            }
         });
 
         const state = JsDeps.EditorState.create({
