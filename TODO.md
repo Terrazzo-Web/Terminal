@@ -1,5 +1,4 @@
 # TODO
-- `#112`. Assets are read from disk in debug mode
 - `#110`. Add a wrapper around `cargo check` that returns a list of errors or warnings
 - `#109`. Add a layer around tokio::fs with caching and updates from inotify
 - `#111`. Update the file in the UI with changes from disk -- unless the UI has pending changes
@@ -125,3 +124,4 @@ Next: `#113`.
 - `#106`. Reduce size of WASM file
 - `#103`. Renew LE certificate
 - `#101`. Renew client certificates
+- `#112`. Assets are read from disk in debug mode
