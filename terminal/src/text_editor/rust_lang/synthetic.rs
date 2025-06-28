@@ -9,6 +9,7 @@ use crate::text_editor::rust_lang::messages::Diagnostic;
 #[derive(Debug, serde::Deserialize, PartialEq, Eq)]
 pub struct SyntheticDiagnostic {
     pub base_path: String,
+    pub file_path: String,
     pub level: String,
     pub message: String,
     pub code: Option<SyntheticDiagnosticCode>,
@@ -53,20 +54,21 @@ impl SyntheticDiagnostic {
     pub fn new(check: &CargoCheckMessage) -> Vec<Self> {
         let mut result = vec![];
         Self::all(
-            Path::new(check.manifest_path.as_ref())
+            &Path::new(check.manifest_path.as_ref())
                 .parent()
                 .unwrap_or("/".as_ref())
-                .to_string_lossy()
-                .as_ref(),
+                .to_string_lossy(),
+            &check.target.src_path,
             &check.message,
             &mut result,
         );
         return result;
     }
 
-    fn all(base_path: &str, diagnostic: &Diagnostic, result: &mut Vec<Self>) {
+    fn all(base_path: &str, file_path: &str, diagnostic: &Diagnostic, result: &mut Vec<Self>) {
         result.push(Self {
             base_path: base_path.to_owned(),
+            file_path: file_path.to_owned(),
             level: diagnostic.level.to_string(),
             message: diagnostic.message.to_string(),
             code: diagnostic
@@ -93,7 +95,7 @@ impl SyntheticDiagnostic {
                 .collect(),
         });
         for child in &diagnostic.children {
-            Self::all(base_path, child, result);
+            Self::all(base_path, file_path, child, result);
         }
     }
 }

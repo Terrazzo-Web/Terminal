@@ -9,3 +9,4 @@ edition = "2024"
 
 [features]
 some_unused_method = []
+method_does_not_exist = []

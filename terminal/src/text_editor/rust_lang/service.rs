@@ -98,7 +98,6 @@ mod tests {
         let result = super::run_cargo_check(&base_path, &["some_unused_method"])
             .await
             .unwrap();
-        dbg!(&result);
         assert_eq!(base_path, PathBuf::from(&result[0].base_path));
         assert_eq!("warning", &result[0].level);
         assert_eq!(
@@ -122,5 +121,18 @@ mod tests {
             },
             &result[0].spans[0]
         )
+    }
+
+    #[tokio::test]
+    async fn method_does_not_exist() {
+        enable_tracing_for_tests();
+        let base_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(RUST_LANG_CHECKS);
+        let result = super::run_cargo_check(&base_path, &["method_does_not_exist"])
+            .await
+            .unwrap();
+        assert_eq!(base_path, PathBuf::from(&result[0].base_path));
+        assert_eq!("error", &result[0].level);
+        assert_eq!("E0599", result[0].code.as_ref().unwrap().code);
+        assert!(result[0].message.contains("no method named `unwrap2`"));
     }
 }
