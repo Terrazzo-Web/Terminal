@@ -324,7 +324,6 @@ mod tests {
         assert_that!(&root).ends_with("/terminal");
 
         let autocomplete = call_autocomplete(&root, format!("{root}/src/text_editor"));
-        dbg!(&autocomplete);
         assert_that!(&autocomplete).contains(&"ROOT/src".into());
         assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/autocomplete".into());
         assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/autocomplete.rs".into());
@@ -380,7 +379,6 @@ mod tests {
         enable_tracing_for_tests();
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         let autocomplete = call_autocomplete_files(&root, format!("{root}/src/text/u"));
-        dbg!(&autocomplete);
         assert_that!(&autocomplete).is_equal_to(
             &["text", "text_editor/autocomplete.rs", "text_editor/ui.rs"]
                 .map(Into::into)

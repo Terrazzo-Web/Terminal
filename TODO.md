@@ -1,4 +1,7 @@
 # TODO
+- `#110`. Add a wrapper around `cargo check` that returns a list of errors or warnings
+- `#109`. Add a layer around tokio::fs with caching and updates from inotify
+- `#111`. Update the file in the UI with changes from disk -- unless the UI has pending changes
 - `#·95`. File explorer: search tool
 - `#·94`. File explorer: all files
 - `#·92`. File explorer: show files with git changes
@@ -25,7 +28,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#109`.
+Next: `#113`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -121,3 +124,4 @@ Next: `#109`.
 - `#106`. Reduce size of WASM file
 - `#103`. Renew LE certificate
 - `#101`. Renew client certificates
+- `#112`. Assets are read from disk in debug mode
