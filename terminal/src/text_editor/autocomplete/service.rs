@@ -380,9 +380,14 @@ mod tests {
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         let autocomplete = call_autocomplete_files(&root, format!("{root}/src/text/u"));
         assert_that!(&autocomplete).is_equal_to(
-            &["text", "text_editor/autocomplete.rs", "text_editor/ui.rs"]
-                .map(Into::into)
-                .into(),
+            &[
+                "text",
+                "text_editor/autocomplete.rs",
+                "text_editor/rust_lang.rs",
+                "text_editor/ui.rs",
+            ]
+            .map(Into::into)
+            .into(),
         );
     }
 

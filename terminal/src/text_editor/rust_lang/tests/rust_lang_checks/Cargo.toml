@@ -1,0 +1,12 @@
+[workspace]
+
+[package]
+name = "rust_lang_checks"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[features]
+some_unused_method = []
+method_does_not_exist = []
