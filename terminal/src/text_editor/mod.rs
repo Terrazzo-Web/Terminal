@@ -5,7 +5,7 @@ mod folder;
 mod fsio;
 mod path_selector;
 mod remotes;
-//mod rust_lang;
+mod rust_lang;
 mod side;
 mod state;
 mod synchronized_state;
