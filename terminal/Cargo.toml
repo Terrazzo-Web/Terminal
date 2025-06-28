@@ -33,6 +33,7 @@ jsonwebtoken = { workspace = true, optional = true }
 libc = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
+notify = { workspace = true, optional = true }
 openssl = { workspace = true, optional = true }
 pbkdf2 = { workspace = true, optional = true }
 pin-project = { workspace = true }
@@ -50,6 +51,7 @@ terrazzo = { workspace = true, optional = true }
 terrazzo-pty = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
+tokio-stream = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
 tower = { workspace = true, optional = true }
@@ -116,6 +118,7 @@ server = [
     "dep:jsonwebtoken",
     "dep:libc",
     "dep:nix",
+    "dep:notify",
     "dep:openssl",
     "dep:pbkdf2",
     "dep:prost-types",
@@ -124,6 +127,7 @@ server = [
     "dep:sha2",
     "dep:static_assertions",
     "dep:terrazzo-pty",
+    "dep:tokio-stream",
     "dep:tokio",
     "dep:toml",
     "dep:tonic",

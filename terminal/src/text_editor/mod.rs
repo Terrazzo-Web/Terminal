@@ -3,6 +3,7 @@ mod code_mirror;
 mod editor;
 mod folder;
 mod fsio;
+mod notify;
 mod path_selector;
 mod remotes;
 mod rust_lang;
