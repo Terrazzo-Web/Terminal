@@ -32,7 +32,7 @@ pub async fn notify(
             match process_request(request, &mut watcher, &tx) {
                 Ok(()) => {}
                 Err(error) => {
-                    let _ = eos_tx.send(Err(error));
+                    let _ = eos_tx.send(Err(error.into()));
                     return;
                 }
             }
@@ -51,27 +51,42 @@ fn process_request(
     request: Result<NotifyRequest, ServerFnError>,
     watcher: &mut Option<INotifyWatcher>,
     tx: &mpsc::UnboundedSender<Result<NotifyResponse, ServerFnError>>,
-) -> Result<(), ServerFnError> {
-    Ok(match request? {
+) -> Result<(), NotifyError> {
+    Ok(match request.map_err(NotifyError::BadRequest)? {
         NotifyRequest::Start { remote: _ } => {
-            *watcher = Some(notify::recommended_watcher(event_handler::EventHandler {
-                tx: tx.clone(),
-            })?);
+            *watcher = Some(
+                notify::recommended_watcher(event_handler::EventHandler { tx: tx.clone() })
+                    .map_err(NotifyError::CreateWatcher)?,
+            );
         }
         NotifyRequest::Watch { path } => watcher
             .as_mut()
             .ok_or(NotifyError::WatcherNotSet)?
-            .watch(Path::new(path.as_ref()), notify::RecursiveMode::Recursive)?,
+            .watch(Path::new(path.as_ref()), notify::RecursiveMode::Recursive)
+            .map_err(NotifyError::Watch)?,
         NotifyRequest::UnWatch { path } => watcher
             .as_mut()
             .ok_or(NotifyError::WatcherNotSet)?
-            .unwatch(Path::new(path.as_ref()))?,
+            .unwatch(Path::new(path.as_ref()))
+            .map_err(NotifyError::Unwatch)?,
     })
 }
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum NotifyError {
+    #[error("[{n}] {0}", n = self.name())]
+    CreateWatcher(notify::Error),
+
+    #[error("[{n}] {0}", n = self.name())]
+    Watch(notify::Error),
+
+    #[error("[{n}] {0}", n = self.name())]
+    Unwatch(notify::Error),
+
     #[error("[{n}] Watcher not set", n = self.name())]
     WatcherNotSet,
+
+    #[error("[{n}] {0}", n = self.name())]
+    BadRequest(ServerFnError),
 }
