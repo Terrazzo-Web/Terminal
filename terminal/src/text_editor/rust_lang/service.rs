@@ -143,4 +143,12 @@ mod tests {
         assert_eq!("E0599", result[0].code.as_ref().unwrap().code);
         assert!(result[0].message.contains("no method named `unwrap2`"));
     }
+
+    #[tokio::test]
+    async fn terminal() {
+        enable_tracing_for_tests();
+        let base_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let result = super::cargo_check(&base_path, &[]).await.unwrap();
+        assert_eq!(result, vec![]);
+    }
 }
