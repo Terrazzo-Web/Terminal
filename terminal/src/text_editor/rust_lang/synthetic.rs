@@ -1,44 +1,70 @@
-#[derive(Debug, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct SyntheticDiagnostic {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "bp"))]
     pub base_path: String,
+
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "fp"))]
     pub file_path: String,
+
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "l"))]
     pub level: String,
+
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "m"))]
     pub message: String,
+
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "c"))]
     pub code: Option<SyntheticDiagnosticCode>,
+
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "s"))]
     pub spans: Vec<SyntheticDiagnosticSpan>,
 }
 
-#[derive(Debug, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct SyntheticDiagnosticCode {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "c"))]
     pub code: String,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "e"))]
     pub explanation: Option<String>,
 }
 
-#[derive(Debug, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct SyntheticDiagnosticSpan {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "f"))]
     pub file_name: String,
 
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "bs"))]
     pub byte_start: u32,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "be"))]
     pub byte_end: u32,
 
     /// 1-based.
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "ls"))]
     pub line_start: u32,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "le"))]
     pub line_end: u32,
 
     /// 1-based.
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "cs"))]
     pub column_start: u32,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "ce"))]
     pub column_end: u32,
 
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "sr"))]
     pub suggested_replacement: Option<String>,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "sa"))]
     pub suggestion_applicability: Option<Applicability>,
 }
 
 /// https://github.com/rust-lang/cargo/blob/rust-1.87.0/crates/rustfix/src/diagnostics.rs#L58
-#[derive(Clone, Copy, Debug, serde::Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum Applicability {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "a"))]
     MachineApplicable,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "b"))]
     MaybeIncorrect,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "c"))]
     HasPlaceholders,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "d"))]
     Unspecified,
 }
 

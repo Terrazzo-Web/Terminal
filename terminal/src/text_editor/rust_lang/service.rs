@@ -1,5 +1,4 @@
 #![cfg(feature = "server")]
-#![allow(unused)]
 
 use std::path::Path;
 use std::process::Stdio;
@@ -9,9 +8,12 @@ use nameth::nameth;
 use tokio::io::AsyncBufReadExt as _;
 use tokio::io::BufReader;
 use tokio::process::Command;
+use tonic::Code;
 use tracing::debug;
 
 use super::synthetic::SyntheticDiagnostic;
+use crate::backend::client_service::grpc_error::GrpcError;
+use crate::backend::client_service::grpc_error::IsGrpcError;
 
 #[nameth]
 #[derive(Debug, thiserror::Error)]
@@ -26,10 +28,16 @@ pub enum CargoCheckError {
     Failure(std::io::Error),
 }
 
-async fn run_cargo_check(
+impl IsGrpcError for CargoCheckError {
+    fn code(&self) -> Code {
+        Code::Internal
+    }
+}
+
+pub async fn cargo_check(
     base_path: impl AsRef<Path>,
     features: &[&str],
-) -> Result<Vec<SyntheticDiagnostic>, CargoCheckError> {
+) -> Result<Vec<SyntheticDiagnostic>, GrpcError<CargoCheckError>> {
     let mut reader: tokio::io::Lines<BufReader<tokio::process::ChildStdout>> = {
         let mut command = Command::new("cargo");
         command
@@ -54,7 +62,7 @@ async fn run_cargo_check(
             Ok(None) => break,
             Err(error) => {
                 if results.is_empty() {
-                    return Err(CargoCheckError::Failure(error));
+                    return Err(CargoCheckError::Failure(error))?;
                 } else {
                     debug!("Bad line: {error}");
                     break;
@@ -95,7 +103,7 @@ mod tests {
     async fn some_unused_method() {
         enable_tracing_for_tests();
         let base_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(RUST_LANG_CHECKS);
-        let result = super::run_cargo_check(&base_path, &["some_unused_method"])
+        let result = super::cargo_check(&base_path, &["some_unused_method"])
             .await
             .unwrap();
         assert_eq!(base_path, PathBuf::from(&result[0].base_path));
@@ -127,7 +135,7 @@ mod tests {
     async fn method_does_not_exist() {
         enable_tracing_for_tests();
         let base_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(RUST_LANG_CHECKS);
-        let result = super::run_cargo_check(&base_path, &["method_does_not_exist"])
+        let result = super::cargo_check(&base_path, &["method_does_not_exist"])
             .await
             .unwrap();
         assert_eq!(base_path, PathBuf::from(&result[0].base_path));
