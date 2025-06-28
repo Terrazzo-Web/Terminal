@@ -3,6 +3,8 @@
 
 pub use std::borrow::Cow;
 
+use super::synthetic::Applicability;
+
 /// https://github.com/rust-lang/cargo/blob/rust-1.87.0/src/cargo/util/machine_message.rs#L23
 #[derive(Debug, serde::Deserialize)]
 pub struct CargoCheckMessage<'a> {
@@ -13,7 +15,6 @@ pub struct CargoCheckMessage<'a> {
     #[serde(borrow)]
     pub package_id: Cow<'a, str>,
 
-    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub manifest_path: Cow<'a, str>,
 
@@ -66,6 +67,7 @@ pub struct Diagnostic<'a> {
     #[serde(borrow)]
     pub children: Vec<Diagnostic<'a>>,
 
+    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub rendered: Option<Cow<'a, str>>,
 }
@@ -100,6 +102,7 @@ pub struct DiagnosticSpan<'a> {
     /// The point where the error actually occurred.
     pub is_primary: bool,
 
+    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub text: Vec<DiagnosticSpanLine<'a>>,
 
@@ -111,18 +114,8 @@ pub struct DiagnosticSpan<'a> {
     pub suggestion_applicability: Option<Applicability>,
 
     /// Macro invocations that created the code at this span, if any.
-
     #[serde(borrow)]
     pub expansion: Option<Box<DiagnosticSpanMacroExpansion<'a>>>,
-}
-
-/// https://github.com/rust-lang/cargo/blob/rust-1.87.0/crates/rustfix/src/diagnostics.rs#L58
-#[derive(Debug, serde::Deserialize)]
-pub enum Applicability {
-    MachineApplicable,
-    MaybeIncorrect,
-    HasPlaceholders,
-    Unspecified,
 }
 
 /// https://github.com/rust-lang/cargo/blob/rust-1.87.0/crates/rustfix/src/diagnostics.rs#L82
@@ -149,10 +142,12 @@ pub struct DiagnosticSpanMacroExpansion<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     #[test]
     fn deserialize() {
         let message: super::CargoCheckMessage = serde_json::from_str(COMPILER_MESSAGE).unwrap();
-        dbg!(message);
+        assert!(matches!(message.reason, Cow::Borrowed(_)));
     }
 
     const COMPILER_MESSAGE: &'static str = r#"

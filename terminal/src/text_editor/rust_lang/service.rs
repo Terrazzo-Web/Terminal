@@ -11,6 +11,8 @@ use tokio::io::BufReader;
 use tokio::process::Command;
 use tracing::debug;
 
+use super::synthetic::SyntheticDiagnostic;
+
 #[nameth]
 #[derive(Debug, thiserror::Error)]
 pub enum CargoCheckError {
@@ -27,7 +29,7 @@ pub enum CargoCheckError {
 async fn run_cargo_check(
     base_path: impl AsRef<Path>,
     features: &[&str],
-) -> Result<(), CargoCheckError> {
+) -> Result<Vec<SyntheticDiagnostic>, CargoCheckError> {
     let mut reader: tokio::io::Lines<BufReader<tokio::process::ChildStdout>> = {
         let mut command = Command::new("cargo");
         command
@@ -73,11 +75,9 @@ async fn run_cargo_check(
             continue;
         }
 
-        dbg!(message);
-        results.push(());
+        results.extend(SyntheticDiagnostic::new(&message));
     }
-    drop(results);
-    Ok(())
+    Ok(results)
 }
 
 #[cfg(test)]
@@ -86,14 +86,41 @@ mod tests {
 
     use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;
 
+    use super::super::synthetic::SyntheticDiagnosticCode;
+    use super::super::synthetic::SyntheticDiagnosticSpan;
+
     const RUST_LANG_CHECKS: &'static str = "src/text_editor/rust_lang/tests/rust_lang_checks";
 
     #[tokio::test]
     async fn some_unused_method() {
         enable_tracing_for_tests();
         let base_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(RUST_LANG_CHECKS);
-        let () = super::run_cargo_check(base_path, &["some_unused_method"])
+        let result = super::run_cargo_check(&base_path, &["some_unused_method"])
             .await
             .unwrap();
+        dbg!(&result);
+        assert_eq!(base_path, PathBuf::from(&result[0].base_path));
+        assert_eq!("warning", &result[0].level);
+        assert_eq!(
+            &Some(SyntheticDiagnosticCode {
+                code: "dead_code".into(),
+                explanation: None
+            }),
+            &result[0].code
+        );
+        assert_eq!(
+            &SyntheticDiagnosticSpan {
+                file_name: "src/main.rs".into(),
+                byte_start: 88,
+                byte_end: 106,
+                line_start: 6,
+                line_end: 6,
+                column_start: 4,
+                column_end: 22,
+                suggested_replacement: None,
+                suggestion_applicability: None
+            },
+            &result[0].spans[0]
+        )
     }
 }
