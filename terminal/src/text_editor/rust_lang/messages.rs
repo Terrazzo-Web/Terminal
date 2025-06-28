@@ -9,34 +9,23 @@ pub struct CargoCheckMessage<'a> {
     #[serde(borrow)]
     pub reason: Cow<'a, str>,
 
+    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub package_id: Cow<'a, str>,
 
+    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub manifest_path: Cow<'a, str>,
 
+    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub target: TargetInfo<'a>,
 
     #[serde(borrow)]
-    pub message: CompilerMessage<'a>,
+    pub message: Diagnostic<'a>,
 }
 
-#[derive(Debug, serde::Deserialize)]
-pub struct CompilerMessage<'a> {
-    #[serde(borrow)]
-    pub rendered: Cow<'a, str>,
-
-    #[serde(borrow)]
-    pub message: Cow<'a, str>,
-
-    #[serde(borrow)]
-    pub level: Cow<'a, str>,
-
-    #[serde(borrow)]
-    pub children: Vec<Diagnostic<'a>>,
-}
-
+#[cfg(debug_assertions)]
 #[derive(Debug, serde::Deserialize)]
 pub struct TargetInfo<'a> {
     #[serde(borrow)]

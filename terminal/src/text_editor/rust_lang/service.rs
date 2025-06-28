@@ -1,6 +1,7 @@
 #![cfg(feature = "server")]
-#![expect(unused)]
+#![allow(unused)]
 
+use std::path::Path;
 use std::process::Stdio;
 
 use nameth::NamedEnumValues as _;
@@ -23,14 +24,21 @@ pub enum CargoCheckError {
     Failure(std::io::Error),
 }
 
-async fn run_cargo_check(base_path: &str, file_path: &str) -> Result<(), CargoCheckError> {
+async fn run_cargo_check(
+    base_path: impl AsRef<Path>,
+    features: &[&str],
+) -> Result<(), CargoCheckError> {
     let mut reader: tokio::io::Lines<BufReader<tokio::process::ChildStdout>> = {
-        let mut child = Command::new("cargo")
+        let mut command = Command::new("cargo");
+        command
+            .current_dir(base_path)
             .args(["check", "--message-format=json"])
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .spawn()
-            .map_err(CargoCheckError::SpawnProcess)?;
+            .stderr(Stdio::null());
+        if !features.is_empty() {
+            command.arg("--features").arg(features.join(","));
+        }
+        let mut child = command.spawn().map_err(CargoCheckError::SpawnProcess)?;
 
         let stdout = child.stdout.take().ok_or(CargoCheckError::MissingStdout)?;
         BufReader::new(stdout).lines()
@@ -61,9 +69,31 @@ async fn run_cargo_check(base_path: &str, file_path: &str) -> Result<(), CargoCh
         else {
             continue;
         };
-        drop(message);
+        if message.reason != "compiler-message" {
+            continue;
+        }
+
+        dbg!(message);
         results.push(());
     }
     drop(results);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use trz_gateway_common::tracing::test_utils::enable_tracing_for_tests;
+
+    const RUST_LANG_CHECKS: &'static str = "src/text_editor/rust_lang/tests/rust_lang_checks";
+
+    #[tokio::test]
+    async fn some_unused_method() {
+        enable_tracing_for_tests();
+        let base_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(RUST_LANG_CHECKS);
+        let () = super::run_cargo_check(base_path, &["some_unused_method"])
+            .await
+            .unwrap();
+    }
 }
