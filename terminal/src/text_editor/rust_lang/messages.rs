@@ -2,8 +2,6 @@
 
 pub use std::borrow::Cow;
 
-use super::synthetic::Applicability;
-
 /// https://github.com/rust-lang/cargo/blob/rust-1.87.0/src/cargo/util/machine_message.rs#L23
 #[derive(Debug, serde::Deserialize)]
 pub struct CargoCheckMessage<'a> {
@@ -135,6 +133,15 @@ pub struct DiagnosticSpan<'a> {
     #[serde(borrow)]
     #[expect(dead_code)]
     pub expansion: Option<Box<DiagnosticSpanMacroExpansion<'a>>>,
+}
+
+/// https://github.com/rust-lang/cargo/blob/rust-1.87.0/crates/rustfix/src/diagnostics.rs#L58
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub enum Applicability {
+    MachineApplicable,
+    MaybeIncorrect,
+    HasPlaceholders,
+    Unspecified,
 }
 
 /// https://github.com/rust-lang/cargo/blob/rust-1.87.0/crates/rustfix/src/diagnostics.rs#L82

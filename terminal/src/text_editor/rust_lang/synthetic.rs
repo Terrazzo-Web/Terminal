@@ -73,6 +73,7 @@ mod convert {
     use std::borrow::Cow;
     use std::path::Path;
 
+    use super::super::messages;
     use super::super::messages::CargoCheckMessage;
     use super::super::messages::Diagnostic;
     use super::SyntheticDiagnostic;
@@ -122,7 +123,20 @@ mod convert {
                             .suggested_replacement
                             .as_ref()
                             .map(Cow::to_string),
-                        suggestion_applicability: span.suggestion_applicability,
+                        suggestion_applicability: span.suggestion_applicability.map(|a| match a {
+                            messages::Applicability::MachineApplicable => {
+                                super::Applicability::MachineApplicable
+                            }
+                            messages::Applicability::MaybeIncorrect => {
+                                super::Applicability::MaybeIncorrect
+                            }
+                            messages::Applicability::HasPlaceholders => {
+                                super::Applicability::HasPlaceholders
+                            }
+                            messages::Applicability::Unspecified => {
+                                super::Applicability::Unspecified
+                            }
+                        }),
                     })
                     .collect(),
             });
