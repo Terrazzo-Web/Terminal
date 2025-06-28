@@ -18,7 +18,6 @@ pub struct CargoCheckMessage<'a> {
     #[serde(borrow)]
     pub manifest_path: Cow<'a, str>,
 
-    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub target: TargetInfo<'a>,
 
@@ -26,26 +25,34 @@ pub struct CargoCheckMessage<'a> {
     pub message: Diagnostic<'a>,
 }
 
-#[cfg(debug_assertions)]
 #[derive(Debug, serde::Deserialize)]
 pub struct TargetInfo<'a> {
+    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub kind: Vec<Cow<'a, str>>,
 
+    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub crate_types: Vec<Cow<'a, str>>,
 
+    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub name: Cow<'a, str>,
 
     #[serde(borrow)]
     pub src_path: Cow<'a, str>,
 
+    #[cfg(debug_assertions)]
     #[serde(borrow)]
     pub edition: Cow<'a, str>,
 
+    #[cfg(debug_assertions)]
     pub doc: bool,
+
+    #[cfg(debug_assertions)]
     pub doctest: bool,
+
+    #[cfg(debug_assertions)]
     pub test: bool,
 }
 

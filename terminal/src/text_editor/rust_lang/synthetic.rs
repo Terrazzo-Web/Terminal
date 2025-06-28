@@ -1,11 +1,3 @@
-#![allow(unused)]
-
-use std::borrow::Cow;
-use std::path::Path;
-
-use super::messages::CargoCheckMessage;
-use crate::text_editor::rust_lang::messages::Diagnostic;
-
 #[derive(Debug, serde::Deserialize, PartialEq, Eq)]
 pub struct SyntheticDiagnostic {
     pub base_path: String,
@@ -50,52 +42,67 @@ pub enum Applicability {
     Unspecified,
 }
 
-impl SyntheticDiagnostic {
-    pub fn new(check: &CargoCheckMessage) -> Vec<Self> {
-        let mut result = vec![];
-        Self::all(
-            &Path::new(check.manifest_path.as_ref())
-                .parent()
-                .unwrap_or("/".as_ref())
-                .to_string_lossy(),
-            &check.target.src_path,
-            &check.message,
-            &mut result,
-        );
-        return result;
-    }
+#[cfg(feature = "server")]
+mod convert {
+    use std::borrow::Cow;
+    use std::path::Path;
 
-    fn all(base_path: &str, file_path: &str, diagnostic: &Diagnostic, result: &mut Vec<Self>) {
-        result.push(Self {
-            base_path: base_path.to_owned(),
-            file_path: file_path.to_owned(),
-            level: diagnostic.level.to_string(),
-            message: diagnostic.message.to_string(),
-            code: diagnostic
-                .code
-                .as_ref()
-                .map(|code| SyntheticDiagnosticCode {
-                    code: code.code.to_string(),
-                    explanation: code.explanation.as_ref().map(Cow::to_string),
-                }),
-            spans: diagnostic
-                .spans
-                .iter()
-                .map(|span| SyntheticDiagnosticSpan {
-                    file_name: span.file_name.to_string(),
-                    byte_start: span.byte_start,
-                    byte_end: span.byte_end,
-                    line_start: span.line_start,
-                    line_end: span.line_end,
-                    column_start: span.column_start,
-                    column_end: span.column_end,
-                    suggested_replacement: span.suggested_replacement.as_ref().map(Cow::to_string),
-                    suggestion_applicability: span.suggestion_applicability,
-                })
-                .collect(),
-        });
-        for child in &diagnostic.children {
-            Self::all(base_path, file_path, child, result);
+    use super::super::messages::CargoCheckMessage;
+    use super::super::messages::Diagnostic;
+    use super::SyntheticDiagnostic;
+    use super::SyntheticDiagnosticCode;
+    use super::SyntheticDiagnosticSpan;
+
+    impl SyntheticDiagnostic {
+        pub fn new(check: &CargoCheckMessage) -> Vec<Self> {
+            let mut result = vec![];
+            Self::all(
+                &Path::new(check.manifest_path.as_ref())
+                    .parent()
+                    .unwrap_or("/".as_ref())
+                    .to_string_lossy(),
+                &check.target.src_path,
+                &check.message,
+                &mut result,
+            );
+            return result;
+        }
+
+        fn all(base_path: &str, file_path: &str, diagnostic: &Diagnostic, result: &mut Vec<Self>) {
+            result.push(Self {
+                base_path: base_path.to_owned(),
+                file_path: file_path.to_owned(),
+                level: diagnostic.level.to_string(),
+                message: diagnostic.message.to_string(),
+                code: diagnostic
+                    .code
+                    .as_ref()
+                    .map(|code| SyntheticDiagnosticCode {
+                        code: code.code.to_string(),
+                        explanation: code.explanation.as_ref().map(Cow::to_string),
+                    }),
+                spans: diagnostic
+                    .spans
+                    .iter()
+                    .map(|span| SyntheticDiagnosticSpan {
+                        file_name: span.file_name.to_string(),
+                        byte_start: span.byte_start,
+                        byte_end: span.byte_end,
+                        line_start: span.line_start,
+                        line_end: span.line_end,
+                        column_start: span.column_start,
+                        column_end: span.column_end,
+                        suggested_replacement: span
+                            .suggested_replacement
+                            .as_ref()
+                            .map(Cow::to_string),
+                        suggestion_applicability: span.suggestion_applicability,
+                    })
+                    .collect(),
+            });
+            for child in &diagnostic.children {
+                Self::all(base_path, file_path, child, result);
+            }
         }
     }
 }

@@ -67,7 +67,7 @@ async fn run_cargo_check(
         }
 
         let Ok(message) = serde_json::from_str::<super::messages::CargoCheckMessage>(next_line)
-            .inspect_err(|error| debug!("Invalid cargo check JSON: {error}"))
+            .inspect_err(|error| debug!("Invalid cargo check JSON: {error}: {next_line}"))
         else {
             continue;
         };
