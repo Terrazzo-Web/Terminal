@@ -1,6 +1,5 @@
 #![cfg(feature = "client")]
 
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicI32;
@@ -17,20 +16,21 @@ use wasm_bindgen_futures::spawn_local;
 
 use self::diagnostics::debug;
 use self::diagnostics::warn;
-use super::fsio::load_file;
+use super::editor::editor;
+use super::folder::folder;
+use super::fsio;
+use super::manager::EditorState;
+use super::manager::TextEditorManager;
+use super::notify::ui::NotifyService;
+use super::remotes::show_remote;
+use super::side::SideViewList;
+use super::side::ui::show_side_view;
 use super::state;
 use super::style;
 use super::synchronized_state::SynchronizedState;
+use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
-use crate::text_editor::editor::editor;
-use crate::text_editor::folder::folder;
-use crate::text_editor::fsio::File;
-use crate::text_editor::remotes::show_remote;
-use crate::text_editor::side;
-use crate::text_editor::side::SideViewList;
-use crate::text_editor::side::ui::show_side_view;
-use crate::text_editor::synchronized_state::show_synchronized_state;
 
 /// The UI for the text editor app.
 #[html]
@@ -47,18 +47,19 @@ pub fn text_editor() -> XElement {
 #[template(tag = div)]
 fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) -> XElement {
     let side_view: XSignal<Arc<SideViewList>> = XSignal::new("side-view", Default::default());
-    let text_editor = Arc::new(TextEditor {
-        remote,
+    let manager = Arc::new(TextEditorManager {
+        remote: remote.clone(),
         base_path: XSignal::new("base-path", Arc::default()),
         file_path: XSignal::new("file-path", Arc::default()),
         force_edit_path: XSignal::new("force-edit-path", false),
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
         side_view,
+        notify_service: Arc::new(NotifyService::new(remote)),
     });
 
     let consumers = Arc::default();
-    text_editor.restore_paths(&consumers);
+    manager.restore_paths(&consumers);
 
     div(
         key = "text-editor",
@@ -66,12 +67,12 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
         div(
             class = style::header,
             menu(),
-            text_editor.base_path_selector(),
-            text_editor.file_path_selector(),
-            show_synchronized_state(text_editor.synchronized_state.clone()),
+            manager.base_path_selector(),
+            manager.file_path_selector(),
+            show_synchronized_state(manager.synchronized_state.clone()),
             show_remote(remote_signal),
         ),
-        editor_body(text_editor.clone(), text_editor.editor_state.clone()),
+        editor_body(manager.clone(), manager.editor_state.clone()),
         after_render = move |_| {
             let _moved = &consumers;
         },
@@ -80,13 +81,13 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
 
 #[html]
 fn editor_body(
-    text_editor: Arc<TextEditor>,
+    manager: Arc<TextEditorManager>,
     editor_state: XSignal<Option<EditorState>>,
 ) -> XElement {
     div(
         class = super::style::body,
-        show_side_view(text_editor.clone(), text_editor.side_view.clone()),
-        editor_container(text_editor, editor_state),
+        show_side_view(manager.clone(), manager.side_view.clone()),
+        editor_container(manager, editor_state),
     )
 }
 
@@ -96,7 +97,7 @@ fn editor_body(
 })]
 #[html]
 fn editor_container(
-    text_editor: Arc<TextEditor>,
+    manager: Arc<TextEditorManager>,
     #[signal] editor_state: Option<EditorState>,
 ) -> XElement {
     let Some(editor_state) = editor_state else {
@@ -104,21 +105,21 @@ fn editor_container(
     };
 
     let body = match &*editor_state.data {
-        File::TextFile { content, .. } => {
+        fsio::File::TextFile { content, .. } => {
             let content = content.clone();
-            editor(text_editor.clone(), editor_state, content)
+            editor(manager.clone(), editor_state, content)
         }
-        File::Folder(list) => {
+        fsio::File::Folder(list) => {
             let list = list.clone();
-            folder(text_editor.clone(), editor_state, list)
+            folder(manager.clone(), editor_state, list)
         }
-        File::Error(_error) => todo!(),
+        fsio::File::Error(_error) => todo!(),
     };
 
     tag(class = super::style::editor_container, body)
 }
 
-impl TextEditor {
+impl TextEditorManager {
     /// Restores the paths
     #[autoclone]
     #[nameth]
@@ -179,24 +180,14 @@ impl TextEditor {
             let task = async move {
                 autoclone!(this);
                 let base_path = this.base_path.get_value_untracked();
-                let data = load_file(this.remote.clone(), base_path.clone(), file_path.clone())
-                    .await
-                    .unwrap_or_else(|error| Some(File::Error(error.to_string())))
-                    .map(Arc::new);
+                let data =
+                    fsio::ui::load_file(this.remote.clone(), base_path.clone(), file_path.clone())
+                        .await
+                        .unwrap_or_else(|error| Some(fsio::File::Error(error.to_string())))
+                        .map(Arc::new);
 
-                if let Some(File::TextFile { metadata, .. }) = data.as_deref() {
-                    let relative_path = Path::new(file_path.as_ref())
-                        .iter()
-                        .map(|leg| Arc::from(leg.to_string_lossy().to_string()))
-                        .collect::<Vec<_>>();
-                    this.side_view.update(|tree| {
-                        Some(side::mutation::add_file(
-                            tree.clone(),
-                            relative_path.as_slice(),
-                            super::side::SideViewNode::File(metadata.clone()),
-                        ))
-                    });
-                    this.force_edit_path.set(false);
+                if let Some(fsio::File::TextFile { metadata, .. }) = data.as_deref() {
+                    this.watch_file(metadata, &base_path, &file_path);
                 }
 
                 if let Some(data) = data {
@@ -230,32 +221,5 @@ impl TextEditor {
                     .unwrap_or_else(|error| warn!("Failed to save path: {error}"));
             })
         })
-    }
-}
-
-pub(super) struct TextEditor {
-    pub remote: Remote,
-    pub base_path: XSignal<Arc<str>>,
-    pub file_path: XSignal<Arc<str>>,
-    pub force_edit_path: XSignal<bool>,
-    pub editor_state: XSignal<Option<EditorState>>,
-    pub synchronized_state: XSignal<SynchronizedState>,
-    pub side_view: XSignal<Arc<SideViewList>>,
-}
-
-#[derive(Clone)]
-pub(super) struct EditorState {
-    pub base_path: Arc<str>,
-    pub file_path: Arc<str>,
-    pub data: Arc<File>,
-}
-
-impl std::fmt::Debug for EditorState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Editor")
-            .field("base_path", &self.base_path)
-            .field("file_path", &self.file_path)
-            .field("data", &self.data)
-            .finish()
     }
 }

@@ -22,13 +22,14 @@
 - `#··8`. Resizeable component
 - `#107`. (b) Ticks should be aligned with round time;
 - `#108`. Introduce shortcuts for unwrap(). Makes it easy to scan where unwrap() is used.
+- `#113`. Add a dropdown on hover showing the list of pending operations on the ok/pending icon
 
 # Nice to have
 - `#·45`. Lazily load tab
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#113`.
+Next: `#114`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`

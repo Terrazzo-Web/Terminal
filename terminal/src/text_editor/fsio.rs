@@ -66,7 +66,7 @@ impl std::fmt::Debug for File {
 
 #[server(protocol = Http<Json, Json>)]
 #[nameth]
-pub async fn load_file(
+async fn load_file(
     remote: Option<ClientAddress>,
     base_path: Arc<str>,
     file_path: Arc<str>,

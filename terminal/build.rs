@@ -65,7 +65,6 @@ fn build_protos() {
         return;
     };
     tonic_build::configure()
-        .build_client(true)
         .bytes([".terrazzo.gateway.client.LeaseItem.data"])
         .compile_protos(&["src/backend/client.proto"], &["src/"])
         .unwrap();
