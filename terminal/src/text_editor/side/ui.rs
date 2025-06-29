@@ -9,10 +9,10 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 
 use crate::assets::icons;
+use crate::text_editor::manager::TextEditor;
 use crate::text_editor::side;
 use crate::text_editor::side::SideViewList;
 use crate::text_editor::side::SideViewNode;
-use crate::text_editor::ui::TextEditor;
 
 stylance::import_crate_style!(style, "src/text_editor/side.scss");
 

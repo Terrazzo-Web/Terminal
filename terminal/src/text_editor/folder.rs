@@ -14,8 +14,8 @@ use crate::frontend::timestamp;
 use crate::frontend::timestamp::datetime::DateTime;
 use crate::frontend::timestamp::display_timestamp;
 use crate::text_editor::fsio::FileMetadata;
-use crate::text_editor::ui::EditorState;
-use crate::text_editor::ui::TextEditor;
+use crate::text_editor::manager::EditorState;
+use crate::text_editor::manager::TextEditor;
 
 stylance::import_crate_style!(style, "src/text_editor/folder.scss");
 

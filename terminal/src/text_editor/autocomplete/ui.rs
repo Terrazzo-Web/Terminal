@@ -17,9 +17,9 @@ use web_sys::MouseEvent;
 use super::AutocompleteItem;
 use super::autocomplete_path;
 use crate::frontend::menu::before_menu;
+use crate::text_editor::manager::TextEditor;
 use crate::text_editor::path_selector::PathSelector;
 use crate::text_editor::style;
-use crate::text_editor::ui::TextEditor;
 
 #[autoclone]
 #[html]

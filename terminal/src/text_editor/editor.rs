@@ -19,11 +19,11 @@ use super::code_mirror::CodeMirrorJs;
 use super::synchronized_state::SynchronizedState;
 use crate::text_editor::fsio;
 use crate::text_editor::fsio::ui::store_file;
+use crate::text_editor::manager::EditorState;
+use crate::text_editor::manager::TextEditor;
 use crate::text_editor::notify::EventKind;
 use crate::text_editor::notify::NotifyResponse;
 use crate::text_editor::style;
-use crate::text_editor::ui::EditorState;
-use crate::text_editor::ui::TextEditor;
 
 #[autoclone]
 #[html]

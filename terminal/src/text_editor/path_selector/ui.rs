@@ -18,8 +18,8 @@ use crate::text_editor::autocomplete::ui::do_autocomplete;
 use crate::text_editor::autocomplete::ui::show_autocomplete;
 use crate::text_editor::autocomplete::ui::start_autocomplete;
 use crate::text_editor::autocomplete::ui::stop_autocomplete;
+use crate::text_editor::manager::TextEditor;
 use crate::text_editor::style;
-use crate::text_editor::ui::TextEditor;
 
 impl TextEditor {
     pub fn base_path_selector(self: &Arc<Self>) -> XElement {

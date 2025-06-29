@@ -3,6 +3,7 @@ mod code_mirror;
 mod editor;
 mod folder;
 mod fsio;
+mod manager;
 mod notify;
 mod path_selector;
 mod remotes;
