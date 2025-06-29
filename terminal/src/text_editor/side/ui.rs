@@ -120,17 +120,7 @@ fn close_icon(manager: &Arc<TextEditorManager>, path: &Arc<Path>) -> XElement {
         class = format!("{} {}", style::icon, style::close,),
         click = move |_ev| {
             autoclone!(manager, path);
-            manager.side_view.update(|side_view| {
-                let path_vec: Vec<Arc<str>> = path
-                    .iter()
-                    .map(|leg| leg.to_string_lossy().to_string().into())
-                    .collect();
-                manager.notify_service.unwatch(
-                    &manager.base_path.get_value_untracked(),
-                    &path.to_string_lossy(),
-                );
-                side::mutation::remove_file(side_view.clone(), &path_vec).ok()
-            });
+            manager.unwatch_file(&path);
         },
     )
 }
