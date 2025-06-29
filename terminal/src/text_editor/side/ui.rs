@@ -10,7 +10,6 @@ use terrazzo::template;
 
 use crate::assets::icons;
 use crate::text_editor::manager::TextEditorManager;
-use crate::text_editor::side;
 use crate::text_editor::side::SideViewList;
 use crate::text_editor::side::SideViewNode;
 

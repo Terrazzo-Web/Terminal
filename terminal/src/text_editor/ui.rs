@@ -1,6 +1,5 @@
 #![cfg(feature = "client")]
 
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicI32;
@@ -24,7 +23,6 @@ use super::manager::EditorState;
 use super::manager::TextEditorManager;
 use super::notify::ui::NotifyService;
 use super::remotes::show_remote;
-use super::side;
 use super::side::SideViewList;
 use super::side::ui::show_side_view;
 use super::state;
@@ -189,19 +187,7 @@ impl TextEditorManager {
                         .map(Arc::new);
 
                 if let Some(fsio::File::TextFile { metadata, .. }) = data.as_deref() {
-                    let relative_path = Path::new(file_path.as_ref())
-                        .iter()
-                        .map(|leg| Arc::from(leg.to_string_lossy().to_string()))
-                        .collect::<Vec<_>>();
-                    this.notify_service.watch(&base_path, &file_path);
-                    this.side_view.update(|tree| {
-                        Some(side::mutation::add_file(
-                            tree.clone(),
-                            relative_path.as_slice(),
-                            super::side::SideViewNode::File(metadata.clone()),
-                        ))
-                    });
-                    this.force_edit_path.set(false);
+                    this.watch_file(metadata, &base_path, &file_path);
                 }
 
                 if let Some(data) = data {

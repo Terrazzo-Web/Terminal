@@ -10,6 +10,7 @@ use super::notify::ui::NotifyService;
 use super::side::SideViewList;
 use super::synchronized_state::SynchronizedState;
 use crate::frontend::remotes::Remote;
+use crate::text_editor::fsio::FileMetadata;
 use crate::text_editor::side;
 
 pub(super) struct TextEditorManager {
@@ -31,35 +32,42 @@ pub(super) struct EditorState {
 }
 
 impl TextEditorManager {
-    pub fn watch_file(&self) {
-        let relative_path = Path::new(file_path.as_ref())
+    pub fn watch_file(&self, metadata: &Arc<FileMetadata>, base_path: &str, file_path: &str) {
+        let relative_path = Path::new(file_path)
             .iter()
             .map(|leg| Arc::from(leg.to_string_lossy().to_string()))
             .collect::<Vec<_>>();
-        this.notify_service.watch(&base_path, &file_path);
-        this.side_view.update(|tree| {
+        self.notify_service.watch(base_path, file_path);
+        self.side_view.update(|tree| {
             Some(side::mutation::add_file(
                 tree.clone(),
                 relative_path.as_slice(),
                 super::side::SideViewNode::File(metadata.clone()),
             ))
         });
-        this.force_edit_path.set(false);
+        self.force_edit_path.set(false);
     }
 
-    pub fn unwatch_file(&self, path: impl AsRef<Path>) {
-        let path = path.as_ref();
+    pub fn unwatch_file(&self, file_path: impl AsRef<Path>) {
+        let file_path = file_path.as_ref();
         self.side_view.update(|side_view| {
             self.notify_service.unwatch(
                 &self.base_path.get_value_untracked(),
-                &path.to_string_lossy(),
+                &file_path.to_string_lossy(),
             );
-            let path_vec: Vec<Arc<str>> = path
+            let file_path_vec: Vec<Arc<str>> = file_path
                 .iter()
                 .map(|leg| leg.to_string_lossy().to_string().into())
                 .collect();
-            side::mutation::remove_file(side_view.clone(), &path_vec).ok()
+            side::mutation::remove_file(side_view.clone(), &file_path_vec).ok()
         });
+        self.file_path.update(|old| {
+            if Path::new(old.as_ref()) == file_path {
+                Some("".into())
+            } else {
+                None
+            }
+        })
     }
 }
 

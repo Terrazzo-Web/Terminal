@@ -1,5 +1,6 @@
 #![cfg(feature = "client")]
 
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -101,8 +102,12 @@ fn notify_handler(
     file_path: &Arc<str>,
     writing: &Arc<AtomicBool>,
 ) -> impl Fn(&NotifyResponse) + 'static {
+    let full_path = Path::new(base_path.as_ref()).join(file_path.as_ref());
     move |response| {
         autoclone!(manager, code_mirror, base_path, file_path, writing);
+        if Path::new(&response.path) != &full_path {
+            return;
+        }
         match response.kind {
             EventKind::Create | EventKind::Modify => {
                 if writing.load(SeqCst) {
@@ -127,7 +132,7 @@ fn notify_handler(
                     };
                 });
             }
-            EventKind::Delete | EventKind::Error => manager.file_path.set(""),
+            EventKind::Delete | EventKind::Error => manager.unwatch_file(file_path.as_ref()),
         }
     }
 }
