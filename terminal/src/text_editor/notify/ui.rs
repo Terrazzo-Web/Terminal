@@ -18,6 +18,11 @@ use crate::frontend::remotes::Remote;
 use crate::text_editor::notify::*;
 
 pub struct NotifyService {
+    remote: Remote,
+    inner: Arc<Mutex<Option<NotifyServiceImpl>>>,
+}
+
+struct NotifyServiceImpl {
     request: mpsc::UnboundedSender<Result<NotifyRequest, ServerFnError>>,
     handlers: Handlers,
 }
@@ -30,8 +35,60 @@ pub struct NotifyRegistration {
 }
 
 impl NotifyService {
-    #[autoclone]
     pub fn new(remote: Remote) -> Self {
+        Self {
+            remote: remote.clone(),
+            inner: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    fn inner<R>(&self, f: impl FnOnce(&mut NotifyServiceImpl) -> R) -> R {
+        let mut inner = self.inner.lock().unwrap();
+        let inner = &mut *inner;
+        let inner =
+            inner.get_or_insert_with(|| NotifyServiceImpl::new(self.remote.clone(), &self.inner));
+        f(inner)
+    }
+
+    pub fn watch(&self, base_path: &str, file_path: &str) {
+        let path = Path::new(base_path).join(file_path);
+        let path = path.to_string_lossy().as_ref().to_owned().into();
+        self.send(Ok(NotifyRequest::Watch { path }));
+    }
+
+    pub fn unwatch(&self, base_path: &str, file_path: &str) {
+        let path = Path::new(base_path).join(file_path);
+        let path = path.to_string_lossy().as_ref().to_owned().into();
+        self.send(Ok(NotifyRequest::UnWatch { path }));
+    }
+
+    fn send(&self, notify_request: Result<NotifyRequest, ServerFnError>) {
+        let mut request = self.inner(|inner| inner.request.clone());
+        spawn_local(async move {
+            let () = request
+                .send(notify_request)
+                .await
+                .unwrap_or_else(|error| warn!("Failed to send notify request: {error}"));
+        });
+    }
+
+    pub fn add_handler(
+        self: &Arc<Self>,
+        handler: impl Fn(&NotifyResponse) + 'static,
+    ) -> Arc<NotifyRegistration> {
+        let registration = NotifyRegistration::new(self);
+        let handlers = self.inner(|inner| inner.handlers.clone());
+        handlers
+            .lock()
+            .unwrap()
+            .insert(registration.id, Box::new(handler));
+        Arc::new(registration)
+    }
+}
+
+impl NotifyServiceImpl {
+    #[autoclone]
+    fn new(remote: Remote, inner: &Arc<Mutex<Option<NotifyServiceImpl>>>) -> Self {
         let (request_tx, request_rx) = mpsc::unbounded();
         let handlers = Handlers::default();
         let request = futures::stream::once(ready(Ok(NotifyRequest::Start {
@@ -39,7 +96,7 @@ impl NotifyService {
         })))
         .chain(request_rx);
         spawn_local(async move {
-            autoclone!(handlers);
+            autoclone!(inner, handlers);
             let Ok(mut response) = super::notify(request.into())
                 .await
                 .inspect_err(|error| warn!("Notify stream failed: {error}"))
@@ -56,6 +113,8 @@ impl NotifyService {
                     }
                     Err(error) => {
                         warn!("{error:?}");
+                        inner.lock().unwrap().take();
+                        return;
                     }
                 }
             }
@@ -64,40 +123,6 @@ impl NotifyService {
             request: request_tx,
             handlers,
         }
-    }
-
-    pub fn watch(&self, base_path: &str, file_path: &str) {
-        let path = Path::new(base_path).join(file_path);
-        let path = path.to_string_lossy().as_ref().to_owned().into();
-        self.send(Ok(NotifyRequest::Watch { path }));
-    }
-
-    pub fn unwatch(&self, base_path: &str, file_path: &str) {
-        let path = Path::new(base_path).join(file_path);
-        let path = path.to_string_lossy().as_ref().to_owned().into();
-        self.send(Ok(NotifyRequest::UnWatch { path }));
-    }
-
-    fn send(&self, notify_request: Result<NotifyRequest, ServerFnError>) {
-        let mut request = self.request.clone();
-        spawn_local(async move {
-            let () = request
-                .send(notify_request)
-                .await
-                .unwrap_or_else(|error| warn!("Failed to send notify request: {error}"));
-        });
-    }
-
-    pub fn add_handler(
-        self: &Arc<Self>,
-        handler: impl Fn(&NotifyResponse) + 'static,
-    ) -> Arc<NotifyRegistration> {
-        let registration = NotifyRegistration::new(self);
-        self.handlers
-            .lock()
-            .unwrap()
-            .insert(registration.id, Box::new(handler));
-        Arc::new(registration)
     }
 }
 
@@ -121,6 +146,7 @@ impl Drop for NotifyRegistration {
         let Some(notify_service) = self.notify_service.upgrade() else {
             return;
         };
-        notify_service.handlers.lock().unwrap().remove(&self.id);
+        let handlers = notify_service.inner(|inner| inner.handlers.clone());
+        handlers.lock().unwrap().remove(&self.id);
     }
 }
