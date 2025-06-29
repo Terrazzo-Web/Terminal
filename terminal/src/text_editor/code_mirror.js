@@ -38,6 +38,16 @@ class CodeMirrorJs {
             parent: element,
         });
     }
+
+    set_content(content) {
+        this.editorView.dispatch({
+            changes: {
+                from: 0,
+                to: this.editorView.state.doc.length,
+                insert: content
+            }
+        });
+    }
 }
 
 function getLanguage(fileName) {

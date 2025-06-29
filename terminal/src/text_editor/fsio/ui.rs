@@ -5,11 +5,20 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 use std::time::Duration;
 
+use server_fn::ServerFnError;
 use terrazzo::prelude::diagnostics;
 use terrazzo::widgets::debounce::DoDebounce;
 
 use self::diagnostics::warn;
 use crate::frontend::remotes::Remote;
+
+pub async fn load_file(
+    remote: Remote,
+    base_path: Arc<str>,
+    file_path: Arc<str>,
+) -> Result<Option<super::File>, ServerFnError> {
+    super::load_file(remote, base_path, file_path).await
+}
 
 pub async fn store_file<P: Send + 'static>(
     remote: Remote,

@@ -2,17 +2,22 @@
 
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use wasm_bindgen::JsValue;
+use wasm_bindgen_futures::spawn_local;
 
 use self::diagnostics::debug;
 use super::code_mirror::CodeMirrorJs;
 use super::synchronized_state::SynchronizedState;
+use crate::text_editor::fsio;
 use crate::text_editor::fsio::ui::store_file;
+use crate::text_editor::notify::EventKind;
+use crate::text_editor::notify::NotifyResponse;
 use crate::text_editor::style;
 use crate::text_editor::ui::EditorState;
 use crate::text_editor::ui::TextEditor;
@@ -32,7 +37,7 @@ pub fn editor(
     } = editor_state;
 
     let on_change: Closure<dyn FnMut(JsValue)> = Closure::new(move |content: JsValue| {
-        autoclone!(base_path, file_path);
+        autoclone!(text_editor, base_path, file_path);
         let Some(content) = content.as_string() else {
             debug!("Changed content is not a string");
             return;
@@ -52,11 +57,21 @@ pub fn editor(
         wasm_bindgen_futures::spawn_local(write);
     });
 
+    let code_mirror = Arc::new(Mutex::new(None));
+
+    let notify_registration = text_editor.notify_service.add_handler(notify_handler(
+        &text_editor,
+        &code_mirror,
+        &base_path,
+        &file_path,
+    ));
+
     tag(
         class = style::editor,
         after_render = move |element| {
             autoclone!(base_path, file_path);
-            drop(CodeMirrorJs::new(
+            let _moved = notify_registration.clone();
+            *code_mirror.lock().unwrap() = Some(CodeMirrorJs::new(
                 element,
                 content.as_ref().into(),
                 &on_change,
@@ -65,7 +80,42 @@ pub fn editor(
                     .join(file_path.as_ref())
                     .to_string_lossy()
                     .to_string(),
-            ))
+            ));
         },
     )
+}
+
+#[autoclone]
+fn notify_handler(
+    text_editor: &Arc<TextEditor>,
+    code_mirror: &Arc<Mutex<Option<CodeMirrorJs>>>,
+    base_path: &Arc<str>,
+    file_path: &Arc<str>,
+) -> impl Fn(&NotifyResponse) + 'static {
+    move |response| {
+        autoclone!(text_editor, code_mirror, base_path, file_path);
+        match response.kind {
+            EventKind::Create | EventKind::Modify => {
+                spawn_local(async move {
+                    autoclone!(text_editor, code_mirror, base_path, file_path);
+                    match fsio::ui::load_file(text_editor.remote.clone(), base_path, file_path)
+                        .await
+                    {
+                        Ok(Some(fsio::File::TextFile {
+                            metadata: _,
+                            content,
+                        })) => {
+                            let Some(code_mirror) = &*code_mirror.lock().unwrap() else {
+                                return;
+                            };
+                            code_mirror.set_content(content.to_string());
+                        }
+                        Ok(_) => todo!(),
+                        Err(_) => todo!(),
+                    };
+                });
+            }
+            EventKind::Delete | EventKind::Error => text_editor.file_path.set(""),
+        }
+    }
 }

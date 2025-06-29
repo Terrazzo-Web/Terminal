@@ -11,30 +11,31 @@ use crate::api::client_address::ClientAddress;
 
 mod event_handler;
 mod service;
+pub mod ui;
 
 #[server(protocol = Websocket<JsonEncoding, JsonEncoding>)]
 #[nameth]
-async fn notify(
+pub async fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
 ) -> Result<BoxedStream<NotifyResponse, ServerFnError>, ServerFnError> {
     service::notify(request).await
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-enum NotifyRequest {
+pub enum NotifyRequest {
     Start { remote: ClientAddress },
     Watch { path: Arc<str> },
     UnWatch { path: Arc<str> },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
-struct NotifyResponse {
-    path: String,
-    kind: EventKind,
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct NotifyResponse {
+    pub path: String,
+    pub kind: EventKind,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
-enum EventKind {
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Debug)]
+pub enum EventKind {
     Create,
     Modify,
     Delete,

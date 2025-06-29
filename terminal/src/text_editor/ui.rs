@@ -17,20 +17,20 @@ use wasm_bindgen_futures::spawn_local;
 
 use self::diagnostics::debug;
 use self::diagnostics::warn;
-use super::fsio::load_file;
+use super::editor::editor;
+use super::folder::folder;
+use super::fsio;
+use super::notify::ui::NotifyService;
+use super::remotes::show_remote;
+use super::side;
+use super::side::SideViewList;
+use super::side::ui::show_side_view;
 use super::state;
 use super::style;
 use super::synchronized_state::SynchronizedState;
+use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
-use crate::text_editor::editor::editor;
-use crate::text_editor::folder::folder;
-use crate::text_editor::fsio::File;
-use crate::text_editor::remotes::show_remote;
-use crate::text_editor::side;
-use crate::text_editor::side::SideViewList;
-use crate::text_editor::side::ui::show_side_view;
-use crate::text_editor::synchronized_state::show_synchronized_state;
 
 /// The UI for the text editor app.
 #[html]
@@ -55,6 +55,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
         side_view,
+        notify_service: Arc::new(NotifyService::new()),
     });
 
     let consumers = Arc::default();
@@ -104,15 +105,15 @@ fn editor_container(
     };
 
     let body = match &*editor_state.data {
-        File::TextFile { content, .. } => {
+        fsio::File::TextFile { content, .. } => {
             let content = content.clone();
             editor(text_editor.clone(), editor_state, content)
         }
-        File::Folder(list) => {
+        fsio::File::Folder(list) => {
             let list = list.clone();
             folder(text_editor.clone(), editor_state, list)
         }
-        File::Error(_error) => todo!(),
+        fsio::File::Error(_error) => todo!(),
     };
 
     tag(class = super::style::editor_container, body)
@@ -179,16 +180,18 @@ impl TextEditor {
             let task = async move {
                 autoclone!(this);
                 let base_path = this.base_path.get_value_untracked();
-                let data = load_file(this.remote.clone(), base_path.clone(), file_path.clone())
-                    .await
-                    .unwrap_or_else(|error| Some(File::Error(error.to_string())))
-                    .map(Arc::new);
+                let data =
+                    fsio::ui::load_file(this.remote.clone(), base_path.clone(), file_path.clone())
+                        .await
+                        .unwrap_or_else(|error| Some(fsio::File::Error(error.to_string())))
+                        .map(Arc::new);
 
-                if let Some(File::TextFile { metadata, .. }) = data.as_deref() {
+                if let Some(fsio::File::TextFile { metadata, .. }) = data.as_deref() {
                     let relative_path = Path::new(file_path.as_ref())
                         .iter()
                         .map(|leg| Arc::from(leg.to_string_lossy().to_string()))
                         .collect::<Vec<_>>();
+                    this.notify_service.watch(&base_path, &file_path);
                     this.side_view.update(|tree| {
                         Some(side::mutation::add_file(
                             tree.clone(),
@@ -241,13 +244,14 @@ pub(super) struct TextEditor {
     pub editor_state: XSignal<Option<EditorState>>,
     pub synchronized_state: XSignal<SynchronizedState>,
     pub side_view: XSignal<Arc<SideViewList>>,
+    pub notify_service: Arc<NotifyService>,
 }
 
 #[derive(Clone)]
 pub(super) struct EditorState {
     pub base_path: Arc<str>,
     pub file_path: Arc<str>,
-    pub data: Arc<File>,
+    pub data: Arc<fsio::File>,
 }
 
 impl std::fmt::Debug for EditorState {

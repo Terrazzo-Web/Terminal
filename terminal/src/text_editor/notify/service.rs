@@ -14,6 +14,7 @@ use notify::Watcher;
 use server_fn::BoxedStream;
 use server_fn::ServerFnError;
 use tokio::sync::mpsc;
+use tokio_stream::wrappers::UnboundedReceiverStream;
 
 use super::NotifyRequest;
 use super::NotifyResponse;
@@ -38,7 +39,7 @@ pub async fn notify(
             }
         }
     });
-    let rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
+    let rx = UnboundedReceiverStream::new(rx);
     let rx = futures::stream::select_with_strategy(
         rx.take_until(eos_rx.clone()),
         futures::stream::once(eos_rx.unwrap_or_else(|e| Err(e.into()))),
@@ -62,7 +63,10 @@ fn process_request(
         NotifyRequest::Watch { path } => watcher
             .as_mut()
             .ok_or(NotifyError::WatcherNotSet)?
-            .watch(Path::new(path.as_ref()), notify::RecursiveMode::Recursive)
+            .watch(
+                Path::new(path.as_ref()),
+                notify::RecursiveMode::NonRecursive,
+            )
             .map_err(NotifyError::Watch)?,
         NotifyRequest::UnWatch { path } => watcher
             .as_mut()
