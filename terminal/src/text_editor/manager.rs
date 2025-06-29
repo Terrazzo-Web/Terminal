@@ -10,8 +10,7 @@ use super::side::SideViewList;
 use super::synchronized_state::SynchronizedState;
 use crate::frontend::remotes::Remote;
 
-// TODO: rename to TextEditorManager
-pub(super) struct TextEditor {
+pub(super) struct TextEditorManager {
     pub remote: Remote,
     pub base_path: XSignal<Arc<str>>,
     pub file_path: XSignal<Arc<str>>,

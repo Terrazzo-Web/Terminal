@@ -20,7 +20,7 @@ use super::synchronized_state::SynchronizedState;
 use crate::text_editor::fsio;
 use crate::text_editor::fsio::ui::store_file;
 use crate::text_editor::manager::EditorState;
-use crate::text_editor::manager::TextEditor;
+use crate::text_editor::manager::TextEditorManager;
 use crate::text_editor::notify::EventKind;
 use crate::text_editor::notify::NotifyResponse;
 use crate::text_editor::style;
@@ -29,7 +29,7 @@ use crate::text_editor::style;
 #[html]
 #[template(tag = div)]
 pub fn editor(
-    text_editor: Arc<TextEditor>,
+    manager: Arc<TextEditorManager>,
     editor_state: EditorState,
     content: Arc<str>,
 ) -> XElement {
@@ -41,18 +41,18 @@ pub fn editor(
 
     let writing = Arc::new(AtomicBool::new(false));
     let on_change: Closure<dyn FnMut(JsValue)> = Closure::new(move |content: JsValue| {
-        autoclone!(text_editor, base_path, file_path, writing);
+        autoclone!(manager, base_path, file_path, writing);
         let Some(content) = content.as_string() else {
             debug!("Changed content is not a string");
             return;
         };
         let write = async move {
-            autoclone!(text_editor, base_path, file_path, writing);
+            autoclone!(manager, base_path, file_path, writing);
             writing.store(true, SeqCst);
             let before = guard((), move |()| writing.store(false, SeqCst));
-            let after = SynchronizedState::enqueue(text_editor.synchronized_state.clone());
+            let after = SynchronizedState::enqueue(manager.synchronized_state.clone());
             let () = store_file(
-                text_editor.remote.clone(),
+                manager.remote.clone(),
                 base_path,
                 file_path,
                 content,
@@ -66,8 +66,8 @@ pub fn editor(
 
     let code_mirror = Arc::new(Mutex::new(None));
 
-    let notify_registration = text_editor.notify_service.add_handler(notify_handler(
-        &text_editor,
+    let notify_registration = manager.notify_service.add_handler(notify_handler(
+        &manager,
         &code_mirror,
         &base_path,
         &file_path,
@@ -95,24 +95,22 @@ pub fn editor(
 
 #[autoclone]
 fn notify_handler(
-    text_editor: &Arc<TextEditor>,
+    manager: &Arc<TextEditorManager>,
     code_mirror: &Arc<Mutex<Option<CodeMirrorJs>>>,
     base_path: &Arc<str>,
     file_path: &Arc<str>,
     writing: &Arc<AtomicBool>,
 ) -> impl Fn(&NotifyResponse) + 'static {
     move |response| {
-        autoclone!(text_editor, code_mirror, base_path, file_path, writing);
+        autoclone!(manager, code_mirror, base_path, file_path, writing);
         match response.kind {
             EventKind::Create | EventKind::Modify => {
                 if writing.load(SeqCst) {
                     return;
                 }
                 spawn_local(async move {
-                    autoclone!(text_editor, code_mirror, base_path, file_path);
-                    match fsio::ui::load_file(text_editor.remote.clone(), base_path, file_path)
-                        .await
-                    {
+                    autoclone!(manager, code_mirror, base_path, file_path);
+                    match fsio::ui::load_file(manager.remote.clone(), base_path, file_path).await {
                         Ok(Some(fsio::File::TextFile {
                             metadata: _,
                             content,
@@ -129,7 +127,7 @@ fn notify_handler(
                     };
                 });
             }
-            EventKind::Delete | EventKind::Error => text_editor.file_path.set(""),
+            EventKind::Delete | EventKind::Error => manager.file_path.set(""),
         }
     }
 }

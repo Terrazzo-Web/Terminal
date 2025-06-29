@@ -15,7 +15,7 @@ use crate::frontend::timestamp::datetime::DateTime;
 use crate::frontend::timestamp::display_timestamp;
 use crate::text_editor::fsio::FileMetadata;
 use crate::text_editor::manager::EditorState;
-use crate::text_editor::manager::TextEditor;
+use crate::text_editor::manager::TextEditorManager;
 
 stylance::import_crate_style!(style, "src/text_editor/folder.scss");
 
@@ -23,7 +23,7 @@ stylance::import_crate_style!(style, "src/text_editor/folder.scss");
 #[html]
 #[template(tag = div)]
 pub fn folder(
-    text_editor: Arc<TextEditor>,
+    manager: Arc<TextEditorManager>,
     editor_state: EditorState,
     list: Arc<Vec<FileMetadata>>,
 ) -> XElement {
@@ -64,7 +64,7 @@ pub fn folder(
             .unwrap_or_default();
         rows.push(tr(
             click = move |_| {
-                autoclone!(text_editor, file_path, name);
+                autoclone!(manager, file_path, name);
                 let file_path = &*file_path;
                 let file_path = file_path.trim_start_matches('/');
                 let file = if &*name == ".." {
@@ -79,7 +79,7 @@ pub fn folder(
                 if is_dir {
                     file.push('/');
                 };
-                text_editor.file_path.set(Arc::from(file))
+                manager.file_path.set(Arc::from(file))
             },
             td("{display_name}"),
             td("{size}"),

@@ -18,10 +18,10 @@ use crate::text_editor::autocomplete::ui::do_autocomplete;
 use crate::text_editor::autocomplete::ui::show_autocomplete;
 use crate::text_editor::autocomplete::ui::start_autocomplete;
 use crate::text_editor::autocomplete::ui::stop_autocomplete;
-use crate::text_editor::manager::TextEditor;
+use crate::text_editor::manager::TextEditorManager;
 use crate::text_editor::style;
 
-impl TextEditor {
+impl TextEditorManager {
     pub fn base_path_selector(self: &Arc<Self>) -> XElement {
         path_selector_impll(
             self.clone(),
@@ -46,7 +46,7 @@ impl TextEditor {
 #[html]
 #[template(tag = div)]
 fn path_selector_impll(
-    text_editor: Arc<TextEditor>,
+    manager: Arc<TextEditorManager>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     path: XSignal<Arc<str>>,
@@ -58,7 +58,7 @@ fn path_selector_impll(
         style = (!show_input).then_some("width: auto;"),
         img(class = style::path_selector_icon, src = kind.icon()),
         if show_input {
-            path_selector_input(text_editor, kind, prefix, path)
+            path_selector_input(manager, kind, prefix, path)
         } else {
             path_selector_display(path, force_edit_path_mut)
         },
@@ -68,7 +68,7 @@ fn path_selector_impll(
 #[autoclone]
 #[html]
 fn path_selector_input(
-    text_editor: Arc<TextEditor>,
+    manager: Arc<TextEditorManager>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     path: XSignal<Arc<str>>,
@@ -76,7 +76,7 @@ fn path_selector_input(
     let autocomplete: XSignal<Option<Vec<AutocompleteItem>>> = XSignal::new(kind.name(), None);
     let input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>> = OnceLock::new().into();
     let do_autocomplete = Ptr::new(do_autocomplete(
-        text_editor.clone(),
+        manager.clone(),
         input.clone(),
         autocomplete.clone(),
         kind,
@@ -106,7 +106,7 @@ fn path_selector_input(
             r#type = "text",
             class = style::path_selector_field,
             focus = start_autocomplete(
-                text_editor.clone(),
+                manager.clone(),
                 kind,
                 prefix.clone(),
                 input.clone(),
@@ -123,7 +123,7 @@ fn path_selector_input(
             },
         ),
         show_autocomplete(
-            text_editor,
+            manager,
             kind,
             prefix.clone(),
             input,

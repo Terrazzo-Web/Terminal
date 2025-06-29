@@ -21,7 +21,7 @@ use super::editor::editor;
 use super::folder::folder;
 use super::fsio;
 use super::manager::EditorState;
-use super::manager::TextEditor;
+use super::manager::TextEditorManager;
 use super::notify::ui::NotifyService;
 use super::remotes::show_remote;
 use super::side;
@@ -49,7 +49,7 @@ pub fn text_editor() -> XElement {
 #[template(tag = div)]
 fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) -> XElement {
     let side_view: XSignal<Arc<SideViewList>> = XSignal::new("side-view", Default::default());
-    let text_editor = Arc::new(TextEditor {
+    let manager = Arc::new(TextEditorManager {
         remote: remote.clone(),
         base_path: XSignal::new("base-path", Arc::default()),
         file_path: XSignal::new("file-path", Arc::default()),
@@ -61,7 +61,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
     });
 
     let consumers = Arc::default();
-    text_editor.restore_paths(&consumers);
+    manager.restore_paths(&consumers);
 
     div(
         key = "text-editor",
@@ -69,12 +69,12 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
         div(
             class = style::header,
             menu(),
-            text_editor.base_path_selector(),
-            text_editor.file_path_selector(),
-            show_synchronized_state(text_editor.synchronized_state.clone()),
+            manager.base_path_selector(),
+            manager.file_path_selector(),
+            show_synchronized_state(manager.synchronized_state.clone()),
             show_remote(remote_signal),
         ),
-        editor_body(text_editor.clone(), text_editor.editor_state.clone()),
+        editor_body(manager.clone(), manager.editor_state.clone()),
         after_render = move |_| {
             let _moved = &consumers;
         },
@@ -83,13 +83,13 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
 
 #[html]
 fn editor_body(
-    text_editor: Arc<TextEditor>,
+    manager: Arc<TextEditorManager>,
     editor_state: XSignal<Option<EditorState>>,
 ) -> XElement {
     div(
         class = super::style::body,
-        show_side_view(text_editor.clone(), text_editor.side_view.clone()),
-        editor_container(text_editor, editor_state),
+        show_side_view(manager.clone(), manager.side_view.clone()),
+        editor_container(manager, editor_state),
     )
 }
 
@@ -99,7 +99,7 @@ fn editor_body(
 })]
 #[html]
 fn editor_container(
-    text_editor: Arc<TextEditor>,
+    manager: Arc<TextEditorManager>,
     #[signal] editor_state: Option<EditorState>,
 ) -> XElement {
     let Some(editor_state) = editor_state else {
@@ -109,11 +109,11 @@ fn editor_container(
     let body = match &*editor_state.data {
         fsio::File::TextFile { content, .. } => {
             let content = content.clone();
-            editor(text_editor.clone(), editor_state, content)
+            editor(manager.clone(), editor_state, content)
         }
         fsio::File::Folder(list) => {
             let list = list.clone();
-            folder(text_editor.clone(), editor_state, list)
+            folder(manager.clone(), editor_state, list)
         }
         fsio::File::Error(_error) => todo!(),
     };
@@ -121,7 +121,7 @@ fn editor_container(
     tag(class = super::style::editor_container, body)
 }
 
-impl TextEditor {
+impl TextEditorManager {
     /// Restores the paths
     #[autoclone]
     #[nameth]
