@@ -3,7 +3,10 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::SeqCst;
 
+use scopeguard::guard;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
@@ -36,21 +39,25 @@ pub fn editor(
         ..
     } = editor_state;
 
+    let writing = Arc::new(AtomicBool::new(false));
     let on_change: Closure<dyn FnMut(JsValue)> = Closure::new(move |content: JsValue| {
-        autoclone!(text_editor, base_path, file_path);
+        autoclone!(text_editor, base_path, file_path, writing);
         let Some(content) = content.as_string() else {
             debug!("Changed content is not a string");
             return;
         };
         let write = async move {
-            autoclone!(base_path, file_path, text_editor);
-            let pending = SynchronizedState::enqueue(text_editor.synchronized_state.clone());
+            autoclone!(text_editor, base_path, file_path, writing);
+            writing.store(true, SeqCst);
+            let before = guard((), move |()| writing.store(false, SeqCst));
+            let after = SynchronizedState::enqueue(text_editor.synchronized_state.clone());
             let () = store_file(
                 text_editor.remote.clone(),
                 base_path,
                 file_path,
                 content,
-                pending,
+                before,
+                after,
             )
             .await;
         };
@@ -64,6 +71,7 @@ pub fn editor(
         &code_mirror,
         &base_path,
         &file_path,
+        &writing,
     ));
 
     tag(
@@ -91,11 +99,15 @@ fn notify_handler(
     code_mirror: &Arc<Mutex<Option<CodeMirrorJs>>>,
     base_path: &Arc<str>,
     file_path: &Arc<str>,
+    writing: &Arc<AtomicBool>,
 ) -> impl Fn(&NotifyResponse) + 'static {
     move |response| {
-        autoclone!(text_editor, code_mirror, base_path, file_path);
+        autoclone!(text_editor, code_mirror, base_path, file_path, writing);
         match response.kind {
             EventKind::Create | EventKind::Modify => {
+                if writing.load(SeqCst) {
+                    return;
+                }
                 spawn_local(async move {
                     autoclone!(text_editor, code_mirror, base_path, file_path);
                     match fsio::ui::load_file(text_editor.remote.clone(), base_path, file_path)
@@ -110,7 +122,9 @@ fn notify_handler(
                             };
                             code_mirror.set_content(content.to_string());
                         }
-                        Ok(_) => todo!(),
+                        Ok(None) => (), // TODO: remove file
+                        Ok(Some(fsio::File::Folder { .. })) => (),
+                        Ok(Some(fsio::File::Error { .. })) => (),
                         Err(_) => todo!(),
                     };
                 });

@@ -20,32 +20,54 @@ pub async fn load_file(
     super::load_file(remote, base_path, file_path).await
 }
 
-pub async fn store_file<P: Send + 'static>(
+pub async fn store_file<B: Send + 'static, A: Send + 'static>(
     remote: Remote,
     base_path: Arc<str>,
     file_path: Arc<str>,
     content: String,
-    pending: P,
+    before: B,
+    after: A,
 ) {
-    assert!(std::mem::needs_drop::<P>());
+    assert!(std::mem::needs_drop::<B>());
+    assert!(std::mem::needs_drop::<A>());
     static DEBOUNCED_STORE_FILE_FN: OnceLock<StoreFileFn> = OnceLock::new();
     let debounced_store_file_fn = DEBOUNCED_STORE_FILE_FN.get_or_init(make_debounced_store_file_fn);
-    let () =
-        debounced_store_file_fn((remote, base_path, file_path, content, Box::new(pending))).await;
+    let () = debounced_store_file_fn((
+        remote,
+        base_path,
+        file_path,
+        content,
+        Box::new(before),
+        Box::new(after),
+    ))
+    .await;
 }
 
 fn make_debounced_store_file_fn() -> StoreFileFn {
     let debounced = Duration::from_secs(3).async_debounce(
-        move |(remote, base_path, file_path, content, pending)| async move {
+        move |(remote, base_path, file_path, content, before, after)| async move {
+            drop(before);
             let () = super::store_file_impl(remote, base_path, file_path, content)
                 .await
                 .unwrap_or_else(|error| warn!("Failed to store file: {error}"));
-            drop(pending);
+            drop(after);
         },
     );
     return Box::new(debounced);
 }
 
-type StoreFileFn =
-    Box<dyn Fn((Remote, Arc<str>, Arc<str>, String, Box<dyn Send>)) -> BoxFuture + Send + Sync>;
+type StoreFileFn = Box<
+    dyn Fn(
+            (
+                Remote,
+                Arc<str>,
+                Arc<str>,
+                String,
+                Box<dyn Send>,
+                Box<dyn Send>,
+            ),
+        ) -> BoxFuture
+        + Send
+        + Sync,
+>;
 type BoxFuture = Pin<Box<dyn Future<Output = ()>>>;
