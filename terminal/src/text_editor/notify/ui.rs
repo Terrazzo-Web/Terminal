@@ -1,6 +1,7 @@
 #![cfg(feature = "client")]
 
 use std::collections::HashMap;
+use std::future::ready;
 use std::path::Path;
 use std::sync::Mutex;
 use std::sync::Weak;
@@ -9,9 +10,11 @@ use futures::SinkExt;
 use futures::StreamExt as _;
 use futures::channel::mpsc;
 use terrazzo::autoclone;
-use terrazzo::prelude::diagnostics::*;
+use terrazzo::prelude::diagnostics::debug;
+use terrazzo::prelude::diagnostics::warn;
 use wasm_bindgen_futures::spawn_local;
 
+use crate::frontend::remotes::Remote;
 use crate::text_editor::notify::*;
 
 pub struct NotifyService {
@@ -21,7 +24,6 @@ pub struct NotifyService {
 
 type Handlers = Arc<Mutex<HashMap<usize, Box<dyn Fn(&NotifyResponse)>>>>;
 
-#[derive(Clone)]
 pub struct NotifyRegistration {
     id: usize,
     notify_service: Weak<NotifyService>,
@@ -29,12 +31,16 @@ pub struct NotifyRegistration {
 
 impl NotifyService {
     #[autoclone]
-    pub fn new() -> Self {
+    pub fn new(remote: Remote) -> Self {
         let (request_tx, request_rx) = mpsc::unbounded();
         let handlers = Handlers::default();
+        let request = futures::stream::once(ready(Ok(NotifyRequest::Start {
+            remote: remote.unwrap_or_default(),
+        })))
+        .chain(request_rx);
         spawn_local(async move {
             autoclone!(handlers);
-            let Ok(mut response) = super::notify(request_rx.into())
+            let Ok(mut response) = super::notify(request.into())
                 .await
                 .inspect_err(|error| warn!("Notify stream failed: {error}"))
             else {
@@ -85,13 +91,13 @@ impl NotifyService {
     pub fn add_handler(
         self: &Arc<Self>,
         handler: impl Fn(&NotifyResponse) + 'static,
-    ) -> NotifyRegistration {
+    ) -> Arc<NotifyRegistration> {
         let registration = NotifyRegistration::new(self);
         self.handlers
             .lock()
             .unwrap()
             .insert(registration.id, Box::new(handler));
-        registration
+        Arc::new(registration)
     }
 }
 
@@ -100,8 +106,10 @@ impl NotifyRegistration {
         use std::sync::atomic::AtomicUsize;
         use std::sync::atomic::Ordering::SeqCst;
         static NEXT: AtomicUsize = AtomicUsize::new(0);
+        let id = NEXT.fetch_add(1, SeqCst);
+        debug!("Create notify registration {id}");
         Self {
-            id: NEXT.fetch_add(1, SeqCst),
+            id,
             notify_service: Arc::downgrade(notify_service),
         }
     }
@@ -109,6 +117,7 @@ impl NotifyRegistration {
 
 impl Drop for NotifyRegistration {
     fn drop(&mut self) {
+        debug!("Drop notify registration {}", self.id);
         let Some(notify_service) = self.notify_service.upgrade() else {
             return;
         };

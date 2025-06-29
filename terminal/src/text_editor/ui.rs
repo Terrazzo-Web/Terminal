@@ -48,14 +48,14 @@ pub fn text_editor() -> XElement {
 fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) -> XElement {
     let side_view: XSignal<Arc<SideViewList>> = XSignal::new("side-view", Default::default());
     let text_editor = Arc::new(TextEditor {
-        remote,
+        remote: remote.clone(),
         base_path: XSignal::new("base-path", Arc::default()),
         file_path: XSignal::new("file-path", Arc::default()),
         force_edit_path: XSignal::new("force-edit-path", false),
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
         side_view,
-        notify_service: Arc::new(NotifyService::new()),
+        notify_service: Arc::new(NotifyService::new(remote)),
     });
 
     let consumers = Arc::default();
