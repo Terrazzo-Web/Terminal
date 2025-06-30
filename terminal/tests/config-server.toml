@@ -1,6 +1,6 @@
 [server]
 host = "localhost"
-port = 3000
+port = 3001
 pidfile = "/home/richard/.terrazzo/terminal-3001.pid"
 private_root_ca = "/home/richard/.terrazzo/root_ca"
 token_lifetime = "5m"

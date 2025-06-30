@@ -113,7 +113,10 @@ fn editor_container(
             let list = list.clone();
             folder(manager.clone(), editor_state, list)
         }
-        fsio::File::Error(_error) => todo!(),
+        fsio::File::Error(error) => {
+            warn!("Failed to load file: {error}");
+            return tag(class = super::style::editor_container);
+        }
     };
 
     tag(class = super::style::editor_container, body)

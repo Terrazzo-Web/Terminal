@@ -16,6 +16,7 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use self::diagnostics::debug;
+use self::diagnostics::*;
 use super::code_mirror::CodeMirrorJs;
 use super::synchronized_state::SynchronizedState;
 use crate::text_editor::fsio;
@@ -105,32 +106,57 @@ fn notify_handler(
     let full_path = Path::new(base_path.as_ref()).join(file_path.as_ref());
     move |response| {
         autoclone!(manager, code_mirror, base_path, file_path, writing);
+        let _span = debug_span!("Editor notifier", %base_path, %file_path).entered();
         if Path::new(&response.path) != &full_path {
+            debug!("Skip {}", response.path);
             return;
         }
+        debug!("response.kind = {:?}", response.kind);
         match response.kind {
             EventKind::Create | EventKind::Modify => {
                 if writing.load(SeqCst) {
                     return;
                 }
-                spawn_local(async move {
+                let task = async move {
                     autoclone!(manager, code_mirror, base_path, file_path);
-                    match fsio::ui::load_file(manager.remote.clone(), base_path, file_path).await {
+                    debug!("Loading modified file");
+                    match fsio::ui::load_file(
+                        manager.remote.clone(),
+                        base_path.clone(),
+                        file_path.clone(),
+                    )
+                    .await
+                    {
                         Ok(Some(fsio::File::TextFile {
                             metadata: _,
                             content,
                         })) => {
+                            debug!("Loaded modified file");
                             let Some(code_mirror) = &*code_mirror.lock().unwrap() else {
                                 return;
                             };
                             code_mirror.set_content(content.to_string());
                         }
-                        Ok(None) => (), // TODO: remove file
-                        Ok(Some(fsio::File::Folder { .. })) => (),
-                        Ok(Some(fsio::File::Error { .. })) => (),
-                        Err(_) => todo!(),
+                        Ok(None) => {
+                            debug!("The modified file is gone");
+                            manager.file_path.update(|file_path| {
+                                let file_path = Path::new(file_path.as_ref());
+                                let parent = file_path.parent().unwrap_or_else(|| "/".as_ref());
+                                Some(parent.to_string_lossy().as_ref().into())
+                            })
+                        }
+                        Ok(Some(fsio::File::Folder { .. })) => {
+                            debug!("The modified file is a folder");
+                        }
+                        Ok(Some(fsio::File::Error(error))) => {
+                            warn!("Loading file returned {error}");
+                        }
+                        Err(error) => {
+                            warn!("Failed to load file: {error}")
+                        }
                     };
-                });
+                };
+                spawn_local(task.in_current_span());
             }
             EventKind::Delete | EventKind::Error => manager.unwatch_file(file_path.as_ref()),
         }
