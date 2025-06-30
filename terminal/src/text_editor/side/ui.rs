@@ -12,6 +12,7 @@ use crate::assets::icons;
 use crate::text_editor::manager::TextEditorManager;
 use crate::text_editor::side::SideViewList;
 use crate::text_editor::side::SideViewNode;
+use crate::utils::more_path::MorePath as _;
 
 stylance::import_crate_style!(style, "src/text_editor/side.scss");
 
@@ -65,7 +66,7 @@ fn show_side_view_node(
                             "{name}",
                             click = move |_| {
                                 autoclone!(path);
-                                file_path_signal.set(path.to_string_lossy().to_string())
+                                file_path_signal.set(path.to_owned_string())
                             },
                         ),
                     ),
@@ -92,7 +93,7 @@ fn show_side_view_node(
                     span("{name}"),
                     click = move |_| {
                         autoclone!(path);
-                        file_path_signal.set(path.to_string_lossy().to_string())
+                        file_path_signal.set(path.to_owned_string())
                     },
                 ),
                 close_icon(manager, &path),

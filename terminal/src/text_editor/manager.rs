@@ -12,6 +12,7 @@ use super::synchronized_state::SynchronizedState;
 use crate::frontend::remotes::Remote;
 use crate::text_editor::fsio::FileMetadata;
 use crate::text_editor::side;
+use crate::utils::more_path::MorePath as _;
 
 pub(super) struct TextEditorManager {
     pub remote: Remote,
@@ -35,7 +36,7 @@ impl TextEditorManager {
     pub fn watch_file(&self, metadata: &Arc<FileMetadata>, base_path: &str, file_path: &str) {
         let relative_path = Path::new(file_path)
             .iter()
-            .map(|leg| Arc::from(leg.to_string_lossy().to_string()))
+            .map(|leg| Arc::from(leg.to_owned_string()))
             .collect::<Vec<_>>();
         self.notify_service.watch(base_path, file_path);
         self.side_view.update(|tree| {
@@ -57,7 +58,7 @@ impl TextEditorManager {
             );
             let file_path_vec: Vec<Arc<str>> = file_path
                 .iter()
-                .map(|leg| leg.to_string_lossy().to_string().into())
+                .map(|leg| leg.to_owned_string().into())
                 .collect();
             side::mutation::remove_file(side_view.clone(), &file_path_vec).ok()
         });

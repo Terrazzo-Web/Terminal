@@ -19,6 +19,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::frontend::remotes::Remote;
 use crate::text_editor::notify::*;
+use crate::utils::more_path::MorePath as _;
 
 pub struct NotifyService {
     remote: Remote,
@@ -55,13 +56,13 @@ impl NotifyService {
 
     pub fn watch(&self, base_path: &str, file_path: &str) {
         let path = Path::new(base_path).join(file_path);
-        let path = path.to_string_lossy().as_ref().to_owned().into();
+        let path = path.to_owned_string().into();
         self.send(Ok(NotifyRequest::Watch { path }));
     }
 
     pub fn unwatch(&self, base_path: &str, file_path: &str) {
         let path = Path::new(base_path).join(file_path);
-        let path = path.to_string_lossy().as_ref().to_owned().into();
+        let path = path.to_owned_string().into();
         self.send(Ok(NotifyRequest::UnWatch { path }));
     }
 

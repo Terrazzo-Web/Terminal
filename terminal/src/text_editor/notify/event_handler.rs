@@ -4,6 +4,7 @@ use tokio::sync::mpsc;
 use tracing::warn;
 
 use super::*;
+use crate::utils::more_path::MorePath as _;
 
 pub struct EventHandler {
     pub tx: mpsc::UnboundedSender<Result<NotifyResponse, ServerFnError>>,
@@ -33,7 +34,7 @@ impl notify::EventHandler for EventHandler {
         };
         for path in paths {
             let response = NotifyResponse {
-                path: path.to_string_lossy().to_string(),
+                path: path.to_owned_string(),
                 kind,
             };
             match self.tx.send(Ok(response)) {

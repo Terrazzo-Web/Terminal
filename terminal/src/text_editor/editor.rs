@@ -26,6 +26,7 @@ use crate::text_editor::manager::TextEditorManager;
 use crate::text_editor::notify::EventKind;
 use crate::text_editor::notify::NotifyResponse;
 use crate::text_editor::style;
+use crate::utils::more_path::MorePath as _;
 
 #[autoclone]
 #[html]
@@ -41,7 +42,10 @@ pub fn editor(
         ..
     } = editor_state;
 
+    // Set to true when there are edits waiting (debounced) to be committed.
+    // This is used to ignored notifications about file changes  that would anyway be overwritten.
     let writing = Arc::new(AtomicBool::new(false));
+
     let on_change: Closure<dyn FnMut(JsValue)> = Closure::new(move |content: JsValue| {
         autoclone!(manager, base_path, file_path, writing);
         let Some(content) = content.as_string() else {
@@ -88,8 +92,7 @@ pub fn editor(
                 base_path.to_string(),
                 PathBuf::from(base_path.as_ref())
                     .join(file_path.as_ref())
-                    .to_string_lossy()
-                    .to_string(),
+                    .to_owned_string(),
             ));
         },
     )
@@ -115,50 +118,58 @@ fn notify_handler(
         match response.kind {
             EventKind::Create | EventKind::Modify => {
                 if writing.load(SeqCst) {
+                    // Ignore modifications if we are about to overwrite them anyway
                     return;
                 }
-                let task = async move {
-                    autoclone!(manager, code_mirror, base_path, file_path);
-                    debug!("Loading modified file");
-                    match fsio::ui::load_file(
-                        manager.remote.clone(),
+                spawn_local(
+                    notify_edit(
+                        manager.clone(),
+                        code_mirror.clone(),
                         base_path.clone(),
                         file_path.clone(),
                     )
-                    .await
-                    {
-                        Ok(Some(fsio::File::TextFile {
-                            metadata: _,
-                            content,
-                        })) => {
-                            debug!("Loaded modified file");
-                            let Some(code_mirror) = &*code_mirror.lock().unwrap() else {
-                                return;
-                            };
-                            code_mirror.set_content(content.to_string());
-                        }
-                        Ok(None) => {
-                            debug!("The modified file is gone");
-                            manager.file_path.update(|file_path| {
-                                let file_path = Path::new(file_path.as_ref());
-                                let parent = file_path.parent().unwrap_or_else(|| "/".as_ref());
-                                Some(parent.to_string_lossy().as_ref().into())
-                            })
-                        }
-                        Ok(Some(fsio::File::Folder { .. })) => {
-                            debug!("The modified file is a folder");
-                        }
-                        Ok(Some(fsio::File::Error(error))) => {
-                            warn!("Loading file returned {error}");
-                        }
-                        Err(error) => {
-                            warn!("Failed to load file: {error}")
-                        }
-                    };
-                };
-                spawn_local(task.in_current_span());
+                    .in_current_span(),
+                );
             }
             EventKind::Delete | EventKind::Error => manager.unwatch_file(file_path.as_ref()),
         }
     }
+}
+
+async fn notify_edit(
+    manager: Arc<TextEditorManager>,
+    code_mirror: Arc<Mutex<Option<CodeMirrorJs>>>,
+    base_path: Arc<str>,
+    file_path: Arc<str>,
+) {
+    debug!("Loading modified file");
+    match fsio::ui::load_file(manager.remote.clone(), base_path.clone(), file_path.clone()).await {
+        Ok(Some(fsio::File::TextFile {
+            metadata: _,
+            content,
+        })) => {
+            debug!("Loaded modified file");
+            let Some(code_mirror) = &*code_mirror.lock().unwrap() else {
+                return;
+            };
+            code_mirror.set_content(content.to_string());
+        }
+        Ok(None) => {
+            debug!("The modified file is gone");
+            manager.file_path.update(|file_path| {
+                let file_path = Path::new(file_path.as_ref());
+                let parent = file_path.parent().unwrap_or_else(|| "/".as_ref());
+                Some(parent.to_owned_string().into())
+            })
+        }
+        Ok(Some(fsio::File::Folder { .. })) => {
+            debug!("The modified file is a folder");
+        }
+        Ok(Some(fsio::File::Error(error))) => {
+            warn!("Loading file returned {error}");
+        }
+        Err(error) => {
+            warn!("Failed to load file: {error}")
+        }
+    };
 }

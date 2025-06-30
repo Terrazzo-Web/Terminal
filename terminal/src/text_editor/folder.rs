@@ -16,6 +16,7 @@ use crate::frontend::timestamp::display_timestamp;
 use crate::text_editor::fsio::FileMetadata;
 use crate::text_editor::manager::EditorState;
 use crate::text_editor::manager::TextEditorManager;
+use crate::utils::more_path::MorePath as _;
 
 stylance::import_crate_style!(style, "src/text_editor/folder.scss");
 
@@ -75,7 +76,7 @@ pub fn folder(
                 } else {
                     Path::new(file_path).join(&*name)
                 };
-                let mut file = file.to_string_lossy().to_string();
+                let mut file = file.to_owned_string();
                 if is_dir {
                     file.push('/');
                 };

@@ -21,6 +21,7 @@ use crate::text_editor::autocomplete::AutocompleteItem;
 use crate::text_editor::fsio::canonical::canonicalize;
 use crate::text_editor::fsio::canonical::concat_base_file_path;
 use crate::text_editor::path_selector::PathSelector;
+use crate::utils::more_path::MorePath as _;
 
 const ROOT: &str = "/";
 const MAX_RESULTS: usize = 30;
@@ -279,7 +280,7 @@ fn sort_result(prefix: &Path, mut result: Vec<PathInfo>) -> Vec<AutocompleteItem
         .into_iter()
         .filter_map(|path_info| {
             let path = path_info.path.strip_prefix(prefix).ok()?;
-            let path = path.to_string_lossy().into_owned();
+            let path = path.to_owned_string();
             let is_dir = path_info.metadata.map(|m| m.is_dir()).unwrap_or(false);
             Some(AutocompleteItem { path, is_dir })
         })

@@ -12,6 +12,7 @@ mod state;
 mod terminal;
 mod terminal_id;
 mod text_editor;
+mod utils;
 
 #[cfg(test)]
 use fluent_asserter as _;
