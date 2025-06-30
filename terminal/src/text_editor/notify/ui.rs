@@ -9,8 +9,11 @@ use std::sync::Weak;
 use futures::SinkExt;
 use futures::StreamExt as _;
 use futures::channel::mpsc;
+use scopeguard::defer;
 use terrazzo::autoclone;
 use terrazzo::prelude::diagnostics::debug;
+use terrazzo::prelude::diagnostics::debug_span;
+use terrazzo::prelude::diagnostics::trace;
 use terrazzo::prelude::diagnostics::warn;
 use wasm_bindgen_futures::spawn_local;
 
@@ -27,7 +30,7 @@ struct NotifyServiceImpl {
     handlers: Handlers,
 }
 
-type Handlers = Arc<Mutex<HashMap<usize, Box<dyn Fn(&NotifyResponse)>>>>;
+type Handlers = Arc<Mutex<HashMap<usize, Arc<dyn Fn(&NotifyResponse)>>>>;
 
 pub struct NotifyRegistration {
     id: usize,
@@ -81,7 +84,7 @@ impl NotifyService {
         handlers
             .lock()
             .unwrap()
-            .insert(registration.id, Box::new(handler));
+            .insert(registration.id, Arc::new(handler));
         Arc::new(registration)
     }
 }
@@ -107,7 +110,11 @@ impl NotifyServiceImpl {
                 match response {
                     Ok(response) => {
                         debug!("{response:?}");
-                        for handler in handlers.lock().unwrap().values() {
+                        let handlers = {
+                            let lock = handlers.lock().unwrap();
+                            lock.values().cloned().collect::<Vec<_>>()
+                        };
+                        for handler in handlers {
                             handler(&response);
                         }
                     }
@@ -142,11 +149,18 @@ impl NotifyRegistration {
 
 impl Drop for NotifyRegistration {
     fn drop(&mut self) {
-        debug!("Drop notify registration {}", self.id);
+        let _span = debug_span!("Drop notify registration", id = self.id).entered();
+        debug!("Start");
+        defer!(debug!("End"));
         let Some(notify_service) = self.notify_service.upgrade() else {
+            trace!("Notify service is dropped");
             return;
         };
+        trace!("Getting handlers");
         let handlers = notify_service.inner(|inner| inner.handlers.clone());
-        handlers.lock().unwrap().remove(&self.id);
+        trace!("Acquire lock");
+        let mut handlers = handlers.lock().unwrap();
+        trace!("Removing registration");
+        handlers.remove(&self.id);
     }
 }
