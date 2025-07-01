@@ -30,7 +30,12 @@ use crate::utils::more_path::MorePath as _;
 
 #[autoclone]
 #[html]
-#[template(tag = div)]
+#[template(tag = div, key = {
+    use std::sync::atomic::AtomicI32;
+    use std::sync::atomic::Ordering::SeqCst;
+    static NEXT: AtomicI32 = AtomicI32::new(1);
+    format!("editor-{}", NEXT.fetch_add(1, SeqCst))
+})]
 pub fn editor(
     manager: Arc<TextEditorManager>,
     editor_state: EditorState,

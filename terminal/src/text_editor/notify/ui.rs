@@ -36,7 +36,7 @@ struct NotifyServiceImpl {
     handlers: Handlers,
 }
 
-type Handlers = Arc<Mutex<HashMap<Arc<str>, HashMap<usize, Arc<NotifyRegistration>>>>>;
+type Handlers = Arc<Mutex<HashMap<Arc<str>, HashMap<usize, Weak<NotifyRegistration>>>>>;
 
 #[must_use]
 pub struct NotifyRegistration {
@@ -79,8 +79,7 @@ impl NotifyService {
     }
 
     #[must_use]
-    #[allow(unused)] // TODO
-    fn watch_folder(
+    pub fn watch_folder(
         self: &Arc<Self>,
         path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
         callback: impl Fn(&NotifyResponse) + 'static,
@@ -109,7 +108,7 @@ impl NotifyService {
         };
         handlers
             .get_mut()
-            .insert(registration.id, registration.clone());
+            .insert(registration.id, Arc::downgrade(&registration));
         return registration;
     }
 
@@ -154,6 +153,9 @@ impl NotifyServiceImpl {
                         for (full_path, handlers) in handlers {
                             let full_path = Path::new(&*full_path);
                             for handler in handlers.values() {
+                                let Some(handler) = handler.upgrade() else {
+                                    continue;
+                                };
                                 if match handler.registration_type {
                                     RegistrationType::File => full_path == response_path,
                                     RegistrationType::Folder => {

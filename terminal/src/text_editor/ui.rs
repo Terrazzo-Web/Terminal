@@ -2,8 +2,6 @@
 
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::atomic::AtomicI32;
-use std::sync::atomic::Ordering::SeqCst;
 
 use nameth::nameth;
 use scopeguard::guard;
@@ -94,10 +92,7 @@ fn editor_body(
     )
 }
 
-#[template(tag = div, key = {
-    static NEXT: AtomicI32 = AtomicI32::new(1);
-    format!("editor-{}", NEXT.fetch_add(1, SeqCst))
-})]
+#[template(tag = div)]
 #[html]
 fn editor_container(
     manager: Arc<TextEditorManager>,
@@ -179,7 +174,6 @@ impl TextEditorManager {
         this.path.file.add_subscriber(move |file_path| {
             autoclone!(this);
             let loading = SynchronizedState::enqueue(this.synchronized_state.clone());
-            this.editor_state.force(None);
             let task = async move {
                 autoclone!(this);
                 let path = FilePath {
@@ -197,6 +191,8 @@ impl TextEditorManager {
 
                 if let Some(data) = data {
                     this.editor_state.force(EditorState { path, data })
+                } else {
+                    this.editor_state.force(None);
                 }
                 drop(loading);
             };
