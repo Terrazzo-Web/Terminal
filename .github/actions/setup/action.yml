@@ -27,7 +27,7 @@ runs:
           ~/.cargo/git/db/
           target/
           terrazzo/target/wasm
-        key: ${{ runner.os }}-cargo-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-2-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
     - name: Setup cache for Rust compilation
       if: ${{ inputs.cache-level == 'lenient' }}
       uses: actions/cache@v4
@@ -41,8 +41,8 @@ runs:
           ~/.cargo/git/db/
           target/
           terrazzo/target/wasm
-        key: ${{ runner.os }}-cargo-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: ${{ runner.os }}-cargo-${{ github.job }}
+        key: ${{ runner.os }}-cargo-2-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-cargo-2-${{ github.job }}
 
     - name: Add wasm32 compilation target
       shell: bash
