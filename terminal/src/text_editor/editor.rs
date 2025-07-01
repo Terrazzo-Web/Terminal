@@ -88,28 +88,20 @@ fn notify_handler(
     path: &FilePath<Arc<str>>,
     writing: &Arc<AtomicBool>,
 ) -> impl Fn(&NotifyResponse) + 'static {
-    let full_path = path.as_ref().full_path();
     move |response| {
         autoclone!(manager, code_mirror, path, writing);
         let _span = debug_span!("Editor notifier", ?path).entered();
-        if Path::new(&response.path) != &full_path {
-            debug!("Skip {}", response.path);
+        match response.kind {
+            EventKind::Create | EventKind::Modify => {}
+            EventKind::Delete | EventKind::Error => return,
+        }
+        if writing.load(SeqCst) {
+            // Ignore modifications if we are about to overwrite them anyway
             return;
         }
-        debug!("response.kind = {:?}", response.kind);
-        match response.kind {
-            EventKind::Create | EventKind::Modify => {
-                if writing.load(SeqCst) {
-                    // Ignore modifications if we are about to overwrite them anyway
-                    return;
-                }
-                spawn_local(
-                    notify_edit(manager.clone(), code_mirror.clone(), path.clone())
-                        .in_current_span(),
-                );
-            }
-            EventKind::Delete | EventKind::Error => manager.unwatch_file(path.file.as_ref()),
-        }
+        spawn_local(
+            notify_edit(manager.clone(), code_mirror.clone(), path.clone()).in_current_span(),
+        );
     }
 }
 
@@ -139,7 +131,8 @@ async fn notify_edit(
             })
         }
         Ok(Some(fsio::File::Folder { .. })) => {
-            debug!("The modified file is a folder");
+            debug!("The modified file is a folder, force reload");
+            manager.path.file.force(path.file);
         }
         Ok(Some(fsio::File::Error(error))) => {
             warn!("Loading file returned {error}");

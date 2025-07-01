@@ -192,7 +192,7 @@ impl TextEditorManager {
                     .map(Arc::new);
 
                 if let Some(fsio::File::TextFile { metadata, .. }) = data.as_deref() {
-                    this.watch_file(metadata, path.as_ref());
+                    this.add_to_side_view(metadata, &path);
                 }
 
                 if let Some(data) = data {

@@ -120,7 +120,7 @@ fn close_icon(manager: &Arc<TextEditorManager>, path: &Arc<Path>) -> XElement {
         class = format!("{} {}", style::icon, style::close,),
         click = move |_ev| {
             autoclone!(manager, path);
-            manager.unwatch_file(&path);
+            manager.remove_from_side_view(&path);
         },
     )
 }

@@ -3,7 +3,6 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use terrazzo::autoclone;
 use terrazzo::prelude::*;
 
 use super::file_path::FilePath;
@@ -34,32 +33,29 @@ pub(super) struct EditorState {
 }
 
 impl TextEditorManager {
-    #[autoclone]
-    pub fn watch_file(
-        &self,
+    pub fn add_to_side_view(
+        self: &Arc<Self>,
         metadata: &Arc<FileMetadata>,
-        path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
+        path: &FilePath<Arc<str>>,
     ) {
-        let file_path = path.file.as_ref();
-        let relative_path = file_path
-            .iter()
-            .map(|leg| Arc::from(leg.to_owned_string()))
-            .collect::<Vec<_>>();
-        let side_view = self.side_view.clone();
-        let notify_registration = self.notify_service.watch_file(path, move |event| {
-            autoclone!(relative_path);
+        let this = self.clone();
+        let file_path = path.file.clone();
+        let notify_registration = self.notify_service.watch_file(path.as_ref(), move |event| {
             match event.kind {
                 EventKind::Create | EventKind::Modify => return,
                 EventKind::Delete | EventKind::Error => (),
             }
-            side_view.update(|side_view| {
-                side::mutation::remove_file(side_view.clone(), &relative_path).ok()
-            })
+            // Remove from side view on deletion notification.
+            this.remove_from_side_view(file_path.as_ref());
         });
         self.side_view.update(|tree| {
+            let file_path = Path::new(path.file.as_ref())
+                .iter()
+                .map(|leg| Arc::from(leg.to_owned_string()))
+                .collect::<Vec<_>>();
             Some(side::mutation::add_file(
                 tree.clone(),
-                relative_path.as_slice(),
+                file_path.as_slice(),
                 super::side::SideViewNode::File {
                     metadata: metadata.clone(),
                     notify_registration: notify_registration.into(),
@@ -69,7 +65,8 @@ impl TextEditorManager {
         self.force_edit_path.set(false);
     }
 
-    pub fn unwatch_file(&self, file_path: impl AsRef<Path>) {
+    // Remove from side view when we click the close button on the side panel in the UI.
+    pub fn remove_from_side_view(&self, file_path: impl AsRef<Path>) {
         let file_path = file_path.as_ref();
         self.side_view.update(|side_view| {
             let file_path_vec: Vec<Arc<str>> = file_path
@@ -80,11 +77,12 @@ impl TextEditorManager {
         });
         self.path.file.update(|old| {
             if Path::new(old.as_ref()) == file_path {
-                Some("".into())
+                let parent = file_path.parent().unwrap_or("/".as_ref()).to_owned_string();
+                Some(parent.into())
             } else {
                 None
             }
-        })
+        });
     }
 }
 
