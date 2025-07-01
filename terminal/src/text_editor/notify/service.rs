@@ -53,7 +53,7 @@ fn process_request(
     watcher: &mut Option<INotifyWatcher>,
     tx: &mpsc::UnboundedSender<Result<NotifyResponse, ServerFnError>>,
 ) -> Result<(), NotifyError> {
-    Ok(match request.map_err(NotifyError::BadRequest)? {
+    match request.map_err(NotifyError::BadRequest)? {
         NotifyRequest::Start { remote: _ } => {
             *watcher = Some(
                 notify::recommended_watcher(event_handler::EventHandler { tx: tx.clone() })
@@ -73,7 +73,8 @@ fn process_request(
             .ok_or(NotifyError::WatcherNotSet)?
             .unwatch(Path::new(full_path.as_ref()))
             .map_err(NotifyError::Unwatch)?,
-    })
+    }
+    Ok(())
 }
 
 #[nameth]
