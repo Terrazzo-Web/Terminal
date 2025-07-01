@@ -60,18 +60,18 @@ fn process_request(
                     .map_err(NotifyError::CreateWatcher)?,
             );
         }
-        NotifyRequest::Watch { path } => watcher
+        NotifyRequest::Watch { full_path } => watcher
             .as_mut()
             .ok_or(NotifyError::WatcherNotSet)?
             .watch(
-                Path::new(path.as_ref()),
+                Path::new(full_path.as_ref()),
                 notify::RecursiveMode::NonRecursive,
             )
             .map_err(NotifyError::Watch)?,
-        NotifyRequest::UnWatch { path } => watcher
+        NotifyRequest::UnWatch { full_path } => watcher
             .as_mut()
             .ok_or(NotifyError::WatcherNotSet)?
-            .unwatch(Path::new(path.as_ref()))
+            .unwatch(Path::new(full_path.as_ref()))
             .map_err(NotifyError::Unwatch)?,
     })
 }

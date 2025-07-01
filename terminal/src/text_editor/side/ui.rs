@@ -78,8 +78,8 @@ fn show_side_view_node(
                 ),
             )
         }
-        SideViewNode::File(file_metadata) => {
-            let name = &file_metadata.name;
+        SideViewNode::File { metadata, .. } => {
+            let name = &metadata.name;
             let file_path_signal = manager.path.file.clone();
             div(
                 key = "file",

@@ -24,8 +24,8 @@ pub async fn notify(
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum NotifyRequest {
     Start { remote: ClientAddress },
-    Watch { path: Arc<str> },
-    UnWatch { path: Arc<str> },
+    Watch { full_path: Arc<str> },
+    UnWatch { full_path: Arc<str> },
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]

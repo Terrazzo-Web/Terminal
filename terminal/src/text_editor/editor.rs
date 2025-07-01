@@ -60,10 +60,10 @@ pub fn editor(
 
     let code_mirror = Arc::new(Mutex::new(None));
 
-    let notify_registration =
-        manager
-            .notify_service
-            .add_handler(notify_handler(&manager, &code_mirror, &path, &writing));
+    let notify_registration = manager.notify_service.watch_file(
+        path.as_ref(),
+        notify_handler(&manager, &code_mirror, &path, &writing),
+    );
 
     tag(
         class = style::editor,

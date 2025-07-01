@@ -5,9 +5,11 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use terrazzo::autoclone;
 use terrazzo::prelude::*;
 
 use super::fsio;
+use super::notify::EventKind;
 use super::notify::ui::NotifyService;
 use super::side::SideViewList;
 use super::synchronized_state::SynchronizedState;
@@ -41,6 +43,7 @@ pub(super) struct FilePath<BASE, FILE = BASE> {
 }
 
 impl TextEditorManager {
+    #[autoclone]
     pub fn watch_file(
         &self,
         metadata: &Arc<FileMetadata>,
@@ -51,12 +54,25 @@ impl TextEditorManager {
             .iter()
             .map(|leg| Arc::from(leg.to_owned_string()))
             .collect::<Vec<_>>();
-        self.notify_service.watch(path);
+        let side_view = self.side_view.clone();
+        let notify_registration = self.notify_service.watch_file(path, move |event| {
+            autoclone!(relative_path);
+            match event.kind {
+                EventKind::Create | EventKind::Modify => return,
+                EventKind::Delete | EventKind::Error => (),
+            }
+            side_view.update(|side_view| {
+                side::mutation::remove_file(side_view.clone(), &relative_path).ok()
+            })
+        });
         self.side_view.update(|tree| {
             Some(side::mutation::add_file(
                 tree.clone(),
                 relative_path.as_slice(),
-                super::side::SideViewNode::File(metadata.clone()),
+                super::side::SideViewNode::File {
+                    metadata: metadata.clone(),
+                    notify_registration: Some(notify_registration),
+                },
             ))
         });
         self.force_edit_path.set(false);
@@ -65,10 +81,6 @@ impl TextEditorManager {
     pub fn unwatch_file(&self, file_path: impl AsRef<Path>) {
         let file_path = file_path.as_ref();
         self.side_view.update(|side_view| {
-            self.notify_service.unwatch(FilePath {
-                base: self.path.base.get_value_untracked().as_ref(),
-                file: file_path,
-            });
             let file_path_vec: Vec<Arc<str>> = file_path
                 .iter()
                 .map(|leg| leg.to_owned_string().into())

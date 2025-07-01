@@ -1,6 +1,7 @@
 #![cfg(feature = "client")]
 
 use std::collections::HashMap;
+use std::collections::hash_map;
 use std::future::ready;
 use std::path::Path;
 use std::sync::Mutex;
@@ -35,11 +36,21 @@ struct NotifyServiceImpl {
     handlers: Handlers,
 }
 
-type Handlers = Arc<Mutex<HashMap<usize, Arc<dyn Fn(&NotifyResponse)>>>>;
+type Handlers = Arc<Mutex<HashMap<Arc<str>, HashMap<usize, Arc<NotifyRegistration>>>>>;
 
+#[must_use]
 pub struct NotifyRegistration {
     id: usize,
+    full_path: Arc<str>,
     notify_service: Weak<NotifyService>,
+    registration_type: RegistrationType,
+    callback: Box<dyn Fn(&NotifyResponse)>,
+}
+
+#[derive(Clone, Copy)]
+enum RegistrationType {
+    File,
+    Folder,
 }
 
 impl NotifyService {
@@ -58,16 +69,47 @@ impl NotifyService {
         f(inner)
     }
 
-    pub fn watch(&self, path: FilePath<impl AsRef<Path>, impl AsRef<Path>>) {
-        let path = path.full_path();
-        let path = path.to_owned_string().into();
-        self.send(Ok(NotifyRequest::Watch { path }));
+    #[must_use]
+    pub fn watch_file(
+        self: &Arc<Self>,
+        path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
+        callback: impl Fn(&NotifyResponse) + 'static,
+    ) -> Arc<NotifyRegistration> {
+        self.add_handler(path, RegistrationType::File, callback)
     }
 
-    pub fn unwatch(&self, path: FilePath<impl AsRef<Path>, impl AsRef<Path>>) {
-        let path = path.full_path();
-        let path = path.to_owned_string().into();
-        self.send(Ok(NotifyRequest::UnWatch { path }));
+    #[must_use]
+    fn watch_folder(
+        self: &Arc<Self>,
+        path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
+        callback: impl Fn(&NotifyResponse) + 'static,
+    ) -> Arc<NotifyRegistration> {
+        self.add_handler(path, RegistrationType::Folder, callback)
+    }
+
+    #[must_use]
+    fn add_handler(
+        self: &Arc<Self>,
+        path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
+        registration_type: RegistrationType,
+        callback: impl Fn(&NotifyResponse) + 'static,
+    ) -> Arc<NotifyRegistration> {
+        let full_path: Arc<str> = path.full_path().to_owned_string().into();
+        let registration =
+            NotifyRegistration::new(full_path.clone(), self, registration_type, callback);
+        let handlers = self.inner(|inner| inner.handlers.clone());
+        let mut handlers = handlers.lock().unwrap();
+        let mut handlers = match handlers.entry(full_path.clone()) {
+            hash_map::Entry::Occupied(entry) => entry,
+            hash_map::Entry::Vacant(entry) => {
+                self.send(Ok(NotifyRequest::Watch { full_path }));
+                entry.insert_entry(HashMap::new())
+            }
+        };
+        handlers
+            .get_mut()
+            .insert(registration.id, registration.clone());
+        return registration;
     }
 
     fn send(&self, notify_request: Result<NotifyRequest, ServerFnError>) {
@@ -78,19 +120,6 @@ impl NotifyService {
                 .await
                 .unwrap_or_else(|error| warn!("Failed to send notify request: {error}"));
         });
-    }
-
-    pub fn add_handler(
-        self: &Arc<Self>,
-        handler: impl Fn(&NotifyResponse) + 'static,
-    ) -> Arc<NotifyRegistration> {
-        let registration = NotifyRegistration::new(self);
-        let handlers = self.inner(|inner| inner.handlers.clone());
-        handlers
-            .lock()
-            .unwrap()
-            .insert(registration.id, Arc::new(handler));
-        Arc::new(registration)
     }
 }
 
@@ -115,12 +144,26 @@ impl NotifyServiceImpl {
                 match response {
                     Ok(response) => {
                         debug!("{response:?}");
+                        let response_path = Path::new(&response.path);
+                        let response_path_parent = response_path.parent();
                         let handlers = {
                             let lock = handlers.lock().unwrap();
-                            lock.values().cloned().collect::<Vec<_>>()
+                            (*lock).clone()
                         };
-                        for handler in handlers {
-                            handler(&response);
+                        for (full_path, handlers) in handlers {
+                            let full_path = Path::new(&*full_path);
+                            for handler in handlers.values() {
+                                if match handler.registration_type {
+                                    RegistrationType::File => full_path == response_path,
+                                    RegistrationType::Folder => {
+                                        full_path == response_path
+                                            || Some(full_path) == response_path_parent
+                                    }
+                                } {
+                                    let callback = &*handler.callback;
+                                    callback(&response)
+                                }
+                            }
                         }
                     }
                     Err(error) => {
@@ -139,16 +182,24 @@ impl NotifyServiceImpl {
 }
 
 impl NotifyRegistration {
-    fn new(notify_service: &Arc<NotifyService>) -> Self {
+    fn new(
+        full_path: Arc<str>,
+        notify_service: &Arc<NotifyService>,
+        registration_type: RegistrationType,
+        callback: impl Fn(&NotifyResponse) + 'static,
+    ) -> Arc<Self> {
         use std::sync::atomic::AtomicUsize;
         use std::sync::atomic::Ordering::SeqCst;
         static NEXT: AtomicUsize = AtomicUsize::new(0);
         let id = NEXT.fetch_add(1, SeqCst);
         debug!("Create notify registration {id}");
-        Self {
+        Arc::new(NotifyRegistration {
             id,
+            full_path,
             notify_service: Arc::downgrade(notify_service),
-        }
+            registration_type,
+            callback: Box::new(callback),
+        })
     }
 }
 
@@ -166,6 +217,17 @@ impl Drop for NotifyRegistration {
         trace!("Acquire lock");
         let mut handlers = handlers.lock().unwrap();
         trace!("Removing registration");
-        handlers.remove(&self.id);
+        let Some(handlers_by_id) = handlers.get_mut(&self.full_path) else {
+            warn!("Registrations not found for {}", self.full_path);
+            return;
+        };
+
+        handlers_by_id.remove(&self.id);
+        if handlers_by_id.is_empty() {
+            handlers.remove(&self.full_path);
+        }
+        notify_service.send(Ok(NotifyRequest::Watch {
+            full_path: self.full_path.clone(),
+        }));
     }
 }
