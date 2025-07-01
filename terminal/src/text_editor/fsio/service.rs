@@ -10,10 +10,10 @@ use tonic::Code;
 use tracing::debug;
 
 use crate::backend::client_service::grpc_error::IsGrpcError;
+use crate::text_editor::file_path::FilePath;
 use crate::text_editor::fsio::File;
 use crate::text_editor::fsio::FileMetadata;
 use crate::text_editor::fsio::canonical::concat_base_file_path;
-use crate::text_editor::manager::FilePath;
 
 const MAX_FILES_SORTED: usize = 5000;
 const MAX_FILES_RETURNED: usize = 1000;

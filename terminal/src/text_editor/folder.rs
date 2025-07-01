@@ -9,13 +9,13 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 use web_sys::MouseEvent;
 
+use super::fsio::FileMetadata;
+use super::manager::EditorState;
+use super::manager::TextEditorManager;
 use crate::frontend::menu::before_menu;
 use crate::frontend::timestamp;
 use crate::frontend::timestamp::datetime::DateTime;
 use crate::frontend::timestamp::display_timestamp;
-use crate::text_editor::fsio::FileMetadata;
-use crate::text_editor::manager::EditorState;
-use crate::text_editor::manager::TextEditorManager;
 use crate::utils::more_path::MorePath as _;
 
 stylance::import_crate_style!(style, "src/text_editor/folder.scss");

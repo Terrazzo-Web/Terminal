@@ -8,8 +8,8 @@ use server_fn::ServerFnError;
 use server_fn::codec::Json;
 use terrazzo::server;
 
+use super::file_path::FilePath;
 use crate::api::client_address::ClientAddress;
-use crate::text_editor::manager::FilePath;
 
 pub mod canonical;
 mod fsmetadata;

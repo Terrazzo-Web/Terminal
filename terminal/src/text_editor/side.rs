@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::text_editor::fsio::FileMetadata;
+use super::fsio::FileMetadata;
 
 pub mod mutation;
 pub mod ui;
@@ -20,16 +20,22 @@ pub enum SideViewNode {
 }
 
 pub mod opqaue {
+    use std::any::Any;
     use std::sync::Arc;
 
-    use crate::text_editor::notify::ui::NotifyRegistration;
-
     #[derive(Clone, Default)]
-    pub struct OpaqueNotifyRegistration(Option<Arc<NotifyRegistration>>);
+    pub struct OpaqueNotifyRegistration(Option<Arc<dyn Any>>);
 
-    impl From<Arc<NotifyRegistration>> for OpaqueNotifyRegistration {
-        fn from(value: Arc<NotifyRegistration>) -> Self {
-            Self(Some(value))
+    #[cfg(feature = "client")]
+    mod convert {
+        use std::sync::Arc;
+
+        use crate::text_editor::notify::ui::NotifyRegistration;
+        use crate::text_editor::side::opqaue::OpaqueNotifyRegistration;
+        impl From<Arc<NotifyRegistration>> for OpaqueNotifyRegistration {
+            fn from(value: Arc<NotifyRegistration>) -> Self {
+                Self(Some(value))
+            }
         }
     }
 

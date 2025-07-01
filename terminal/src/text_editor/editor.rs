@@ -17,15 +17,15 @@ use wasm_bindgen_futures::spawn_local;
 use self::diagnostics::debug;
 use self::diagnostics::*;
 use super::code_mirror::CodeMirrorJs;
+use super::file_path::FilePath;
+use super::fsio;
+use super::fsio::ui::store_file;
+use super::manager::EditorState;
+use super::manager::TextEditorManager;
+use super::notify::EventKind;
+use super::notify::NotifyResponse;
+use super::style;
 use super::synchronized_state::SynchronizedState;
-use crate::text_editor::fsio;
-use crate::text_editor::fsio::ui::store_file;
-use crate::text_editor::manager::EditorState;
-use crate::text_editor::manager::FilePath;
-use crate::text_editor::manager::TextEditorManager;
-use crate::text_editor::notify::EventKind;
-use crate::text_editor::notify::NotifyResponse;
-use crate::text_editor::style;
 use crate::utils::more_path::MorePath as _;
 
 #[autoclone]

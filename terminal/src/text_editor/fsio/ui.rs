@@ -11,7 +11,7 @@ use terrazzo::widgets::debounce::DoDebounce;
 
 use self::diagnostics::warn;
 use crate::frontend::remotes::Remote;
-use crate::text_editor::manager::FilePath;
+use crate::text_editor::file_path::FilePath;
 
 pub async fn load_file(
     remote: Remote,

@@ -1,6 +1,7 @@
 mod autocomplete;
 mod code_mirror;
 mod editor;
+mod file_path;
 mod folder;
 mod fsio;
 mod manager;

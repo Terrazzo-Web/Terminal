@@ -31,7 +31,7 @@ use super::synchronized_state::SynchronizedState;
 use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
-use crate::text_editor::manager::FilePath;
+use crate::text_editor::file_path::FilePath;
 
 /// The UI for the text editor app.
 #[html]

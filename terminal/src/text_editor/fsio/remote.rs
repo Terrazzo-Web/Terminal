@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::backend::client_service::grpc_error::GrpcError;
 use crate::backend::client_service::remote_fn;
-use crate::text_editor::manager::FilePath;
+use crate::text_editor::file_path::FilePath;
 
 #[derive(Debug, serde::Serialize, serde:: Deserialize)]
 pub struct LoadFileRequest {
