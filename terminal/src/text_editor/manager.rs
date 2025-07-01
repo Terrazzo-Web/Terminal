@@ -34,7 +34,9 @@ pub(super) struct EditorState {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(super) struct FilePath<BASE, FILE = BASE> {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "b"))]
     pub base: BASE,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "f"))]
     pub file: FILE,
 }
 
@@ -93,7 +95,6 @@ impl std::fmt::Debug for EditorState {
 }
 
 impl<B: AsRef<Path>, F: AsRef<Path>> FilePath<B, F> {
-    #[allow(unused)]
     pub fn full_path(&self) -> PathBuf {
         self.base.as_ref().join(self.file.as_ref())
     }

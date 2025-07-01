@@ -39,7 +39,7 @@ pub fn editor(
     let EditorState { path, .. } = editor_state;
 
     // Set to true when there are edits waiting (debounced) to be committed.
-    // This is used to ignored notifications about file changes  that would anyway be overwritten.
+    // This is used to ignored notifications about file changes that would anyway be overwritten.
     let writing = Arc::new(AtomicBool::new(false));
 
     let on_change: Closure<dyn FnMut(JsValue)> = Closure::new(move |content: JsValue| {
