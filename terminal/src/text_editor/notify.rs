@@ -23,21 +23,39 @@ pub async fn notify(
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum NotifyRequest {
-    Start { remote: ClientAddress },
-    Watch { full_path: Arc<str> },
-    UnWatch { full_path: Arc<str> },
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "S"))]
+    Start {
+        #[cfg_attr(not(feature = "diagnostics"), serde(rename = "r"))]
+        remote: ClientAddress,
+    },
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "W"))]
+    Watch {
+        #[cfg_attr(not(feature = "diagnostics"), serde(rename = "p"))]
+        full_path: Arc<str>,
+    },
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "U"))]
+    UnWatch {
+        #[cfg_attr(not(feature = "diagnostics"), serde(rename = "p"))]
+        full_path: Arc<str>,
+    },
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct NotifyResponse {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "p"))]
     pub path: String,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "k"))]
     pub kind: EventKind,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Debug)]
 pub enum EventKind {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "C"))]
     Create,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "M"))]
     Modify,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "D"))]
     Delete,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
     Error,
 }
