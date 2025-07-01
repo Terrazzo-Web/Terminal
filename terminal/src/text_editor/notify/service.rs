@@ -9,7 +9,7 @@ use futures::channel::oneshot;
 use futures::stream::PollNext;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use notify::INotifyWatcher;
+use notify::RecommendedWatcher;
 use notify::Watcher;
 use server_fn::BoxedStream;
 use server_fn::ServerFnError;
@@ -50,7 +50,7 @@ pub async fn notify(
 
 fn process_request(
     request: Result<NotifyRequest, ServerFnError>,
-    watcher: &mut Option<INotifyWatcher>,
+    watcher: &mut Option<RecommendedWatcher>,
     tx: &mpsc::UnboundedSender<Result<NotifyResponse, ServerFnError>>,
 ) -> Result<(), NotifyError> {
     match request.map_err(NotifyError::BadRequest)? {
