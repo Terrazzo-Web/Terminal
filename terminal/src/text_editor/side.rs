@@ -57,12 +57,8 @@ impl std::fmt::Debug for SideViewNode {
             Self::Folder(children) => f.debug_tuple("Folder").field(children).finish(),
             Self::File {
                 metadata,
-                notify_registration,
-            } => f
-                .debug_struct("File")
-                .field("name", &metadata.name)
-                .field("has_notify_registration", &notify_registration.is_set())
-                .finish(),
+                notify_registration: _,
+            } => f.debug_tuple("File").field(&metadata.name).finish(),
         }
     }
 }
