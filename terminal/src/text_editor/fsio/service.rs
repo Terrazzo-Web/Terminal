@@ -13,12 +13,13 @@ use crate::backend::client_service::grpc_error::IsGrpcError;
 use crate::text_editor::fsio::File;
 use crate::text_editor::fsio::FileMetadata;
 use crate::text_editor::fsio::canonical::concat_base_file_path;
+use crate::text_editor::manager::FilePath;
 
 const MAX_FILES_SORTED: usize = 5000;
 const MAX_FILES_RETURNED: usize = 1000;
 
-pub fn load_file(base_path: Arc<str>, file_path: Arc<str>) -> Result<Option<File>, FsioError> {
-    let path = concat_base_file_path(base_path, file_path);
+pub fn load_file(path: FilePath<Arc<str>>) -> Result<Option<File>, FsioError> {
+    let path = concat_base_file_path(path.base, path.file);
     if let Ok(metadata) = path.metadata() {
         if metadata.is_file() {
             debug!("Loading file {path:?}");
@@ -53,12 +54,8 @@ pub fn load_file(base_path: Arc<str>, file_path: Arc<str>) -> Result<Option<File
     Ok(None)
 }
 
-pub fn store_file(
-    base_path: Arc<str>,
-    file_path: Arc<str>,
-    content: String,
-) -> Result<(), FsioError> {
-    let path = concat_base_file_path(base_path, file_path);
+pub fn store_file(path: FilePath<Arc<str>>, content: String) -> Result<(), FsioError> {
+    let path = concat_base_file_path(path.base, path.file);
     return if path.exists() {
         Ok(std::fs::write(&path, content)?)
     } else {

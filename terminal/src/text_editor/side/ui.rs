@@ -51,7 +51,7 @@ fn show_side_view_node(
     let path: Arc<Path> = Arc::from(path.join(name.as_ref()));
     li(match &**side_view {
         SideViewNode::Folder(children) => {
-            let file_path_signal = manager.file_path.clone();
+            let file_path_signal = manager.path.file.clone();
             div(
                 key = "folder",
                 div(
@@ -60,7 +60,7 @@ fn show_side_view_node(
                     div(
                         class %= move |t| {
                             autoclone!(manager, path);
-                            selected_item(t, manager.file_path.clone(), path.clone())
+                            selected_item(t, manager.path.file.clone(), path.clone())
                         },
                         span(
                             "{name}",
@@ -80,7 +80,7 @@ fn show_side_view_node(
         }
         SideViewNode::File(file_metadata) => {
             let name = &file_metadata.name;
-            let file_path_signal = manager.file_path.clone();
+            let file_path_signal = manager.path.file.clone();
             div(
                 key = "file",
                 class = style::file,
@@ -88,7 +88,7 @@ fn show_side_view_node(
                 div(
                     class %= move |t| {
                         autoclone!(manager, path);
-                        selected_item(t, manager.file_path.clone(), path.clone())
+                        selected_item(t, manager.path.file.clone(), path.clone())
                     },
                     span("{name}"),
                     click = move |_| {

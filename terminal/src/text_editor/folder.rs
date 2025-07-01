@@ -28,7 +28,7 @@ pub fn folder(
     editor_state: EditorState,
     list: Arc<Vec<FileMetadata>>,
 ) -> XElement {
-    let EditorState { file_path, .. } = editor_state;
+    let file_path = editor_state.path.file;
 
     let mut rows = vec![];
     let parent_path = Path::new(&*file_path).parent();
@@ -80,7 +80,7 @@ pub fn folder(
                 if is_dir {
                     file.push('/');
                 };
-                manager.file_path.set(Arc::from(file))
+                manager.path.file.set(Arc::from(file))
             },
             td("{display_name}"),
             td("{size}"),

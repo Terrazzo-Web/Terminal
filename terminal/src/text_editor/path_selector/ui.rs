@@ -27,7 +27,7 @@ impl TextEditorManager {
             self.clone(),
             PathSelector::BasePath,
             None,
-            self.base_path.clone(),
+            self.path.base.clone(),
             self.force_edit_path.clone(),
         )
     }
@@ -36,8 +36,8 @@ impl TextEditorManager {
         path_selector_impll(
             self.clone(),
             PathSelector::FilePath,
-            Some(self.base_path.clone()),
-            self.file_path.clone(),
+            Some(self.path.base.clone()),
+            self.path.file.clone(),
             XSignal::new("unused-force-edit-path", false),
         )
     }

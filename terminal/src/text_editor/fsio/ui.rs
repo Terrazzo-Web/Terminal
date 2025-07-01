@@ -11,19 +11,18 @@ use terrazzo::widgets::debounce::DoDebounce;
 
 use self::diagnostics::warn;
 use crate::frontend::remotes::Remote;
+use crate::text_editor::manager::FilePath;
 
 pub async fn load_file(
     remote: Remote,
-    base_path: Arc<str>,
-    file_path: Arc<str>,
+    path: FilePath<Arc<str>>,
 ) -> Result<Option<super::File>, ServerFnError> {
-    super::load_file(remote, base_path, file_path).await
+    super::load_file(remote, path).await
 }
 
 pub async fn store_file<B: Send + 'static, A: Send + 'static>(
     remote: Remote,
-    base_path: Arc<str>,
-    file_path: Arc<str>,
+    path: FilePath<Arc<str>>,
     content: String,
     before: B,
     after: A,
@@ -32,22 +31,15 @@ pub async fn store_file<B: Send + 'static, A: Send + 'static>(
     assert!(std::mem::needs_drop::<A>());
     static DEBOUNCED_STORE_FILE_FN: OnceLock<StoreFileFn> = OnceLock::new();
     let debounced_store_file_fn = DEBOUNCED_STORE_FILE_FN.get_or_init(make_debounced_store_file_fn);
-    let () = debounced_store_file_fn((
-        remote,
-        base_path,
-        file_path,
-        content,
-        Box::new(before),
-        Box::new(after),
-    ))
-    .await;
+    let () =
+        debounced_store_file_fn((remote, path, content, Box::new(before), Box::new(after))).await;
 }
 
 fn make_debounced_store_file_fn() -> StoreFileFn {
     let debounced = Duration::from_secs(3).async_debounce(
-        move |(remote, base_path, file_path, content, before, after)| async move {
+        move |(remote, path, content, before, after)| async move {
             drop(before);
-            let () = super::store_file_impl(remote, base_path, file_path, content)
+            let () = super::store_file_impl(remote, path, content)
                 .await
                 .unwrap_or_else(|error| warn!("Failed to store file: {error}"));
             drop(after);
@@ -60,8 +52,7 @@ type StoreFileFn = Box<
     dyn Fn(
             (
                 Remote,
-                Arc<str>,
-                Arc<str>,
+                FilePath<Arc<str>>,
                 String,
                 Box<dyn Send>,
                 Box<dyn Send>,

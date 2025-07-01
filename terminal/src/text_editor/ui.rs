@@ -31,6 +31,7 @@ use super::synchronized_state::SynchronizedState;
 use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
+use crate::text_editor::manager::FilePath;
 
 /// The UI for the text editor app.
 #[html]
@@ -49,8 +50,10 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
     let side_view: XSignal<Arc<SideViewList>> = XSignal::new("side-view", Default::default());
     let manager = Arc::new(TextEditorManager {
         remote: remote.clone(),
-        base_path: XSignal::new("base-path", Arc::default()),
-        file_path: XSignal::new("file-path", Arc::default()),
+        path: FilePath {
+            base: XSignal::new("base-path", Arc::default()),
+            file: XSignal::new("file-path", Arc::default()),
+        },
         force_edit_path: XSignal::new("force-edit-path", false),
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
@@ -133,16 +136,13 @@ impl TextEditorManager {
             let registrations = Consumers::default().append(this.make_file_async_view());
             let registrations = guard(registrations, |registrations| {
                 *consumers.lock().unwrap() = registrations
-                    .append(this.save_on_change(this.base_path.clone(), state::base_path::set))
-                    .append(this.save_on_change(this.file_path.clone(), state::file_path::set))
+                    .append(this.save_on_change(this.path.base.clone(), state::base_path::set))
+                    .append(this.save_on_change(this.path.file.clone(), state::file_path::set))
                     .append(this.save_on_change(this.side_view.clone(), state::side_view::set))
-                    .append(this.base_path.add_subscriber(move |_base_path| {
+                    .append(this.path.base.add_subscriber(move |_base_path| {
                         autoclone!(this);
                         this.side_view.force(Arc::default());
-                    }))
-                    .append(this.base_path.add_subscriber(move |_base_path| {
-                        autoclone!(this);
-                        this.file_path.force(Arc::default());
+                        this.path.file.force(Arc::default());
                     }))
             });
             let remote: Remote = this.remote.clone();
@@ -154,18 +154,18 @@ impl TextEditorManager {
             .await;
             let batch = Batch::use_batch(Self::RESTORE_PATHS);
             if let Ok(p) = get_base_path {
-                this.base_path.set(p);
+                this.path.base.set(p);
             }
             if let Ok(p) = get_file_path {
-                this.file_path.set(p);
+                this.path.file.set(p);
             }
             if let Ok(side_view) = get_side_view {
                 debug!("Setting side_view to {side_view:?}");
                 this.side_view.force(side_view);
             }
             this.force_edit_path.set(
-                this.base_path.get_value_untracked().is_empty()
-                    || this.file_path.get_value_untracked().is_empty(),
+                this.path.base.get_value_untracked().is_empty()
+                    || this.path.file.get_value_untracked().is_empty(),
             );
 
             drop(batch);
@@ -176,29 +176,27 @@ impl TextEditorManager {
     #[autoclone]
     fn make_file_async_view(self: &Arc<Self>) -> Consumers {
         let this = self;
-        this.file_path.add_subscriber(move |file_path| {
+        this.path.file.add_subscriber(move |file_path| {
             autoclone!(this);
             let loading = SynchronizedState::enqueue(this.synchronized_state.clone());
             this.editor_state.force(None);
             let task = async move {
                 autoclone!(this);
-                let base_path = this.base_path.get_value_untracked();
-                let data =
-                    fsio::ui::load_file(this.remote.clone(), base_path.clone(), file_path.clone())
-                        .await
-                        .unwrap_or_else(|error| Some(fsio::File::Error(error.to_string())))
-                        .map(Arc::new);
+                let path = FilePath {
+                    base: this.path.base.get_value_untracked(),
+                    file: file_path,
+                };
+                let data = fsio::ui::load_file(this.remote.clone(), path.clone())
+                    .await
+                    .unwrap_or_else(|error| Some(fsio::File::Error(error.to_string())))
+                    .map(Arc::new);
 
                 if let Some(fsio::File::TextFile { metadata, .. }) = data.as_deref() {
-                    this.watch_file(metadata, &base_path, &file_path);
+                    this.watch_file(metadata, path.as_ref());
                 }
 
                 if let Some(data) = data {
-                    this.editor_state.force(EditorState {
-                        base_path,
-                        file_path,
-                        data,
-                    })
+                    this.editor_state.force(EditorState { path, data })
                 }
                 drop(loading);
             };

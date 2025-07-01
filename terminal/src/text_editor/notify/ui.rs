@@ -18,7 +18,11 @@ use terrazzo::prelude::diagnostics::warn;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::frontend::remotes::Remote;
-use crate::text_editor::notify::*;
+use crate::text_editor::manager::FilePath;
+use crate::text_editor::notify::Arc;
+use crate::text_editor::notify::NotifyRequest;
+use crate::text_editor::notify::NotifyResponse;
+use crate::text_editor::notify::ServerFnError;
 use crate::utils::more_path::MorePath as _;
 
 pub struct NotifyService {
@@ -54,14 +58,14 @@ impl NotifyService {
         f(inner)
     }
 
-    pub fn watch(&self, base_path: &str, file_path: &str) {
-        let path = Path::new(base_path).join(file_path);
+    pub fn watch(&self, path: FilePath<impl AsRef<Path>, impl AsRef<Path>>) {
+        let path = path.full_path();
         let path = path.to_owned_string().into();
         self.send(Ok(NotifyRequest::Watch { path }));
     }
 
-    pub fn unwatch(&self, base_path: &str, file_path: &str) {
-        let path = Path::new(base_path).join(file_path);
+    pub fn unwatch(&self, path: FilePath<impl AsRef<Path>, impl AsRef<Path>>) {
+        let path = path.full_path();
         let path = path.to_owned_string().into();
         self.send(Ok(NotifyRequest::UnWatch { path }));
     }

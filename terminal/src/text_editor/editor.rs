@@ -1,7 +1,6 @@
 #![cfg(feature = "client")]
 
 use std::path::Path;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
@@ -22,6 +21,7 @@ use super::synchronized_state::SynchronizedState;
 use crate::text_editor::fsio;
 use crate::text_editor::fsio::ui::store_file;
 use crate::text_editor::manager::EditorState;
+use crate::text_editor::manager::FilePath;
 use crate::text_editor::manager::TextEditorManager;
 use crate::text_editor::notify::EventKind;
 use crate::text_editor::notify::NotifyResponse;
@@ -36,63 +36,46 @@ pub fn editor(
     editor_state: EditorState,
     content: Arc<str>,
 ) -> XElement {
-    let EditorState {
-        base_path,
-        file_path,
-        ..
-    } = editor_state;
+    let EditorState { path, .. } = editor_state;
 
     // Set to true when there are edits waiting (debounced) to be committed.
     // This is used to ignored notifications about file changes  that would anyway be overwritten.
     let writing = Arc::new(AtomicBool::new(false));
 
     let on_change: Closure<dyn FnMut(JsValue)> = Closure::new(move |content: JsValue| {
-        autoclone!(manager, base_path, file_path, writing);
+        autoclone!(manager, path, writing);
         let Some(content) = content.as_string() else {
             debug!("Changed content is not a string");
             return;
         };
         let write = async move {
-            autoclone!(manager, base_path, file_path, writing);
+            autoclone!(manager, path, writing);
             writing.store(true, SeqCst);
             let before = guard((), move |()| writing.store(false, SeqCst));
             let after = SynchronizedState::enqueue(manager.synchronized_state.clone());
-            let () = store_file(
-                manager.remote.clone(),
-                base_path,
-                file_path,
-                content,
-                before,
-                after,
-            )
-            .await;
+            let () = store_file(manager.remote.clone(), path, content, before, after).await;
         };
         wasm_bindgen_futures::spawn_local(write);
     });
 
     let code_mirror = Arc::new(Mutex::new(None));
 
-    let notify_registration = manager.notify_service.add_handler(notify_handler(
-        &manager,
-        &code_mirror,
-        &base_path,
-        &file_path,
-        &writing,
-    ));
+    let notify_registration =
+        manager
+            .notify_service
+            .add_handler(notify_handler(&manager, &code_mirror, &path, &writing));
 
     tag(
         class = style::editor,
         after_render = move |element| {
-            autoclone!(base_path, file_path);
+            autoclone!(path);
             let _moved = notify_registration.clone();
             *code_mirror.lock().unwrap() = Some(CodeMirrorJs::new(
                 element,
                 content.as_ref().into(),
                 &on_change,
-                base_path.to_string(),
-                PathBuf::from(base_path.as_ref())
-                    .join(file_path.as_ref())
-                    .to_owned_string(),
+                path.base.to_string(),
+                path.as_ref().full_path().to_owned_string(),
             ));
         },
     )
@@ -102,14 +85,13 @@ pub fn editor(
 fn notify_handler(
     manager: &Arc<TextEditorManager>,
     code_mirror: &Arc<Mutex<Option<CodeMirrorJs>>>,
-    base_path: &Arc<str>,
-    file_path: &Arc<str>,
+    path: &FilePath<Arc<str>>,
     writing: &Arc<AtomicBool>,
 ) -> impl Fn(&NotifyResponse) + 'static {
-    let full_path = Path::new(base_path.as_ref()).join(file_path.as_ref());
+    let full_path = path.as_ref().full_path();
     move |response| {
-        autoclone!(manager, code_mirror, base_path, file_path, writing);
-        let _span = debug_span!("Editor notifier", %base_path, %file_path).entered();
+        autoclone!(manager, code_mirror, path, writing);
+        let _span = debug_span!("Editor notifier", ?path).entered();
         if Path::new(&response.path) != &full_path {
             debug!("Skip {}", response.path);
             return;
@@ -122,16 +104,11 @@ fn notify_handler(
                     return;
                 }
                 spawn_local(
-                    notify_edit(
-                        manager.clone(),
-                        code_mirror.clone(),
-                        base_path.clone(),
-                        file_path.clone(),
-                    )
-                    .in_current_span(),
+                    notify_edit(manager.clone(), code_mirror.clone(), path.clone())
+                        .in_current_span(),
                 );
             }
-            EventKind::Delete | EventKind::Error => manager.unwatch_file(file_path.as_ref()),
+            EventKind::Delete | EventKind::Error => manager.unwatch_file(path.file.as_ref()),
         }
     }
 }
@@ -139,11 +116,10 @@ fn notify_handler(
 async fn notify_edit(
     manager: Arc<TextEditorManager>,
     code_mirror: Arc<Mutex<Option<CodeMirrorJs>>>,
-    base_path: Arc<str>,
-    file_path: Arc<str>,
+    path: FilePath<Arc<str>>,
 ) {
     debug!("Loading modified file");
-    match fsio::ui::load_file(manager.remote.clone(), base_path.clone(), file_path.clone()).await {
+    match fsio::ui::load_file(manager.remote.clone(), path.clone()).await {
         Ok(Some(fsio::File::TextFile {
             metadata: _,
             content,
@@ -156,7 +132,7 @@ async fn notify_edit(
         }
         Ok(None) => {
             debug!("The modified file is gone");
-            manager.file_path.update(|file_path| {
+            manager.path.file.update(|file_path| {
                 let file_path = Path::new(file_path.as_ref());
                 let parent = file_path.parent().unwrap_or_else(|| "/".as_ref());
                 Some(parent.to_owned_string().into())
