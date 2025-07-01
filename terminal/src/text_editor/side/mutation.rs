@@ -149,7 +149,7 @@ mod tests {
                 user: None,
                 group: None,
             }),
-            notify_registration: None,
+            notify_registration: Default::default(),
         };
         let tree = super::add_file(
             tree,
@@ -312,7 +312,7 @@ mod tests {
                 user: None,
                 group: None,
             }),
-            notify_registration: None,
+            notify_registration: Default::default(),
         };
         let tree = super::add_file(
             tree,

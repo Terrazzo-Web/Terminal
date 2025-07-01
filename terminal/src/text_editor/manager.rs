@@ -71,7 +71,7 @@ impl TextEditorManager {
                 relative_path.as_slice(),
                 super::side::SideViewNode::File {
                     metadata: metadata.clone(),
-                    notify_registration: Some(notify_registration),
+                    notify_registration: notify_registration.into(),
                 },
             ))
         });

@@ -79,6 +79,7 @@ impl NotifyService {
     }
 
     #[must_use]
+    #[allow(unused)] // TODO
     fn watch_folder(
         self: &Arc<Self>,
         path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,

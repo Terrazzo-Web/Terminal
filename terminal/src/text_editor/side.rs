@@ -2,7 +2,6 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::text_editor::fsio::FileMetadata;
-use crate::text_editor::notify::ui::NotifyRegistration;
 
 pub mod mutation;
 pub mod ui;
@@ -16,8 +15,32 @@ pub enum SideViewNode {
     File {
         metadata: Arc<FileMetadata>,
         #[serde(skip)]
-        notify_registration: Option<Arc<NotifyRegistration>>,
+        notify_registration: opqaue::OpaqueNotifyRegistration,
     },
+}
+
+pub mod opqaue {
+    use std::sync::Arc;
+
+    use crate::text_editor::notify::ui::NotifyRegistration;
+
+    #[derive(Clone, Default)]
+    pub struct OpaqueNotifyRegistration(Option<Arc<NotifyRegistration>>);
+
+    impl From<Arc<NotifyRegistration>> for OpaqueNotifyRegistration {
+        fn from(value: Arc<NotifyRegistration>) -> Self {
+            Self(Some(value))
+        }
+    }
+
+    impl OpaqueNotifyRegistration {
+        pub fn is_set(&self) -> bool {
+            self.0.is_some()
+        }
+    }
+
+    unsafe impl Send for OpaqueNotifyRegistration {}
+    unsafe impl Sync for OpaqueNotifyRegistration {}
 }
 
 pub type SideViewList = BTreeMap<Arc<str>, Arc<SideViewNode>>;
@@ -32,7 +55,7 @@ impl std::fmt::Debug for SideViewNode {
             } => f
                 .debug_struct("File")
                 .field("name", &metadata.name)
-                .field("has_notify_registration", &notify_registration.is_some())
+                .field("has_notify_registration", &notify_registration.is_set())
                 .finish(),
         }
     }
