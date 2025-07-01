@@ -10,7 +10,6 @@ use terrazzo::template;
 use web_sys::MouseEvent;
 
 use self::diagnostics::debug;
-use self::diagnostics::span;
 use super::fsio::FileMetadata;
 use super::manager::EditorState;
 use super::manager::TextEditorManager;
@@ -27,7 +26,7 @@ stylance::import_crate_style!(style, "src/text_editor/folder.scss");
 #[html]
 #[template(tag = div)]
 pub fn folder(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     editor_state: EditorState,
     list: Arc<Vec<FileMetadata>>,
 ) -> XElement {
@@ -49,7 +48,7 @@ pub fn folder(
                 autoclone!(path, manager);
                 debug!("Folder view notification: {event:?}");
                 match (
-                    Path::new(&event.path) == &path.as_ref().full_path(),
+                    Path::new(&event.path) == path.as_ref().full_path(),
                     event.kind,
                 ) {
                     (false, EventKind::Create | EventKind::Modify | EventKind::Delete) => {

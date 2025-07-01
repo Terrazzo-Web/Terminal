@@ -46,7 +46,7 @@ pub fn text_editor() -> XElement {
 #[template(tag = div)]
 fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) -> XElement {
     let side_view: XSignal<Arc<SideViewList>> = XSignal::new("side-view", Default::default());
-    let manager = Arc::new(TextEditorManager {
+    let manager = Ptr::new(TextEditorManager {
         remote: remote.clone(),
         path: FilePath {
             base: XSignal::new("base-path", Arc::default()),
@@ -56,7 +56,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
         editor_state: XSignal::new("editor-state", None),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
         side_view,
-        notify_service: Arc::new(NotifyService::new(remote)),
+        notify_service: Ptr::new(NotifyService::new(remote)),
     });
 
     let consumers = Arc::default();
@@ -82,7 +82,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
 
 #[html]
 fn editor_body(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     editor_state: XSignal<Option<EditorState>>,
 ) -> XElement {
     div(
@@ -95,7 +95,7 @@ fn editor_body(
 #[template(tag = div)]
 #[html]
 fn editor_container(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     #[signal] editor_state: Option<EditorState>,
 ) -> XElement {
     let Some(editor_state) = editor_state else {
@@ -124,7 +124,7 @@ impl TextEditorManager {
     /// Restores the paths
     #[autoclone]
     #[nameth]
-    fn restore_paths(self: &Arc<Self>, consumers: &Arc<Mutex<Consumers>>) {
+    fn restore_paths(self: &Ptr<Self>, consumers: &Arc<Mutex<Consumers>>) {
         let this = self;
         spawn_local(async move {
             autoclone!(this, consumers);
@@ -169,7 +169,7 @@ impl TextEditorManager {
     }
 
     #[autoclone]
-    fn make_file_async_view(self: &Arc<Self>) -> Consumers {
+    fn make_file_async_view(self: &Ptr<Self>) -> Consumers {
         let this = self;
         this.path.file.add_subscriber(move |file_path| {
             autoclone!(this);

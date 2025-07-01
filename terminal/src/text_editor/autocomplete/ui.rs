@@ -25,7 +25,7 @@ use crate::text_editor::style;
 #[html]
 #[template(tag = ul)]
 pub fn show_autocomplete(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
@@ -68,7 +68,7 @@ pub fn show_autocomplete(
 
 #[autoclone]
 pub fn start_autocomplete(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
@@ -105,7 +105,7 @@ pub fn stop_autocomplete(
 }
 
 pub fn do_autocomplete(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
     autocomplete: XSignal<Option<Vec<AutocompleteItem>>>,
     kind: PathSelector,
@@ -124,7 +124,7 @@ pub fn do_autocomplete(
 
 #[autoclone]
 fn do_autocomplete_impl(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,

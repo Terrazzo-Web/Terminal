@@ -21,19 +21,19 @@ pub enum SideViewNode {
 
 pub mod opqaue {
     use std::any::Any;
-    use std::sync::Arc;
+    use std::rc::Rc;
 
     #[derive(Clone, Default)]
-    pub struct OpaqueNotifyRegistration(Option<Arc<dyn Any>>);
+    pub struct OpaqueNotifyRegistration(Option<Rc<dyn Any>>);
 
     #[cfg(feature = "client")]
     mod convert {
-        use std::sync::Arc;
+        use terrazzo::prelude::Ptr;
 
         use crate::text_editor::notify::ui::NotifyRegistration;
         use crate::text_editor::side::opqaue::OpaqueNotifyRegistration;
-        impl From<Arc<NotifyRegistration>> for OpaqueNotifyRegistration {
-            fn from(value: Arc<NotifyRegistration>) -> Self {
+        impl From<Ptr<NotifyRegistration>> for OpaqueNotifyRegistration {
+            fn from(value: Ptr<NotifyRegistration>) -> Self {
                 Self(Some(value))
             }
         }

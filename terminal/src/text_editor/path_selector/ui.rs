@@ -22,7 +22,7 @@ use crate::text_editor::manager::TextEditorManager;
 use crate::text_editor::style;
 
 impl TextEditorManager {
-    pub fn base_path_selector(self: &Arc<Self>) -> XElement {
+    pub fn base_path_selector(self: &Ptr<Self>) -> XElement {
         path_selector_impll(
             self.clone(),
             PathSelector::BasePath,
@@ -32,7 +32,7 @@ impl TextEditorManager {
         )
     }
 
-    pub fn file_path_selector(self: &Arc<Self>) -> XElement {
+    pub fn file_path_selector(self: &Ptr<Self>) -> XElement {
         path_selector_impll(
             self.clone(),
             PathSelector::FilePath,
@@ -46,7 +46,7 @@ impl TextEditorManager {
 #[html]
 #[template(tag = div)]
 fn path_selector_impll(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     path: XSignal<Arc<str>>,
@@ -68,7 +68,7 @@ fn path_selector_impll(
 #[autoclone]
 #[html]
 fn path_selector_input(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
     path: XSignal<Arc<str>>,

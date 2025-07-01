@@ -23,7 +23,7 @@ pub(super) struct TextEditorManager {
     pub editor_state: XSignal<Option<EditorState>>,
     pub synchronized_state: XSignal<SynchronizedState>,
     pub side_view: XSignal<Arc<SideViewList>>,
-    pub notify_service: Arc<NotifyService>,
+    pub notify_service: Ptr<NotifyService>,
 }
 
 #[derive(Clone)]
@@ -34,7 +34,7 @@ pub(super) struct EditorState {
 
 impl TextEditorManager {
     pub fn add_to_side_view(
-        self: &Arc<Self>,
+        self: &Ptr<Self>,
         metadata: &Arc<FileMetadata>,
         path: &FilePath<Arc<str>>,
     ) {

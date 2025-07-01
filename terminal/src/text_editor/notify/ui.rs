@@ -5,13 +5,13 @@ use std::collections::hash_map;
 use std::future::ready;
 use std::path::Path;
 use std::sync::Mutex;
-use std::sync::Weak;
 
 use futures::SinkExt;
 use futures::StreamExt as _;
 use futures::channel::mpsc;
 use scopeguard::defer;
 use terrazzo::autoclone;
+use terrazzo::prelude::Ptr;
 use terrazzo::prelude::diagnostics::debug;
 use terrazzo::prelude::diagnostics::debug_span;
 use terrazzo::prelude::diagnostics::trace;
@@ -28,7 +28,7 @@ use crate::utils::more_path::MorePath as _;
 
 pub struct NotifyService {
     remote: Remote,
-    inner: Arc<Mutex<Option<NotifyServiceImpl>>>,
+    inner: Ptr<Mutex<Option<NotifyServiceImpl>>>,
 }
 
 struct NotifyServiceImpl {
@@ -36,13 +36,13 @@ struct NotifyServiceImpl {
     handlers: Handlers,
 }
 
-type Handlers = Arc<Mutex<HashMap<Arc<str>, HashMap<usize, Weak<NotifyRegistration>>>>>;
+type Handlers = Arc<Mutex<HashMap<Arc<str>, HashMap<usize, std::rc::Weak<NotifyRegistration>>>>>;
 
 #[must_use]
 pub struct NotifyRegistration {
     id: usize,
     full_path: Arc<str>,
-    notify_service: Weak<NotifyService>,
+    notify_service: std::rc::Weak<NotifyService>,
     registration_type: RegistrationType,
     callback: Box<dyn Fn(&NotifyResponse)>,
 }
@@ -57,7 +57,7 @@ impl NotifyService {
     pub fn new(remote: Remote) -> Self {
         Self {
             remote: remote.clone(),
-            inner: Arc::new(Mutex::new(None)),
+            inner: Ptr::new(Mutex::new(None)),
         }
     }
 
@@ -71,29 +71,29 @@ impl NotifyService {
 
     #[must_use]
     pub fn watch_file(
-        self: &Arc<Self>,
+        self: &Ptr<Self>,
         path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
         callback: impl Fn(&NotifyResponse) + 'static,
-    ) -> Arc<NotifyRegistration> {
+    ) -> Ptr<NotifyRegistration> {
         self.add_handler(path, RegistrationType::File, callback)
     }
 
     #[must_use]
     pub fn watch_folder(
-        self: &Arc<Self>,
+        self: &Ptr<Self>,
         path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
         callback: impl Fn(&NotifyResponse) + 'static,
-    ) -> Arc<NotifyRegistration> {
+    ) -> Ptr<NotifyRegistration> {
         self.add_handler(path, RegistrationType::Folder, callback)
     }
 
     #[must_use]
     fn add_handler(
-        self: &Arc<Self>,
+        self: &Ptr<Self>,
         path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
         registration_type: RegistrationType,
         callback: impl Fn(&NotifyResponse) + 'static,
-    ) -> Arc<NotifyRegistration> {
+    ) -> Ptr<NotifyRegistration> {
         let full_path: Arc<str> = path.full_path().to_owned_string().into();
         let registration =
             NotifyRegistration::new(full_path.clone(), self, registration_type, callback);
@@ -108,7 +108,7 @@ impl NotifyService {
         };
         handlers
             .get_mut()
-            .insert(registration.id, Arc::downgrade(&registration));
+            .insert(registration.id, Ptr::downgrade(&registration));
         return registration;
     }
 
@@ -125,7 +125,7 @@ impl NotifyService {
 
 impl NotifyServiceImpl {
     #[autoclone]
-    fn new(remote: Remote, inner: &Arc<Mutex<Option<NotifyServiceImpl>>>) -> Self {
+    fn new(remote: Remote, inner: &Ptr<Mutex<Option<NotifyServiceImpl>>>) -> Self {
         let (request_tx, request_rx) = mpsc::unbounded();
         let handlers = Handlers::default();
         let request = futures::stream::once(ready(Ok(NotifyRequest::Start {
@@ -187,19 +187,19 @@ impl NotifyServiceImpl {
 impl NotifyRegistration {
     fn new(
         full_path: Arc<str>,
-        notify_service: &Arc<NotifyService>,
+        notify_service: &Ptr<NotifyService>,
         registration_type: RegistrationType,
         callback: impl Fn(&NotifyResponse) + 'static,
-    ) -> Arc<Self> {
+    ) -> Ptr<Self> {
         use std::sync::atomic::AtomicUsize;
         use std::sync::atomic::Ordering::SeqCst;
         static NEXT: AtomicUsize = AtomicUsize::new(0);
         let id = NEXT.fetch_add(1, SeqCst);
         debug!("Create notify registration {id}");
-        Arc::new(NotifyRegistration {
+        Ptr::new(NotifyRegistration {
             id,
             full_path,
-            notify_service: Arc::downgrade(notify_service),
+            notify_service: Ptr::downgrade(notify_service),
             registration_type,
             callback: Box::new(callback),
         })

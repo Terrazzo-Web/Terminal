@@ -19,7 +19,7 @@ stylance::import_crate_style!(style, "src/text_editor/side.scss");
 #[html]
 #[template(tag = div, key = "side-view")]
 pub fn show_side_view(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     #[signal] side_view: Arc<SideViewList>,
 ) -> XElement {
     tag(
@@ -30,7 +30,7 @@ pub fn show_side_view(
 
 #[html]
 fn show_side_view_list(
-    manager: &Arc<TextEditorManager>,
+    manager: &Ptr<TextEditorManager>,
     path: &Path,
     side_view: Arc<SideViewList>,
 ) -> XElement {
@@ -43,7 +43,7 @@ fn show_side_view_list(
 #[autoclone]
 #[html]
 fn show_side_view_node(
-    manager: &Arc<TextEditorManager>,
+    manager: &Ptr<TextEditorManager>,
     path: &Path,
     name: &Arc<str>,
     side_view: &Arc<SideViewNode>,
@@ -114,7 +114,7 @@ pub fn selected_item(#[signal] file_path: Arc<str>, path: Arc<Path>) -> XAttribu
 
 #[autoclone]
 #[html]
-fn close_icon(manager: &Arc<TextEditorManager>, path: &Arc<Path>) -> XElement {
+fn close_icon(manager: &Ptr<TextEditorManager>, path: &Arc<Path>) -> XElement {
     img(
         src = icons::close_tab(),
         class = format!("{} {}", style::icon, style::close,),

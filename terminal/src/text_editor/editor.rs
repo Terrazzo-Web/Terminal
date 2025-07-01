@@ -37,7 +37,7 @@ use crate::utils::more_path::MorePath as _;
     format!("editor-{}", NEXT.fetch_add(1, SeqCst))
 })]
 pub fn editor(
-    manager: Arc<TextEditorManager>,
+    manager: Ptr<TextEditorManager>,
     editor_state: EditorState,
     content: Arc<str>,
 ) -> XElement {
@@ -63,7 +63,7 @@ pub fn editor(
         wasm_bindgen_futures::spawn_local(write);
     });
 
-    let code_mirror = Arc::new(Mutex::new(None));
+    let code_mirror = Ptr::new(Mutex::new(None));
 
     let notify_registration = manager.notify_service.watch_file(
         path.as_ref(),
@@ -88,8 +88,8 @@ pub fn editor(
 
 #[autoclone]
 fn notify_handler(
-    manager: &Arc<TextEditorManager>,
-    code_mirror: &Arc<Mutex<Option<CodeMirrorJs>>>,
+    manager: &Ptr<TextEditorManager>,
+    code_mirror: &Ptr<Mutex<Option<CodeMirrorJs>>>,
     path: &FilePath<Arc<str>>,
     writing: &Arc<AtomicBool>,
 ) -> impl Fn(&NotifyResponse) + 'static {
@@ -111,8 +111,8 @@ fn notify_handler(
 }
 
 async fn notify_edit(
-    manager: Arc<TextEditorManager>,
-    code_mirror: Arc<Mutex<Option<CodeMirrorJs>>>,
+    manager: Ptr<TextEditorManager>,
+    code_mirror: Ptr<Mutex<Option<CodeMirrorJs>>>,
     path: FilePath<Arc<str>>,
 ) {
     debug!("Loading modified file");
