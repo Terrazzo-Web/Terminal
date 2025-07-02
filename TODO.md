@@ -1,6 +1,7 @@
 # TODO
 - `#114`. Notification pipeline works with remotes
 - `#110`. Add a wrapper around `cargo check` that returns a list of errors or warnings
+- `#115`. Add some caching in the UI around folder I/O, so loading stuff is faster
 - `#·95`. File explorer: search tool
 - `#·94`. File explorer: all files
 - `#·92`. File explorer: show files with git changes
@@ -27,7 +28,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#115`.
+Next: `#116`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
