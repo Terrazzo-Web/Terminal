@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::Duration;
 
 use nameth::nameth;
 use scopeguard::guard;
@@ -30,6 +31,8 @@ use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::text_editor::file_path::FilePath;
+
+pub(super) const STORE_FILE_DEBOUNCE_DELAY: Duration = Duration::from_secs(3);
 
 /// The UI for the text editor app.
 #[html]
@@ -215,7 +218,7 @@ impl TextEditorManager {
                 autoclone!(remote);
                 let () = setter(remote, p)
                     .await
-                    .unwrap_or_else(|error| warn!("Failed to save path: {error}"));
+                    .unwrap_or_else(|error| warn!("Failed to save: {error}"));
             })
         })
     }

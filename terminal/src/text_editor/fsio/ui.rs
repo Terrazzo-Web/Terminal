@@ -3,7 +3,6 @@
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::OnceLock;
-use std::time::Duration;
 
 use server_fn::ServerFnError;
 use terrazzo::prelude::diagnostics;
@@ -12,6 +11,7 @@ use terrazzo::widgets::debounce::DoDebounce;
 use self::diagnostics::warn;
 use crate::frontend::remotes::Remote;
 use crate::text_editor::file_path::FilePath;
+use crate::text_editor::ui::STORE_FILE_DEBOUNCE_DELAY;
 
 pub async fn load_file(
     remote: Remote,
@@ -42,7 +42,7 @@ pub async fn store_file<B: Send + 'static, A: Send + 'static>(
 }
 
 fn make_debounced_store_file_fn() -> StoreFileFn {
-    let debounced = Duration::from_secs(3).async_debounce(
+    let debounced = STORE_FILE_DEBOUNCE_DELAY.async_debounce(
         move |StoreFileFnArg {
                   remote,
                   path,
