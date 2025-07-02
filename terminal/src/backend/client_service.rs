@@ -8,6 +8,8 @@ use tonic::async_trait;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
+use self::notify::RemoteResponseStream;
+use self::notify::notify_hybrid;
 use self::remotes::list_remotes;
 use self::terminals::list_terminals;
 use super::protos::terrazzo::gateway::client::AckRequest;
@@ -172,12 +174,15 @@ impl ClientService for ClientServiceImpl {
         Ok(Response::new(ServerFnResponse { json: response? }))
     }
 
-    type NotifyStream = HybridResponseStream;
+    type NotifyStream = RemoteResponseStream;
 
     async fn notify(
         &self,
-        _request: Request<Streaming<NotifyRequest>>,
+        request: Request<Streaming<NotifyRequest>>,
     ) -> Result<Response<Self::NotifyStream>, Status> {
-        todo!()
+        notify_hybrid(&self.server, request.into_inner().into())
+            .await
+            .map(|response| RemoteResponseStream(response).into())
+            .map_err(Status::from)
     }
 }

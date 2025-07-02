@@ -14,3 +14,18 @@ pub enum HybridRequestStream {
     Local(BoxedStream<NotifyRequest, ServerFnError>),
     Remote(#[pin] Streaming<NotifyRequestProto>),
 }
+
+impl From<HybridRequestStream> for BoxedStream<NotifyRequest, ServerFnError> {
+    fn from(request_stream: HybridRequestStream) -> Self {
+        match request_stream {
+            HybridRequestStream::Local(local_stream) => local_stream,
+            request_stream => self::local::LocalRequestStream(request_stream).into(),
+        }
+    }
+}
+
+impl From<Streaming<NotifyRequestProto>> for HybridRequestStream {
+    fn from(request_stream: Streaming<NotifyRequestProto>) -> Self {
+        Self::Remote(request_stream)
+    }
+}
