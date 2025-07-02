@@ -20,7 +20,7 @@ use super::NotifyRequest;
 use super::NotifyResponse;
 use super::event_handler;
 
-pub async fn notify(
+pub fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
 ) -> Result<BoxedStream<NotifyResponse, ServerFnError>, ServerFnError> {
     let (tx, rx) = mpsc::unbounded_channel();

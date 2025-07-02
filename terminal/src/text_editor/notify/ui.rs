@@ -26,7 +26,7 @@ use crate::text_editor::notify::NotifyResponse;
 use crate::text_editor::notify::ServerFnError;
 use crate::utils::more_path::MorePath as _;
 
-pub struct NotifyService {
+pub(in crate::text_editor) struct NotifyService {
     remote: Remote,
     inner: Ptr<Mutex<Option<NotifyServiceImpl>>>,
 }

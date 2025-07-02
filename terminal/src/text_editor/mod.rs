@@ -5,7 +5,7 @@ mod file_path;
 mod folder;
 mod fsio;
 mod manager;
-mod notify;
+pub mod notify;
 mod path_selector;
 mod remotes;
 mod rust_lang;
