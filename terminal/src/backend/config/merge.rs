@@ -20,6 +20,7 @@ use crate::backend::auth::DEFAULT_TOKEN_LIFETIME;
 use crate::backend::auth::DEFAULT_TOKEN_REFRESH;
 use crate::backend::cli::Cli;
 use crate::backend::home;
+use crate::utils::more_path::MorePath as _;
 
 impl ConfigFile {
     pub fn merge(self, cli: &Cli) -> Config {
@@ -88,8 +89,7 @@ fn merge_server_config(
                 [home(), format!(".terrazzo/terminal-{port}.pid")]
                     .iter()
                     .collect::<PathBuf>()
-                    .to_string_lossy()
-                    .to_string()
+                    .to_owned_string()
             })
         },
         private_root_ca: {
@@ -101,8 +101,7 @@ fn merge_server_config(
                 [&home(), ".terrazzo/root_ca"]
                     .iter()
                     .collect::<PathBuf>()
-                    .to_string_lossy()
-                    .to_string()
+                    .to_owned_string()
             })
         },
         password: server.password.clone(),
@@ -147,8 +146,7 @@ fn merge_mesh_config(
                 [&home(), ".terrazzo/client_certificate"]
                     .iter()
                     .collect::<PathBuf>()
-                    .to_string_lossy()
-                    .to_string()
+                    .to_owned_string()
             }),
         retry_strategy: mesh
             .and_then(|mesh| mesh.retry_strategy.clone())

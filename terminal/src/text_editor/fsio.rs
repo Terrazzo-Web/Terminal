@@ -8,6 +8,7 @@ use server_fn::ServerFnError;
 use server_fn::codec::Json;
 use terrazzo::server;
 
+use super::file_path::FilePath;
 use crate::api::client_address::ClientAddress;
 
 pub mod canonical;
@@ -66,19 +67,12 @@ impl std::fmt::Debug for File {
 
 #[server(protocol = Http<Json, Json>)]
 #[nameth]
-pub async fn load_file(
+async fn load_file(
     remote: Option<ClientAddress>,
-    base_path: Arc<str>,
-    file_path: Arc<str>,
+    path: FilePath<Arc<str>>,
 ) -> Result<Option<File>, ServerFnError> {
     Ok(remote::LOAD_FILE_REMOTE_FN
-        .call(
-            remote.unwrap_or_default(),
-            remote::LoadFileRequest {
-                base_path,
-                file_path,
-            },
-        )
+        .call(remote.unwrap_or_default(), remote::LoadFileRequest { path })
         .await?)
 }
 
@@ -86,8 +80,7 @@ pub async fn load_file(
 #[nameth]
 async fn store_file_impl(
     remote: Option<ClientAddress>,
-    base_path: Arc<str>,
-    file_path: Arc<str>,
+    path: FilePath<Arc<str>>,
     content: String,
 ) -> Result<(), ServerFnError> {
     #[cfg(debug_assertions)]
@@ -95,11 +88,7 @@ async fn store_file_impl(
     Ok(remote::STORE_FILE_REMOTE_FN
         .call(
             remote.unwrap_or_default(),
-            remote::StoreFileRequest {
-                base_path,
-                file_path,
-                content,
-            },
+            remote::StoreFileRequest { path, content },
         )
         .await?)
 }

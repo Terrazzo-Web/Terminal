@@ -9,13 +9,16 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 use web_sys::MouseEvent;
 
+use self::diagnostics::debug;
+use super::fsio::FileMetadata;
+use super::manager::EditorState;
+use super::manager::TextEditorManager;
 use crate::frontend::menu::before_menu;
 use crate::frontend::timestamp;
 use crate::frontend::timestamp::datetime::DateTime;
 use crate::frontend::timestamp::display_timestamp;
-use crate::text_editor::fsio::FileMetadata;
-use crate::text_editor::ui::EditorState;
-use crate::text_editor::ui::TextEditor;
+use crate::text_editor::notify::EventKind;
+use crate::utils::more_path::MorePath as _;
 
 stylance::import_crate_style!(style, "src/text_editor/folder.scss");
 
@@ -23,19 +26,63 @@ stylance::import_crate_style!(style, "src/text_editor/folder.scss");
 #[html]
 #[template(tag = div)]
 pub fn folder(
-    text_editor: Arc<TextEditor>,
+    manager: Ptr<TextEditorManager>,
     editor_state: EditorState,
     list: Arc<Vec<FileMetadata>>,
 ) -> XElement {
-    let EditorState { file_path, .. } = editor_state;
+    let path = &editor_state.path;
+    let file_path = &path.file;
 
     let mut rows = vec![];
-    let parent_path = Path::new(&*file_path).parent();
+    let parent_path = Path::new(file_path.as_ref()).parent();
     let parent = parent_path.map(|_| FileMetadata {
         name: "..".into(),
         is_dir: true,
         ..FileMetadata::default()
     });
+
+    let notify_registration =
+        manager
+            .notify_service
+            .watch_folder(editor_state.path.as_ref(), move |event| {
+                autoclone!(path, manager);
+                debug!("Folder view notification: {event:?}");
+                match (
+                    Path::new(&event.path) == path.as_ref().full_path(),
+                    event.kind,
+                ) {
+                    (false, EventKind::Create | EventKind::Modify | EventKind::Delete) => {
+                        debug!("File inside the folder was added/removed ==> refresh the view");
+                    }
+                    (true, EventKind::Create) => {
+                        debug!("The folder was created !?!");
+                        return;
+                    }
+                    (true, EventKind::Modify) => {
+                        debug!("The folder was modified");
+                    }
+                    (true, EventKind::Delete) => {
+                        debug!("The folder was deleted");
+                        manager.path.file.update(|file_path| {
+                            let file_path = Path::new(file_path.as_ref());
+                            let parent = file_path.parent().unwrap_or_else(|| "/".as_ref());
+                            Some(parent.to_owned_string().into())
+                        });
+                        return;
+                    }
+                    (true | false, EventKind::Error) => {
+                        debug!("Error polling notifications");
+                        return;
+                    }
+                }
+
+                debug!("Force reload folder view");
+                manager
+                    .path
+                    .file
+                    .force(manager.path.file.get_value_untracked());
+            });
+
     for file in parent.iter().chain(list.iter()) {
         let name = &file.name;
         let is_dir = file.is_dir;
@@ -63,8 +110,9 @@ pub fn folder(
             })
             .unwrap_or_default();
         rows.push(tr(
+            id = "{name}",
             click = move |_| {
-                autoclone!(text_editor, file_path, name);
+                autoclone!(manager, file_path, name);
                 let file_path = &*file_path;
                 let file_path = file_path.trim_start_matches('/');
                 let file = if &*name == ".." {
@@ -75,11 +123,11 @@ pub fn folder(
                 } else {
                     Path::new(file_path).join(&*name)
                 };
-                let mut file = file.to_string_lossy().to_string();
+                let mut file = file.to_owned_string();
                 if is_dir {
                     file.push('/');
                 };
-                text_editor.file_path.set(Arc::from(file))
+                manager.path.file.set(Arc::from(file))
             },
             td("{display_name}"),
             td("{size}"),
@@ -109,6 +157,9 @@ pub fn folder(
                 rows..,
             ),
         ),
+        after_render = move |_| {
+            let _moved = &notify_registration;
+        },
     )
 }
 

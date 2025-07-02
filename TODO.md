@@ -1,12 +1,11 @@
 # TODO
+- `#114`. Notification pipeline works with remotes
 - `#110`. Add a wrapper around `cargo check` that returns a list of errors or warnings
-- `#109`. Add a layer around tokio::fs with caching and updates from inotify
-- `#111`. Update the file in the UI with changes from disk -- unless the UI has pending changes
+- `#115`. Add some caching in the UI around folder I/O, so loading stuff is faster
 - `#·95`. File explorer: search tool
 - `#·94`. File explorer: all files
 - `#·92`. File explorer: show files with git changes
 - `#·89`. Anything parser: x509, base64, pem, yaml, json, toml, etc.
-- `#·96`. Text editor: watch for changes on disk → refresh UI
 - `#··7`. Text editor: integration with Language Server
 - `#·98`. Text editor: highlight git changes
 - `#·99`. Text editor: status bar: last change, pointer position, branch name
@@ -22,13 +21,14 @@
 - `#··8`. Resizeable component
 - `#107`. (b) Ticks should be aligned with round time;
 - `#108`. Introduce shortcuts for unwrap(). Makes it easy to scan where unwrap() is used.
+- `#113`. Add a dropdown on hover showing the list of pending operations on the ok/pending icon
 
 # Nice to have
 - `#·45`. Lazily load tab
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#113`.
+Next: `#116`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -125,3 +125,6 @@ Next: `#113`.
 - `#103`. Renew LE certificate
 - `#101`. Renew client certificates
 - `#112`. Assets are read from disk in debug mode
+- `#109`. Add a layer around tokio::fs with caching and updates from inotify
+- `#111`. Update the file in the UI with changes from disk -- unless the UI has pending changes
+- `#·96`. Text editor: watch for changes on disk → refresh UI

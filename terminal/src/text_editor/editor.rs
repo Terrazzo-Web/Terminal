@@ -1,71 +1,149 @@
 #![cfg(feature = "client")]
 
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::SeqCst;
 
+use scopeguard::guard;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use wasm_bindgen::JsValue;
+use wasm_bindgen_futures::spawn_local;
 
 use self::diagnostics::debug;
+use self::diagnostics::*;
 use super::code_mirror::CodeMirrorJs;
+use super::file_path::FilePath;
+use super::fsio;
+use super::fsio::ui::store_file;
+use super::manager::EditorState;
+use super::manager::TextEditorManager;
+use super::notify::EventKind;
+use super::notify::NotifyResponse;
+use super::style;
 use super::synchronized_state::SynchronizedState;
-use crate::text_editor::fsio::ui::store_file;
-use crate::text_editor::style;
-use crate::text_editor::ui::EditorState;
-use crate::text_editor::ui::TextEditor;
+use crate::utils::more_path::MorePath as _;
 
 #[autoclone]
 #[html]
-#[template(tag = div)]
+#[template(tag = div, key = {
+    use std::sync::atomic::AtomicI32;
+    use std::sync::atomic::Ordering::SeqCst;
+    static NEXT: AtomicI32 = AtomicI32::new(1);
+    format!("editor-{}", NEXT.fetch_add(1, SeqCst))
+})]
 pub fn editor(
-    text_editor: Arc<TextEditor>,
+    manager: Ptr<TextEditorManager>,
     editor_state: EditorState,
     content: Arc<str>,
 ) -> XElement {
-    let EditorState {
-        base_path,
-        file_path,
-        ..
-    } = editor_state;
+    let EditorState { path, .. } = editor_state;
+
+    // Set to true when there are edits waiting (debounced) to be committed.
+    // This is used to ignored notifications about file changes that would anyway be overwritten.
+    let writing = Arc::new(AtomicBool::new(false));
 
     let on_change: Closure<dyn FnMut(JsValue)> = Closure::new(move |content: JsValue| {
-        autoclone!(base_path, file_path);
+        autoclone!(manager, path, writing);
         let Some(content) = content.as_string() else {
             debug!("Changed content is not a string");
             return;
         };
         let write = async move {
-            autoclone!(base_path, file_path, text_editor);
-            let pending = SynchronizedState::enqueue(text_editor.synchronized_state.clone());
-            let () = store_file(
-                text_editor.remote.clone(),
-                base_path,
-                file_path,
-                content,
-                pending,
-            )
-            .await;
+            autoclone!(manager, path, writing);
+            writing.store(true, SeqCst);
+            let before = guard((), move |()| writing.store(false, SeqCst));
+            let after = SynchronizedState::enqueue(manager.synchronized_state.clone());
+            let () = store_file(manager.remote.clone(), path, content, before, after).await;
         };
         wasm_bindgen_futures::spawn_local(write);
     });
 
+    let code_mirror = Ptr::new(Mutex::new(None));
+
+    let notify_registration = manager.notify_service.watch_file(
+        path.as_ref(),
+        notify_handler(&manager, &code_mirror, &path, &writing),
+    );
+
     tag(
         class = style::editor,
         after_render = move |element| {
-            autoclone!(base_path, file_path);
-            drop(CodeMirrorJs::new(
+            autoclone!(path);
+            let _moved = notify_registration.clone();
+            *code_mirror.lock().unwrap() = Some(CodeMirrorJs::new(
                 element,
                 content.as_ref().into(),
                 &on_change,
-                base_path.to_string(),
-                PathBuf::from(base_path.as_ref())
-                    .join(file_path.as_ref())
-                    .to_string_lossy()
-                    .to_string(),
-            ))
+                path.base.to_string(),
+                path.as_ref().full_path().to_owned_string(),
+            ));
         },
     )
+}
+
+#[autoclone]
+fn notify_handler(
+    manager: &Ptr<TextEditorManager>,
+    code_mirror: &Ptr<Mutex<Option<CodeMirrorJs>>>,
+    path: &FilePath<Arc<str>>,
+    writing: &Arc<AtomicBool>,
+) -> impl Fn(&NotifyResponse) + 'static {
+    move |response| {
+        autoclone!(manager, code_mirror, path, writing);
+        let _span = debug_span!("Editor notifier", ?path).entered();
+        match response.kind {
+            EventKind::Create | EventKind::Modify => {}
+            EventKind::Delete | EventKind::Error => return,
+        }
+        if writing.load(SeqCst) {
+            // Ignore modifications if we are about to overwrite them anyway
+            return;
+        }
+        spawn_local(
+            notify_edit(manager.clone(), code_mirror.clone(), path.clone()).in_current_span(),
+        );
+    }
+}
+
+async fn notify_edit(
+    manager: Ptr<TextEditorManager>,
+    code_mirror: Ptr<Mutex<Option<CodeMirrorJs>>>,
+    path: FilePath<Arc<str>>,
+) {
+    debug!("Loading modified file");
+    match fsio::ui::load_file(manager.remote.clone(), path.clone()).await {
+        Ok(Some(fsio::File::TextFile {
+            metadata: _,
+            content,
+        })) => {
+            debug!("Loaded modified file");
+            let Some(code_mirror) = &*code_mirror.lock().unwrap() else {
+                return;
+            };
+            code_mirror.set_content(content.to_string());
+        }
+        Ok(None) => {
+            debug!("The modified file is gone");
+            manager.path.file.update(|file_path| {
+                let file_path = Path::new(file_path.as_ref());
+                let parent = file_path.parent().unwrap_or_else(|| "/".as_ref());
+                Some(parent.to_owned_string().into())
+            })
+        }
+        Ok(Some(fsio::File::Folder { .. })) => {
+            debug!("The modified file is a folder, force reload");
+            manager.path.file.force(path.file);
+        }
+        Ok(Some(fsio::File::Error(error))) => {
+            warn!("Loading file returned {error}");
+        }
+        Err(error) => {
+            warn!("Failed to load file: {error}")
+        }
+    };
 }

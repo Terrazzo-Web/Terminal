@@ -5,9 +5,9 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 
 use self::diagnostics::debug;
+use super::style;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes::RemotesState;
-use crate::text_editor::style;
 
 #[html]
 #[template(tag = div)]

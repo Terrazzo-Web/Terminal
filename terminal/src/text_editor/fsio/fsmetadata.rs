@@ -12,12 +12,13 @@ use libc::getgrgid;
 use libc::getpwuid;
 
 use crate::text_editor::fsio::FileMetadata;
+use crate::utils::more_path::MorePath as _;
 
 impl FileMetadata {
     pub fn single(path: &Path, metadata: &Metadata) -> Self {
         Self::make(
             path.file_name()
-                .map(|n| n.to_string_lossy().to_string().into())
+                .map(|n| n.to_owned_string().into())
                 .unwrap_or_else(|| "/".into()),
             Ok(metadata),
             &mut HashMap::new(),

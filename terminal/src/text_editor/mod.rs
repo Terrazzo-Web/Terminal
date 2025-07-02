@@ -1,8 +1,11 @@
 mod autocomplete;
 mod code_mirror;
 mod editor;
+mod file_path;
 mod folder;
 mod fsio;
+mod manager;
+mod notify;
 mod path_selector;
 mod remotes;
 mod rust_lang;

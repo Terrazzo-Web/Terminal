@@ -1,5 +1,6 @@
 class CodeMirrorJs {
     editorView;
+    reloadFromDisk; // Set to true when the file is updated from disk
     constructor(
         element,
         content,
@@ -7,8 +8,9 @@ class CodeMirrorJs {
         basePath,
         fullPath,
     ) {
+        this.reloadFromDisk = true;
         const updateListener = JsDeps.EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
+            if (!this.reloadFromDisk && update.docChanged) {
                 const content = update.state.doc.toString();
                 onchange(content);
             }
@@ -37,6 +39,19 @@ class CodeMirrorJs {
             state,
             parent: element,
         });
+        this.reloadFromDisk = false;
+    }
+
+    set_content(content) {
+        this.reloadFromDisk = true;
+        this.editorView.dispatch({
+            changes: {
+                from: 0,
+                to: this.editorView.state.doc.length,
+                insert: content
+            }
+        });
+        this.reloadFromDisk = false;
     }
 }
 

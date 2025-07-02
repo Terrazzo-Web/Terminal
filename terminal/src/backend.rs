@@ -65,6 +65,7 @@ use self::tls_config::make_tls_config;
 use crate::assets;
 use crate::backend::client_service::remote_fn;
 use crate::backend::config::mesh::DynamicMeshConfig;
+use crate::utils::more_path::MorePath as _;
 
 mod agent;
 pub mod auth;
@@ -93,7 +94,7 @@ pub fn run_server() -> Result<(), RunServerError> {
         if let Some(config_file) = &mut cli.config_file {
             if Path::new(config_file).is_relative() {
                 let concat: PathBuf = [&home(), ".terrazzo", config_file].iter().collect();
-                *config_file = concat.to_string_lossy().to_string()
+                *config_file = concat.to_owned_string()
             }
         }
         cli

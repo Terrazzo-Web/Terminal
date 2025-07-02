@@ -18,4 +18,7 @@ extern "C" {
         base_path: String,
         full_path: String,
     ) -> CodeMirrorJs;
+
+    #[wasm_bindgen(method)]
+    pub fn set_content(this: &CodeMirrorJs, content: String);
 }

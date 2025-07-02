@@ -86,7 +86,10 @@ pub fn remove_file(
                         debug!("Removing from folder {folder_name}");
                         children.clone()
                     }
-                    SideViewNode::File(expected_folder) => {
+                    SideViewNode::File {
+                        metadata: expected_folder,
+                        ..
+                    } => {
                         return Err(RemoveFileError::ExpectedFolder(
                             expected_folder.name.clone(),
                         ));
@@ -134,8 +137,8 @@ mod tests {
     #[test]
     fn add_file() {
         let tree = Arc::<SideViewList>::default();
-        let make_file = |name: &str| {
-            SideViewNode::File(Arc::new(FileMetadata {
+        let make_file = |name: &str| SideViewNode::File {
+            metadata: Arc::new(FileMetadata {
                 name: Arc::from(name),
                 size: Some(12),
                 is_dir: false,
@@ -145,7 +148,8 @@ mod tests {
                 mode: None,
                 user: None,
                 group: None,
-            }))
+            }),
+            notify_registration: Default::default(),
         };
         let tree = super::add_file(
             tree,
@@ -296,8 +300,8 @@ mod tests {
     #[test]
     fn remove_file() {
         let tree = Arc::<SideViewList>::default();
-        let make_file = |name: &str| {
-            SideViewNode::File(Arc::new(FileMetadata {
+        let make_file = |name: &str| SideViewNode::File {
+            metadata: Arc::new(FileMetadata {
                 name: Arc::from(name),
                 size: Some(12),
                 is_dir: false,
@@ -307,7 +311,8 @@ mod tests {
                 mode: None,
                 user: None,
                 group: None,
-            }))
+            }),
+            notify_registration: Default::default(),
         };
         let tree = super::add_file(
             tree,

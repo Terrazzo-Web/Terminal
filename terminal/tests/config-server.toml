@@ -7,5 +7,10 @@ token_lifetime = "5m"
 token_refresh = "4m 50s"
 certificate_renewal_threshold = "30days"
 
+[server.password]
+hash = "EmTj8N0K+IpeVVQjxCMh5ICqzoE"
+iterations = 60000
+salt = "0XLI0FAgSAeJ3uRiqjsQUQ"
+
 [server.config_file_poll_strategy]
 fixed = "5s"
