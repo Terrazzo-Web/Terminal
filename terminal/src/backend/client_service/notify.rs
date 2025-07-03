@@ -39,9 +39,9 @@ pub async fn notify_hybrid(
         };
         match next.request_type {
             Some(RequestTypeProto::Address(remote)) => {
-                return Ok(NotifyCallback::process(&server, &remote.via, request.0)
+                return NotifyCallback::process(&server, &remote.via, request.0)
                     .await
-                    .map_err(NotifyError::Error)?);
+                    .map_err(NotifyError::Error);
             }
             Some(RequestTypeProto::Watch { .. } | RequestTypeProto::Unwatch { .. }) => {
                 return Err(NotifyError::WatchBeforeStart);
