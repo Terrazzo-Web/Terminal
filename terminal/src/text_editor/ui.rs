@@ -16,6 +16,7 @@ use wasm_bindgen_futures::spawn_local;
 use self::diagnostics::debug;
 use self::diagnostics::warn;
 use super::editor::editor;
+use super::file_path::FilePath;
 use super::folder::folder;
 use super::fsio;
 use super::manager::EditorState;
@@ -30,7 +31,6 @@ use super::synchronized_state::SynchronizedState;
 use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
-use crate::text_editor::file_path::FilePath;
 
 pub(super) const STORE_FILE_DEBOUNCE_DELAY: Duration = Duration::from_secs(3);
 

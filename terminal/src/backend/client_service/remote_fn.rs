@@ -85,8 +85,7 @@ impl RemoteFn {
         async move {
             debug!("Start");
             defer!(debug!("End"));
-            let server = SERVER.get().ok_or(RemoteFnError::ServerNotSet)?;
-            let server = server.upgrade().ok_or(RemoteFnError::ServerWasDropped)?;
+            let server = remote_fn_server()?;
 
             let request =
                 serde_json::to_string(&request).map_err(RemoteFnError::SerializeRequest)?;
@@ -107,6 +106,11 @@ impl RemoteFn {
         }
         .instrument(debug_span!("RemoteFn"))
     }
+}
+
+pub fn remote_fn_server() -> Result<Arc<Server>, RemoteFnError> {
+    let server = SERVER.get().ok_or(RemoteFnError::ServerNotSet)?;
+    server.upgrade().ok_or(RemoteFnError::ServerWasDropped)
 }
 
 /// Helper to uplift a remote function into a String -> String server_fn.

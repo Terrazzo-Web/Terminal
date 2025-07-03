@@ -24,6 +24,12 @@ impl From<HybridRequestStream> for BoxedStream<NotifyRequest, ServerFnError> {
     }
 }
 
+impl From<BoxedStream<NotifyRequest, ServerFnError>> for HybridRequestStream {
+    fn from(request_stream: BoxedStream<NotifyRequest, ServerFnError>) -> Self {
+        Self::Local(request_stream)
+    }
+}
+
 impl From<Streaming<NotifyRequestProto>> for HybridRequestStream {
     fn from(request_stream: Streaming<NotifyRequestProto>) -> Self {
         Self::Remote(request_stream)

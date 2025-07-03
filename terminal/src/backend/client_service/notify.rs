@@ -11,9 +11,11 @@ use trz_gateway_server::server::Server;
 
 use self::request::remote::RemoteRequestStream;
 use self::response::HybridResponseStream;
+use super::notify::request::HybridRequestStream;
+use super::remote_fn::RemoteFnError;
+use super::remote_fn::remote_fn_server;
 use super::routing::DistributedCallback;
-use crate::backend::client_service::notify::request::HybridRequestStream;
-use crate::backend::client_service::routing::DistributedCallbackError;
+use super::routing::DistributedCallbackError;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
 use crate::backend::protos::terrazzo::gateway::client::NotifyRequest as NotifyRequestProto;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
@@ -26,9 +28,9 @@ mod response;
 pub use self::response::remote::RemoteResponseStream;
 
 pub async fn notify_hybrid(
-    server: &Server,
     request: HybridRequestStream,
 ) -> Result<HybridResponseStream, NotifyError> {
+    let server = remote_fn_server()?;
     let mut request = RemoteRequestStream(request);
     while let Some(next) = request.next().await {
         let next = match next {
@@ -37,7 +39,7 @@ pub async fn notify_hybrid(
         };
         match next.request_type {
             Some(RequestTypeProto::Address(remote)) => {
-                return Ok(NotifyCallback::process(server, &remote.via, request.0)
+                return Ok(NotifyCallback::process(&server, &remote.via, request.0)
                     .await
                     .map_err(NotifyError::Error)?);
             }
@@ -106,6 +108,9 @@ pub enum NotifyError {
 
     #[error("[{n}] Missing Start message", n = self.name())]
     MissingStart,
+
+    #[error("[{n}] {0}", n = self.name())]
+    RemoteFnError(#[from] RemoteFnError),
 }
 
 #[nameth]
@@ -121,7 +126,8 @@ impl From<NotifyError> for Status {
             NotifyError::Error(DistributedCallbackError::RemoteError(error)) => {
                 return std::mem::replace(error, Status::ok(""));
             }
-            NotifyError::Error(DistributedCallbackError::LocalError { .. }) => Code::Internal,
+            NotifyError::Error(DistributedCallbackError::LocalError { .. })
+            | NotifyError::RemoteFnError { .. } => Code::Internal,
             NotifyError::Error(DistributedCallbackError::RemoteClientNotFound { .. })
             | NotifyError::InvalidStart { .. }
             | NotifyError::WatchBeforeStart

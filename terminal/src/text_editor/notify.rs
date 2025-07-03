@@ -18,7 +18,8 @@ pub mod ui;
 pub async fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
 ) -> Result<BoxedStream<NotifyResponse, ServerFnError>, ServerFnError> {
-    service::notify(request)
+    use crate::backend::client_service::notify::notify_hybrid;
+    Ok(notify_hybrid(request.into()).await?.into())
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
