@@ -17,9 +17,19 @@ impl<B: AsRef<Path>, F: AsRef<Path>> FilePath<B, F> {
     }
 }
 
+impl<B, F> FilePath<B, F> {
+    #[allow(unused)]
+    pub fn as_ref(&self) -> FilePath<&B, &F> where {
+        FilePath {
+            base: &self.base,
+            file: &self.file,
+        }
+    }
+}
+
 impl<B: Deref, F: Deref> FilePath<B, F> {
     #[allow(unused)]
-    pub fn as_ref(&self) -> FilePath<&B::Target, &F::Target> where {
+    pub fn as_deref(&self) -> FilePath<&B::Target, &F::Target> where {
         FilePath {
             base: &self.base,
             file: &self.file,

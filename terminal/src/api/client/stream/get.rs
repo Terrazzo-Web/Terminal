@@ -11,6 +11,7 @@ use terrazzo::autoclone;
 use terrazzo::declare_trait_aliias;
 use terrazzo::prelude::OrElseLog as _;
 use terrazzo::prelude::diagnostics;
+use wasm_bindgen_futures::spawn_local;
 use web_sys::js_sys::Math;
 
 use self::diagnostics::Instrument as _;
@@ -59,13 +60,16 @@ fn add_dispatcher_sync(
     let dispatchers = if let Some(dispatchers) = &mut *dispatchers_lock {
         info!("Use current dispatchers");
         match &dispatchers.shutdown_pipe {
-            ShutdownPipe::Pending(shared) => wasm_bindgen_futures::spawn_local(async move {
-                autoclone!(shared);
-                let pipe_status = shared
-                    .await
-                    .map_err(|oneshot::Canceled| PipeError::Canceled);
-                let _ = pipe_tx.send(pipe_status);
-            }),
+            ShutdownPipe::Pending(shared) => {
+                let shutdown_pipe = async move {
+                    autoclone!(shared);
+                    let pipe_status = shared
+                        .await
+                        .map_err(|oneshot::Canceled| PipeError::Canceled);
+                    let _ = pipe_tx.send(pipe_status);
+                };
+                spawn_local(shutdown_pipe.in_current_span())
+            }
             ShutdownPipe::Signal { .. } => {
                 let _ = pipe_tx.send(Ok(()));
             }
@@ -75,7 +79,7 @@ fn add_dispatcher_sync(
         info!("Allocate new dispatchers");
         let correlation_id: Arc<str> = format!("{:#x}", Math::random().to_bits() % 22633363).into();
         let (pending_tx, pending_rx) = oneshot::channel();
-        wasm_bindgen_futures::spawn_local(async move {
+        let allocate_dispatchers_task = async move {
             autoclone!(correlation_id);
             let shutdown_pipe = match pipe(correlation_id).await {
                 Ok(shutdown_pipe) => shutdown_pipe,
@@ -90,7 +94,8 @@ fn add_dispatcher_sync(
             }
             let _ = pipe_tx.send(Ok(()));
             let _ = pending_tx.send(());
-        });
+        };
+        spawn_local(allocate_dispatchers_task.in_current_span());
         *dispatchers_lock = Some(StreamDispatchers {
             correlation_id,
             map: HashMap::new(),

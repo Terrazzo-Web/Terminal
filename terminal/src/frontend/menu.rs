@@ -11,6 +11,7 @@ use terrazzo::widgets::cancellable::Cancellable;
 use terrazzo::widgets::debounce::DoDebounce as _;
 use web_sys::MouseEvent;
 
+use self::diagnostics::Instrument as _;
 use crate::assets::icons;
 use crate::frontend::remotes::Remote;
 use crate::state::app;
@@ -118,21 +119,23 @@ pub fn app() -> XSignal<App> {
     STATIC
         .get_or_init(|| {
             let app = XSignal::new("app", App::Terminal);
-            wasm_bindgen_futures::spawn_local(async move {
+            let load_app_task = async move {
                 autoclone!(app);
                 // The client address is set per app, not globally.
                 let address: Remote = None;
                 if let Ok(p) = app::state::get(address).await {
                     app.set(p);
                 }
-            });
+            };
+            wasm_bindgen_futures::spawn_local(load_app_task.in_current_span());
             static CONSUMER: OnceLock<Consumers> = OnceLock::new();
             let _ = CONSUMER.set(app.add_subscriber(|app| {
-                wasm_bindgen_futures::spawn_local(async move {
+                let store_app_task = async move {
                     // The client address is set per app, not globally.
                     let address: Remote = None;
                     let _ = app::state::set(address, app).await;
-                })
+                };
+                wasm_bindgen_futures::spawn_local(store_app_task.in_current_span())
             }));
             app
         })

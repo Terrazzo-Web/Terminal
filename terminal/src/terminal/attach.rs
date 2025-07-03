@@ -10,6 +10,7 @@ use scopeguard::guard;
 use terrazzo::prelude::*;
 use terrazzo::widgets::resize_event::ResizeEvent;
 use wasm_bindgen::JsValue;
+use wasm_bindgen_futures::spawn_local;
 
 use self::diagnostics::Instrument as _;
 use self::diagnostics::debug;
@@ -86,7 +87,7 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
         drop(xtermjs);
         info!("Detached XtermJS");
     };
-    wasm_bindgen_futures::spawn_local(io.in_current_span());
+    spawn_local(io.in_current_span());
     return Consumers::default();
 }
 
@@ -101,7 +102,7 @@ impl TerminalJs {
                 // The channel is unbounded, the only possible error is the write_loop has dropped.
                 return result.unwrap_or_else(|_| info!("Terminal closed"));
             };
-            wasm_bindgen_futures::spawn_local(send.instrument(span.clone()));
+            spawn_local(send.instrument(span.clone()));
         });
         self.on_data(&on_data);
         return on_data;
@@ -116,7 +117,7 @@ impl TerminalJs {
             let first_resize = std::mem::replace(&mut first_resize, false);
             debug!("Resize: {data:?} first_resize:{first_resize}");
             let resize = this.clone().do_resize(terminal.clone(), first_resize);
-            wasm_bindgen_futures::spawn_local(resize.in_current_span());
+            spawn_local(resize.in_current_span());
         });
         self.on_resize(&on_resize);
         return on_resize;

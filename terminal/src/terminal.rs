@@ -9,6 +9,7 @@ use terrazzo::widgets::tabs::TabsOptions;
 use terrazzo::widgets::tabs::tabs;
 use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::Instrument as _;
 use self::diagnostics::debug;
 use self::diagnostics::info;
 use self::diagnostics::warn;
@@ -68,7 +69,7 @@ pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: Terminal
 }
 
 fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSignal<TerminalTabs>) {
-    spawn_local(async move {
+    let refresh_terminal_tabs_task = async move {
         let terminal_defs = match api::client::list::list().await {
             Ok(terminal_defs) => terminal_defs,
             Err(error) => {
@@ -93,7 +94,8 @@ fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSign
                 .collect::<Vec<_>>(),
         )));
         drop(batch);
-    });
+    };
+    spawn_local(refresh_terminal_tabs_task.in_current_span());
 }
 
 impl TerminalsState {
@@ -112,7 +114,7 @@ impl TerminalsState {
         }
         terminal_tabs.update(|terminal_tabs| Some(terminal_tabs.clone().remove_tab(terminal_id)));
         if let Some(last_dispatcher) = api::client::stream::drop_dispatcher(terminal_id) {
-            spawn_local(api::client::stream::close_pipe(last_dispatcher));
+            spawn_local(api::client::stream::close_pipe(last_dispatcher).in_current_span());
         }
     }
 }

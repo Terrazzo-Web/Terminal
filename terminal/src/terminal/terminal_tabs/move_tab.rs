@@ -1,5 +1,7 @@
 use terrazzo::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::Instrument as _;
 use self::diagnostics::warn;
 use super::TerminalTabs;
 use crate::api;
@@ -58,9 +60,10 @@ pub fn move_tab(state: TerminalsState, after_tab: Option<TerminalTab>, moved_tab
         .iter()
         .map(|tab| tab.address.clone())
         .collect();
-    wasm_bindgen_futures::spawn_local(async move {
+    let set_order_task = async move {
         let () = api::client::set_order::set_order(tabs)
             .await
             .unwrap_or_else(|error| warn!("Failed to set order: {error}"));
-    });
+    };
+    spawn_local(set_order_task.in_current_span());
 }

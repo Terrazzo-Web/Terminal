@@ -5,8 +5,10 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::autoclone;
 use terrazzo::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 use self::datetime::DateTime;
+use self::diagnostics::Instrument as _;
 use self::diagnostics::debug;
 use self::tick::Tick;
 use self::timer::Timer;
@@ -80,7 +82,7 @@ fn setup_timer_mode_signal(
         let Some(timestamp_signal) = timestamp_signal_weak.upgrade() else {
             return;
         };
-        wasm_bindgen_futures::spawn_local(async move {
+        let update_timestamp_signal_async = async move {
             timestamp_signal.update_mut(move |timestamp| {
                 Box::new(Timestamp {
                     display: std::mem::take(&mut timestamp.display),
@@ -90,7 +92,8 @@ fn setup_timer_mode_signal(
                     }),
                 })
             })
-        });
+        };
+        spawn_local(update_timestamp_signal_async.in_current_span());
     }
 }
 
@@ -104,10 +107,11 @@ fn setup_timer_signal(
         let Some(timestamp_signal) = timestamp_signal_weak.upgrade() else {
             return;
         };
-        wasm_bindgen_futures::spawn_local(async move {
+        let update_timestamp_signal_async = async move {
             autoclone!(timer_mode);
             timestamp_signal.update_mut(|timestamp| timestamp.recompute(&timer_mode))
-        })
+        };
+        spawn_local(update_timestamp_signal_async.in_current_span())
     }
 }
 

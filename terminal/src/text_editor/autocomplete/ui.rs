@@ -14,6 +14,7 @@ use web_sys::FocusEvent;
 use web_sys::HtmlInputElement;
 use web_sys::MouseEvent;
 
+use self::diagnostics::Instrument as _;
 use super::AutocompleteItem;
 use super::autocomplete_path;
 use crate::frontend::menu::before_menu;
@@ -132,7 +133,7 @@ fn do_autocomplete_impl(
 ) {
     let input_element = input.get().or_throw("Input element not set");
     let value = input_element.value();
-    spawn_local(async move {
+    let do_autocomplete_async = async move {
         autoclone!(autocomplete);
         let autocompletes = autocomplete_path(
             manager.remote.clone(),
@@ -152,5 +153,6 @@ fn do_autocomplete_impl(
                 None
             }
         });
-    });
+    };
+    spawn_local(do_autocomplete_async.in_current_span());
 }

@@ -8,8 +8,10 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::cancellable::Cancellable;
 use terrazzo::widgets::debounce::DoDebounce as _;
+use wasm_bindgen_futures::spawn_local;
 use web_sys::MouseEvent;
 
+use self::diagnostics::Instrument as _;
 use self::diagnostics::debug;
 use crate::api;
 use crate::api::client_address::ClientAddress;
@@ -71,14 +73,15 @@ impl RemotesState {
                 remotes.set(new_remotes)
             });
             hide_remotes.cancel();
-            wasm_bindgen_futures::spawn_local(async move {
+            let fetch_remotes = async move {
                 let remotes = api::client::remotes::remotes()
                     .await
                     .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
                 if update_remotes(remotes).is_none() {
                     debug!("Updating remotes was canceled");
                 }
-            });
+            };
+            spawn_local(fetch_remotes.in_current_span());
         }
     }
 

@@ -13,7 +13,9 @@ use terrazzo::template;
 use terrazzo::widgets::debounce::DoDebounce;
 use terrazzo::widgets::editable::editable;
 use terrazzo::widgets::tabs::TabDescriptor;
+use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::Instrument as _;
 use self::diagnostics::Level;
 use self::diagnostics::debug;
 use self::diagnostics::enabled;
@@ -95,10 +97,11 @@ impl TerminalTab {
 
         let registrations = title.add_subscriber(move |title: TabTitle<XString>| {
             autoclone!(address);
-            wasm_bindgen_futures::spawn_local(async move {
+            let set_title_task = async move {
                 autoclone!(address, set_title);
                 set_title((address, title)).await
-            });
+            };
+            spawn_local(set_title_task.in_current_span());
         });
         Self(Ptr::new(TerminalTabInner {
             def: LiveTerminalDef {
@@ -156,11 +159,12 @@ impl TabDescriptor for TerminalTab {
             click = move |ev: web_sys::MouseEvent| {
                 autoclone!(terminal);
                 ev.stop_propagation();
-                wasm_bindgen_futures::spawn_local(async move {
+                let close_task = async move {
                     autoclone!(terminal);
                     api::client::stream::try_restart_pipe();
                     api::client::stream::close(&terminal, None).await;
-                });
+                };
+                spawn_local(close_task.in_current_span());
             },
         );
 
