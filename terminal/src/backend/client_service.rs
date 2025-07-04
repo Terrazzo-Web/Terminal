@@ -181,7 +181,6 @@ impl ClientService for ClientServiceImpl {
         request: Request<Streaming<NotifyRequest>>,
     ) -> Result<Response<Self::NotifyStream>, Status> {
         notify_hybrid(request.into_inner().into())
-            .await
             .map(|response| RemoteResponseStream(response).into())
             .map_err(Status::from)
     }

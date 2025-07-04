@@ -1,12 +1,20 @@
 use std::future::ready;
 
+use futures::SinkExt as _;
 use futures::StreamExt as _;
+use futures::channel::mpsc;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use scopeguard::defer;
+use server_fn::BoxedStream;
 use server_fn::ServerFnError;
 use tonic::Code;
 use tonic::Status;
 use tonic::codegen::StdError;
+use tracing::Instrument as _;
+use tracing::debug;
+use tracing::debug_span;
+use tracing::warn;
 use trz_gateway_server::server::Server;
 
 use self::request::remote::RemoteRequestStream;
@@ -16,10 +24,12 @@ use super::remote_fn::RemoteFnError;
 use super::remote_fn::remote_fn_server;
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
+use crate::backend::client_service::notify::request::local::LocalRequestStream;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
 use crate::backend::protos::terrazzo::gateway::client::NotifyRequest as NotifyRequestProto;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
 use crate::backend::protos::terrazzo::gateway::client::notify_request::RequestType as RequestTypeProto;
+use crate::text_editor::notify::NotifyRequest;
 use crate::text_editor::notify::service::notify as notify_local;
 
 mod request;
@@ -27,29 +37,64 @@ mod response;
 
 pub use self::response::remote::RemoteResponseStream;
 
-pub async fn notify_hybrid(
-    request: HybridRequestStream,
-) -> Result<HybridResponseStream, NotifyError> {
-    let server = remote_fn_server()?;
-    let mut request = RemoteRequestStream(request);
-    while let Some(next) = request.next().await {
-        let next = match next {
-            Ok(next) => next,
-            Err(error) => return Err(NotifyError::InvalidStart(error)),
-        };
-        match next.request_type {
-            Some(RequestTypeProto::Address(remote)) => {
-                return NotifyCallback::process(&server, &remote.via, request.0)
-                    .await
-                    .map_err(NotifyError::Error);
+pub fn notify_hybrid(request: HybridRequestStream) -> Result<HybridResponseStream, NotifyError> {
+    let response_stream = async {
+        debug!("Start");
+        defer!(debug!("Done"));
+        let server = remote_fn_server()?;
+        let mut request = LocalRequestStream(request);
+        while let Some(next) = request.next().await {
+            let next = match next {
+                Ok(next) => {
+                    debug!("Next: {:?}", next);
+                    next
+                }
+                Err(error) => return Err(NotifyError::InvalidStart(error)),
+            };
+            match next {
+                NotifyRequest::Start { remote } => {
+                    let response = if remote.is_empty() {
+                        let request = HybridRequestStream::Local(
+                            futures::stream::once(ready(Ok(NotifyRequest::Start {
+                                remote: Default::default(),
+                            })))
+                            .chain(request)
+                            .into(),
+                        );
+                        NotifyCallback::process(&server, &remote, request)
+                    } else {
+                        NotifyCallback::process(&server, &remote, request.0)
+                    };
+                    return response.await.map_err(NotifyError::Error);
+                }
+                NotifyRequest::Watch { .. } | NotifyRequest::UnWatch { .. } => {
+                    return Err(NotifyError::WatchBeforeStart);
+                }
             }
-            Some(RequestTypeProto::Watch { .. } | RequestTypeProto::Unwatch { .. }) => {
-                return Err(NotifyError::WatchBeforeStart);
-            }
-            None => return Err(NotifyError::MissingRequestType),
         }
-    }
-    return Err(NotifyError::MissingStart);
+        return Err(NotifyError::MissingStart);
+    };
+    let (mut tx, rx) = mpsc::unbounded();
+    let response = async move {
+        let response_stream = match response_stream.await {
+            Ok(response_stream) => response_stream,
+            Err(error) => {
+                if let Err(mpsc::SendError { .. }) = tx.send(Err(error.into())).await {
+                    warn!("Stream closed");
+                }
+                return;
+            }
+        };
+        let mut response_stream = BoxedStream::from(response_stream);
+        while let Some(next) = response_stream.next().await {
+            if let Err(mpsc::SendError { .. }) = tx.send(next).await {
+                warn!("Stream closed");
+                return;
+            }
+        }
+    };
+    tokio::spawn(response.instrument(debug_span!("NotifyHybrid")));
+    return Ok(HybridResponseStream::Local(BoxedStream::from(rx)));
 }
 
 struct NotifyCallback;
@@ -98,7 +143,7 @@ pub enum NotifyError {
     Error(DistributedCallbackError<NotifyErrorImpl, Status>),
 
     #[error("[{n}] {0}", n = self.name())]
-    InvalidStart(Status),
+    InvalidStart(ServerFnError),
 
     #[error("[{n}] Can't Watch/UnWatch before Start message", n = self.name())]
     WatchBeforeStart,

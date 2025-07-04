@@ -19,10 +19,10 @@ pub async fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
 ) -> Result<BoxedStream<NotifyResponse, ServerFnError>, ServerFnError> {
     use crate::backend::client_service::notify::notify_hybrid;
-    Ok(notify_hybrid(request.into()).await?.into())
+    Ok(notify_hybrid(request.into())?.into())
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum NotifyRequest {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "S"))]
     Start {
