@@ -142,54 +142,52 @@ impl NotifyServiceImpl {
             remote: remote.unwrap_or_default(),
         })))
         .chain(request_rx);
-        spawn_local(
-            async move {
-                autoclone!(inner, handlers);
-                let Ok(mut response) = super::notify(request.into())
-                    .await
-                    .inspect_err(|error| warn!("Notify stream failed: {error}"))
-                else {
-                    return;
-                };
-                while let Some(response) = response.next().await {
-                    match response {
-                        Ok(response) => {
-                            debug!("{response:?}");
-                            let response_path = Path::new(&response.path);
-                            let response_path_parent = response_path.parent();
-                            let handlers = {
-                                let lock = handlers.lock().unwrap();
-                                (*lock).clone()
-                            };
-                            for (full_path, handlers) in handlers {
-                                let full_path = Path::new(&*full_path);
-                                for handler in handlers.values() {
-                                    let Some(handler) = handler.upgrade() else {
-                                        continue;
-                                    };
-                                    if match handler.registration_type {
-                                        RegistrationType::File => full_path == response_path,
-                                        RegistrationType::Folder => {
-                                            full_path == response_path
-                                                || Some(full_path) == response_path_parent
-                                        }
-                                    } {
-                                        let callback = &*handler.callback;
-                                        callback(&response)
+        let task = async move {
+            autoclone!(inner, handlers);
+            let Ok(mut response) = super::notify(request.into())
+                .await
+                .inspect_err(|error| warn!("Notify stream failed: {error}"))
+            else {
+                return;
+            };
+            while let Some(response) = response.next().await {
+                match response {
+                    Ok(response) => {
+                        debug!("{response:?}");
+                        let response_path = Path::new(&response.path);
+                        let response_path_parent = response_path.parent();
+                        let handlers = {
+                            let lock = handlers.lock().unwrap();
+                            (*lock).clone()
+                        };
+                        for (full_path, handlers) in handlers {
+                            let full_path = Path::new(&*full_path);
+                            for handler in handlers.values() {
+                                let Some(handler) = handler.upgrade() else {
+                                    continue;
+                                };
+                                if match handler.registration_type {
+                                    RegistrationType::File => full_path == response_path,
+                                    RegistrationType::Folder => {
+                                        full_path == response_path
+                                            || Some(full_path) == response_path_parent
                                     }
+                                } {
+                                    let callback = &*handler.callback;
+                                    callback(&response)
                                 }
                             }
                         }
-                        Err(error) => {
-                            warn!("{error:?}");
-                            inner.lock().unwrap().take();
-                            return;
-                        }
+                    }
+                    Err(error) => {
+                        warn!("{error:?}");
+                        inner.lock().unwrap().take();
+                        return;
                     }
                 }
             }
-            .in_current_span(),
-        );
+        };
+        spawn_local(task.in_current_span());
         Self {
             request: request_tx,
             handlers,
