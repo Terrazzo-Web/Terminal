@@ -43,7 +43,7 @@ pub fn notify_hybrid(request: HybridRequestStream) -> Result<HybridResponseStrea
         defer!(debug!("Done"));
         let server = remote_fn_server()?;
         let mut request = LocalRequestStream(request);
-        while let Some(next) = request.next().await {
+        if let Some(next) = request.next().await {
             let next = match next {
                 Ok(next) => {
                     debug!("Next: {:?}", next);
@@ -103,7 +103,7 @@ impl DistributedCallback for NotifyCallback {
     type Request = HybridRequestStream;
     type Response = HybridResponseStream;
     type LocalError = NotifyErrorImpl;
-    type RemoteError = Status;
+    type RemoteError = Box<Status>;
 
     async fn local(
         _server: &Server,
@@ -118,7 +118,7 @@ impl DistributedCallback for NotifyCallback {
         mut client: ClientServiceClient<T>,
         client_address: &[impl AsRef<str>],
         request: HybridRequestStream,
-    ) -> Result<HybridResponseStream, Status>
+    ) -> Result<HybridResponseStream, Box<Status>>
     where
         T: tonic::client::GrpcService<tonic::body::Body>,
         T::Error: Into<StdError>,
@@ -140,7 +140,7 @@ impl DistributedCallback for NotifyCallback {
 #[derive(thiserror::Error, Debug)]
 pub enum NotifyError {
     #[error("[{n}] {0}", n = self.name())]
-    Error(DistributedCallbackError<NotifyErrorImpl, Status>),
+    Error(DistributedCallbackError<NotifyErrorImpl, Box<Status>>),
 
     #[error("[{n}] {0}", n = self.name())]
     InvalidStart(ServerFnError),

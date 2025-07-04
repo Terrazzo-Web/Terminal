@@ -12,7 +12,7 @@ pub mod remote;
 #[pin_project(project = HybridRequestStreamProj)]
 pub enum HybridRequestStream {
     Local(BoxedStream<NotifyRequest, ServerFnError>),
-    Remote(#[pin] Streaming<NotifyRequestProto>),
+    Remote(#[pin] Box<Streaming<NotifyRequestProto>>),
 }
 
 impl From<HybridRequestStream> for BoxedStream<NotifyRequest, ServerFnError> {
@@ -32,6 +32,6 @@ impl From<BoxedStream<NotifyRequest, ServerFnError>> for HybridRequestStream {
 
 impl From<Streaming<NotifyRequestProto>> for HybridRequestStream {
     fn from(request_stream: Streaming<NotifyRequestProto>) -> Self {
-        Self::Remote(request_stream)
+        Self::Remote(Box::new(request_stream))
     }
 }
