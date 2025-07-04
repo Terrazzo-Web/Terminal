@@ -1,5 +1,4 @@
 # TODO
-- `#114`. Notification pipeline works with remotes
 - `#110`. Add a wrapper around `cargo check` that returns a list of errors or warnings
 - `#115`. Add some caching in the UI around folder I/O, so loading stuff is faster
 - `#·95`. File explorer: search tool
@@ -128,3 +127,4 @@ Next: `#116`.
 - `#109`. Add a layer around tokio::fs with caching and updates from inotify
 - `#111`. Update the file in the UI with changes from disk -- unless the UI has pending changes
 - `#·96`. Text editor: watch for changes on disk → refresh UI
+- `#114`. Notification pipeline works with remotes
