@@ -132,7 +132,7 @@ impl DistributedCallback for NotifyCallback {
         }))
         .chain(request);
         let response = client.notify(request).await?.into_inner();
-        Ok(HybridResponseStream::Remote(response))
+        Ok(HybridResponseStream::Remote(Box::new(response)))
     }
 }
 

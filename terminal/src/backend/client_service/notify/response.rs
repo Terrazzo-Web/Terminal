@@ -12,7 +12,7 @@ pub mod remote;
 #[pin_project(project = HybridResponseStreamProj)]
 pub enum HybridResponseStream {
     Local(BoxedStream<NotifyResponse, ServerFnError>),
-    Remote(#[pin] Streaming<NotifyResponseProto>),
+    Remote(#[pin] Box<Streaming<NotifyResponseProto>>),
 }
 
 impl From<HybridResponseStream> for BoxedStream<NotifyResponse, ServerFnError> {
