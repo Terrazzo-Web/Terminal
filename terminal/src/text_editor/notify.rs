@@ -59,4 +59,6 @@ pub enum EventKind {
     Delete,
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
     Error,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "L"))]
+    Lang,
 }
