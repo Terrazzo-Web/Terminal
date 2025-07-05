@@ -50,7 +50,7 @@ mod tests {
         )
         .is_equal_to(["a", "b"].map(Cow::from).into());
         assert_that!(
-            super::canonicalize("/a/b/.")
+            super::canonicalize("//a/b//.")
                 .iter()
                 .map(|leg| leg.to_string_lossy())
                 .collect::<Vec<_>>()

@@ -152,10 +152,10 @@ impl TextEditorManager {
             .await;
             let batch = Batch::use_batch(Self::RESTORE_PATHS);
             if let Ok(p) = get_base_path {
-                this.path.base.set(p);
+                this.path.base.force(p);
             }
             if let Ok(p) = get_file_path {
-                this.path.file.set(p);
+                this.path.file.force(p);
             }
             if let Ok(side_view) = get_side_view {
                 debug!("Setting side_view to {side_view:?}");
