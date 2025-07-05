@@ -16,6 +16,7 @@ use wasm_bindgen_futures::spawn_local;
 use self::diagnostics::debug;
 use self::diagnostics::warn;
 use super::editor::editor;
+use super::file_path::FilePath;
 use super::folder::folder;
 use super::fsio;
 use super::manager::EditorState;
@@ -30,7 +31,6 @@ use super::synchronized_state::SynchronizedState;
 use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
-use crate::text_editor::file_path::FilePath;
 
 pub(super) const STORE_FILE_DEBOUNCE_DELAY: Duration = Duration::from_secs(3);
 
@@ -152,10 +152,10 @@ impl TextEditorManager {
             .await;
             let batch = Batch::use_batch(Self::RESTORE_PATHS);
             if let Ok(p) = get_base_path {
-                this.path.base.set(p);
+                this.path.base.force(p);
             }
             if let Ok(p) = get_file_path {
-                this.path.file.set(p);
+                this.path.file.force(p);
             }
             if let Ok(side_view) = get_side_view {
                 debug!("Setting side_view to {side_view:?}");

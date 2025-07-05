@@ -12,6 +12,7 @@ use futures::channel::mpsc;
 use scopeguard::defer;
 use terrazzo::autoclone;
 use terrazzo::prelude::Ptr;
+use terrazzo::prelude::diagnostics::Instrument as _;
 use terrazzo::prelude::diagnostics::debug;
 use terrazzo::prelude::diagnostics::debug_span;
 use terrazzo::prelude::diagnostics::trace;
@@ -26,7 +27,7 @@ use crate::text_editor::notify::NotifyResponse;
 use crate::text_editor::notify::ServerFnError;
 use crate::utils::more_path::MorePath as _;
 
-pub struct NotifyService {
+pub(in crate::text_editor) struct NotifyService {
     remote: Remote,
     inner: Ptr<Mutex<Option<NotifyServiceImpl>>>,
 }
@@ -47,7 +48,7 @@ pub struct NotifyRegistration {
     callback: Box<dyn Fn(&NotifyResponse)>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum RegistrationType {
     File,
     Folder,
@@ -94,14 +95,22 @@ impl NotifyService {
         registration_type: RegistrationType,
         callback: impl Fn(&NotifyResponse) + 'static,
     ) -> Ptr<NotifyRegistration> {
+        let path = path.as_ref().map2(AsRef::as_ref, AsRef::as_ref);
+        let _span = debug_span!("Add watch", ?path, ?registration_type).entered();
+        debug!("Start");
+        defer!(debug!("End"));
         let full_path: Arc<str> = path.full_path().to_owned_string().into();
         let registration =
             NotifyRegistration::new(full_path.clone(), self, registration_type, callback);
         let handlers = self.inner(|inner| inner.handlers.clone());
         let mut handlers = handlers.lock().unwrap();
         let mut handlers = match handlers.entry(full_path.clone()) {
-            hash_map::Entry::Occupied(entry) => entry,
+            hash_map::Entry::Occupied(entry) => {
+                debug!("Adding new exiting watch");
+                entry
+            }
             hash_map::Entry::Vacant(entry) => {
+                debug!("Spawning new watch");
                 self.send(Ok(NotifyRequest::Watch { full_path }));
                 entry.insert_entry(HashMap::new())
             }
@@ -114,12 +123,13 @@ impl NotifyService {
 
     fn send(&self, notify_request: Result<NotifyRequest, ServerFnError>) {
         let mut request = self.inner(|inner| inner.request.clone());
-        spawn_local(async move {
+        let send_task = async move {
             let () = request
                 .send(notify_request)
                 .await
                 .unwrap_or_else(|error| warn!("Failed to send notify request: {error}"));
-        });
+        };
+        spawn_local(send_task.in_current_span());
     }
 }
 
@@ -132,7 +142,7 @@ impl NotifyServiceImpl {
             remote: remote.unwrap_or_default(),
         })))
         .chain(request_rx);
-        spawn_local(async move {
+        let task = async move {
             autoclone!(inner, handlers);
             let Ok(mut response) = super::notify(request.into())
                 .await
@@ -176,7 +186,8 @@ impl NotifyServiceImpl {
                     }
                 }
             }
-        });
+        };
+        spawn_local(task.in_current_span());
         Self {
             request: request_tx,
             handlers,
@@ -195,7 +206,7 @@ impl NotifyRegistration {
         use std::sync::atomic::Ordering::SeqCst;
         static NEXT: AtomicUsize = AtomicUsize::new(0);
         let id = NEXT.fetch_add(1, SeqCst);
-        debug!("Create notify registration {id}");
+        debug!(id, "Create notify registration");
         Ptr::new(NotifyRegistration {
             id,
             full_path,
@@ -216,20 +227,23 @@ impl Drop for NotifyRegistration {
             return;
         };
         trace!("Getting handlers");
-        let handlers = notify_service.inner(|inner| inner.handlers.clone());
-        trace!("Acquire lock");
-        let mut handlers = handlers.lock().unwrap();
-        trace!("Removing registration");
-        let Some(handlers_by_id) = handlers.get_mut(&self.full_path) else {
-            warn!("Registrations not found for {}", self.full_path);
-            return;
-        };
+        {
+            let handlers = notify_service.inner(|inner| inner.handlers.clone());
+            trace!("Acquire lock");
+            let mut handlers = handlers.lock().unwrap();
+            trace!("Removing registration");
+            let Some(handlers_by_id) = handlers.get_mut(&self.full_path) else {
+                warn!("Registrations not found for {}", self.full_path);
+                return;
+            };
 
-        handlers_by_id.remove(&self.id);
-        if handlers_by_id.is_empty() {
+            handlers_by_id.remove(&self.id);
+            if !handlers_by_id.is_empty() {
+                return;
+            }
             handlers.remove(&self.full_path);
         }
-        notify_service.send(Ok(NotifyRequest::Watch {
+        notify_service.send(Ok(NotifyRequest::UnWatch {
             full_path: self.full_path.clone(),
         }));
     }

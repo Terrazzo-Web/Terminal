@@ -14,8 +14,10 @@ use terrazzo::template;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::Instrument as _;
 use self::diagnostics::debug;
-use self::diagnostics::*;
+use self::diagnostics::debug_span;
+use self::diagnostics::warn;
 use super::code_mirror::CodeMirrorJs;
 use super::file_path::FilePath;
 use super::fsio;
@@ -60,13 +62,13 @@ pub fn editor(
             let after = SynchronizedState::enqueue(manager.synchronized_state.clone());
             let () = store_file(manager.remote.clone(), path, content, before, after).await;
         };
-        wasm_bindgen_futures::spawn_local(write);
+        spawn_local(write.in_current_span());
     });
 
     let code_mirror = Ptr::new(Mutex::new(None));
 
     let notify_registration = manager.notify_service.watch_file(
-        path.as_ref(),
+        path.as_deref(),
         notify_handler(&manager, &code_mirror, &path, &writing),
     );
 
@@ -80,7 +82,7 @@ pub fn editor(
                 content.as_ref().into(),
                 &on_change,
                 path.base.to_string(),
-                path.as_ref().full_path().to_owned_string(),
+                path.as_deref().full_path().to_owned_string(),
             ));
         },
     )

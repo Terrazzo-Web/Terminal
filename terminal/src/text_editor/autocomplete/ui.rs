@@ -1,5 +1,6 @@
 #![cfg(feature = "client")]
 
+use std::path::Path;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -14,6 +15,8 @@ use web_sys::FocusEvent;
 use web_sys::HtmlInputElement;
 use web_sys::MouseEvent;
 
+use self::diagnostics::Instrument as _;
+use self::diagnostics::info;
 use super::AutocompleteItem;
 use super::autocomplete_path;
 use crate::frontend::menu::before_menu;
@@ -98,7 +101,9 @@ pub fn stop_autocomplete(
 ) -> impl Fn(FocusEvent) {
     move |_| {
         let input_element = input.get().or_throw("Input element not set");
-        let value = input_element.value();
+        let value = canonicalize(input_element.value());
+        info!("Update path to {value}");
+        input_element.set_value(&value);
         path.set(value);
         autocomplete.set(None);
     }
@@ -132,7 +137,7 @@ fn do_autocomplete_impl(
 ) {
     let input_element = input.get().or_throw("Input element not set");
     let value = input_element.value();
-    spawn_local(async move {
+    let do_autocomplete_async = async move {
         autoclone!(autocomplete);
         let autocompletes = autocomplete_path(
             manager.remote.clone(),
@@ -152,5 +157,46 @@ fn do_autocomplete_impl(
                 None
             }
         });
-    });
+    };
+    spawn_local(do_autocomplete_async.in_current_span());
+}
+
+fn canonicalize(path: impl AsRef<Path>) -> String {
+    format!(
+        "/{}",
+        path.as_ref()
+            .iter()
+            .map(|leg| leg.to_string_lossy())
+            .filter(|leg| !leg.is_empty() && leg != "." && leg != "/")
+            .collect::<Vec<_>>()
+            .join("/")
+    )
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn canonicalize1() {
+        assert_eq!(
+            "/path/to/file/file.txt",
+            super::canonicalize("//path/././to//file/.//.////././file.txt")
+        )
+    }
+
+    #[test]
+    fn canonicalize2() {
+        assert_eq!(
+            "/path/to/file/file.txt",
+            super::canonicalize("path/././to//file/.//.////././file.txt")
+        )
+    }
+
+    #[test]
+    fn canonicalize3() {
+        assert_eq!(
+            "/path/to/file/file.txt",
+            super::canonicalize("././path/././to//file/.//.////././file.txt")
+        )
+    }
 }

@@ -52,7 +52,7 @@ macro_rules! make_state {
                 let debounced_set = DEBOUNCED_SET.get_or_init(|| {
                     ThreadSafe(Box::new(
                         STORE_STATE_DEBOUNCE_DELAY.async_debounce(|(remote, value)| async move {
-                            set(remote, value)
+                            set_impl(remote, value)
                                 .await
                                 .unwrap_or_else(|error| warn!("Failed to save: {error}"))
                         }),

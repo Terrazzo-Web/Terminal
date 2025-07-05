@@ -10,10 +10,10 @@ use crate::api::TerminalDef;
 use crate::api::client_address::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
 use crate::backend::protos::terrazzo::gateway::client::MaybeString;
-use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalMode as RegisterTerminalModeProto;
 use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalRequest as RegisterTerminalRequestProto;
 use crate::backend::protos::terrazzo::gateway::client::TerminalAddress as TerminalAddressProto;
 use crate::backend::protos::terrazzo::gateway::client::TerminalDef as TerminalDefProto;
+use crate::backend::protos::terrazzo::gateway::client::register_terminal_request::RegisterTerminalMode as RegisterTerminalModeProto;
 
 impl From<TerminalDefProto> for TerminalDef {
     fn from(proto: TerminalDefProto) -> Self {

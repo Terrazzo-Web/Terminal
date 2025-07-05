@@ -2,6 +2,7 @@ use terrazzo::autoclone;
 use terrazzo::prelude::*;
 use terrazzo::template;
 
+use self::diagnostics::Instrument as _;
 use self::diagnostics::warn;
 use crate::api;
 use crate::api::client_address::ClientAddress;
@@ -20,7 +21,7 @@ pub fn active(#[signal] remotes: Remotes) -> XAttributeValue {
 
 #[autoclone]
 pub fn create_terminal(state: TerminalsState, client_address: ClientAddress) {
-    wasm_bindgen_futures::spawn_local(async move {
+    let task = async move {
         autoclone!(state, client_address);
         let terminal_def = match api::client::new_id::new_id(client_address.clone()).await {
             Ok(id) => id,
@@ -35,5 +36,6 @@ pub fn create_terminal(state: TerminalsState, client_address: ClientAddress) {
         state
             .terminal_tabs
             .update(|tabs| Some(tabs.clone().add_tab(new_tab)));
-    });
+    };
+    wasm_bindgen_futures::spawn_local(task.in_current_span());
 }

@@ -44,11 +44,11 @@ pub fn folder(
     let notify_registration =
         manager
             .notify_service
-            .watch_folder(editor_state.path.as_ref(), move |event| {
+            .watch_folder(editor_state.path.as_deref(), move |event| {
                 autoclone!(path, manager);
                 debug!("Folder view notification: {event:?}");
                 match (
-                    Path::new(&event.path) == path.as_ref().full_path(),
+                    Path::new(&event.path) == path.as_deref().full_path(),
                     event.kind,
                 ) {
                     (false, EventKind::Create | EventKind::Modify | EventKind::Delete) => {

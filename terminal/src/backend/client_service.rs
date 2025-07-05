@@ -3,10 +3,13 @@ use std::sync::Arc;
 use tonic::Request;
 use tonic::Response;
 use tonic::Status;
+use tonic::Streaming;
 use tonic::async_trait;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
+use self::notify::RemoteResponseStream;
+use self::notify::notify_hybrid;
 use self::remotes::list_remotes;
 use self::terminals::list_terminals;
 use super::protos::terrazzo::gateway::client::AckRequest;
@@ -24,6 +27,7 @@ use super::protos::terrazzo::gateway::client::SetTitleRequest;
 use super::protos::terrazzo::gateway::client::TerminalAddress;
 use super::protos::terrazzo::gateway::client::WriteRequest;
 use super::protos::terrazzo::gateway::client::client_service_server::ClientService;
+use crate::backend::protos::terrazzo::gateway::client::NotifyRequest;
 use crate::backend::protos::terrazzo::gateway::client::RemoteFnRequest;
 use crate::backend::protos::terrazzo::gateway::client::ServerFnResponse;
 use crate::processes::io::RemoteReader;
@@ -33,6 +37,7 @@ pub mod close;
 pub mod convert;
 pub mod grpc_error;
 pub mod new_id;
+pub mod notify;
 pub mod register;
 pub mod remote_fn;
 pub mod remotes;
@@ -167,5 +172,16 @@ impl ClientService for ClientServiceImpl {
         let address = std::mem::take(&mut address.via);
         let response = remote_fn::dispatch(&self.server, &address, request).await;
         Ok(Response::new(ServerFnResponse { json: response? }))
+    }
+
+    type NotifyStream = RemoteResponseStream;
+
+    async fn notify(
+        &self,
+        request: Request<Streaming<NotifyRequest>>,
+    ) -> Result<Response<Self::NotifyStream>, Status> {
+        notify_hybrid(request.into_inner().into())
+            .map(|response| RemoteResponseStream(response).into())
+            .map_err(Status::from)
     }
 }

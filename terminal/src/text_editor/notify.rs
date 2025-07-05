@@ -10,7 +10,7 @@ use terrazzo::server;
 use crate::api::client_address::ClientAddress;
 
 mod event_handler;
-mod service;
+pub mod service;
 pub mod ui;
 
 #[server(protocol = Websocket<JsonEncoding, JsonEncoding>)]
@@ -18,10 +18,11 @@ pub mod ui;
 pub async fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
 ) -> Result<BoxedStream<NotifyResponse, ServerFnError>, ServerFnError> {
-    service::notify(request).await
+    use crate::backend::client_service::notify::notify_hybrid;
+    Ok(notify_hybrid(request.into())?.into())
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum NotifyRequest {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "S"))]
     Start {

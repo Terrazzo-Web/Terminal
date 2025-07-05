@@ -10,6 +10,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
 use web_sys::HtmlInputElement;
 
+use self::diagnostics::Instrument as _;
 use self::diagnostics::info;
 use self::diagnostics::warn;
 use crate::assets::icons;
@@ -44,18 +45,19 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
                         return;
                     };
 
-                    spawn_local(async move {
+                    let login_task = async move {
                         autoclone!(logged_in_mut);
                         match crate::api::client::login::login(Some(&password.value())).await {
                             Ok(()) => logged_in_mut.set(LoggedInStatus::Login),
                             Err(error) => warn!("{error}"),
                         }
-                    });
+                    };
+                    spawn_local(login_task.in_current_span());
                 },
             ),
         ),
         LoggedInStatus::Unknown => {
-            spawn_local(async move {
+            let login_task = async move {
                 autoclone!(logged_in_mut);
                 match crate::api::client::login::login(None).await {
                     Ok(()) => logged_in_mut.set(LoggedInStatus::Login),
@@ -64,7 +66,8 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
                         info!("Authentication is required: {error}")
                     }
                 }
-            });
+            };
+            spawn_local(login_task.in_current_span());
             div(key = "login-pending", class = style::login)
         }
     }

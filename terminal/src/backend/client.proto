@@ -14,6 +14,7 @@ service ClientService {
   rpc SetOrder(SetOrderRequest) returns (Empty);
   rpc Ack(AckRequest) returns (Empty);
   rpc CallServerFn(RemoteFnRequest) returns (ServerFnResponse);
+  rpc Notify(stream NotifyRequest) returns (stream NotifyResponse);
 }
 
 message ListRemotesRequest { repeated string visited = 1; }
@@ -40,12 +41,12 @@ message Empty {}
 message RegisterTerminalRequest {
   RegisterTerminalMode mode = 1;
   TerminalDef def = 2;
-}
 
-enum RegisterTerminalMode {
-  REGISTER_TERMINAL_MODE_UNSPECIFIED = 0;
-  CREATE = 1;
-  REOPEN = 2;
+  enum RegisterTerminalMode {
+    REGISTER_TERMINAL_MODE_UNSPECIFIED = 0;
+    CREATE = 1;
+    REOPEN = 2;
+  }
 }
 
 message LeaseItem {
@@ -100,4 +101,24 @@ message RemoteFnRequest {
 
 message ServerFnResponse {
   string json = 1;
+}
+
+message NotifyRequest {
+  oneof request_type {
+    ClientAddress address = 1;
+    string watch = 2;
+    string unwatch = 3;
+  }
+}
+
+message NotifyResponse {
+  string path = 1;
+  EventKind kind = 2;
+
+  enum EventKind {
+    ERROR = 0;
+    CREATE = 1;
+    MODIFY = 2;
+    DELETE = 3;
+  }
 }

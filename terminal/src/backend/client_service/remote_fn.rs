@@ -85,8 +85,7 @@ impl RemoteFn {
         async move {
             debug!("Start");
             defer!(debug!("End"));
-            let server = SERVER.get().ok_or(RemoteFnError::ServerNotSet)?;
-            let server = server.upgrade().ok_or(RemoteFnError::ServerWasDropped)?;
+            let server = remote_fn_server()?;
 
             let request =
                 serde_json::to_string(&request).map_err(RemoteFnError::SerializeRequest)?;
@@ -107,6 +106,11 @@ impl RemoteFn {
         }
         .instrument(debug_span!("RemoteFn"))
     }
+}
+
+pub fn remote_fn_server() -> Result<Arc<Server>, RemoteFnError> {
+    let server = SERVER.get().ok_or(RemoteFnError::ServerNotSet)?;
+    server.upgrade().ok_or(RemoteFnError::ServerWasDropped)
 }
 
 /// Helper to uplift a remote function into a String -> String server_fn.
@@ -153,7 +157,7 @@ where
                 Ok(response) => {
                     serde_json::to_string(&response).map_err(RemoteFnError::SerializeResponse)
                 }
-                Err(error) => Err(RemoteFnError::ServerFn(error.into())),
+                Err(error) => Err(RemoteFnError::ServerFn(Box::new(error.into()))),
             },
         }
         .into()
@@ -228,7 +232,7 @@ pub enum RemoteFnError {
     ServerWasDropped,
 
     #[error("[{n}] {0}", n = self.name())]
-    ServerFn(Status),
+    ServerFn(Box<Status>),
 
     #[error("[{n}] Failed to serialize request: {0}", n = self.name())]
     SerializeRequest(serde_json::Error),
@@ -265,7 +269,9 @@ mod remote_fn_errors_to_status {
                 | RemoteFnError::ServerNotSet
                 | RemoteFnError::ServerWasDropped => Status::internal(error.to_string()),
                 RemoteFnError::RemoteFnNotFound { .. } => Status::not_found(error.to_string()),
-                RemoteFnError::ServerFn(error) => error,
+                RemoteFnError::ServerFn(mut error) => {
+                    std::mem::replace(&mut *error, Status::ok(""))
+                }
                 RemoteFnError::SerializeRequest { .. }
                 | RemoteFnError::DeserializeRequest { .. }
                 | RemoteFnError::SerializeResponse { .. }
