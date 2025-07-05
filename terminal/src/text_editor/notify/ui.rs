@@ -227,21 +227,24 @@ impl Drop for NotifyRegistration {
             return;
         };
         trace!("Getting handlers");
-        let handlers = notify_service.inner(|inner| inner.handlers.clone());
-        trace!("Acquire lock");
-        let mut handlers = handlers.lock().unwrap();
-        trace!("Removing registration");
-        let Some(handlers_by_id) = handlers.get_mut(&self.full_path) else {
-            warn!("Registrations not found for {}", self.full_path);
-            return;
-        };
+        {
+            let handlers = notify_service.inner(|inner| inner.handlers.clone());
+            trace!("Acquire lock");
+            let mut handlers = handlers.lock().unwrap();
+            trace!("Removing registration");
+            let Some(handlers_by_id) = handlers.get_mut(&self.full_path) else {
+                warn!("Registrations not found for {}", self.full_path);
+                return;
+            };
 
-        handlers_by_id.remove(&self.id);
-        if handlers_by_id.is_empty() {
+            handlers_by_id.remove(&self.id);
+            if !handlers_by_id.is_empty() {
+                return;
+            }
             handlers.remove(&self.full_path);
-            notify_service.send(Ok(NotifyRequest::UnWatch {
-                full_path: self.full_path.clone(),
-            }));
         }
+        notify_service.send(Ok(NotifyRequest::UnWatch {
+            full_path: self.full_path.clone(),
+        }));
     }
 }
