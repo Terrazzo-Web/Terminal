@@ -10,7 +10,8 @@ pub fn concat_base_file_path(
 ) -> std::path::PathBuf {
     let base_path = base_path.trim();
     let file_path = file_path.trim().trim_start_matches('/');
-    canonicalize(base_path).join(canonicalize(file_path))
+    let file_path = canonicalize(file_path);
+    canonicalize(base_path).join(file_path.strip_prefix("/").unwrap_or(&file_path))
 }
 
 pub fn canonicalize(path: impl AsRef<Path>) -> PathBuf {
@@ -32,6 +33,20 @@ mod tests {
     use std::borrow::Cow;
 
     use fluent_asserter::prelude::*;
+
+    use crate::utils::more_path::MorePath;
+
+    #[test]
+    fn concat_base_file_path() {
+        assert_eq!(
+            "/",
+            super::concat_base_file_path("/", "/").to_owned_string()
+        );
+        assert_eq!(
+            "/a/b",
+            super::concat_base_file_path("/a", "/b/").to_owned_string()
+        );
+    }
 
     #[test]
     fn canonicalize() {

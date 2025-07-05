@@ -239,9 +239,9 @@ impl Drop for NotifyRegistration {
         handlers_by_id.remove(&self.id);
         if handlers_by_id.is_empty() {
             handlers.remove(&self.full_path);
+            notify_service.send(Ok(NotifyRequest::UnWatch {
+                full_path: self.full_path.clone(),
+            }));
         }
-        notify_service.send(Ok(NotifyRequest::UnWatch {
-            full_path: self.full_path.clone(),
-        }));
     }
 }
