@@ -41,7 +41,6 @@ fn poll_next_remote(
                     EventKind::Modify => EventKindProto::Modify,
                     EventKind::Delete => EventKindProto::Delete,
                     EventKind::Error => EventKindProto::Error,
-                    EventKind::Lang => EventKindProto::Lang,
                 };
                 NotifyResponseProto {
                     path: response.path,

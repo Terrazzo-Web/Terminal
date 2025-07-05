@@ -16,7 +16,7 @@ mod synthetic;
 
 #[server(protocol = Http<Json, Json>)]
 #[nameth]
-pub async fn cargo_check(
+async fn cargo_check(
     remote: Option<ClientAddress>,
     base_path: Arc<str>,
     features: Vec<String>,

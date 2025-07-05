@@ -108,7 +108,6 @@ message NotifyRequest {
     ClientAddress address = 1;
     string watch = 2;
     string unwatch = 3;
-    string watch_lang = 4;
   }
 }
 
@@ -121,6 +120,5 @@ message NotifyResponse {
     CREATE = 1;
     MODIFY = 2;
     DELETE = 3;
-    LANG = 4;
   }
 }

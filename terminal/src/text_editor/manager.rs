@@ -43,9 +43,9 @@ impl TextEditorManager {
         let notify_registration = self
             .notify_service
             .watch_file(path.as_deref(), move |event| {
-                if let EventKind::Delete | EventKind::Error = event.kind {
-                } else {
-                    return;
+                match event.kind {
+                    EventKind::Create | EventKind::Modify => return,
+                    EventKind::Delete | EventKind::Error => (),
                 }
                 // Remove from side view on deletion notification.
                 this.remove_from_side_view(file_path.as_ref());
