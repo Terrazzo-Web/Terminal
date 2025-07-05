@@ -74,6 +74,10 @@ pub fn folder(
                         debug!("Error polling notifications");
                         return;
                     }
+                    (true | false, EventKind::Lang) => {
+                        debug!("Lang event");
+                        return;
+                    }
                 }
 
                 debug!("Force reload folder view");

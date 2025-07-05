@@ -108,7 +108,7 @@ message NotifyRequest {
     ClientAddress address = 1;
     string watch = 2;
     string unwatch = 3;
-    string watch_lang = 4;
+    string lang = 4;
   }
 }
 

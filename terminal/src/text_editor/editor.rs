@@ -48,7 +48,9 @@ pub fn editor(
     // Set to true when there are edits waiting (debounced) to be committed.
     // This is used to ignored notifications about file changes that would anyway be overwritten.
     let writing = Arc::new(AtomicBool::new(false));
-
+    let x = manager.notify_service.watch_lang(&path, |event| {
+        debug!("Lang Event: {event:?}");
+    });
     let on_change: Closure<dyn FnMut(JsValue)> = Closure::new(move |content: JsValue| {
         autoclone!(manager, path, writing);
         let Some(content) = content.as_string() else {
@@ -98,9 +100,9 @@ fn notify_handler(
     move |response| {
         autoclone!(manager, code_mirror, path, writing);
         let _span = debug_span!("Editor notifier", ?path).entered();
-        match response.kind {
-            EventKind::Create | EventKind::Modify => {}
-            EventKind::Delete | EventKind::Error => return,
+        if let EventKind::Create | EventKind::Modify = response.kind {
+        } else {
+            return;
         }
         if writing.load(SeqCst) {
             // Ignore modifications if we are about to overwrite them anyway

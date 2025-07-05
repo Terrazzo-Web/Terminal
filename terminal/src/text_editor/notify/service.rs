@@ -73,6 +73,7 @@ fn process_request(
             .ok_or(NotifyError::WatcherNotSet)?
             .unwatch(Path::new(full_path.as_ref()))
             .map_err(NotifyError::Unwatch)?,
+        NotifyRequest::Lang { base_path: _ } => todo!(),
     }
     Ok(())
 }
