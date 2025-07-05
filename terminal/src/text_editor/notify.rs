@@ -39,11 +39,6 @@ pub enum NotifyRequest {
         #[cfg_attr(not(feature = "diagnostics"), serde(rename = "p"))]
         full_path: Arc<str>,
     },
-    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "L"))]
-    Lang {
-        #[cfg_attr(not(feature = "diagnostics"), serde(rename = "b"))]
-        base_path: Arc<str>,
-    },
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]

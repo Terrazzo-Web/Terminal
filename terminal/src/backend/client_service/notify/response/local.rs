@@ -45,7 +45,6 @@ fn poll_next_local(
                     EventKindProto::Modify => EventKind::Modify,
                     EventKindProto::Delete => EventKind::Delete,
                     EventKindProto::Error => EventKind::Error,
-                    EventKindProto::Lang => EventKind::Lang,
                 };
                 NotifyResponse {
                     path: response.path,

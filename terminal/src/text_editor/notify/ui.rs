@@ -52,7 +52,6 @@ pub struct NotifyRegistration {
 enum RegistrationType {
     File,
     Folder,
-    Lang,
 }
 
 impl NotifyService {
@@ -87,15 +86,6 @@ impl NotifyService {
         callback: impl Fn(&NotifyResponse) + 'static,
     ) -> Ptr<NotifyRegistration> {
         self.add_handler(path, RegistrationType::Folder, callback)
-    }
-
-    #[must_use]
-    pub fn watch_lang(
-        self: &Ptr<Self>,
-        path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
-        callback: impl Fn(&NotifyResponse) + 'static,
-    ) -> Ptr<NotifyRegistration> {
-        self.add_handler(path, RegistrationType::Lang, callback)
     }
 
     #[must_use]

@@ -48,9 +48,6 @@ fn poll_next_local(
                 RequestTypeProto::Unwatch(full_path) => NotifyRequest::UnWatch {
                     full_path: full_path.into(),
                 },
-                RequestTypeProto::Lang(base_path) => NotifyRequest::Lang {
-                    base_path: base_path.into(),
-                },
             })
             .map_err(Status::into),
     )
