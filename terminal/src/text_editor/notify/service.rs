@@ -16,7 +16,6 @@ use super::NotifyRequest;
 use super::NotifyResponse;
 use super::event_handler;
 use super::watcher::ExtendedWatcher;
-use super::watcher::recommended_watcher;
 
 pub fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
@@ -54,7 +53,7 @@ fn process_request(
     match request.map_err(NotifyError::BadRequest)? {
         NotifyRequest::Start { remote: _ } => {
             *watcher = Some(
-                recommended_watcher(event_handler::EventHandler { tx: tx.clone() })
+                ExtendedWatcher::new(event_handler::EventHandler { tx: tx.clone() })
                     .map_err(NotifyError::CreateWatcher)?,
             );
         }

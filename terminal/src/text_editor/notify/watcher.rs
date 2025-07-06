@@ -14,6 +14,15 @@ pub struct ExtendedWatcher {
 }
 
 impl ExtendedWatcher {
+    pub fn new<F>(event_handler: F) -> Result<Self>
+    where
+        F: EventHandler,
+    {
+        Ok(Self {
+            inotify: notify::recommended_watcher(event_handler)?,
+        })
+    }
+
     pub fn watch(
         &mut self,
         path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
@@ -28,13 +37,4 @@ impl ExtendedWatcher {
     ) -> notify::Result<()> {
         self.inotify.unwatch(&path.full_path())
     }
-}
-
-pub fn recommended_watcher<F>(event_handler: F) -> Result<ExtendedWatcher>
-where
-    F: EventHandler,
-{
-    Ok(ExtendedWatcher {
-        inotify: notify::recommended_watcher(event_handler)?,
-    })
 }
