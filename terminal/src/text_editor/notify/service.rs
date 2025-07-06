@@ -14,7 +14,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 
 use super::NotifyRequest;
 use super::NotifyResponse;
-use super::event_handler;
+use super::event_handler::make_event_handler;
 use super::watcher::ExtendedWatcher;
 
 pub fn notify(
@@ -53,7 +53,7 @@ fn process_request(
     match request.map_err(NotifyError::BadRequest)? {
         NotifyRequest::Start { remote: _ } => {
             *watcher = Some(
-                ExtendedWatcher::new(event_handler::EventHandler { tx: tx.clone() })
+                ExtendedWatcher::new(make_event_handler(tx.clone()))
                     .map_err(NotifyError::CreateWatcher)?,
             );
         }
