@@ -40,11 +40,9 @@ fn poll_next_remote(
                     NotifyRequest::Start { remote } => {
                         RequestTypeProto::Address(ClientAddressProto::of(&remote))
                     }
-                    NotifyRequest::Watch { full_path } => {
-                        RequestTypeProto::Watch(full_path.as_ref().to_owned())
-                    }
+                    NotifyRequest::Watch { full_path } => RequestTypeProto::Watch(full_path.into()),
                     NotifyRequest::UnWatch { full_path } => {
-                        RequestTypeProto::Unwatch(full_path.as_ref().to_owned())
+                        RequestTypeProto::Unwatch(full_path.into())
                     }
                 }),
             })

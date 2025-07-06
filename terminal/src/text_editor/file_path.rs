@@ -2,8 +2,10 @@ use std::ops::Deref;
 use std::path::Path;
 use std::path::PathBuf;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub(super) struct FilePath<BASE, FILE = BASE> {
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/* serde */
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct FilePath<BASE, FILE = BASE> {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "b"))]
     pub base: BASE,
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "f"))]

@@ -7,11 +7,13 @@ use server_fn::Websocket;
 use server_fn::codec::JsonEncoding;
 use terrazzo::server;
 
+use super::file_path::FilePath;
 use crate::api::client_address::ClientAddress;
 
 mod event_handler;
 pub mod service;
 pub mod ui;
+mod watcher;
 
 #[server(protocol = Websocket<JsonEncoding, JsonEncoding>)]
 #[nameth]
@@ -32,12 +34,12 @@ pub enum NotifyRequest {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "W"))]
     Watch {
         #[cfg_attr(not(feature = "diagnostics"), serde(rename = "p"))]
-        full_path: Arc<str>,
+        full_path: FilePath<Arc<str>>,
     },
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "U"))]
     UnWatch {
         #[cfg_attr(not(feature = "diagnostics"), serde(rename = "p"))]
-        full_path: Arc<str>,
+        full_path: FilePath<Arc<str>>,
     },
 }
 

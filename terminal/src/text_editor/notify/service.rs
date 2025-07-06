@@ -1,7 +1,5 @@
 #![cfg(feature = "server")]
 
-use std::path::Path;
-
 use futures::FutureExt;
 use futures::StreamExt as _;
 use futures::TryFutureExt;
@@ -9,8 +7,6 @@ use futures::channel::oneshot;
 use futures::stream::PollNext;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use notify::RecommendedWatcher;
-use notify::Watcher;
 use server_fn::BoxedStream;
 use server_fn::ServerFnError;
 use tokio::sync::mpsc;
@@ -19,6 +15,8 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use super::NotifyRequest;
 use super::NotifyResponse;
 use super::event_handler;
+use super::watcher::ExtendedWatcher;
+use super::watcher::recommended_watcher;
 
 pub fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
@@ -50,28 +48,25 @@ pub fn notify(
 
 fn process_request(
     request: Result<NotifyRequest, ServerFnError>,
-    watcher: &mut Option<RecommendedWatcher>,
+    watcher: &mut Option<ExtendedWatcher>,
     tx: &mpsc::UnboundedSender<Result<NotifyResponse, ServerFnError>>,
 ) -> Result<(), NotifyError> {
     match request.map_err(NotifyError::BadRequest)? {
         NotifyRequest::Start { remote: _ } => {
             *watcher = Some(
-                notify::recommended_watcher(event_handler::EventHandler { tx: tx.clone() })
+                recommended_watcher(event_handler::EventHandler { tx: tx.clone() })
                     .map_err(NotifyError::CreateWatcher)?,
             );
         }
         NotifyRequest::Watch { full_path } => watcher
             .as_mut()
             .ok_or(NotifyError::WatcherNotSet)?
-            .watch(
-                Path::new(full_path.as_ref()),
-                notify::RecursiveMode::NonRecursive,
-            )
+            .watch(full_path.as_deref())
             .map_err(NotifyError::Watch)?,
         NotifyRequest::UnWatch { full_path } => watcher
             .as_mut()
             .ok_or(NotifyError::WatcherNotSet)?
-            .unwatch(Path::new(full_path.as_ref()))
+            .unwatch(full_path.as_deref())
             .map_err(NotifyError::Unwatch)?,
     }
     Ok(())

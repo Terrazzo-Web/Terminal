@@ -25,7 +25,6 @@ use crate::text_editor::notify::Arc;
 use crate::text_editor::notify::NotifyRequest;
 use crate::text_editor::notify::NotifyResponse;
 use crate::text_editor::notify::ServerFnError;
-use crate::utils::more_path::MorePath as _;
 
 pub(in crate::text_editor) struct NotifyService {
     remote: Remote,
@@ -37,12 +36,13 @@ struct NotifyServiceImpl {
     handlers: Handlers,
 }
 
-type Handlers = Arc<Mutex<HashMap<Arc<str>, HashMap<usize, std::rc::Weak<NotifyRegistration>>>>>;
+type Handlers =
+    Arc<Mutex<HashMap<FilePath<Arc<str>>, HashMap<usize, std::rc::Weak<NotifyRegistration>>>>>;
 
 #[must_use]
 pub struct NotifyRegistration {
     id: usize,
-    full_path: Arc<str>,
+    full_path: FilePath<Arc<str>>,
     notify_service: std::rc::Weak<NotifyService>,
     registration_type: RegistrationType,
     callback: Box<dyn Fn(&NotifyResponse)>,
@@ -73,33 +73,31 @@ impl NotifyService {
     #[must_use]
     pub fn watch_file(
         self: &Ptr<Self>,
-        path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
+        full_path: &FilePath<Arc<str>>,
         callback: impl Fn(&NotifyResponse) + 'static,
     ) -> Ptr<NotifyRegistration> {
-        self.add_handler(path, RegistrationType::File, callback)
+        self.add_handler(full_path, RegistrationType::File, callback)
     }
 
     #[must_use]
     pub fn watch_folder(
         self: &Ptr<Self>,
-        path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
+        full_path: &FilePath<Arc<str>>,
         callback: impl Fn(&NotifyResponse) + 'static,
     ) -> Ptr<NotifyRegistration> {
-        self.add_handler(path, RegistrationType::Folder, callback)
+        self.add_handler(full_path, RegistrationType::Folder, callback)
     }
 
     #[must_use]
     fn add_handler(
         self: &Ptr<Self>,
-        path: FilePath<impl AsRef<Path>, impl AsRef<Path>>,
+        full_path: &FilePath<Arc<str>>,
         registration_type: RegistrationType,
         callback: impl Fn(&NotifyResponse) + 'static,
     ) -> Ptr<NotifyRegistration> {
-        let path = path.as_ref().map2(AsRef::as_ref, AsRef::as_ref);
-        let _span = debug_span!("Add watch", ?path, ?registration_type).entered();
+        let _span = debug_span!("Add watch", ?full_path, ?registration_type).entered();
         debug!("Start");
         defer!(debug!("End"));
-        let full_path: Arc<str> = path.full_path().to_owned_string().into();
         let registration =
             NotifyRegistration::new(full_path.clone(), self, registration_type, callback);
         let handlers = self.inner(|inner| inner.handlers.clone());
@@ -111,7 +109,9 @@ impl NotifyService {
             }
             hash_map::Entry::Vacant(entry) => {
                 debug!("Spawning new watch");
-                self.send(Ok(NotifyRequest::Watch { full_path }));
+                self.send(Ok(NotifyRequest::Watch {
+                    full_path: full_path.clone(),
+                }));
                 entry.insert_entry(HashMap::new())
             }
         };
@@ -161,7 +161,7 @@ impl NotifyServiceImpl {
                             (*lock).clone()
                         };
                         for (full_path, handlers) in handlers {
-                            let full_path = Path::new(&*full_path);
+                            let full_path = full_path.as_deref().full_path();
                             for handler in handlers.values() {
                                 let Some(handler) = handler.upgrade() else {
                                     continue;
@@ -170,7 +170,7 @@ impl NotifyServiceImpl {
                                     RegistrationType::File => full_path == response_path,
                                     RegistrationType::Folder => {
                                         full_path == response_path
-                                            || Some(full_path) == response_path_parent
+                                            || Some(full_path.as_ref()) == response_path_parent
                                     }
                                 } {
                                     let callback = &*handler.callback;
@@ -197,7 +197,7 @@ impl NotifyServiceImpl {
 
 impl NotifyRegistration {
     fn new(
-        full_path: Arc<str>,
+        full_path: FilePath<Arc<str>>,
         notify_service: &Ptr<NotifyService>,
         registration_type: RegistrationType,
         callback: impl Fn(&NotifyResponse) + 'static,
@@ -233,7 +233,7 @@ impl Drop for NotifyRegistration {
             let mut handlers = handlers.lock().unwrap();
             trace!("Removing registration");
             let Some(handlers_by_id) = handlers.get_mut(&self.full_path) else {
-                warn!("Registrations not found for {}", self.full_path);
+                warn!("Registrations not found for {:?}", self.full_path);
                 return;
             };
 
@@ -244,7 +244,7 @@ impl Drop for NotifyRegistration {
             handlers.remove(&self.full_path);
         }
         notify_service.send(Ok(NotifyRequest::UnWatch {
-            full_path: self.full_path.clone(),
+            full_path: std::mem::take(&mut self.full_path),
         }));
     }
 }

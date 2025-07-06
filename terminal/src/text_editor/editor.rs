@@ -68,7 +68,7 @@ pub fn editor(
     let code_mirror = Ptr::new(Mutex::new(None));
 
     let notify_registration = manager.notify_service.watch_file(
-        path.as_deref(),
+        &path,
         notify_handler(&manager, &code_mirror, &path, &writing),
     );
 

@@ -44,7 +44,7 @@ pub fn folder(
     let notify_registration =
         manager
             .notify_service
-            .watch_folder(editor_state.path.as_deref(), move |event| {
+            .watch_folder(&editor_state.path, move |event| {
                 autoclone!(path, manager);
                 debug!("Folder view notification: {event:?}");
                 match (

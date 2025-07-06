@@ -106,9 +106,14 @@ message ServerFnResponse {
 message NotifyRequest {
   oneof request_type {
     ClientAddress address = 1;
-    string watch = 2;
-    string unwatch = 3;
+    FilePath watch = 2;
+    FilePath unwatch = 3;
   }
+}
+
+message FilePath {
+  string base = 1;
+  string file = 2;
 }
 
 message NotifyResponse {
