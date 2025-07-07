@@ -39,7 +39,7 @@ pub fn show_autocomplete(
         return tag(style::visibility = "hidden", style::display = "none");
     };
     let items = autocomplete.into_iter().map(|item| {
-        let item_display = if item.is_dir {
+        let item_display = if item.is_dir && item.path != "/" {
             format!("{}/", item.path)
         } else if item.path.trim().is_empty() {
             "\u{00A0}".into()

@@ -123,11 +123,7 @@ pub fn folder(
                 } else {
                     Path::new(file_path).join(&*name)
                 };
-                let mut file = file.to_owned_string();
-                if is_dir {
-                    file.push('/');
-                };
-                manager.path.file.set(Arc::from(file))
+                manager.path.file.set(file.to_owned_string())
             },
             td("{display_name}"),
             td("{size}"),
