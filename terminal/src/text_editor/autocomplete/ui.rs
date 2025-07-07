@@ -53,9 +53,12 @@ pub fn show_autocomplete(
                 autoclone!(manager, input, autocomplete_sig, prefix, path);
                 ev.prevent_default();
                 ev.stop_propagation();
-                let input_element = input.get().or_throw("Input element not set");
-                input_element.set_value(&item);
-                path.set(item.clone());
+                {
+                    let item = canonicalize(&item);
+                    let input_element = input.get().or_throw("Input element not set");
+                    input_element.set_value(&item);
+                    path.set(item.clone());
+                }
                 do_autocomplete_impl(
                     manager.clone(),
                     kind,

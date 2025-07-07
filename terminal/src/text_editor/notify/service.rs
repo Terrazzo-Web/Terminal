@@ -11,6 +11,7 @@ use server_fn::BoxedStream;
 use server_fn::ServerFnError;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use tracing::debug;
 
 use super::NotifyRequest;
 use super::NotifyResponse;
@@ -50,6 +51,7 @@ fn process_request(
     watcher: &mut Option<ExtendedWatcher>,
     tx: &mpsc::UnboundedSender<Result<NotifyResponse, ServerFnError>>,
 ) -> Result<(), NotifyError> {
+    debug!("Notify request: {request:?}");
     match request.map_err(NotifyError::BadRequest)? {
         NotifyRequest::Start { remote: _ } => {
             *watcher = Some(

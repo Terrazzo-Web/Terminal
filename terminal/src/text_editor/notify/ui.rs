@@ -142,8 +142,12 @@ impl NotifyServiceImpl {
             remote: remote.unwrap_or_default(),
         })))
         .chain(request_rx);
+        #[cfg(debug_assertions)]
+        let request = request.inspect(|r| debug!("Notify request: {r:?}"));
         let task = async move {
             autoclone!(inner, handlers);
+            debug!("Start");
+            defer!(debug!("End"));
             let Ok(mut response) = super::notify(request.into())
                 .await
                 .inspect_err(|error| warn!("Notify stream failed: {error}"))
