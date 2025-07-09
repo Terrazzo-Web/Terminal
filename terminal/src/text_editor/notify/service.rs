@@ -28,12 +28,9 @@ pub fn notify(
         let mut request = request;
         let mut watcher = None;
         while let Some(request) = request.next().await {
-            match process_request(request, &mut watcher, &tx) {
-                Ok(()) => {}
-                Err(error) => {
-                    let _ = eos_tx.send(Err(error.into()));
-                    return;
-                }
+            if let Err(error) = process_request(request, &mut watcher, &tx) {
+                let _ = eos_tx.send(Err(error.into()));
+                return;
             }
         }
     });
