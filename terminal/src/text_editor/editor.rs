@@ -68,16 +68,25 @@ pub fn editor(
 
     let code_mirror = Ptr::new(Mutex::new(None));
 
-    let notify_registration = manager.notify_service.watch_file(
+    let edits_notify_registration = manager.notify_service.watch_file(
         &path,
-        notify_handler(&manager, &code_mirror, &path, &writing),
+        make_edits_notify_handler(&manager, &code_mirror, &path, &writing),
+    );
+    let base_path = FilePath {
+        base: path.base.clone(),
+        file: Default::default(),
+    };
+    let diagnostics_notify_registration = manager.notify_service.watch_file(
+        &base_path,
+        make_diagnostics_notify_handler(&code_mirror, &base_path),
     );
 
     tag(
         class = style::editor,
         after_render = move |element| {
             autoclone!(path);
-            let _moved = notify_registration.clone();
+            let _moved = &edits_notify_registration;
+            let _moved = &diagnostics_notify_registration;
             *code_mirror.lock().unwrap() = Some(CodeMirrorJs::new(
                 element,
                 content.as_ref().into(),
@@ -90,7 +99,7 @@ pub fn editor(
 }
 
 #[autoclone]
-fn notify_handler(
+fn make_edits_notify_handler(
     manager: &Ptr<TextEditorManager>,
     code_mirror: &Ptr<Mutex<Option<CodeMirrorJs>>>,
     path: &FilePath<Arc<str>>,
@@ -148,4 +157,23 @@ async fn notify_edit(
             warn!("Failed to load file: {error}")
         }
     };
+}
+
+#[autoclone]
+fn make_diagnostics_notify_handler(
+    code_mirror: &Ptr<Mutex<Option<CodeMirrorJs>>>,
+    path: &FilePath<Arc<str>>,
+) -> impl Fn(&NotifyResponse) + 'static {
+    move |event| {
+        autoclone!(code_mirror, path);
+        let _span = debug_span!("Diagnostics notifier", ?path).entered();
+        let EventKind::CargoCheck(diagnostics) = &event.kind else {
+            return;
+        };
+        if let Ok(diagnostics) = serde_wasm_bindgen::to_value(diagnostics) {
+            if let Some(code_mirror) = &*code_mirror.lock().unwrap() {
+                code_mirror.cargo_check(diagnostics);
+            }
+        }
+    }
 }

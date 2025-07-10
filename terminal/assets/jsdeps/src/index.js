@@ -9,7 +9,7 @@ import { EditorState } from '@codemirror/state';
 import { EditorView, tooltips } from "@codemirror/view";
 
 import { oneDark } from '@codemirror/theme-one-dark';
-import { lintGutter } from '@codemirror/lint';
+import { lintGutter, setDiagnostics } from '@codemirror/lint';
 
 import { cpp } from "@codemirror/lang-cpp"
 import { css } from "@codemirror/lang-css"
@@ -51,6 +51,9 @@ export {
     tooltips,
 
     oneDark,
+
     lintGutter,
+    setDiagnostics,
+
     languages,
 };

@@ -27,7 +27,7 @@ pub struct SyntheticDiagnosticCode {
     pub explanation: Option<String>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct SyntheticDiagnosticSpan {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "f"))]
     pub file_name: String,
@@ -89,26 +89,25 @@ mod convert {
                     .unwrap_or("/".as_ref())
                     .to_string_lossy(),
                 &check.target.src_path,
+                &[],
                 &check.message,
                 &mut result,
             );
+            result.reverse();
             return result;
         }
 
-        fn all(base_path: &str, file_path: &str, diagnostic: &Diagnostic, result: &mut Vec<Self>) {
-            result.push(Self {
-                base_path: base_path.to_owned(),
-                file_path: file_path.to_owned(),
-                level: diagnostic.level.to_string(),
-                message: diagnostic.message.to_string(),
-                code: diagnostic
-                    .code
-                    .as_ref()
-                    .map(|code| SyntheticDiagnosticCode {
-                        code: code.code.to_string(),
-                        explanation: code.explanation.as_ref().map(Cow::to_string),
-                    }),
-                spans: diagnostic
+        fn all(
+            base_path: &str,
+            file_path: &str,
+            parent_spans: &[SyntheticDiagnosticSpan],
+            diagnostic: &Diagnostic,
+            result: &mut Vec<Self>,
+        ) {
+            let spans = if diagnostic.spans.is_empty() {
+                parent_spans.to_vec()
+            } else {
+                diagnostic
                     .spans
                     .iter()
                     .map(|span| SyntheticDiagnosticSpan {
@@ -138,11 +137,25 @@ mod convert {
                             }
                         }),
                     })
-                    .collect(),
-            });
-            for child in &diagnostic.children {
-                Self::all(base_path, file_path, child, result);
+                    .collect()
+            };
+            for child in diagnostic.children.iter().rev() {
+                Self::all(base_path, file_path, &spans, child, result);
             }
+            result.push(Self {
+                base_path: base_path.to_owned(),
+                file_path: file_path.to_owned(),
+                level: diagnostic.level.to_string(),
+                message: diagnostic.message.to_string(),
+                code: diagnostic
+                    .code
+                    .as_ref()
+                    .map(|code| SyntheticDiagnosticCode {
+                        code: code.code.to_string(),
+                        explanation: code.explanation.as_ref().map(Cow::to_string),
+                    }),
+                spans,
+            });
         }
     }
 }

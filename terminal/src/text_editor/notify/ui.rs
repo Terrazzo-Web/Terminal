@@ -104,7 +104,7 @@ impl NotifyService {
         let mut handlers = handlers.lock().unwrap();
         let mut handlers = match handlers.entry(full_path.clone()) {
             hash_map::Entry::Occupied(entry) => {
-                debug!("Adding new exiting watch");
+                debug!("Adding new to exiting watch");
                 entry
             }
             hash_map::Entry::Vacant(entry) => {

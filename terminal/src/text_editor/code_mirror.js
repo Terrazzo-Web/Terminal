@@ -1,6 +1,8 @@
 class CodeMirrorJs {
     editorView;
     reloadFromDisk; // Set to true when the file is updated from disk
+    basePath;
+    fullPath;
     constructor(
         element,
         content,
@@ -8,6 +10,8 @@ class CodeMirrorJs {
         basePath,
         fullPath,
     ) {
+        this.basePath = basePath;
+        this.fullPath = fullPath;
         this.reloadFromDisk = true;
         const updateListener = JsDeps.EditorView.updateListener.of((update) => {
             if (!this.reloadFromDisk && update.docChanged) {
@@ -52,6 +56,34 @@ class CodeMirrorJs {
             }
         });
         this.reloadFromDisk = false;
+    }
+
+    cargo_check(diagnostics) {
+        const lints = [];
+        let docLength = this.editorView.state.doc.length;
+        for (const diagnostic of diagnostics) {
+            if (diagnostic.file_path != this.fullPath)
+                continue;
+            for (const span of diagnostic.spans) {
+                if (!this.fullPath.endsWith(span.file_name))
+                    continue;
+                if (span.byte_end >= docLength)
+                    continue;
+                const severity = diagnostic.level == "error" || diagnostic.level == "warning"
+                    ? diagnostic.level
+                    : "info";
+                const lint = {
+                    from: span.byte_start,
+                    to: span.byte_end,
+                    severity,
+                    source: "cargo-check",
+                    message: diagnostic.message,
+                };
+                lints.push(lint);
+            }
+        }
+        const setLintsTransaction = JsDeps.setDiagnostics(this.editorView.state, lints);
+        this.editorView.dispatch(setLintsTransaction);
     }
 }
 
