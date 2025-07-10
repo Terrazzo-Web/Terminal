@@ -9,6 +9,7 @@ use super::file_path::FilePath;
 use super::fsio;
 use super::fsio::FileMetadata;
 use super::notify::EventKind;
+use super::notify::FileEventKind;
 use super::notify::ui::NotifyService;
 use super::side;
 use super::side::SideViewList;
@@ -40,16 +41,13 @@ impl TextEditorManager {
     ) {
         let this = self.clone();
         let file_path = path.file.clone();
-        let notify_registration = self
-            .notify_service
-            .watch_file(path.as_deref(), move |event| {
-                match event.kind {
-                    EventKind::Create | EventKind::Modify => return,
-                    EventKind::Delete | EventKind::Error => (),
-                }
-                // Remove from side view on deletion notification.
-                this.remove_from_side_view(file_path.as_ref());
-            });
+        let notify_registration = self.notify_service.watch_file(path, move |event| {
+            let EventKind::File(FileEventKind::Delete | FileEventKind::Error) = event.kind else {
+                return;
+            };
+            // Remove from side view on deletion notification.
+            this.remove_from_side_view(file_path.as_ref());
+        });
         self.side_view.update(|tree| {
             let file_path = Path::new(path.file.as_ref())
                 .iter()

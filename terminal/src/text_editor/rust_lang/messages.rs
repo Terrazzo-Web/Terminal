@@ -1,4 +1,5 @@
 #![cfg(feature = "server")]
+#![allow(dead_code)]
 
 pub use std::borrow::Cow;
 
@@ -10,7 +11,6 @@ pub struct CargoCheckMessage<'a> {
 
     #[cfg(debug_assertions)]
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub package_id: Cow<'a, str>,
 
     #[serde(borrow)]
@@ -27,17 +27,14 @@ pub struct CargoCheckMessage<'a> {
 pub struct TargetInfo<'a> {
     #[cfg(debug_assertions)]
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub kind: Vec<Cow<'a, str>>,
 
     #[cfg(debug_assertions)]
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub crate_types: Vec<Cow<'a, str>>,
 
     #[cfg(debug_assertions)]
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub name: Cow<'a, str>,
 
     #[serde(borrow)]
@@ -45,19 +42,15 @@ pub struct TargetInfo<'a> {
 
     #[cfg(debug_assertions)]
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub edition: Cow<'a, str>,
 
     #[cfg(debug_assertions)]
-    #[expect(dead_code)]
     pub doc: bool,
 
     #[cfg(debug_assertions)]
-    #[expect(dead_code)]
     pub doctest: bool,
 
     #[cfg(debug_assertions)]
-    #[expect(dead_code)]
     pub test: bool,
 }
 
@@ -81,7 +74,6 @@ pub struct Diagnostic<'a> {
 
     #[cfg(debug_assertions)]
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub rendered: Option<Cow<'a, str>>,
 }
 
@@ -113,16 +105,13 @@ pub struct DiagnosticSpan<'a> {
     pub column_end: u32,
 
     /// The point where the error actually occurred.
-    #[expect(dead_code)]
     pub is_primary: bool,
 
     #[cfg(debug_assertions)]
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub text: Vec<DiagnosticSpanLine<'a>>,
 
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub label: Option<Cow<'a, str>>,
 
     #[serde(borrow)]
@@ -131,7 +120,6 @@ pub struct DiagnosticSpan<'a> {
 
     /// Macro invocations that created the code at this span, if any.
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub expansion: Option<Box<DiagnosticSpanMacroExpansion<'a>>>,
 }
 
@@ -148,13 +136,10 @@ pub enum Applicability {
 #[derive(Debug, serde::Deserialize)]
 pub struct DiagnosticSpanLine<'a> {
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub text: Cow<'a, str>,
 
-    #[expect(dead_code)]
     pub highlight_start: u32,
 
-    #[expect(dead_code)]
     pub highlight_end: u32,
 }
 
@@ -162,15 +147,12 @@ pub struct DiagnosticSpanLine<'a> {
 #[derive(Debug, serde::Deserialize)]
 pub struct DiagnosticSpanMacroExpansion<'a> {
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub span: DiagnosticSpan<'a>,
 
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub macro_decl_name: Cow<'a, str>,
 
     #[serde(borrow)]
-    #[expect(dead_code)]
     pub def_site_span: Option<DiagnosticSpan<'a>>,
 }
 

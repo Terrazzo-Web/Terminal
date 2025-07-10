@@ -25,6 +25,7 @@ use super::fsio::ui::store_file;
 use super::manager::EditorState;
 use super::manager::TextEditorManager;
 use super::notify::EventKind;
+use super::notify::FileEventKind;
 use super::notify::NotifyResponse;
 use super::style;
 use super::synchronized_state::SynchronizedState;
@@ -68,7 +69,7 @@ pub fn editor(
     let code_mirror = Ptr::new(Mutex::new(None));
 
     let notify_registration = manager.notify_service.watch_file(
-        path.as_deref(),
+        &path,
         notify_handler(&manager, &code_mirror, &path, &writing),
     );
 
@@ -95,13 +96,12 @@ fn notify_handler(
     path: &FilePath<Arc<str>>,
     writing: &Arc<AtomicBool>,
 ) -> impl Fn(&NotifyResponse) + 'static {
-    move |response| {
+    move |event| {
         autoclone!(manager, code_mirror, path, writing);
         let _span = debug_span!("Editor notifier", ?path).entered();
-        match response.kind {
-            EventKind::Create | EventKind::Modify => {}
-            EventKind::Delete | EventKind::Error => return,
-        }
+        let EventKind::File(FileEventKind::Create | FileEventKind::Modify) = event.kind else {
+            return;
+        };
         if writing.load(SeqCst) {
             // Ignore modifications if we are about to overwrite them anyway
             return;

@@ -10,8 +10,10 @@ use tonic::Status;
 use super::HybridResponseStream;
 use super::HybridResponseStreamProj;
 use crate::backend::protos::terrazzo::gateway::client::NotifyResponse as NotifyResponseProto;
-use crate::backend::protos::terrazzo::gateway::client::notify_response::EventKind as EventKindProto;
+use crate::backend::protos::terrazzo::gateway::client::notify_response;
+use crate::backend::protos::terrazzo::gateway::client::notify_response::FileEventKind as FileEventKindProto;
 use crate::text_editor::notify::EventKind;
+use crate::text_editor::notify::FileEventKind;
 use crate::text_editor::notify::NotifyResponse;
 
 #[pin_project(project = RemoteReaderProj)]
@@ -33,20 +35,31 @@ impl futures::Stream for RemoteResponseStream {
 fn poll_next_remote(
     response: Option<Result<NotifyResponse, ServerFnError>>,
 ) -> Option<Result<NotifyResponseProto, Status>> {
-    Some(
-        response?
-            .map(|response| {
-                let event_kind = match response.kind {
-                    EventKind::Create => EventKindProto::Create,
-                    EventKind::Modify => EventKindProto::Modify,
-                    EventKind::Delete => EventKindProto::Delete,
-                    EventKind::Error => EventKindProto::Error,
-                };
-                NotifyResponseProto {
-                    path: response.path,
-                    kind: event_kind.into(),
-                }
-            })
-            .map_err(|error| Status::internal(format!("Remote error: {error}"))),
-    )
+    Some(poll_next_remote_some(response?))
+}
+
+#[expect(clippy::result_large_err)]
+fn poll_next_remote_some(
+    response: Result<NotifyResponse, ServerFnError>,
+) -> Result<NotifyResponseProto, Status> {
+    let response = response.map_err(|error| Status::internal(format!("Remote error: {error}")))?;
+    let event_kind = match response.kind {
+        EventKind::File(kind) => notify_response::Kind::File(
+            match kind {
+                FileEventKind::Create => FileEventKindProto::Create,
+                FileEventKind::Modify => FileEventKindProto::Modify,
+                FileEventKind::Delete => FileEventKindProto::Delete,
+                FileEventKind::Error => FileEventKindProto::Error,
+            }
+            .into(),
+        ),
+        EventKind::CargoCheck(diagnostics) => notify_response::Kind::CargoCheck(
+            serde_json::to_string(&diagnostics)
+                .map_err(|error| Status::internal(format!("JSON error: {error}")))?,
+        ),
+    };
+    Ok(NotifyResponseProto {
+        path: response.path,
+        kind: event_kind.into(),
+    })
 }

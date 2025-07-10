@@ -13,11 +13,12 @@ use self::diagnostics::debug;
 use super::fsio::FileMetadata;
 use super::manager::EditorState;
 use super::manager::TextEditorManager;
+use super::notify::EventKind;
+use super::notify::FileEventKind;
 use crate::frontend::menu::before_menu;
 use crate::frontend::timestamp;
 use crate::frontend::timestamp::datetime::DateTime;
 use crate::frontend::timestamp::display_timestamp;
-use crate::text_editor::notify::EventKind;
 use crate::utils::more_path::MorePath as _;
 
 stylance::import_crate_style!(style, "src/text_editor/folder.scss");
@@ -44,24 +45,27 @@ pub fn folder(
     let notify_registration =
         manager
             .notify_service
-            .watch_folder(editor_state.path.as_deref(), move |event| {
+            .watch_folder(&editor_state.path, move |event| {
                 autoclone!(path, manager);
                 debug!("Folder view notification: {event:?}");
-                match (
-                    Path::new(&event.path) == path.as_deref().full_path(),
-                    event.kind,
-                ) {
-                    (false, EventKind::Create | EventKind::Modify | EventKind::Delete) => {
+                let EventKind::File(kind) = event.kind else {
+                    return;
+                };
+                match (Path::new(&event.path) == path.as_deref().full_path(), kind) {
+                    (
+                        false,
+                        FileEventKind::Create | FileEventKind::Modify | FileEventKind::Delete,
+                    ) => {
                         debug!("File inside the folder was added/removed ==> refresh the view");
                     }
-                    (true, EventKind::Create) => {
+                    (true, FileEventKind::Create) => {
                         debug!("The folder was created !?!");
                         return;
                     }
-                    (true, EventKind::Modify) => {
+                    (true, FileEventKind::Modify) => {
                         debug!("The folder was modified");
                     }
-                    (true, EventKind::Delete) => {
+                    (true, FileEventKind::Delete) => {
                         debug!("The folder was deleted");
                         manager.path.file.update(|file_path| {
                             let file_path = Path::new(file_path.as_ref());
@@ -70,7 +74,7 @@ pub fn folder(
                         });
                         return;
                     }
-                    (true | false, EventKind::Error) => {
+                    (true | false, FileEventKind::Error) => {
                         debug!("Error polling notifications");
                         return;
                     }
@@ -123,11 +127,7 @@ pub fn folder(
                 } else {
                     Path::new(file_path).join(&*name)
                 };
-                let mut file = file.to_owned_string();
-                if is_dir {
-                    file.push('/');
-                };
-                manager.path.file.set(Arc::from(file))
+                manager.path.file.set(file.to_owned_string())
             },
             td("{display_name}"),
             td("{size}"),

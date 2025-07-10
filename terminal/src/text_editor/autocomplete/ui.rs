@@ -1,6 +1,5 @@
 #![cfg(feature = "client")]
 
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -40,22 +39,24 @@ pub fn show_autocomplete(
         return tag(style::visibility = "hidden", style::display = "none");
     };
     let items = autocomplete.into_iter().map(|item| {
-        let item = if item.is_dir {
+        let item_display = if item.is_dir && item.path != "/" {
             format!("{}/", item.path)
         } else if item.path.trim().is_empty() {
             "\u{00A0}".into()
         } else {
-            item.path
+            item.path.to_owned()
         };
         li(
-            "{item}",
+            "{item_display}",
             mousedown = move |ev: MouseEvent| {
                 autoclone!(manager, input, autocomplete_sig, prefix, path);
                 ev.prevent_default();
                 ev.stop_propagation();
-                let input_element = input.get().or_throw("Input element not set");
-                input_element.set_value(&item);
-                path.set(item.clone());
+                {
+                    let input_element = input.get().or_throw("Input element not set");
+                    input_element.set_value(&item.path);
+                    path.set(item.path.as_str());
+                }
                 do_autocomplete_impl(
                     manager.clone(),
                     kind,
@@ -101,9 +102,8 @@ pub fn stop_autocomplete(
 ) -> impl Fn(FocusEvent) {
     move |_| {
         let input_element = input.get().or_throw("Input element not set");
-        let value = canonicalize(input_element.value());
+        let value = input_element.value();
         info!("Update path to {value}");
-        input_element.set_value(&value);
         path.set(value);
         autocomplete.set(None);
     }
@@ -159,44 +159,4 @@ fn do_autocomplete_impl(
         });
     };
     spawn_local(do_autocomplete_async.in_current_span());
-}
-
-fn canonicalize(path: impl AsRef<Path>) -> String {
-    format!(
-        "/{}",
-        path.as_ref()
-            .iter()
-            .map(|leg| leg.to_string_lossy())
-            .filter(|leg| !leg.is_empty() && leg != "." && leg != "/")
-            .collect::<Vec<_>>()
-            .join("/")
-    )
-}
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn canonicalize1() {
-        assert_eq!(
-            "/path/to/file/file.txt",
-            super::canonicalize("//path/././to//file/.//.////././file.txt")
-        )
-    }
-
-    #[test]
-    fn canonicalize2() {
-        assert_eq!(
-            "/path/to/file/file.txt",
-            super::canonicalize("path/././to//file/.//.////././file.txt")
-        )
-    }
-
-    #[test]
-    fn canonicalize3() {
-        assert_eq!(
-            "/path/to/file/file.txt",
-            super::canonicalize("././path/././to//file/.//.////././file.txt")
-        )
-    }
 }

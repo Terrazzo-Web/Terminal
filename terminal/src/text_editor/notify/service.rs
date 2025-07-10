@@ -1,6 +1,6 @@
 #![cfg(feature = "server")]
 
-use std::path::Path;
+use std::sync::Arc;
 
 use futures::FutureExt;
 use futures::StreamExt as _;
@@ -9,40 +9,43 @@ use futures::channel::oneshot;
 use futures::stream::PollNext;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use notify::RecommendedWatcher;
-use notify::Watcher;
 use server_fn::BoxedStream;
 use server_fn::ServerFnError;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use tracing::Instrument as _;
+use tracing::debug;
 
 use super::NotifyRequest;
 use super::NotifyResponse;
-use super::event_handler;
+use super::event_handler::make_event_handler;
+use super::watcher::ExtendedWatcher;
 
 pub fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
 ) -> Result<BoxedStream<NotifyResponse, ServerFnError>, ServerFnError> {
     let (tx, rx) = mpsc::unbounded_channel();
-    let (eos_tx, eos_rx) = oneshot::channel();
+    let (eos_tx, eos_rx) = oneshot::channel::<Arc<NotifyError>>();
     let eos_rx = eos_rx.shared();
-    tokio::spawn(async move {
+    let request_task = async move {
         let mut request = request;
         let mut watcher = None;
         while let Some(request) = request.next().await {
-            match process_request(request, &mut watcher, &tx) {
-                Ok(()) => {}
-                Err(error) => {
-                    let _ = eos_tx.send(Err(error.into()));
-                    return;
-                }
+            if let Err(error) = process_request(request, &mut watcher, &tx) {
+                let _ = eos_tx.send(error.into());
+                return;
             }
         }
-    });
+    };
+    tokio::spawn(request_task.in_current_span());
     let rx = UnboundedReceiverStream::new(rx);
     let rx = futures::stream::select_with_strategy(
         rx.take_until(eos_rx.clone()),
-        futures::stream::once(eos_rx.unwrap_or_else(|e| Err(e.into()))),
+        futures::stream::once(
+            eos_rx
+                .map_ok(|error: Arc<NotifyError>| Err(error.into()))
+                .unwrap_or_else(|canceled: oneshot::Canceled| Err(canceled.into())),
+        ),
         |&mut ()| PollNext::Left,
     );
     Ok(rx.into())
@@ -50,28 +53,26 @@ pub fn notify(
 
 fn process_request(
     request: Result<NotifyRequest, ServerFnError>,
-    watcher: &mut Option<RecommendedWatcher>,
+    watcher: &mut Option<ExtendedWatcher>,
     tx: &mpsc::UnboundedSender<Result<NotifyResponse, ServerFnError>>,
 ) -> Result<(), NotifyError> {
+    debug!("Notify request: {request:?}");
     match request.map_err(NotifyError::BadRequest)? {
         NotifyRequest::Start { remote: _ } => {
             *watcher = Some(
-                notify::recommended_watcher(event_handler::EventHandler { tx: tx.clone() })
+                ExtendedWatcher::new(tx.clone(), make_event_handler)
                     .map_err(NotifyError::CreateWatcher)?,
             );
         }
         NotifyRequest::Watch { full_path } => watcher
             .as_mut()
             .ok_or(NotifyError::WatcherNotSet)?
-            .watch(
-                Path::new(full_path.as_ref()),
-                notify::RecursiveMode::NonRecursive,
-            )
+            .watch(full_path.as_deref())
             .map_err(NotifyError::Watch)?,
         NotifyRequest::UnWatch { full_path } => watcher
             .as_mut()
             .ok_or(NotifyError::WatcherNotSet)?
-            .unwatch(Path::new(full_path.as_ref()))
+            .unwatch(full_path.as_deref())
             .map_err(NotifyError::Unwatch)?,
     }
     Ok(())

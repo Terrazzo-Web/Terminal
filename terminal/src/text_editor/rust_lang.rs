@@ -11,8 +11,8 @@ use crate::api::client_address::ClientAddress;
 
 mod messages;
 mod remote;
-mod service;
-mod synthetic;
+pub mod service;
+pub mod synthetic;
 
 #[server(protocol = Http<Json, Json>)]
 #[nameth]

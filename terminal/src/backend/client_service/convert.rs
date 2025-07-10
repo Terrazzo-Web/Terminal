@@ -9,11 +9,13 @@ use crate::api::TerminalAddress;
 use crate::api::TerminalDef;
 use crate::api::client_address::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
+use crate::backend::protos::terrazzo::gateway::client::FilePath as FilePathProto;
 use crate::backend::protos::terrazzo::gateway::client::MaybeString;
 use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalRequest as RegisterTerminalRequestProto;
 use crate::backend::protos::terrazzo::gateway::client::TerminalAddress as TerminalAddressProto;
 use crate::backend::protos::terrazzo::gateway::client::TerminalDef as TerminalDefProto;
 use crate::backend::protos::terrazzo::gateway::client::register_terminal_request::RegisterTerminalMode as RegisterTerminalModeProto;
+use crate::text_editor::file_path::FilePath;
 
 impl From<TerminalDefProto> for TerminalDef {
     fn from(proto: TerminalDefProto) -> Self {
@@ -147,5 +149,31 @@ impl From<Impossible> for Status {
 impl IsHttpError for Impossible {
     fn status_code(&self) -> terrazzo::http::StatusCode {
         unreachable!()
+    }
+}
+
+impl<B, F> From<FilePathProto> for FilePath<B, F>
+where
+    String: Into<B>,
+    String: Into<F>,
+{
+    fn from(proto: FilePathProto) -> Self {
+        Self {
+            base: proto.base.into(),
+            file: proto.file.into(),
+        }
+    }
+}
+
+impl<B, F> From<FilePath<B, F>> for FilePathProto
+where
+    B: ToString,
+    F: ToString,
+{
+    fn from(proto: FilePath<B, F>) -> Self {
+        Self {
+            base: proto.base.to_string(),
+            file: proto.file.to_string(),
+        }
     }
 }
