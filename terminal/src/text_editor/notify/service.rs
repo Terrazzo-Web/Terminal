@@ -52,7 +52,7 @@ fn process_request(
     match request.map_err(NotifyError::BadRequest)? {
         NotifyRequest::Start { remote: _ } => {
             *watcher = Some(
-                ExtendedWatcher::new(make_event_handler(tx.clone()))
+                ExtendedWatcher::new(tx.clone(), make_event_handler)
                     .map_err(NotifyError::CreateWatcher)?,
             );
         }
