@@ -13,6 +13,8 @@ use notify::Watcher as _;
 use server_fn::ServerFnError;
 use terrazzo::autoclone;
 use tokio::sync::mpsc;
+use tracing::Instrument;
+use tracing::Span;
 use tracing::debug;
 use tracing::warn;
 
@@ -127,10 +129,20 @@ impl CargoWorkspaces {
     ) -> impl EventHandler {
         let this = self.clone();
         let runtime = tokio::runtime::Handle::current();
+        let span = Span::current();
+        debug!("Adding cargo check to EventHandler");
         move |event: notify::Result<notify::Event>| {
             if let Ok(event) = &event {
+                match event.kind {
+                    notify::EventKind::Create { .. }
+                    | notify::EventKind::Modify { .. }
+                    | notify::EventKind::Remove { .. } => {}
+                    _ => {
+                        return;
+                    }
+                }
                 for (cargo_path, run_cargo_check) in this.matches_cargo_workspace(event) {
-                    runtime.spawn(async move {
+                    let cargo_check_task = async move {
                         autoclone!(tx);
                         let Some(result) = run_cargo_check.run(()).await else {
                             return;
@@ -143,7 +155,8 @@ impl CargoWorkspaces {
                             path: cargo_path.to_owned_string(),
                             kind: EventKind::CargoCheck(diagnostics.into()),
                         }));
-                    });
+                    };
+                    runtime.spawn(cargo_check_task.instrument(span.clone()));
                 }
             }
             event_handler.handle_event(event)

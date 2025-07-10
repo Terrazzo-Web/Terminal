@@ -5,11 +5,15 @@ use std::process::Stdio;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use scopeguard::defer;
 use tokio::io::AsyncBufReadExt as _;
 use tokio::io::BufReader;
 use tokio::process::Command;
 use tonic::Code;
+use tracing::Instrument;
 use tracing::debug;
+use tracing::debug_span;
+use tracing::trace;
 
 use super::synthetic::SyntheticDiagnostic;
 use crate::backend::client_service::grpc_error::GrpcError;
@@ -34,11 +38,15 @@ impl IsGrpcError for CargoCheckError {
     }
 }
 
-pub async fn cargo_check(
+pub fn cargo_check(
     base_path: impl AsRef<Path>,
     features: &[&str],
-) -> Result<Vec<SyntheticDiagnostic>, GrpcError<CargoCheckError>> {
-    let mut reader: tokio::io::Lines<BufReader<tokio::process::ChildStdout>> = {
+) -> impl Future<Output = Result<Vec<SyntheticDiagnostic>, GrpcError<CargoCheckError>>> {
+    let base_path = base_path.as_ref();
+    let _span = debug_span!("Cargo check", ?base_path).entered();
+    debug!("Start");
+
+    let mut command = {
         let mut command = Command::new("cargo");
         command
             .current_dir(base_path)
@@ -48,44 +56,50 @@ pub async fn cargo_check(
         if !features.is_empty() {
             command.arg("--features").arg(features.join(","));
         }
-        let mut child = command.spawn().map_err(CargoCheckError::SpawnProcess)?;
-
-        let stdout = child.stdout.take().ok_or(CargoCheckError::MissingStdout)?;
-        BufReader::new(stdout).lines()
+        command
     };
 
-    let mut results = vec![];
-    loop {
-        let next_line = reader.next_line().await;
-        let next_line = match next_line {
-            Ok(Some(next_line)) => next_line,
-            Ok(None) => break,
-            Err(error) => {
-                if results.is_empty() {
-                    return Err(CargoCheckError::Failure(error))?;
-                } else {
-                    debug!("Bad line: {error}");
-                    break;
+    debug!("Spawn");
+    async move {
+        let mut child = command.spawn().map_err(CargoCheckError::SpawnProcess)?;
+        let output = child.stdout.take().ok_or(CargoCheckError::MissingStdout)?;
+        let mut reader = BufReader::new(output).lines();
+
+        let mut results = vec![];
+        defer!(debug!("End"));
+        loop {
+            let next_line = reader.next_line().await;
+            let next_line = match next_line {
+                Ok(Some(next_line)) => next_line,
+                Ok(None) => break,
+                Err(error) => {
+                    if results.is_empty() {
+                        return Err(CargoCheckError::Failure(error))?;
+                    } else {
+                        debug!("Bad line: {error}");
+                        break;
+                    }
                 }
+            };
+            let next_line = next_line.trim();
+            if next_line.is_empty() {
+                continue;
             }
-        };
-        let next_line = next_line.trim();
-        if next_line.is_empty() {
-            continue;
-        }
 
-        let Ok(message) = serde_json::from_str::<super::messages::CargoCheckMessage>(next_line)
-            .inspect_err(|error| debug!("Invalid cargo check JSON: {error}: {next_line}"))
-        else {
-            continue;
-        };
-        if message.reason != "compiler-message" {
-            continue;
-        }
+            let Ok(message) = serde_json::from_str::<super::messages::CargoCheckMessage>(next_line)
+                .inspect_err(|error| trace!("Invalid cargo check JSON: {error}: {next_line}"))
+            else {
+                continue;
+            };
+            if message.reason != "compiler-message" {
+                continue;
+            }
 
-        results.extend(SyntheticDiagnostic::new(&message));
+            results.extend(SyntheticDiagnostic::new(&message));
+        }
+        Ok(results)
     }
-    Ok(results)
+    .in_current_span()
 }
 
 #[cfg(test)]

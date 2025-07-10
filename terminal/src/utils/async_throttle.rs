@@ -6,6 +6,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use tokio::sync::oneshot;
+use tracing::Instrument as _;
 
 pub struct Throttle<F> {
     callback: F,
@@ -53,7 +54,7 @@ impl<F> Throttle<F> {
         let latency = start.elapsed();
 
         let this = self.clone();
-        tokio::spawn(async move {
+        let cooldown_task = async move {
             let cooldown = Ord::max(
                 Duration::from_secs_f64(latency.as_secs_f64() as f64 * this.min_delay_fraction),
                 this.min_delay_between_runs,
@@ -66,7 +67,8 @@ impl<F> Throttle<F> {
                     *lock = None;
                 }
             }
-        });
+        };
+        tokio::spawn(cooldown_task.in_current_span());
 
         return output;
     }

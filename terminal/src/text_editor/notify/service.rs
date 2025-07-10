@@ -13,6 +13,7 @@ use server_fn::BoxedStream;
 use server_fn::ServerFnError;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use tracing::Instrument as _;
 use tracing::debug;
 
 use super::NotifyRequest;
@@ -26,7 +27,7 @@ pub fn notify(
     let (tx, rx) = mpsc::unbounded_channel();
     let (eos_tx, eos_rx) = oneshot::channel::<Arc<NotifyError>>();
     let eos_rx = eos_rx.shared();
-    tokio::spawn(async move {
+    let request_task = async move {
         let mut request = request;
         let mut watcher = None;
         while let Some(request) = request.next().await {
@@ -35,7 +36,8 @@ pub fn notify(
                 return;
             }
         }
-    });
+    };
+    tokio::spawn(request_task.in_current_span());
     let rx = UnboundedReceiverStream::new(rx);
     let rx = futures::stream::select_with_strategy(
         rx.take_until(eos_rx.clone()),
