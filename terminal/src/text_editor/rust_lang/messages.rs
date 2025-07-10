@@ -1,4 +1,5 @@
 #![cfg(feature = "server")]
+#![allow(dead_code)]
 
 pub use std::borrow::Cow;
 

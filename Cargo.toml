@@ -37,9 +37,9 @@ chrono = { version = "0.4.41", default-features = false, features = [
     "std",
     "wasmbind",
 ] }
-clap = { version = "4.5.40", features = ["derive"] }
+clap = { version = "4.5.41", features = ["derive"] }
 const_format = { version = "0.2.34" }
-darling = { version = "0.20.11" }
+darling = { version = "0.21.0" }
 dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
 fluent-asserter = { version = "0.1.9" }
@@ -54,7 +54,7 @@ mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.16" }
 nix = { version = "0.30.1" }
-notify = { version = "8.0.0" }
+notify = { version = "8.1.0" }
 openssl = { version = "0.10.73" }
 pbkdf2 = { version = "0.12.2" }
 pin-project = { version = "1.1.10" }
@@ -79,10 +79,10 @@ syn = { version = "2.0.104" }
 terrazzo = { version = "0.1.16", default-features = false }
 terrazzo-build = { version = "0.1.16" }
 thiserror = { version = "2.0.12" }
-tokio = { version = "1.45.1" }
+tokio = { version = "1.46.1" }
 tokio-stream = { version = "0.1.17" }
 tokio-util = { version = "0.7.15" }
-toml = { version = "0.8.22" }
+toml = { version = "0.9.1" }
 tonic = { version = "0.13.1" }
 tonic-build = { version = "0.13.1" }
 tower = { version = "0.5.2" }

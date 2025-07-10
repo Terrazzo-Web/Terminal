@@ -56,7 +56,7 @@ impl<F> Throttle<F> {
         let this = self.clone();
         let cooldown_task = async move {
             let cooldown = Ord::max(
-                Duration::from_secs_f64(latency.as_secs_f64() as f64 * this.min_delay_fraction),
+                Duration::from_secs_f64(latency.as_secs_f64() * this.min_delay_fraction),
                 this.min_delay_between_runs,
             );
             let () = tokio::time::sleep(cooldown).await;
