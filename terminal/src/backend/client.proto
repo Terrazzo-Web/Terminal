@@ -118,9 +118,13 @@ message FilePath {
 
 message NotifyResponse {
   string path = 1;
-  EventKind kind = 2;
-
-  enum EventKind {
+  
+  oneof kind {
+    FileEventKind file = 2;
+    string cargo_check = 3;
+  }
+ 
+  enum FileEventKind {
     ERROR = 0;
     CREATE = 1;
     MODIFY = 2;
