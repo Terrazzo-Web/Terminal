@@ -6,6 +6,7 @@ use tracing::warn;
 use super::EventKind;
 use super::NotifyResponse;
 use super::ServerFnError;
+use crate::text_editor::notify::FileEventKind;
 use crate::utils::more_path::MorePath as _;
 
 pub fn make_event_handler(
@@ -18,9 +19,9 @@ pub fn make_event_handler(
                     notify::EventKind::Any
                     | notify::EventKind::Access { .. }
                     | notify::EventKind::Other => return,
-                    notify::EventKind::Create { .. } => EventKind::Create,
-                    notify::EventKind::Modify { .. } => EventKind::Modify,
-                    notify::EventKind::Remove { .. } => EventKind::Delete,
+                    notify::EventKind::Create { .. } => FileEventKind::Create,
+                    notify::EventKind::Modify { .. } => FileEventKind::Modify,
+                    notify::EventKind::Remove { .. } => FileEventKind::Delete,
                 };
                 (kind, event.paths)
             }
@@ -35,7 +36,7 @@ pub fn make_event_handler(
         for path in paths {
             let response = NotifyResponse {
                 path: path.to_owned_string(),
-                kind,
+                kind: EventKind::File(kind),
             };
             match tx.send(Ok(response)) {
                 Ok(()) => {}

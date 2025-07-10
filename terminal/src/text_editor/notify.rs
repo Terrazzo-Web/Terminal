@@ -8,6 +8,7 @@ use server_fn::codec::JsonEncoding;
 use terrazzo::server;
 
 use super::file_path::FilePath;
+use super::rust_lang::synthetic::SyntheticDiagnostic;
 use crate::api::client_address::ClientAddress;
 
 mod event_handler;
@@ -43,7 +44,7 @@ pub enum NotifyRequest {
     },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct NotifyResponse {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "p"))]
     pub path: String,
@@ -51,8 +52,16 @@ pub struct NotifyResponse {
     pub kind: EventKind,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum EventKind {
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "F"))]
+    File(FileEventKind),
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "C"))]
+    CargoCheck(Arc<Vec<SyntheticDiagnostic>>),
+}
+
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+pub enum FileEventKind {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "C"))]
     Create,
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "M"))]

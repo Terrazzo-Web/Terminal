@@ -3,7 +3,6 @@
 use std::collections::HashMap;
 use std::collections::hash_map;
 use std::path::Path;
-use std::path::PathBuf;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -25,6 +24,7 @@ use crate::text_editor::rust_lang::service::CargoCheckError;
 use crate::text_editor::rust_lang::service::cargo_check;
 use crate::text_editor::rust_lang::synthetic::SyntheticDiagnostic;
 use crate::utils::async_throttle::Throttle;
+use crate::utils::more_path::MorePath;
 
 pub struct ExtendedWatcher {
     inotify: RecommendedWatcher,
@@ -33,7 +33,7 @@ pub struct ExtendedWatcher {
 
 #[derive(Clone, Default)]
 struct CargoWorkspaces {
-    map: Arc<Mutex<HashMap<PathBuf, CargoWorkspace>>>,
+    map: Arc<Mutex<HashMap<Arc<Path>, CargoWorkspace>>>,
 }
 
 struct CargoWorkspace {
@@ -69,7 +69,7 @@ impl ExtendedWatcher {
             let base = path.base.as_ref();
             if base.exists() && base.join("Cargo.toml").exists() {
                 let mut cargo_workspaces = self.cargo_workspaces.map.lock().unwrap();
-                match cargo_workspaces.entry(base.to_owned()) {
+                match cargo_workspaces.entry(base.into()) {
                     hash_map::Entry::Occupied(mut entry) => {
                         entry.get_mut().count += 1;
                     }
@@ -96,7 +96,7 @@ impl ExtendedWatcher {
     ) -> notify::Result<()> {
         let base = path.base.as_ref();
         let mut cargo_workspaces = self.cargo_workspaces.map.lock().unwrap();
-        if let hash_map::Entry::Occupied(mut entry) = cargo_workspaces.entry(base.to_owned()) {
+        if let hash_map::Entry::Occupied(mut entry) = cargo_workspaces.entry(base.into()) {
             if entry.get().count == 1 {
                 debug!(?base, "Remove cargo_workspaces from watch");
                 entry.remove();
@@ -129,7 +129,7 @@ impl CargoWorkspaces {
         let runtime = tokio::runtime::Handle::current();
         move |event: notify::Result<notify::Event>| {
             if let Ok(event) = &event {
-                for run_cargo_check in this.matches_cargo_workspace(event) {
+                for (cargo_path, run_cargo_check) in this.matches_cargo_workspace(event) {
                     runtime.spawn(async move {
                         autoclone!(tx);
                         let Some(result) = run_cargo_check.run(()).await else {
@@ -140,8 +140,8 @@ impl CargoWorkspaces {
                             Err(error) => return warn!("todo {error}"),
                         };
                         let _ = tx.send(Ok(NotifyResponse {
-                            path: serde_json::to_string(&diagnostics).expect("TODO"),
-                            kind: EventKind::Error,
+                            path: cargo_path.to_owned_string(),
+                            kind: EventKind::CargoCheck(diagnostics.into()),
                         }));
                     });
                 }
@@ -150,7 +150,7 @@ impl CargoWorkspaces {
         }
     }
 
-    fn matches_cargo_workspace(&self, event: &notify::Event) -> Vec<RunCargoCheck> {
+    fn matches_cargo_workspace(&self, event: &notify::Event) -> Vec<(Arc<Path>, RunCargoCheck)> {
         let cargo_workspaces = self.map.lock().unwrap();
         cargo_workspaces
             .iter()
@@ -158,7 +158,7 @@ impl CargoWorkspaces {
                 let mut event_paths = event.paths.iter();
                 event_paths
                     .any(|event_path| event_path.starts_with(cargo_path))
-                    .then(|| cargo_workspace.run_cargo_check.clone())
+                    .then(|| (cargo_path.clone(), cargo_workspace.run_cargo_check.clone()))
             })
             .collect()
     }

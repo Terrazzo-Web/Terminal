@@ -1,5 +1,7 @@
 #![cfg(feature = "server")]
 
+use std::sync::Arc;
+
 use futures::FutureExt;
 use futures::StreamExt as _;
 use futures::TryFutureExt;
@@ -22,14 +24,14 @@ pub fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
 ) -> Result<BoxedStream<NotifyResponse, ServerFnError>, ServerFnError> {
     let (tx, rx) = mpsc::unbounded_channel();
-    let (eos_tx, eos_rx) = oneshot::channel();
+    let (eos_tx, eos_rx) = oneshot::channel::<Arc<NotifyError>>();
     let eos_rx = eos_rx.shared();
     tokio::spawn(async move {
         let mut request = request;
         let mut watcher = None;
         while let Some(request) = request.next().await {
             if let Err(error) = process_request(request, &mut watcher, &tx) {
-                let _ = eos_tx.send(Err(error.into()));
+                let _ = eos_tx.send(error.into());
                 return;
             }
         }
@@ -37,7 +39,11 @@ pub fn notify(
     let rx = UnboundedReceiverStream::new(rx);
     let rx = futures::stream::select_with_strategy(
         rx.take_until(eos_rx.clone()),
-        futures::stream::once(eos_rx.unwrap_or_else(|e| Err(e.into()))),
+        futures::stream::once(
+            eos_rx
+                .map_ok(|error: Arc<NotifyError>| Err(error.into()))
+                .unwrap_or_else(|canceled: oneshot::Canceled| Err(canceled.into())),
+        ),
         |&mut ()| PollNext::Left,
     );
     Ok(rx.into())
