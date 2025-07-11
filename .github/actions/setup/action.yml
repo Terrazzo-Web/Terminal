@@ -22,9 +22,10 @@ runs:
           ~/.cargo/.crates.toml
           ~/.cargo/.crates2.json
           ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
           ~/.cargo/git/db/
+          ~/.cargo/registry/cache/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/src/
           target/
           terrazzo/target/wasm
         key: ${{ runner.os }}-cargo-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
@@ -36,9 +37,10 @@ runs:
           ~/.cargo/.crates.toml
           ~/.cargo/.crates2.json
           ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
           ~/.cargo/git/db/
+          ~/.cargo/registry/cache/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/src/
           target/
           terrazzo/target/wasm
         key: ${{ runner.os }}-cargo-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
