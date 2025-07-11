@@ -32,7 +32,11 @@ use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 
-pub(super) const STORE_FILE_DEBOUNCE_DELAY: Duration = Duration::from_secs(3);
+pub(super) const STORE_FILE_DEBOUNCE_DELAY: Duration = if cfg!(debug_assertions) {
+    Duration::from_millis(1500)
+} else {
+    Duration::from_millis(500)
+};
 
 /// The UI for the text editor app.
 #[html]

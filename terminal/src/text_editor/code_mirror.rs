@@ -21,4 +21,7 @@ extern "C" {
 
     #[wasm_bindgen(method)]
     pub fn set_content(this: &CodeMirrorJs, content: String);
+
+    #[wasm_bindgen(method)]
+    pub fn cargo_check(this: &CodeMirrorJs, diagnostics: JsValue);
 }
