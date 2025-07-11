@@ -31,6 +31,7 @@ declare_icon!(folder, "/icons/folder2-open.svg");
 declare_icon!(key_icon, "/icons/key.svg");
 declare_icon!(loading, "/icons/loading2.svg");
 declare_icon!(menu, "/icons/signpost-split.svg");
+declare_icon!(converter, "/icons/regex.svg");
 declare_icon!(slash, "/icons/slash.svg");
 declare_icon!(terminal, "/icons/terminal-dash.svg");
 declare_icon!(text_editor, "/icons/layout-text-sidebar-reverse.svg");

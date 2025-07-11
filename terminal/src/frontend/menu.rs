@@ -74,6 +74,12 @@ fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -
                 show_menu_mut.clone(),
                 hide_menu.clone(),
             ),
+            menu_item(
+                App::Converter,
+                app(),
+                show_menu_mut.clone(),
+                hide_menu.clone(),
+            ),
         )
     } else {
         tag(style::visibility = "hidden", style::display = "none")
@@ -109,6 +115,7 @@ impl App {
         match self {
             App::Terminal => icons::terminal(),
             App::TextEditor => icons::text_editor(),
+            App::Converter => icons::converter(),
         }
     }
 }

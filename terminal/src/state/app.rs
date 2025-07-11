@@ -5,6 +5,8 @@ pub enum App {
     Terminal,
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
     TextEditor,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
+    Converter,
 }
 
 impl std::fmt::Display for App {
@@ -12,6 +14,7 @@ impl std::fmt::Display for App {
         match self {
             App::Terminal => "Terminal",
             App::TextEditor => "Text editor",
+            App::Converter => "Converter",
         }
         .fmt(f)
     }
