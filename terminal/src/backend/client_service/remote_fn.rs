@@ -26,11 +26,15 @@ use tracing::debug_span;
 use trz_gateway_server::server::Server;
 
 use crate::api::client_address::ClientAddress;
+use crate::backend::client_service::ClientServiceImpl;
+use crate::backend::client_service::remote_fn;
 use crate::backend::client_service::routing::DistributedCallback;
 use crate::backend::client_service::routing::DistributedCallbackError;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
-use crate::backend::protos::terrazzo::gateway::client::RemoteFnRequest;
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::protos::terrazzo::remotefn::RemoteFnRequest;
+use crate::backend::protos::terrazzo::remotefn::ServerFnResponse;
+use crate::backend::protos::terrazzo::remotefn::remote_fn_service_client::RemoteFnServiceClient;
+use crate::backend::protos::terrazzo::remotefn::remote_fn_service_server::RemoteFnService;
+use crate::backend::protos::terrazzo::shared::ClientAddress as ClientAddressProto;
 
 /// Records the current [Server] instance.
 ///
@@ -200,7 +204,7 @@ impl DistributedCallback for DistributedFn {
     }
 
     async fn remote<T>(
-        mut client: ClientServiceClient<T>,
+        channel: T,
         client_address: &[impl AsRef<str>],
         mut request: RemoteFnRequest,
     ) -> Result<String, tonic::Status>
@@ -211,7 +215,10 @@ impl DistributedCallback for DistributedFn {
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         request.address = Some(ClientAddressProto::of(client_address));
-        let result = client.call_server_fn(request).await?.into_inner();
+        let result = RemoteFnServiceClient::new(channel)
+            .call_server_fn(request)
+            .await?
+            .into_inner();
         Ok(result.json)
     }
 }
@@ -305,3 +312,17 @@ macro_rules! declare_remote_fn {
 }
 
 pub(crate) use declare_remote_fn;
+
+#[tonic::async_trait]
+impl RemoteFnService for ClientServiceImpl {
+    async fn call_server_fn(
+        &self,
+        request: tonic::Request<RemoteFnRequest>,
+    ) -> Result<tonic::Response<ServerFnResponse>, Status> {
+        let mut request = request.into_inner();
+        let address = request.address.get_or_insert_default();
+        let address = std::mem::take(&mut address.via);
+        let response = remote_fn::dispatch(&self.server, &address, request).await;
+        Ok(tonic::Response::new(ServerFnResponse { json: response? }))
+    }
+}
