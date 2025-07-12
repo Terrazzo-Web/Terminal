@@ -79,6 +79,8 @@ web-sys = { workspace = true, optional = true, features = [
     "FocusEvent",
     "Headers",
     "HtmlInputElement",
+    "HtmlTextAreaElement",
+    "InputEvent",
     "KeyboardEvent",
     "MouseEvent",
     "Performance",
