@@ -1,2 +1,2 @@
 mod grpc;
-mod remotes;
+pub mod remotes;

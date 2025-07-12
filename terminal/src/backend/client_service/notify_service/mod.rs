@@ -2,7 +2,7 @@
 
 mod callback;
 mod convert;
-mod dispatch;
+pub mod dispatch;
 mod grpc;
 mod request;
 mod response;

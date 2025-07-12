@@ -5,7 +5,7 @@ use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
 use crate::api::client_address::ClientAddress;
-use crate::backend::client_service::remotes::list_remotes;
+use crate::backend::client_service::shared_service::remotes::list_remotes;
 
 pub async fn list(
     my_client_name: Option<ClientName>,

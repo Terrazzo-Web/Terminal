@@ -86,7 +86,7 @@ pub fn pipe(server: Arc<Server>, correlation_id: CorrelationId) -> impl IntoResp
                 };
                 let task = async move {
                     autoclone!(server, terminal_id, client_address);
-                    match terminal_service::close::close(
+                    match self::terminal_service::close::close(
                         &server,
                         &client_address,
                         terminal_id.clone(),
