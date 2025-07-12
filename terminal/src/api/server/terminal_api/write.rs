@@ -6,7 +6,7 @@ use trz_gateway_server::server::Server;
 
 use crate::api::shared::terminal_schema::WriteRequest;
 use crate::backend::client_service::terminal_service;
-use crate::backend::protos::terrazzo::gateway::client::WriteRequest as WriteRequestProto;
+use crate::backend::protos::terrazzo::terminal::WriteRequest as WriteRequestProto;
 
 pub async fn write(
     server: Arc<Server>,

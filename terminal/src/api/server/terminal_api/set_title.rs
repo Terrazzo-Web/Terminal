@@ -6,8 +6,8 @@ use trz_gateway_server::server::Server;
 
 use crate::api::shared::terminal_schema::SetTitleRequest;
 use crate::backend::client_service::terminal_service;
-use crate::backend::protos::terrazzo::gateway::client::MaybeString;
-use crate::backend::protos::terrazzo::gateway::client::SetTitleRequest as SetTitleRequestProto;
+use crate::backend::protos::terrazzo::terminal::MaybeString;
+use crate::backend::protos::terrazzo::terminal::SetTitleRequest as SetTitleRequestProto;
 
 pub async fn set_title(
     server: Arc<Server>,

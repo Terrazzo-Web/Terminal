@@ -6,8 +6,8 @@ use trz_gateway_server::server::Server;
 
 use crate::api::shared::terminal_schema::ResizeRequest;
 use crate::backend::client_service::terminal_service;
-use crate::backend::protos::terrazzo::gateway::client::ResizeRequest as ResizeRequestProto;
-use crate::backend::protos::terrazzo::gateway::client::Size;
+use crate::backend::protos::terrazzo::terminal::ResizeRequest as ResizeRequestProto;
+use crate::backend::protos::terrazzo::terminal::Size as SizeProto;
 
 pub async fn resize(
     server: Arc<Server>,
@@ -19,7 +19,7 @@ pub async fn resize(
         &client_address,
         ResizeRequestProto {
             terminal: Some(request.terminal.into()),
-            size: Some(Size {
+            size: Some(SizeProto {
                 rows: request.size.rows,
                 cols: request.size.cols,
             }),

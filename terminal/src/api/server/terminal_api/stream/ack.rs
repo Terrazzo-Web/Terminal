@@ -6,7 +6,7 @@ use trz_gateway_server::server::Server;
 
 use crate::api::shared::terminal_schema::AckRequest;
 use crate::backend::client_service::terminal_service;
-use crate::backend::protos::terrazzo::gateway::client::AckRequest as AckRequestProto;
+use crate::backend::protos::terrazzo::terminal::AckRequest as AckRequestProto;
 
 pub async fn ack(
     server: Arc<Server>,
