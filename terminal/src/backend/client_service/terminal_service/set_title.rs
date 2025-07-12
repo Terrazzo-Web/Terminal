@@ -17,10 +17,10 @@ use trz_gateway_server::server::Server;
 use crate::api::shared::terminal_schema::TabTitle;
 use crate::backend::client_service::routing::DistributedCallback;
 use crate::backend::client_service::routing::DistributedCallbackError;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
-use crate::backend::protos::terrazzo::gateway::client::Empty;
-use crate::backend::protos::terrazzo::gateway::client::SetTitleRequest;
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::protos::terrazzo::shared::ClientAddress;
+use crate::backend::protos::terrazzo::shared::Empty;
+use crate::backend::protos::terrazzo::terminal::SetTitleRequest;
+use crate::backend::protos::terrazzo::terminal::terminal_service_client::TerminalServiceClient;
 use crate::processes;
 use crate::processes::set_title::SetTitleError as SetTitleErrorImpl;
 
@@ -57,7 +57,7 @@ impl DistributedCallback for SetTitleCallback {
     }
 
     async fn remote<T>(
-        mut client: ClientServiceClient<T>,
+        channel: T,
         client_address: &[impl AsRef<str>],
         mut request: SetTitleRequest,
     ) -> Result<(), Status>
@@ -68,6 +68,7 @@ impl DistributedCallback for SetTitleCallback {
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         request.address.get_or_insert_default().via = Some(ClientAddress::of(client_address));
+        let mut client = TerminalServiceClient::new(channel);
         let Empty {} = client.set_title(request).await?.into_inner();
         Ok(())
     }

@@ -2,5 +2,12 @@ syntax = "proto3";
 
 package terrazzo.shared;
 
+service SharedService {
+  rpc ListRemotes(ListRemotesRequest) returns (ListRemotesResponse);
+}
+
+message ListRemotesRequest { repeated string visited = 1; }
+message ListRemotesResponse { repeated ClientAddress clients = 1; }
+
 message ClientAddress { repeated string via = 1; }
 message Empty {}

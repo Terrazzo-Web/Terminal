@@ -11,10 +11,10 @@ use tracing::info_span;
 use tracing::warn;
 use trz_gateway_server::server::Server;
 
-use crate::backend::protos::terrazzo::gateway::client::Empty;
-use crate::backend::protos::terrazzo::gateway::client::OrderedTerminal;
-use crate::backend::protos::terrazzo::gateway::client::SetOrderRequest;
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::protos::terrazzo::shared::Empty;
+use crate::backend::protos::terrazzo::terminal::OrderedTerminal;
+use crate::backend::protos::terrazzo::terminal::SetOrderRequest;
+use crate::backend::protos::terrazzo::terminal::terminal_service_client::TerminalServiceClient;
 use crate::processes::get_processes;
 
 pub async fn set_order(server: &Server, terminals: Vec<OrderedTerminal>) {
@@ -57,7 +57,7 @@ pub async fn set_order(server: &Server, terminals: Vec<OrderedTerminal>) {
                 warn!("Client '{client}' not found");
                 continue;
             };
-            let mut grpc = ClientServiceClient::new(channel);
+            let mut grpc = TerminalServiceClient::new(channel);
             match grpc
                 .set_order(Request::new(SetOrderRequest { terminals }))
                 .await

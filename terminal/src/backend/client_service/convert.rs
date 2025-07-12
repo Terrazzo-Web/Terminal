@@ -3,9 +3,7 @@ use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
 
 use crate::api::client_address::ClientAddress;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
-use crate::backend::protos::terrazzo::gateway::client::FilePath as FilePathProto;
-use crate::text_editor::file_path::FilePath;
+use crate::backend::protos::terrazzo::shared::ClientAddress as ClientAddressProto;
 
 impl From<ClientAddressProto> for ClientAddress {
     fn from(proto: ClientAddressProto) -> Self {
@@ -41,31 +39,5 @@ impl From<Impossible> for Status {
 impl IsHttpError for Impossible {
     fn status_code(&self) -> terrazzo::http::StatusCode {
         unreachable!()
-    }
-}
-
-impl<B, F> From<FilePathProto> for FilePath<B, F>
-where
-    String: Into<B>,
-    String: Into<F>,
-{
-    fn from(proto: FilePathProto) -> Self {
-        Self {
-            base: proto.base.into(),
-            file: proto.file.into(),
-        }
-    }
-}
-
-impl<B, F> From<FilePath<B, F>> for FilePathProto
-where
-    B: ToString,
-    F: ToString,
-{
-    fn from(proto: FilePath<B, F>) -> Self {
-        Self {
-            base: proto.base.to_string(),
-            file: proto.file.to_string(),
-        }
     }
 }

@@ -8,12 +8,12 @@ use crate::api::shared::terminal_schema::RegisterTerminalRequest;
 use crate::api::shared::terminal_schema::TabTitle;
 use crate::api::shared::terminal_schema::TerminalAddress;
 use crate::api::shared::terminal_schema::TerminalDef;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
-use crate::backend::protos::terrazzo::gateway::client::MaybeString;
-use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalRequest as RegisterTerminalRequestProto;
-use crate::backend::protos::terrazzo::gateway::client::TerminalAddress as TerminalAddressProto;
-use crate::backend::protos::terrazzo::gateway::client::TerminalDef as TerminalDefProto;
-use crate::backend::protos::terrazzo::gateway::client::register_terminal_request::RegisterTerminalMode as RegisterTerminalModeProto;
+use crate::backend::protos::terrazzo::shared::ClientAddress as ClientAddressProto;
+use crate::backend::protos::terrazzo::terminal::MaybeString;
+use crate::backend::protos::terrazzo::terminal::RegisterTerminalRequest as RegisterTerminalRequestProto;
+use crate::backend::protos::terrazzo::terminal::TerminalAddress as TerminalAddressProto;
+use crate::backend::protos::terrazzo::terminal::TerminalDef as TerminalDefProto;
+use crate::backend::protos::terrazzo::terminal::register_terminal_request::RegisterTerminalMode as RegisterTerminalModeProto;
 
 impl From<TerminalDefProto> for TerminalDef {
     fn from(proto: TerminalDefProto) -> Self {

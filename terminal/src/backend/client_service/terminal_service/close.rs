@@ -16,10 +16,10 @@ use trz_gateway_server::server::Server;
 
 use crate::backend::client_service::routing::DistributedCallback;
 use crate::backend::client_service::routing::DistributedCallbackError;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
-use crate::backend::protos::terrazzo::gateway::client::Empty;
-use crate::backend::protos::terrazzo::gateway::client::TerminalAddress;
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::protos::terrazzo::shared::ClientAddress;
+use crate::backend::protos::terrazzo::shared::Empty;
+use crate::backend::protos::terrazzo::terminal::TerminalAddress;
+use crate::backend::protos::terrazzo::terminal::terminal_service_client::TerminalServiceClient;
 use crate::processes;
 use crate::processes::close::CloseProcessError;
 use crate::terminal_id::TerminalId;
@@ -50,7 +50,7 @@ impl DistributedCallback for CloseCallback {
     }
 
     async fn remote<T>(
-        mut client: ClientServiceClient<T>,
+        channel: T,
         client_address: &[impl AsRef<str>],
         terminal_id: TerminalId,
     ) -> Result<(), Status>
@@ -60,6 +60,7 @@ impl DistributedCallback for CloseCallback {
         T::ResponseBody: Body<Data = Bytes> + Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
+        let mut client = TerminalServiceClient::new(channel);
         let Empty {} = client
             .close(TerminalAddress {
                 terminal_id: terminal_id.to_string(),

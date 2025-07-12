@@ -6,10 +6,10 @@ use tracing::info_span;
 use tracing::warn;
 use trz_gateway_server::server::Server;
 
-use crate::backend::protos::terrazzo::gateway::client::ListTerminalsRequest;
-use crate::backend::protos::terrazzo::gateway::client::MaybeString;
-use crate::backend::protos::terrazzo::gateway::client::TerminalDef;
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::protos::terrazzo::terminal::ListTerminalsRequest;
+use crate::backend::protos::terrazzo::terminal::MaybeString;
+use crate::backend::protos::terrazzo::terminal::TerminalDef;
+use crate::backend::protos::terrazzo::terminal::terminal_service_client::TerminalServiceClient;
 use crate::processes;
 
 pub async fn list_terminals(server: &Server, visited: Vec<String>) -> Vec<TerminalDef> {
@@ -36,7 +36,7 @@ pub async fn list_terminals(server: &Server, visited: Vec<String>) -> Vec<Termin
                     warn!("Client connection not found");
                     return;
                 };
-                let mut client = ClientServiceClient::new(client);
+                let mut client = TerminalServiceClient::new(client);
                 let terminals = client.list_terminals(ListTerminalsRequest {
                     visited: visited.clone(),
                 });

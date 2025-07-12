@@ -22,9 +22,9 @@ use crate::api::shared::terminal_schema::STREAMING_WINDOW_SIZE;
 use crate::api::shared::terminal_schema::TerminalDef;
 use crate::backend::client_service::routing::DistributedCallback;
 use crate::backend::client_service::routing::DistributedCallbackError;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
-use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalRequest;
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::protos::terrazzo::shared::ClientAddress;
+use crate::backend::protos::terrazzo::terminal::RegisterTerminalRequest;
+use crate::backend::protos::terrazzo::terminal::terminal_service_client::TerminalServiceClient;
 use crate::backend::throttling_stream::ThrottleProcessOutput;
 use crate::processes;
 use crate::processes::io::HybridReader;
@@ -88,7 +88,7 @@ impl DistributedCallback for RegisterCallback {
     }
 
     async fn remote<T>(
-        mut client: ClientServiceClient<T>,
+        channel: T,
         client_address: &[impl AsRef<str>],
         (_, mut request): (Option<ClientName>, RegisterTerminalRequest),
     ) -> Result<HybridReader, Status>
@@ -102,6 +102,7 @@ impl DistributedCallback for RegisterCallback {
         let def = def.ok_or_else(|| Status::invalid_argument("def"))?;
         let address = def.address.get_or_insert_default();
         address.via = Some(ClientAddress::of(client_address));
+        let mut client = TerminalServiceClient::new(channel);
         let stream = client.register(request).await?.into_inner();
         Ok(HybridReader::Remote(Box::new(stream)))
     }

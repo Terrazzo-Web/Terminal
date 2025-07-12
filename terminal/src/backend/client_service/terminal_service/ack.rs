@@ -17,10 +17,10 @@ use trz_gateway_server::server::Server;
 use super::convert::Impossible;
 use crate::backend::client_service::routing::DistributedCallback;
 use crate::backend::client_service::routing::DistributedCallbackError;
-use crate::backend::protos::terrazzo::gateway::client::AckRequest;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
-use crate::backend::protos::terrazzo::gateway::client::Empty;
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::protos::terrazzo::shared::ClientAddress;
+use crate::backend::protos::terrazzo::shared::Empty;
+use crate::backend::protos::terrazzo::terminal::AckRequest;
+use crate::backend::protos::terrazzo::terminal::terminal_service_client::TerminalServiceClient;
 use crate::backend::throttling_stream;
 
 pub fn ack(
@@ -57,7 +57,7 @@ impl DistributedCallback for AckCallback {
     }
 
     async fn remote<T>(
-        mut client: ClientServiceClient<T>,
+        channel: T,
         client_address: &[impl AsRef<str>],
         mut request: AckRequest,
     ) -> Result<(), Status>
@@ -68,6 +68,7 @@ impl DistributedCallback for AckCallback {
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         request.terminal.get_or_insert_default().via = Some(ClientAddress::of(client_address));
+        let mut client = TerminalServiceClient::new(channel);
         let Empty {} = client.ack(request).await?.into_inner();
         Ok(())
     }

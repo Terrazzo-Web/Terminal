@@ -19,9 +19,9 @@ use trz_gateway_server::server::Server;
 use super::convert::Impossible;
 use crate::backend::client_service::routing::DistributedCallback;
 use crate::backend::client_service::routing::DistributedCallbackError;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
-use crate::backend::protos::terrazzo::gateway::client::NewIdRequest;
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::protos::terrazzo::shared::ClientAddress;
+use crate::backend::protos::terrazzo::terminal::NewIdRequest;
+use crate::backend::protos::terrazzo::terminal::terminal_service_client::TerminalServiceClient;
 use crate::processes::next_terminal_id;
 
 pub fn new_id(
@@ -49,7 +49,7 @@ impl DistributedCallback for NewIdCallback {
     }
 
     async fn remote<T>(
-        mut client: ClientServiceClient<T>,
+        channel: T,
         client_address: &[impl AsRef<str>],
         (): (),
     ) -> Result<i32, Status>
@@ -62,6 +62,7 @@ impl DistributedCallback for NewIdCallback {
         let request = NewIdRequest {
             address: Some(ClientAddress::of(client_address)),
         };
+        let mut client = TerminalServiceClient::new(channel);
         let response = client.new_id(request).await;
         let id = response?.get_ref().next;
         debug!(id, "Allocated ID");
