@@ -119,7 +119,6 @@ impl App {
             #[cfg(feature = "terminal")]
             App::Terminal => icons::terminal(),
             App::TextEditor => icons::text_editor(),
-            App::Converter => icons::converter(),
         }
     }
 }

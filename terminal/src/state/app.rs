@@ -19,7 +19,6 @@ impl std::fmt::Display for App {
             #[cfg(feature = "terminal")]
             App::Terminal => "Terminal",
             App::TextEditor => "Text editor",
-            App::Converter => "Converter",
         }
         .fmt(f)
     }

@@ -6,7 +6,6 @@
 mod api;
 mod assets;
 mod backend;
-mod converter;
 mod frontend;
 mod processes;
 mod state;
