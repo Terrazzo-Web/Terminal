@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use axum::Json;
-use axum::response::IntoResponse;
-use terrazzo::axum;
+use terrazzo::axum::Json;
+use terrazzo::axum::response::IntoResponse;
 use tracing::Instrument as _;
 use tracing::info_span;
 use trz_gateway_common::http_error::HttpError;

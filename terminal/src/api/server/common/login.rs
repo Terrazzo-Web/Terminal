@@ -1,18 +1,11 @@
-#![cfg(feature = "server")]
-
-use std::sync::Arc;
-
-use axum::Router;
-use axum::response::IntoResponse;
-use axum::routing::get;
-use axum::routing::post;
 use axum_extra::extract::CookieJar;
-use http::HeaderMap;
-use http::StatusCode;
 use terrazzo::autoclone;
-use terrazzo::axum;
 use terrazzo::axum::Json;
-use terrazzo::http;
+use terrazzo::axum::Router;
+use terrazzo::axum::response::IntoResponse;
+use terrazzo::axum::routing::post;
+use terrazzo::http::HeaderMap;
+use terrazzo::http::StatusCode;
 use tracing::debug;
 use tracing::info;
 use tracing::info_span;
@@ -20,54 +13,25 @@ use tracing::warn;
 use trz_gateway_common::dynamic_config::DynamicConfig;
 use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 use trz_gateway_common::dynamic_config::mode;
-use trz_gateway_common::id::ClientName;
-use trz_gateway_server::server::Server;
 
 use crate::backend::auth::AuthConfig;
-use crate::backend::auth::AuthLayer;
 use crate::backend::config::DynConfig;
 
-mod correlation_id;
-mod remotes;
-mod terminal_api;
-
 #[autoclone]
-pub fn api_routes(
+pub fn login_routes(
     config: &DiffArc<DynConfig>,
     auth_config: &DiffArc<DynamicConfig<DiffArc<AuthConfig>, mode::RO>>,
-    server: &Arc<Server>,
 ) -> Router {
-    let mesh = &config.mesh;
-    let client_name = mesh.with(|mesh| Some(ClientName::from(mesh.as_ref()?.client_name.as_str())));
-    let router = Router::new()
-        .route(
-            "/login",
-            post(|cookies, headers, password| {
-                autoclone!(config, auth_config);
-                login(config, auth_config, cookies, headers, password)
-            }),
-        )
-        .route(
-            "/remotes",
-            get(|| {
-                autoclone!(client_name, server);
-                remotes::list(client_name, server)
-            }),
-        )
-        .route_layer(AuthLayer {
-            auth_config: auth_config.clone(),
-        });
-
-    #[cfg(feature = "terminal")]
-    let router = router.merge(terminal_api::router::terminal_api_routes(
-        config,
-        auth_config,
-        server,
-    ));
-    return router;
+    Router::new().route(
+        "/login",
+        post(|cookies, headers, password| {
+            autoclone!(config, auth_config);
+            login(config, auth_config, cookies, headers, password)
+        }),
+    )
 }
 
-pub async fn login(
+async fn login(
     config: DiffArc<DynConfig>,
     auth_config: DiffArc<DynamicConfig<DiffArc<AuthConfig>, mode::RO>>,
     cookies: CookieJar,

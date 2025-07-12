@@ -3,16 +3,15 @@
 use std::time::Duration;
 use std::time::SystemTime;
 
-use axum::body::Body;
-use axum::body::to_bytes;
-use axum::response::IntoResponse;
-use http::Request;
-use http::Response;
-use http::StatusCode;
-use http::header::AUTHORIZATION;
 use jsonwebtoken::Header;
 use terrazzo::axum;
-use terrazzo::http;
+use terrazzo::axum::body::Body;
+use terrazzo::axum::body::to_bytes;
+use terrazzo::axum::response::IntoResponse;
+use terrazzo::http::Request;
+use terrazzo::http::Response;
+use terrazzo::http::StatusCode;
+use terrazzo::http::header::AUTHORIZATION;
 
 use super::AuthConfig;
 use super::Claims;

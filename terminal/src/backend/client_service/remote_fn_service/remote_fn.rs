@@ -8,7 +8,7 @@ use trz_gateway_server::server::Server;
 
 use crate::api::client_address::ClientAddress;
 use crate::backend::client_service::remote_fn_service::RemoteFnError;
-use crate::backend::client_service::remote_fn_service::dispatch::dispatch;
+use crate::backend::client_service::remote_fn_service::dispatch::remote_fn_dispatch;
 use crate::backend::client_service::remote_fn_service::remote_fn_server;
 use crate::backend::protos::terrazzo::remotefn::RemoteFnRequest;
 
@@ -47,7 +47,7 @@ impl RemoteFn {
             let request =
                 serde_json::to_string(&request).map_err(RemoteFnError::SerializeRequest)?;
 
-            let response = dispatch(
+            let response = remote_fn_dispatch(
                 &server,
                 &address,
                 RemoteFnRequest {

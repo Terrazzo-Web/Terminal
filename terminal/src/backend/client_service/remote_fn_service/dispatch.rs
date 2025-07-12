@@ -10,7 +10,7 @@ use crate::backend::client_service::routing::DistributedCallback as _;
 use crate::backend::protos::terrazzo::remotefn::RemoteFnRequest;
 
 /// Calls a [RemoteFn] using the [DistributedCallback] framework.
-pub fn dispatch(
+pub fn remote_fn_dispatch(
     server: &Server,
     client_address: &[impl AsRef<str>],
     request: RemoteFnRequest,

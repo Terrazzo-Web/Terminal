@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use axum::Router;
-use axum::routing::get;
-use axum::routing::post;
 use terrazzo::autoclone;
-use terrazzo::axum;
+use terrazzo::axum::Router;
+use terrazzo::axum::routing::get;
+use terrazzo::axum::routing::post;
 use trz_gateway_common::dynamic_config::DynamicConfig;
 use trz_gateway_common::dynamic_config::has_diff::DiffArc;
 use trz_gateway_common::dynamic_config::mode;
@@ -19,7 +18,7 @@ use crate::api::server::terminal_api::stream;
 use crate::api::server::terminal_api::terminals;
 use crate::api::server::terminal_api::write;
 use crate::backend::auth::AuthConfig;
-use crate::backend::auth::AuthLayer;
+use crate::backend::auth::layer::AuthLayer;
 use crate::backend::config::DynConfig;
 
 #[autoclone]

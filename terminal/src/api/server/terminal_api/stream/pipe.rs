@@ -4,8 +4,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::SeqCst;
 use std::time::Duration;
 
-use axum::body::Body;
-use axum::response::IntoResponse;
 use futures::Stream;
 use futures::StreamExt as _;
 use futures::stream::once;
@@ -14,7 +12,8 @@ use scopeguard::defer;
 use scopeguard::guard;
 use static_assertions::const_assert;
 use terrazzo::autoclone;
-use terrazzo::axum;
+use terrazzo::axum::body::Body;
+use terrazzo::axum::response::IntoResponse;
 use terrazzo_pty::lease::LeaseItem;
 use tracing::Span;
 use tracing::debug;
@@ -26,10 +25,10 @@ use trz_gateway_common::http_error::HttpError;
 use trz_gateway_server::server::Server;
 
 use super::registration::PingTimeoutError;
+use super::registration::Registration;
 use crate::api::KEEPALIVE_TTL_HEADER;
 use crate::api::NEWLINE;
 use crate::api::server::correlation_id::CorrelationId;
-use crate::api::server::stream::registration::Registration;
 use crate::api::shared::terminal_schema::Chunk;
 use crate::backend::client_service::terminal_service;
 
