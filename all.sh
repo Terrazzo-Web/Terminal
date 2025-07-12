@@ -2,23 +2,27 @@
 
 set -e
 
-cargo check --no-default-features --features client,max-level-debug,diagnostics
-cargo check --no-default-features --features client,max-level-info --release
+cargo check --no-default-features --features all,client,max-level-debug,diagnostics
+cargo check --no-default-features --features all,client,max-level-info --release
 cargo check --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
 cargo check --bin game --no-default-features --features server,max-level-info --release
-cargo check --bin terrazzo-terminal --no-default-features --features server,max-level-debug,debug,diagnostics
-cargo check --bin terrazzo-terminal --no-default-features --features server,max-level-info --release
+cargo check --bin terrazzo-terminal --no-default-features --features all,server,max-level-debug,debug,diagnostics
+cargo check --bin terrazzo-terminal --no-default-features --features all,server,max-level-info --release
 
-cargo clippy --no-default-features --features client,max-level-debug,diagnostics
-cargo clippy --no-default-features --features client,max-level-info --release
+cargo check --bin terrazzo-terminal --no-default-features --features server,max-level-debug,debug,diagnostics
+cargo check --bin terrazzo-terminal --no-default-features --features server,max-level-debug,debug,diagnostics,terminal-server
+cargo check --bin terrazzo-terminal --no-default-features --features server,max-level-debug,debug,diagnostics,text-editor-server
+
+cargo clippy --no-default-features --features all,client,max-level-debug,diagnostics
+cargo clippy --no-default-features --features all,client,max-level-info --release
 cargo clippy --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
 cargo clippy --bin game --no-default-features --features server,max-level-info --release
-cargo clippy --bin terrazzo-terminal --no-default-features --features server,max-level-debug,debug,diagnostics
-cargo clippy --bin terrazzo-terminal --no-default-features --features server,max-level-info --release
+cargo clippy --bin terrazzo-terminal --no-default-features --features all,server,max-level-debug,debug,diagnostics
+cargo clippy --bin terrazzo-terminal --no-default-features --features all,server,max-level-info --release
 
-cargo test --no-default-features --features client
-cargo test --no-default-features --features server
-cargo test --no-default-features --features client,server
+cargo test --no-default-features --features all,client
+cargo test --no-default-features --features all,server
+cargo test --no-default-features --features all,client,server
 
 cargo build --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
 cargo build --bin game --no-default-features --features server,max-level-info --release

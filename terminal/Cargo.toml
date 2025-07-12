@@ -99,9 +99,11 @@ tonic-build = { workspace = true, features = ["prost"] }
 fluent-asserter = { workspace = true }
 
 [features]
-default = ["server", "max-level-info"]
+default = ["prod"]
+prod = ["server", "max-level-info", "all"]
+all = ["terminal-server"]
+
 client = [
-    "dep:serde-wasm-bindgen",
     "dep:stylance",
     "dep:wasm-bindgen-futures",
     "dep:wasm-bindgen",
@@ -117,9 +119,7 @@ server = [
     "dep:humantime",
     "dep:inventory",
     "dep:jsonwebtoken",
-    "dep:libc",
     "dep:nix",
-    "dep:notify",
     "dep:openssl",
     "dep:pbkdf2",
     "dep:prost-types",
@@ -127,7 +127,6 @@ server = [
     "dep:rpassword",
     "dep:sha2",
     "dep:pin-project",
-    "dep:tokio-stream",
     "dep:tokio",
     "dep:toml",
     "dep:tonic",
@@ -157,6 +156,7 @@ concise-traces = ["terrazzo?/concise-traces"]
 diagnostics = ["terrazzo?/diagnostics"]
 no_wasm_build = []
 debug = ["terrazzo?/debug"]
+correlation-id = []
 
 terminal = ["correlation-id"]
 terminal-client = ["terminal", "dep:pin-project", "dep:wasm-streams"]
@@ -168,7 +168,15 @@ terminal-server = [
     "dep:tracing-futures",
     "terminal",
 ]
-correlation-id = []
+
+text-editor = []
+text-editor-client = ["dep:serde-wasm-bindgen", "text-editor"]
+text-editor-server = [
+    "dep:libc",
+    "dep:notify",
+    "dep:tokio-stream",
+    "text-editor",
+]
 
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo-terminal.scss"

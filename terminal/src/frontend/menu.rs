@@ -63,6 +63,7 @@ fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -
             show_menu_mut.clone(),
             hide_menu.clone(),
         ));
+        #[cfg(feature = "text-editor")]
         items.push(menu_item(
             App::TextEditor,
             app(),
@@ -112,6 +113,7 @@ impl App {
         match self {
             #[cfg(feature = "terminal")]
             App::Terminal => icons::terminal(),
+            #[cfg(feature = "text-editor")]
             App::TextEditor => icons::text_editor(),
         }
     }

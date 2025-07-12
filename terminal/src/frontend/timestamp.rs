@@ -1,3 +1,5 @@
+#![allow(unused)] // TODO
+
 use std::sync::Arc;
 use std::time::Duration;
 

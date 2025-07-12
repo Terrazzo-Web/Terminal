@@ -1,3 +1,5 @@
+#![cfg(feature = "text-editor")]
+
 mod autocomplete;
 mod code_mirror;
 mod editor;

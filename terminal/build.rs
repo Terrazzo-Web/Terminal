@@ -5,7 +5,6 @@ use heck::ToKebabCase as _;
 use heck::ToShoutySnakeCase as _;
 use terrazzo_build::BuildOptions;
 
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug)]
 enum Feature {
     DocsRs,
@@ -13,13 +12,15 @@ enum Feature {
     Server,
     MaxLevelDebug,
     MaxLevelInfo,
-    ConsiseTraces,
     Diagnostics,
     NoWasmBuild,
     Debug,
     Terminal,
     TerminalClient,
     TerminalServer,
+    TextEditor,
+    TextEditorClient,
+    TextEditorServer,
 }
 
 impl Feature {
@@ -71,7 +72,10 @@ fn build_client() {
     let Some(disable_server_feature) = Feature::Server.disable() else {
         return;
     };
-    let disable_terminal_server_feature = Feature::TerminalServer.disable();
+    let disable_server_features = (
+        Feature::TerminalServer.disable(),
+        Feature::TextEditorServer.disable(),
+    );
 
     if Feature::Client.is_set() {
         println!("cargo::warning=Can't enable both 'client' and 'server' features");
@@ -91,6 +95,9 @@ fn build_client() {
     if Feature::Terminal.is_set() {
         Feature::TerminalClient.add(&mut wasm_pack_options);
     }
+    if Feature::TextEditor.is_set() {
+        Feature::TextEditorClient.add(&mut wasm_pack_options);
+    }
     let wasm_pack_options = wasm_pack_options
         .iter()
         .map(|s| s.as_str())
@@ -105,7 +112,7 @@ fn build_client() {
     terrazzo_build::build_css();
 
     drop(disable_server_feature);
-    drop(disable_terminal_server_feature);
+    drop(disable_server_features);
 }
 
 fn build_protos() {

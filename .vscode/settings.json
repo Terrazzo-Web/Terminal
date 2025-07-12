@@ -6,5 +6,7 @@
         "diagnostics",
         "terminal-client",
         "terminal-server",
+        "text-editor-client",
+        "text-editor-server",
     ],
 }
