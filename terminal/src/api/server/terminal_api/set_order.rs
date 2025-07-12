@@ -5,7 +5,7 @@ use tracing::Instrument as _;
 use tracing::debug_span;
 use trz_gateway_server::server::Server;
 
-use crate::api::TerminalAddress;
+use crate::api::shared::terminal_schema::TerminalAddress;
 use crate::backend::client_service::set_order;
 use crate::backend::protos::terrazzo::gateway::client::OrderedTerminal;
 

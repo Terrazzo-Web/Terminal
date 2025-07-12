@@ -11,8 +11,8 @@ use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
 use super::registration::Registration;
-use crate::api::RegisterTerminalRequest;
-use crate::api::TerminalAddress;
+use crate::api::shared::terminal_schema::RegisterTerminalRequest;
+use crate::api::shared::terminal_schema::TerminalAddress;
 use crate::backend::client_service::register;
 use crate::backend::client_service::register::RegisterStreamError as DistributedRegisterStreamError;
 use crate::processes;

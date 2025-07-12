@@ -6,10 +6,10 @@ use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 use uuid::Uuid;
 
-use crate::api::TabTitle;
-use crate::api::TerminalAddress;
-use crate::api::TerminalDef;
 use crate::api::client_address::ClientAddress;
+use crate::api::shared::terminal_schema::TabTitle;
+use crate::api::shared::terminal_schema::TerminalAddress;
+use crate::api::shared::terminal_schema::TerminalDef;
 use crate::backend::client_service::new_id;
 use crate::backend::client_service::new_id::NewIdError;
 

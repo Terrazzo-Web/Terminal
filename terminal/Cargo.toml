@@ -163,6 +163,8 @@ diagnostics = ["terrazzo?/diagnostics"]
 no_wasm_build = []
 debug = ["terrazzo?/debug"]
 
+terminal = []
+
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo-terminal.scss"
 folders = ["./src/"]

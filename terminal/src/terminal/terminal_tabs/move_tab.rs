@@ -61,7 +61,7 @@ pub fn move_tab(state: TerminalsState, after_tab: Option<TerminalTab>, moved_tab
         .map(|tab| tab.address.clone())
         .collect();
     let set_order_task = async move {
-        let () = api::client::set_order::set_order(tabs)
+        let () = api::client::terminal_api::set_order::set_order(tabs)
             .await
             .unwrap_or_else(|error| warn!("Failed to set order: {error}"));
     };

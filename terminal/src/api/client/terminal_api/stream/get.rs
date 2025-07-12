@@ -18,14 +18,14 @@ use self::diagnostics::Instrument as _;
 use self::diagnostics::info;
 use self::diagnostics::info_span;
 use super::DISPATCHERS;
+use super::ShutdownPipe;
 use super::StreamDispatchers;
 use super::ack;
 use super::pipe::PipeError;
 use super::pipe::pipe;
 use super::register::RegisterError;
 use super::register::register;
-use crate::api::RegisterTerminalRequest;
-use crate::api::client::stream::ShutdownPipe;
+use crate::api::shared::terminal_schema::RegisterTerminalRequest;
 use crate::terminal_id::TerminalId;
 
 declare_trait_aliias!(TerminalStream, Stream<Item = Vec<Option<Vec<u8>>>> + Unpin);

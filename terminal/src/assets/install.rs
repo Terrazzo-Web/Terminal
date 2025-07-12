@@ -41,8 +41,10 @@ fn install_icons() {
     install_icon(super::icons::loading());
     install_icon(super::icons::menu());
     install_icon(super::icons::slash());
-    install_icon(super::icons::terminal());
     install_icon(super::icons::text_editor());
+
+    #[cfg(feature = "terminal")]
+    install_icon(super::icons::terminal());
 }
 
 fn install_xterm() {

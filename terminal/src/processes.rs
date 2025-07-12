@@ -7,7 +7,7 @@ use dashmap::DashMap;
 use terrazzo_pty::lease::ProcessIoEntry;
 
 use super::terminal_id::TerminalId;
-use crate::api::TerminalDef;
+use crate::api::shared::terminal_schema::TerminalDef;
 
 pub mod close;
 pub mod io;

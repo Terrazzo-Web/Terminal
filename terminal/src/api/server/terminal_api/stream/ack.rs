@@ -4,7 +4,7 @@ use terrazzo::axum::Json;
 use trz_gateway_common::http_error::HttpError;
 use trz_gateway_server::server::Server;
 
-use crate::api::AckRequest;
+use crate::api::shared::terminal_schema::AckRequest;
 use crate::backend::client_service::ack;
 use crate::backend::client_service::ack::AckError;
 use crate::backend::protos::terrazzo::gateway::client::AckRequest as AckRequestProto;

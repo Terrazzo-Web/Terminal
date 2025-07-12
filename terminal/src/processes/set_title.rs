@@ -5,7 +5,7 @@ use tracing::trace;
 use trz_gateway_common::http_error::IsHttpError;
 
 use super::get_processes;
-use crate::api::TabTitle;
+use crate::api::shared::terminal_schema::TabTitle;
 use crate::terminal_id::TerminalId;
 
 pub fn set_title(

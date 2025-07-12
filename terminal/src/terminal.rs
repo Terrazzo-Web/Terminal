@@ -1,4 +1,5 @@
 #![cfg(feature = "client")]
+#![cfg(feature = "terminal")]
 
 use terminal_tab::TerminalTab;
 use terrazzo::html;
@@ -14,7 +15,7 @@ use self::diagnostics::debug;
 use self::diagnostics::info;
 use self::diagnostics::warn;
 use self::terminal_tabs::TerminalTabs;
-use crate::api;
+use crate::api::client::terminal_api;
 use crate::terminal_id::TerminalId;
 
 stylance::import_crate_style!(style, "src/terminal.scss");
@@ -70,7 +71,7 @@ pub fn render_terminals(state: TerminalsState, #[signal] terminal_tabs: Terminal
 
 fn refresh_terminal_tabs(selected_tab: XSignal<TerminalId>, terminal_tabs: XSignal<TerminalTabs>) {
     let refresh_terminal_tabs_task = async move {
-        let terminal_defs = match api::client::list::list().await {
+        let terminal_defs = match terminal_api::list::list().await {
             Ok(terminal_defs) => terminal_defs,
             Err(error) => {
                 warn!("Failed to load terminal definitions: {error}");
@@ -113,8 +114,8 @@ impl TerminalsState {
             }
         }
         terminal_tabs.update(|terminal_tabs| Some(terminal_tabs.clone().remove_tab(terminal_id)));
-        if let Some(last_dispatcher) = api::client::stream::drop_dispatcher(terminal_id) {
-            spawn_local(api::client::stream::close_pipe(last_dispatcher).in_current_span());
+        if let Some(last_dispatcher) = terminal_api::stream::drop_dispatcher(terminal_id) {
+            spawn_local(terminal_api::stream::close_pipe(last_dispatcher).in_current_span());
         }
     }
 }

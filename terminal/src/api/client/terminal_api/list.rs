@@ -1,12 +1,14 @@
+#![cfg(feature = "terminal")]
+
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use wasm_bindgen_futures::JsFuture;
 
-use super::request::BASE_URL;
-use super::request::Method;
-use super::request::SendRequestError;
-use super::request::send_request;
-use crate::api::TerminalDef;
+use super::super::request::BASE_URL;
+use super::super::request::Method;
+use super::super::request::SendRequestError;
+use super::super::request::send_request;
+use crate::api::shared::terminal_schema::TerminalDef;
 
 #[nameth]
 pub async fn list() -> Result<Vec<TerminalDef>, ListTerminalsError> {

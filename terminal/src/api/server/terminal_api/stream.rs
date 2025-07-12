@@ -10,8 +10,8 @@ use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
 use self::register::RegisterStreamError;
-use super::correlation_id::CorrelationId;
-use crate::api::RegisterTerminalRequest;
+use crate::api::server::correlation_id::CorrelationId;
+use crate::api::shared::terminal_schema::RegisterTerminalRequest;
 
 mod ack;
 mod close;

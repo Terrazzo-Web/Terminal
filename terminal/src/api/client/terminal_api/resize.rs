@@ -1,15 +1,17 @@
+#![cfg(feature = "terminal")]
+
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use web_sys::Response;
 
-use super::request::BASE_URL;
-use super::request::Method;
-use super::request::SendRequestError;
-use super::request::send_request;
-use super::request::set_json_body;
-use crate::api::ResizeRequest;
-use crate::api::Size;
-use crate::api::TerminalAddress;
+use super::super::request::BASE_URL;
+use super::super::request::Method;
+use super::super::request::SendRequestError;
+use super::super::request::send_request;
+use super::super::request::set_json_body;
+use crate::api::shared::terminal_schema::ResizeRequest;
+use crate::api::shared::terminal_schema::Size;
+use crate::api::shared::terminal_schema::TerminalAddress;
 
 #[nameth]
 pub async fn resize(

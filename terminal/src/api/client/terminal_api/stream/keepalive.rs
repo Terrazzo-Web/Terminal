@@ -9,13 +9,13 @@ use terrazzo::prelude::diagnostics::debug;
 use terrazzo::prelude::diagnostics::warn;
 use wasm_bindgen_futures::spawn_local;
 
+use super::pipe::PIPE;
 use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
-use crate::api::client::stream::pipe::PIPE;
 use crate::frontend::utils::sleep;
 
 #[nameth]

@@ -11,7 +11,6 @@ use self::diagnostics::debug;
 use self::diagnostics::info_span;
 use self::diagnostics::warn;
 use super::DISPATCHERS;
-use crate::api::TerminalAddress;
 use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
@@ -20,6 +19,7 @@ use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
 use crate::api::client::request::set_json_body;
+use crate::api::shared::terminal_schema::TerminalAddress;
 use crate::terminal_id::TerminalId;
 
 /// Sends a request to close the process.

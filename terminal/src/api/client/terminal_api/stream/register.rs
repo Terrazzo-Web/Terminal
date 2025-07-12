@@ -3,12 +3,12 @@ use nameth::nameth;
 use web_sys::Response;
 
 use super::pipe::PipeError;
-use crate::api::RegisterTerminalRequest;
 use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_json_body;
+use crate::api::shared::terminal_schema::RegisterTerminalRequest;
 
 /// Instructs the server to include `terminal_id`'s data in the pipe.
 #[nameth]

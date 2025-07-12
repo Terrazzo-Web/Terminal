@@ -4,7 +4,7 @@ use terrazzo::axum::Json;
 use trz_gateway_common::http_error::HttpError;
 use trz_gateway_server::server::Server;
 
-use crate::api::SetTitleRequest;
+use crate::api::shared::terminal_schema::SetTitleRequest;
 use crate::backend::client_service::set_title;
 use crate::backend::client_service::set_title::SetTitleError;
 use crate::backend::protos::terrazzo::gateway::client::MaybeString;

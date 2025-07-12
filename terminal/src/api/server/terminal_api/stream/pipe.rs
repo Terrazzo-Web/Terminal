@@ -26,11 +26,11 @@ use trz_gateway_common::http_error::HttpError;
 use trz_gateway_server::server::Server;
 
 use super::registration::PingTimeoutError;
-use crate::api::Chunk;
 use crate::api::KEEPALIVE_TTL_HEADER;
 use crate::api::NEWLINE;
 use crate::api::server::correlation_id::CorrelationId;
 use crate::api::server::stream::registration::Registration;
+use crate::api::shared::terminal_schema::Chunk;
 use crate::backend::client_service;
 
 pub const PIPE_TTL: Duration = if cfg!(feature = "concise-traces") {

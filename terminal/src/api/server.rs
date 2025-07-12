@@ -22,15 +22,16 @@ use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
 mod correlation_id;
-mod new_id;
 mod remotes;
-mod resize;
-mod set_order;
-mod set_title;
-mod stream;
-mod terminals;
-mod write;
+mod terminal_api;
 
+use crate::api::server::terminal_api::new_id;
+use crate::api::server::terminal_api::resize;
+use crate::api::server::terminal_api::set_order;
+use crate::api::server::terminal_api::set_title;
+use crate::api::server::terminal_api::stream;
+use crate::api::server::terminal_api::terminals;
+use crate::api::server::terminal_api::write;
 use crate::backend::auth::AuthConfig;
 use crate::backend::auth::AuthLayer;
 use crate::backend::config::DynConfig;

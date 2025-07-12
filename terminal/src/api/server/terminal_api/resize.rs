@@ -4,7 +4,7 @@ use terrazzo::axum::Json;
 use trz_gateway_common::http_error::HttpError;
 use trz_gateway_server::server::Server;
 
-use crate::api::ResizeRequest;
+use crate::api::shared::terminal_schema::ResizeRequest;
 use crate::backend::client_service::resize;
 use crate::backend::client_service::resize::ResizeError;
 use crate::backend::protos::terrazzo::gateway::client::ResizeRequest as ResizeRequestProto;

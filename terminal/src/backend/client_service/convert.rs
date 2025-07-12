@@ -2,12 +2,8 @@ use tonic::Status;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
 
-use crate::api::RegisterTerminalMode;
-use crate::api::RegisterTerminalRequest;
-use crate::api::TabTitle;
-use crate::api::TerminalAddress;
-use crate::api::TerminalDef;
 use crate::api::client_address::ClientAddress;
+use crate::api::shared::terminal_schema::*;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
 use crate::backend::protos::terrazzo::gateway::client::FilePath as FilePathProto;
 use crate::backend::protos::terrazzo::gateway::client::MaybeString;

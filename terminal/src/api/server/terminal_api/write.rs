@@ -4,7 +4,7 @@ use terrazzo::axum::Json;
 use trz_gateway_common::http_error::HttpError;
 use trz_gateway_server::server::Server;
 
-use crate::api::WriteRequest;
+use crate::api::shared::terminal_schema::WriteRequest;
 use crate::backend::client_service::write;
 use crate::backend::client_service::write::WriteError;
 use crate::backend::protos::terrazzo::gateway::client::WriteRequest as WriteRequestProto;

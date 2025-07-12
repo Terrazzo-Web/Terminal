@@ -8,8 +8,8 @@ use terrazzo::prelude::diagnostics;
 use self::diagnostics::trace;
 use self::diagnostics::warn;
 use super::DISPATCHERS;
-use crate::api::Chunk;
 use crate::api::NEWLINE;
+use crate::api::shared::terminal_schema::Chunk;
 use crate::terminal_id::TerminalId;
 
 pub async fn dispatch(buffer: &mut Vec<u8>) {

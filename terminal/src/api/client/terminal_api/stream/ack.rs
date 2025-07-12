@@ -11,14 +11,14 @@ use web_sys::Response;
 
 use self::diagnostics::debug;
 use self::diagnostics::warn;
-use crate::api::AckRequest;
 use crate::api::STREAMING_WINDOW_SIZE;
-use crate::api::TerminalAddress;
 use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_json_body;
+use crate::api::shared::terminal_schema::AckRequest;
+use crate::api::shared::terminal_schema::TerminalAddress;
 
 pub fn setup_acks(
     terminal: TerminalAddress,

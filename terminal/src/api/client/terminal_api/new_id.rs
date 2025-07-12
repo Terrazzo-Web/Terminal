@@ -1,15 +1,17 @@
+#![cfg(feature = "terminal")]
+
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::Response;
 
-use super::request::BASE_URL;
-use super::request::Method;
-use super::request::SendRequestError;
-use super::request::send_request;
-use super::request::set_json_body;
-use crate::api::TerminalDef;
+use super::super::request::BASE_URL;
+use super::super::request::Method;
+use super::super::request::SendRequestError;
+use super::super::request::send_request;
+use super::super::request::set_json_body;
 use crate::api::client_address::ClientAddress;
+use crate::api::shared::terminal_schema::TerminalDef;
 
 #[nameth]
 pub async fn new_id(address: ClientAddress) -> Result<TerminalDef, NewIdError> {

@@ -12,8 +12,8 @@ use tracing::info;
 use trz_gateway_common::http_error::IsHttpError;
 
 use super::pipe::PIPE_TTL;
-use crate::api::TerminalAddress;
 use crate::api::server::correlation_id::CorrelationId;
+use crate::api::shared::terminal_schema::TerminalAddress;
 use crate::processes::io::LocalReader;
 
 type OutputStreamBase = LocalReader;

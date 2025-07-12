@@ -19,9 +19,9 @@ use trz_gateway_server::server::Server;
 
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
-use crate::api::RegisterTerminalMode;
 use crate::api::STREAMING_WINDOW_SIZE;
-use crate::api::TerminalDef;
+use crate::api::shared::terminal_schema::RegisterTerminalMode;
+use crate::api::shared::terminal_schema::TerminalDef;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalRequest;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
