@@ -8,7 +8,7 @@ use tracing::info;
 use trz_gateway_server::server::Server;
 
 use super::get_processes;
-use crate::api::TerminalDef;
+use crate::api::shared::terminal_schema::TerminalDef;
 use crate::terminal_id::TerminalId;
 
 pub async fn open_stream<F>(

@@ -3,6 +3,7 @@
         "client",
         "server",
         "no_wasm_build",
-        "diagnostics"
+        "diagnostics",
+        "terminal"
     ],
 }

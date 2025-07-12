@@ -16,7 +16,7 @@ use trz_gateway_server::server::Server;
 
 use super::routing::DistributedCallback;
 use super::routing::DistributedCallbackError;
-use crate::api::TabTitle;
+use crate::api::shared::terminal_schema::TabTitle;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::Empty;
 use crate::backend::protos::terrazzo::gateway::client::SetTitleRequest;

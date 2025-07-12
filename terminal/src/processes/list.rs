@@ -1,5 +1,5 @@
 use super::get_processes;
-use crate::api::TerminalDef;
+use crate::api::shared::terminal_schema::TerminalDef;
 
 pub fn list() -> Vec<TerminalDef> {
     let mut processes = get_processes()
