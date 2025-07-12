@@ -15,7 +15,6 @@ use web_sys::Response;
 use self::diagnostics::debug;
 use self::diagnostics::warn;
 use crate::api::APPLICATION_JSON;
-use crate::api::CORRELATION_ID;
 use crate::frontend::login::LoggedInStatus;
 use crate::frontend::login::logged_in;
 
@@ -121,10 +120,12 @@ pub fn set_content_type_json(headers: &mut Headers) {
         .or_throw("Set 'content-type'");
 }
 
+#[cfg(feature = "terminal")]
 pub fn set_correlation_id<'a>(
     correlation_id: impl Into<Option<&'a str>>,
 ) -> impl FnOnce(&mut Headers) {
     move |headers| {
+        use crate::api::CORRELATION_ID;
         if let Some(correlation_id) = correlation_id.into() {
             headers
                 .set(CORRELATION_ID, correlation_id)
@@ -133,10 +134,12 @@ pub fn set_correlation_id<'a>(
     }
 }
 
+#[cfg(feature = "terminal")]
 pub trait ThenRequest {
     fn then(self, next: impl FnOnce(&RequestInit)) -> impl FnOnce(&RequestInit);
 }
 
+#[cfg(feature = "terminal")]
 impl<F: FnOnce(&RequestInit)> ThenRequest for F {
     fn then(self, next: impl FnOnce(&RequestInit)) -> impl FnOnce(&RequestInit) {
         move |request| {

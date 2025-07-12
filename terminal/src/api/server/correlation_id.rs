@@ -1,3 +1,5 @@
+#![cfg(feature = "correlation-id")]
+
 use std::sync::Arc;
 
 use nameth::NamedEnumValues as _;

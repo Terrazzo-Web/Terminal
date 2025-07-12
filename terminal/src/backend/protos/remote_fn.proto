@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package terrazzo.remotefn;
+
+import "shared.proto";
+
+service RemoteFnService {
+  rpc CallServerFn(RemoteFnRequest) returns (ServerFnResponse);
+}
+ 
+message RemoteFnRequest {
+  terrazzo.shared.ClientAddress address = 1;
+  string server_fn_name = 2;
+  string json = 3;
+}
+
+message ServerFnResponse {
+  string json = 1;
+}

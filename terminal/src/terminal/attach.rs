@@ -23,10 +23,11 @@ use self::diagnostics::warn;
 use super::TerminalsState;
 use super::javascript::TerminalJs;
 use super::terminal_tab::TerminalTab;
-use crate::api;
-use crate::api::TabTitle;
-use crate::api::TerminalAddress;
-use crate::api::TerminalDef;
+use crate::api::client::terminal_api;
+use crate::api::shared::terminal_schema;
+use crate::api::shared::terminal_schema::TabTitle;
+use crate::api::shared::terminal_schema::TerminalAddress;
+use crate::api::shared::terminal_schema::TerminalDef;
 
 const XTERMJS_ATTR: &str = "data-xtermjs";
 const IS_ATTACHED: &str = "Y";
@@ -124,11 +125,11 @@ impl TerminalJs {
     }
 
     async fn do_resize(self, terminal: TerminalAddress, force: bool) {
-        let size = api::Size {
+        let size = terminal_schema::Size {
             rows: self.rows().as_f64().or_throw("rows") as i32,
             cols: self.cols().as_f64().or_throw("cols") as i32,
         };
-        if let Err(error) = api::client::resize::resize(&terminal, size, force).await {
+        if let Err(error) = terminal_api::resize::resize(&terminal, size, force).await {
             warn!("Failed to resize: {error}");
         }
     }
@@ -161,7 +162,7 @@ impl TerminalJs {
                 self.fit();
                 ready(())
             };
-            let eos = api::client::stream::stream(state, terminal_def, element, on_init, |data| {
+            let eos = terminal_api::stream::stream(state, terminal_def, element, on_init, |data| {
                 self.send(data)
             })
             .await;
@@ -182,7 +183,7 @@ async fn write_loop(terminal: &TerminalAddress, input_rx: mpsc::UnboundedReceive
         let mut input_rx = input_rx.ready_chunks(10);
         while let Some(data) = &input_rx.next().await {
             let data = data.join("");
-            if let Err(error) = api::client::write::write(terminal, data).await {
+            if let Err(error) = terminal_api::write::write(terminal, data).await {
                 error!("Failed to write to the terminal: {error}");
                 return;
             }

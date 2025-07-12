@@ -13,7 +13,7 @@ use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::protos::terrazzo::remotefn::remote_fn_service_client::RemoteFnServiceClient;
 
 pub trait DistributedCallback {
     type Request;
@@ -41,8 +41,7 @@ pub trait DistributedCallback {
                         .ok_or_else(|| {
                             DistributedCallbackError::RemoteClientNotFound(client_address_leaf)
                         })?;
-                    let client = ClientServiceClient::new(channel);
-                    Ok(Self::remote(client, rest, request)
+                    Ok(Self::remote(channel, rest, request)
                         .await
                         .map_err(DistributedCallbackError::RemoteError)?)
                 }
@@ -60,7 +59,7 @@ pub trait DistributedCallback {
     ) -> impl Future<Output = Result<Self::Response, Self::LocalError>>;
 
     async fn remote<T>(
-        client: ClientServiceClient<T>,
+        channel: T,
         client_address: &[impl AsRef<str>],
         request: Self::Request,
     ) -> Result<Self::Response, Self::RemoteError>

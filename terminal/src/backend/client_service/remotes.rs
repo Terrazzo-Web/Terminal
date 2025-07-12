@@ -8,9 +8,7 @@ use tracing::debug_span;
 use tracing::warn;
 use trz_gateway_server::server::Server;
 
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
-use crate::backend::protos::terrazzo::gateway::client::ListRemotesRequest;
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
+use crate::backend::protos::terrazzo::shared::ClientAddress;
 
 pub async fn list_remotes(server: &Server, visited: Vec<String>) -> Vec<ClientAddress> {
     async {

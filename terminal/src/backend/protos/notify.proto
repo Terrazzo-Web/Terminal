@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package terrazzo.notify;
+
+import "shared.proto";
+
+service NotifyService {
+  rpc Notify(stream NotifyRequest) returns (stream NotifyResponse);
+}
+
+message NotifyRequest {
+  oneof request_type {
+    terrazzo.shared.ClientAddress address = 1;
+    FilePath watch = 2;
+    FilePath unwatch = 3;
+  }
+}
+
+message FilePath {
+  string base = 1;
+  string file = 2;
+}
+
+message NotifyResponse {
+  string path = 1;
+  
+  oneof kind {
+    FileEventKind file = 2;
+    string cargo_check = 3;
+  }
+ 
+  enum FileEventKind {
+    ERROR = 0;
+    CREATE = 1;
+    MODIFY = 2;
+    DELETE = 3;
+  }
+}

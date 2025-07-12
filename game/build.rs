@@ -31,10 +31,10 @@ fn main() {
 
     let mut wasm_pack_options = vec!["--no-default-features", "--features", "client"];
     if env::var(MAX_LEVEL_INFO).is_ok() {
-        wasm_pack_options.extend(["--features", "max_level_info"]);
+        wasm_pack_options.extend(["--features", "max-level-info"]);
     }
     if env::var(MAX_LEVEL_DEBUG).is_ok() {
-        wasm_pack_options.extend(["--features", "max_level_debug"]);
+        wasm_pack_options.extend(["--features", "max-level-debug"]);
     }
     if env::var(DIAGNOSTICS).is_ok() {
         wasm_pack_options.extend(["--features", "diagnostics"]);

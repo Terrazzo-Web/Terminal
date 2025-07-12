@@ -55,6 +55,20 @@ pub fn menu() -> XElement {
 #[template(tag = ul)]
 fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -> XElement {
     if show_menu {
+        let mut items = vec![];
+        #[cfg(feature = "terminal")]
+        items.push(menu_item(
+            App::Terminal,
+            app(),
+            show_menu_mut.clone(),
+            hide_menu.clone(),
+        ));
+        items.push(menu_item(
+            App::TextEditor,
+            app(),
+            show_menu_mut.clone(),
+            hide_menu.clone(),
+        ));
         tag(
             class = style::menu_items,
             mouseover = move |_: MouseEvent| {
@@ -62,18 +76,7 @@ fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -
                 hide_menu.cancel();
                 show_menu_mut.set(true);
             },
-            menu_item(
-                App::Terminal,
-                app(),
-                show_menu_mut.clone(),
-                hide_menu.clone(),
-            ),
-            menu_item(
-                App::TextEditor,
-                app(),
-                show_menu_mut.clone(),
-                hide_menu.clone(),
-            ),
+            items..,
         )
     } else {
         tag(style::visibility = "hidden", style::display = "none")
@@ -107,6 +110,7 @@ fn menu_item(
 impl App {
     pub fn icon(&self) -> icons::Icon {
         match self {
+            #[cfg(feature = "terminal")]
             App::Terminal => icons::terminal(),
             App::TextEditor => icons::text_editor(),
         }
@@ -118,7 +122,7 @@ pub fn app() -> XSignal<App> {
     static STATIC: OnceLock<XSignal<App>> = OnceLock::new();
     STATIC
         .get_or_init(|| {
-            let app = XSignal::new("app", App::Terminal);
+            let app = XSignal::new("app", App::default());
             let load_app_task = async move {
                 autoclone!(app);
                 // The client address is set per app, not globally.
