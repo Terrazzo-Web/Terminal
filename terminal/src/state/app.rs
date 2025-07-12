@@ -8,9 +8,6 @@ pub enum App {
     #[cfg_attr(not(feature = "terminal"), default)]
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
     TextEditor,
-
-    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
-    Converter,
 }
 
 impl std::fmt::Display for App {

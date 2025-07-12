@@ -20,8 +20,6 @@ const KEEPALIVE_TTL_HEADER: &str = "terrazzo-keepalive-ttl";
 
 const NEWLINE: u8 = b'\n';
 
-pub const STREAMING_WINDOW_SIZE: usize = 200 * 1000;
-
 #[allow(unused)]
 pub static APPLICATION_JSON: &str = "application/json";
 

@@ -21,32 +21,34 @@ use super::DISPATCHERS;
 use super::ShutdownPipe;
 use super::StreamDispatchers;
 use super::ack;
-use super::pipe::PipeError;
-use super::pipe::pipe;
-use super::register::RegisterError;
-use super::register::register;
+use super::pipe;
+use super::register;
 use crate::api::shared::terminal_schema::RegisterTerminalRequest;
 use crate::terminal_id::TerminalId;
 
 declare_trait_aliias!(TerminalStream, Stream<Item = Vec<Option<Vec<u8>>>> + Unpin);
 
-pub async fn get(request: RegisterTerminalRequest) -> Result<impl TerminalStream, RegisterError> {
+pub async fn get(
+    request: RegisterTerminalRequest,
+) -> Result<impl TerminalStream, register::RegisterError> {
     let span = info_span!("Get", terminal_id = %request.def.address.id);
     async {
         let stream_reader = add_dispatcher(&request.def.address.id).await?;
         let stream_reader = ack::setup_acks(request.def.address.clone(), stream_reader);
-        register(request).await?;
+        register::register(request).await?;
         return Ok(stream_reader.ready_chunks(10));
     }
     .instrument(span)
     .await
 }
 
-async fn add_dispatcher(terminal_id: &TerminalId) -> Result<StreamReader, PipeError> {
+async fn add_dispatcher(terminal_id: &TerminalId) -> Result<StreamReader, pipe::PipeError> {
     let (tx, rx) = mpsc::channel(10);
     let (pipe_tx, pipe_rx) = oneshot::channel();
     add_dispatcher_sync(terminal_id, tx, pipe_tx);
-    let () = pipe_rx.await.unwrap_or_else(|_| Err(PipeError::Canceled))?;
+    let () = pipe_rx
+        .await
+        .unwrap_or_else(|_| Err(pipe::PipeError::Canceled))?;
     Ok(StreamReader { rx })
 }
 
@@ -54,7 +56,7 @@ async fn add_dispatcher(terminal_id: &TerminalId) -> Result<StreamReader, PipeEr
 fn add_dispatcher_sync(
     terminal_id: &TerminalId,
     tx: mpsc::Sender<Option<Vec<u8>>>,
-    pipe_tx: oneshot::Sender<Result<(), PipeError>>,
+    pipe_tx: oneshot::Sender<Result<(), pipe::PipeError>>,
 ) {
     let mut dispatchers_lock = DISPATCHERS.lock().or_throw("DISPATCHERS");
     let dispatchers = if let Some(dispatchers) = &mut *dispatchers_lock {
@@ -65,7 +67,7 @@ fn add_dispatcher_sync(
                     autoclone!(shared);
                     let pipe_status = shared
                         .await
-                        .map_err(|oneshot::Canceled| PipeError::Canceled);
+                        .map_err(|oneshot::Canceled| pipe::PipeError::Canceled);
                     let _ = pipe_tx.send(pipe_status);
                 };
                 spawn_local(shutdown_pipe.in_current_span())
@@ -81,7 +83,7 @@ fn add_dispatcher_sync(
         let (pending_tx, pending_rx) = oneshot::channel();
         let allocate_dispatchers_task = async move {
             autoclone!(correlation_id);
-            let shutdown_pipe = match pipe(correlation_id).await {
+            let shutdown_pipe = match pipe::pipe(correlation_id).await {
                 Ok(shutdown_pipe) => shutdown_pipe,
                 Err(error) => {
                     let _ = pipe_tx.send(Err(error));

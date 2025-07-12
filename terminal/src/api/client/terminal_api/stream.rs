@@ -1,5 +1,3 @@
-#![cfg(feature = "terminal")]
-
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -31,7 +29,7 @@ use self::diagnostics::info;
 use self::diagnostics::warn;
 use self::get::get;
 use self::register::RegisterError;
-use super::super::request::SendRequestError;
+use crate::api::client::request::SendRequestError;
 use crate::api::shared::terminal_schema::RegisterTerminalMode;
 use crate::api::shared::terminal_schema::RegisterTerminalRequest;
 use crate::api::shared::terminal_schema::TerminalDef;

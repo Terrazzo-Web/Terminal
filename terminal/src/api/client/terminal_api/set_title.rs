@@ -1,14 +1,12 @@
-#![cfg(feature = "terminal")]
-
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use web_sys::Response;
 
-use super::super::request::BASE_URL;
-use super::super::request::Method;
-use super::super::request::SendRequestError;
-use super::super::request::send_request;
-use super::super::request::set_json_body;
+use crate::api::client::request::BASE_URL;
+use crate::api::client::request::Method;
+use crate::api::client::request::SendRequestError;
+use crate::api::client::request::send_request;
+use crate::api::client::request::set_json_body;
 use crate::api::shared::terminal_schema::SetTitleRequest;
 use crate::api::shared::terminal_schema::TabTitle;
 use crate::api::shared::terminal_schema::TerminalAddress;

@@ -1,3 +1,5 @@
+#![cfg(feature = "terminal")]
+
 use terrazzo::prelude::XSignal;
 use terrazzo::prelude::XString;
 

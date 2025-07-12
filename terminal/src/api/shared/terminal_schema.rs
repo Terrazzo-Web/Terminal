@@ -4,6 +4,8 @@ use serde::Serialize;
 use crate::api::client_address::ClientAddress;
 use crate::terminal_id::TerminalId;
 
+pub const STREAMING_WINDOW_SIZE: usize = 200 * 1000;
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Size {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "r"))]

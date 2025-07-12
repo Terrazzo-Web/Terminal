@@ -69,12 +69,6 @@ fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -
             show_menu_mut.clone(),
             hide_menu.clone(),
         ));
-        items.push(menu_item(
-            App::Converter,
-            app(),
-            show_menu_mut.clone(),
-            hide_menu.clone(),
-        ));
         tag(
             class = style::menu_items,
             mouseover = move |_: MouseEvent| {
