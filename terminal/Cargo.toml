@@ -163,7 +163,7 @@ debug = ["terrazzo?/debug"]
 
 terminal = ["correlation-id"]
 terminal-client = ["terminal", "dep:pin-project", "dep:wasm-streams"]
-terminal-server = ["terminal"]
+terminal-server = ["terminal", "dep:pin-project"]
 correlation-id = []
 
 [package.metadata.stylance]
