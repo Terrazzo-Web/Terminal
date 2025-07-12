@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+package terrazzo.shared;
+
+message ClientAddress { repeated string via = 1; }
+message Empty {}

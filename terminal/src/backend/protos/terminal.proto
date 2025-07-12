@@ -1,32 +1,26 @@
 syntax = "proto3";
 
-package terrazzo.gateway.client;
+package terrazzo.terminal;
 
-service ClientService {
-  rpc ListRemotes(ListRemotesRequest) returns (ListRemotesResponse);
+import "shared.proto";
+
+service TerminalService {
   rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
   rpc NewId(NewIdRequest) returns (NewIdResponse);
   rpc Register(RegisterTerminalRequest) returns (stream LeaseItem);
-  rpc Write(WriteRequest) returns (Empty);
-  rpc Resize(ResizeRequest) returns (Empty);
-  rpc Close(TerminalAddress) returns (Empty);
-  rpc SetTitle(SetTitleRequest) returns (Empty);
-  rpc SetOrder(SetOrderRequest) returns (Empty);
-  rpc Ack(AckRequest) returns (Empty);
-  rpc CallServerFn(RemoteFnRequest) returns (ServerFnResponse);
-  rpc Notify(stream NotifyRequest) returns (stream NotifyResponse);
+  rpc Write(WriteRequest) returns (terrazzo.shared.Empty);
+  rpc Resize(ResizeRequest) returns (terrazzo.shared.Empty);
+  rpc Close(TerminalAddress) returns (terrazzo.shared.Empty);
+  rpc SetTitle(SetTitleRequest) returns (terrazzo.shared.Empty);
+  rpc SetOrder(SetOrderRequest) returns (terrazzo.shared.Empty);
+  rpc Ack(AckRequest) returns (terrazzo.shared.Empty);
 }
-
-message ListRemotesRequest { repeated string visited = 1; }
-message ListRemotesResponse { repeated ClientAddress clients = 1; }
-
-message NewIdRequest { ClientAddress address = 1; }
-message NewIdResponse { int32 next = 1; }
 
 message ListTerminalsRequest { repeated string visited = 1; }
 message ListTerminalsResponse { repeated TerminalDef terminals = 1; }
 
-message ClientAddress { repeated string via = 1; }
+message NewIdRequest { terrazzo.shared.ClientAddress address = 1; }
+message NewIdResponse { int32 next = 1; }
 
 message TerminalDef {
   TerminalAddress address = 1;
@@ -36,7 +30,6 @@ message TerminalDef {
 }
 
 message MaybeString { string s = 1; }
-message Empty {}
 
 message RegisterTerminalRequest {
   RegisterTerminalMode mode = 1;
@@ -58,7 +51,7 @@ message LeaseItem {
 
 message TerminalAddress {
   string terminal_id = 1;
-  ClientAddress via = 5;
+  terrazzo.shared.ClientAddress via = 5;
 }
 
 message WriteRequest {
@@ -91,43 +84,4 @@ message OrderedTerminal {
 message AckRequest {
   TerminalAddress terminal = 1;
   uint64 ack = 3;
-}
-
-message RemoteFnRequest {
-  ClientAddress address = 1;
-  string server_fn_name = 2;
-  string json = 3;
-}
-
-message ServerFnResponse {
-  string json = 1;
-}
-
-message NotifyRequest {
-  oneof request_type {
-    ClientAddress address = 1;
-    FilePath watch = 2;
-    FilePath unwatch = 3;
-  }
-}
-
-message FilePath {
-  string base = 1;
-  string file = 2;
-}
-
-message NotifyResponse {
-  string path = 1;
-  
-  oneof kind {
-    FileEventKind file = 2;
-    string cargo_check = 3;
-  }
- 
-  enum FileEventKind {
-    ERROR = 0;
-    CREATE = 1;
-    MODIFY = 2;
-    DELETE = 3;
-  }
 }

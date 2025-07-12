@@ -111,7 +111,15 @@ fn build_protos() {
         return;
     };
     tonic_build::configure()
-        .bytes([".terrazzo.gateway.client.LeaseItem.data"])
-        .compile_protos(&["src/backend/client.proto"], &["src/"])
+        .bytes([".terrazzo.terminal.LeaseItem.data"])
+        .compile_protos(
+            &[
+                "src/backend/protos/notify.proto",
+                "src/backend/protos/remote_fn.proto",
+                "src/backend/protos/shared.proto",
+                "src/backend/protos/terminal.proto",
+            ],
+            &["src/backend/protos/"],
+        )
         .unwrap();
 }
