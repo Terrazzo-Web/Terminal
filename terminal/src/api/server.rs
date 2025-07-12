@@ -23,8 +23,6 @@ use trz_gateway_common::dynamic_config::mode;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
-use crate::api::server::terminal_api::router::terminal_api_routes;
-use crate::api::server::terminal_api::stream;
 use crate::backend::auth::AuthConfig;
 use crate::backend::auth::AuthLayer;
 use crate::backend::config::DynConfig;
@@ -41,7 +39,7 @@ pub fn api_routes(
 ) -> Router {
     let mesh = &config.mesh;
     let client_name = mesh.with(|mesh| Some(ClientName::from(mesh.as_ref()?.client_name.as_str())));
-    Router::new()
+    let router = Router::new()
         .route(
             "/login",
             post(|cookies, headers, password| {
@@ -58,8 +56,15 @@ pub fn api_routes(
         )
         .route_layer(AuthLayer {
             auth_config: auth_config.clone(),
-        })
-        .merge(terminal_api_routes(config, auth_config, server))
+        });
+
+    #[cfg(feature = "terminal")]
+    let router = router.merge(terminal_api::router::terminal_api_routes(
+        config,
+        auth_config,
+        server,
+    ));
+    return router;
 }
 
 pub async fn login(

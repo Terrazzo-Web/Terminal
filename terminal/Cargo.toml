@@ -114,7 +114,6 @@ server = [
     "dep:base64",
     "dep:clap",
     "dep:const_format",
-    "dep:dashmap",
     "dep:humantime",
     "dep:inventory",
     "dep:jsonwebtoken",
@@ -127,15 +126,13 @@ server = [
     "dep:prost",
     "dep:rpassword",
     "dep:sha2",
-    "dep:static_assertions",
-    "dep:terrazzo-pty",
+    "dep:pin-project",
     "dep:tokio-stream",
     "dep:tokio",
     "dep:toml",
     "dep:tonic",
     "dep:tower-http",
     "dep:tower",
-    "dep:tracing-futures",
     "dep:tracing",
     "dep:trz-gateway-client",
     "dep:trz-gateway-common",
@@ -162,8 +159,15 @@ no_wasm_build = []
 debug = ["terrazzo?/debug"]
 
 terminal = ["correlation-id"]
-terminal-client = ["terminal", "dep:pin-project", "dep:wasm-streams"]
-terminal-server = ["terminal", "dep:pin-project"]
+terminal-client = ["terminal", "dep:wasm-streams"]
+terminal-server = [
+    "dep:dashmap",
+    "dep:pin-project",
+    "dep:static_assertions",
+    "dep:terrazzo-pty",
+    "dep:tracing-futures",
+    "terminal",
+]
 correlation-id = []
 
 [package.metadata.stylance]

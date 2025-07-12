@@ -21,7 +21,7 @@ use trz_gateway_server::server::Server;
 
 use super::config::mesh::MeshConfig;
 use crate::backend::client_service::ClientServiceImpl;
-use crate::backend::protos::terrazzo::terminal::terminal_service_server::TerminalServiceServer;
+use crate::backend::protos::terrazzo::shared::shared_service_server::SharedServiceServer;
 
 #[nameth]
 pub struct AgentTunnelConfig {
@@ -110,10 +110,19 @@ impl TunnelConfig for AgentTunnelConfig {
         let gateway_server = self.server.clone();
         move |mut server: tonic::transport::Server| {
             info!("Configuring Client gRPC service");
-            server.add_service(TerminalServiceServer::new(ClientServiceImpl::new(
+            let server = server.add_service(SharedServiceServer::new(ClientServiceImpl::new(
                 client_name.clone(),
                 gateway_server.clone(),
-            )))
+            )));
+            #[cfg(feature = "terminal")]
+            let server = {
+                use crate::backend::protos::terrazzo::terminal::terminal_service_server::TerminalServiceServer;
+                server.add_service(TerminalServiceServer::new(ClientServiceImpl::new(
+                    client_name.clone(),
+                    gateway_server.clone(),
+                )))
+            };
+            return server;
         }
     }
 
