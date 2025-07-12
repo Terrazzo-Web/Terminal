@@ -10,34 +10,24 @@ use server_fn::BoxedStream;
 use server_fn::ServerFnError;
 use tonic::Code;
 use tonic::Status;
-use tonic::codegen::StdError;
 use tracing::Instrument as _;
 use tracing::debug;
 use tracing::debug_span;
 use tracing::warn;
-use trz_gateway_server::server::Server;
 
-use self::request::remote::RemoteRequestStream;
-use self::response::HybridResponseStream;
-use super::notify::request::HybridRequestStream;
-use super::remote_fn::RemoteFnError;
-use super::remote_fn::remote_fn_server;
-use crate::backend::client_service::notify::request::local::LocalRequestStream;
-use crate::backend::client_service::routing::DistributedCallback;
+use crate::backend::client_service::notify_service::callback::NotifyCallback;
+use crate::backend::client_service::notify_service::callback::NotifyLocalError;
+use crate::backend::client_service::notify_service::request::HybridRequestStream;
+use crate::backend::client_service::notify_service::request::local::LocalRequestStream;
+use crate::backend::client_service::notify_service::response::HybridResponseStream;
+use crate::backend::client_service::remote_fn::RemoteFnError;
+use crate::backend::client_service::remote_fn::remote_fn_server;
+use crate::backend::client_service::routing::DistributedCallback as _;
 use crate::backend::client_service::routing::DistributedCallbackError;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
-use crate::backend::protos::terrazzo::gateway::client::NotifyRequest as NotifyRequestProto;
-use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
-use crate::backend::protos::terrazzo::gateway::client::notify_request::RequestType as RequestTypeProto;
 use crate::text_editor::notify::NotifyRequest;
-use crate::text_editor::notify::service::notify as notify_local;
 
-mod request;
-mod response;
-
-pub use self::response::remote::RemoteResponseStream;
-
-pub fn notify_hybrid(request: HybridRequestStream) -> Result<HybridResponseStream, NotifyError> {
+/// Dispatches the Notify request either locally or through the gRPC tunnel
+pub fn notify_dispatch(request: HybridRequestStream) -> Result<HybridResponseStream, NotifyError> {
     let response_stream = async {
         debug!("Start");
         defer!(debug!("Done"));
@@ -97,50 +87,11 @@ pub fn notify_hybrid(request: HybridRequestStream) -> Result<HybridResponseStrea
     return Ok(HybridResponseStream::Local(BoxedStream::from(rx)));
 }
 
-struct NotifyCallback;
-
-impl DistributedCallback for NotifyCallback {
-    type Request = HybridRequestStream;
-    type Response = HybridResponseStream;
-    type LocalError = NotifyErrorImpl;
-    type RemoteError = Box<Status>;
-
-    async fn local(
-        _server: &Server,
-        request: HybridRequestStream,
-    ) -> Result<HybridResponseStream, NotifyErrorImpl> {
-        notify_local(request.into())
-            .map_err(NotifyErrorImpl::Local)
-            .map(HybridResponseStream::Local)
-    }
-
-    async fn remote<T>(
-        mut client: ClientServiceClient<T>,
-        client_address: &[impl AsRef<str>],
-        request: HybridRequestStream,
-    ) -> Result<HybridResponseStream, Box<Status>>
-    where
-        T: tonic::client::GrpcService<tonic::body::Body>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: tonic::transport::Body<Data = server_fn::Bytes> + Send + 'static,
-        <T::ResponseBody as tonic::transport::Body>::Error: Into<StdError> + Send,
-    {
-        let client_address = ClientAddressProto::of(client_address);
-        let request = RemoteRequestStream(request).filter_map(|request| ready(request.ok()));
-        let request = futures::stream::once(ready(NotifyRequestProto {
-            request_type: Some(RequestTypeProto::Address(client_address)),
-        }))
-        .chain(request);
-        let response = client.notify(request).await?.into_inner();
-        Ok(HybridResponseStream::Remote(Box::new(response)))
-    }
-}
-
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum NotifyError {
     #[error("[{n}] {0}", n = self.name())]
-    Error(DistributedCallbackError<NotifyErrorImpl, Box<Status>>),
+    Error(DistributedCallbackError<NotifyLocalError, Box<Status>>),
 
     #[error("[{n}] {0}", n = self.name())]
     InvalidStart(ServerFnError),
@@ -156,13 +107,6 @@ pub enum NotifyError {
 
     #[error("[{n}] {0}", n = self.name())]
     RemoteFnError(#[from] RemoteFnError),
-}
-
-#[nameth]
-#[derive(thiserror::Error, Debug)]
-pub enum NotifyErrorImpl {
-    #[error("[{n}] {0}", n = self.name())]
-    Local(ServerFnError),
 }
 
 impl From<NotifyError> for Status {
