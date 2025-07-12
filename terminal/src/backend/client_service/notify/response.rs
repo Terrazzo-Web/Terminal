@@ -3,7 +3,7 @@ use server_fn::BoxedStream;
 use server_fn::ServerFnError;
 use tonic::Streaming;
 
-use crate::backend::protos::terrazzo::gateway::client::NotifyResponse as NotifyResponseProto;
+use crate::backend::protos::terrazzo::notify::NotifyResponse as NotifyResponseProto;
 use crate::text_editor::notify::NotifyResponse;
 
 pub mod local;

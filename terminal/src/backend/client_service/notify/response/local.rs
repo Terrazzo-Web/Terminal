@@ -9,9 +9,9 @@ use tonic::Status;
 
 use super::HybridResponseStream;
 use super::HybridResponseStreamProj;
-use crate::backend::protos::terrazzo::gateway::client::NotifyResponse as NotifyResponseProto;
-use crate::backend::protos::terrazzo::gateway::client::notify_response;
-use crate::backend::protos::terrazzo::gateway::client::notify_response::FileEventKind as FileEventKindProto;
+use crate::backend::protos::terrazzo::notify::NotifyResponse as NotifyResponseProto;
+use crate::backend::protos::terrazzo::notify::notify_response;
+use crate::backend::protos::terrazzo::notify::notify_response::FileEventKind as FileEventKindProto;
 use crate::text_editor::notify::EventKind;
 use crate::text_editor::notify::FileEventKind;
 use crate::text_editor::notify::NotifyResponse;

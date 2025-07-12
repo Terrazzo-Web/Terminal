@@ -9,9 +9,9 @@ use tonic::Status;
 
 use super::HybridRequestStream;
 use super::HybridRequestStreamProj;
-use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
-use crate::backend::protos::terrazzo::gateway::client::NotifyRequest as NotifyRequestProto;
-use crate::backend::protos::terrazzo::gateway::client::notify_request::RequestType as RequestTypeProto;
+use crate::backend::protos::terrazzo::notify::NotifyRequest as NotifyRequestProto;
+use crate::backend::protos::terrazzo::notify::notify_request::RequestType as RequestTypeProto;
+use crate::backend::protos::terrazzo::shared::ClientAddress as ClientAddressProto;
 use crate::text_editor::notify::NotifyRequest;
 
 #[pin_project(project = RemoteReaderProj)]
