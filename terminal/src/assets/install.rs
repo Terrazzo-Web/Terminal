@@ -33,7 +33,6 @@ fn install_icons() {
     install_icon(super::icons::add_tab());
     install_icon(super::icons::chevron_double_right());
     install_icon(super::icons::close_tab());
-    install_icon(super::icons::converter());
     install_icon(super::icons::done());
     install_icon(super::icons::file());
     install_icon(super::icons::folder());
