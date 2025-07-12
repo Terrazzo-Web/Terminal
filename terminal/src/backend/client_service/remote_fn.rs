@@ -25,9 +25,9 @@ use tracing::debug;
 use tracing::debug_span;
 use trz_gateway_server::server::Server;
 
-use super::routing::DistributedCallback;
-use super::routing::DistributedCallbackError;
 use crate::api::client_address::ClientAddress;
+use crate::backend::client_service::routing::DistributedCallback;
+use crate::backend::client_service::routing::DistributedCallbackError;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress as ClientAddressProto;
 use crate::backend::protos::terrazzo::gateway::client::RemoteFnRequest;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;
@@ -133,7 +133,7 @@ where
     }
 }
 
-#[pin_project(project=UpliftFutureProj)]
+#[pin_project(project = UpliftFutureProj)]
 pub enum UpliftFuture<F> {
     DeserializeRequest(RemoteFnError),
     Future(#[pin] F),

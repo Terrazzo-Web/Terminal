@@ -13,8 +13,7 @@ use trz_gateway_server::server::Server;
 use super::registration::Registration;
 use crate::api::shared::terminal_schema::RegisterTerminalRequest;
 use crate::api::shared::terminal_schema::TerminalAddress;
-use crate::backend::client_service::register;
-use crate::backend::client_service::register::RegisterStreamError as DistributedRegisterStreamError;
+use crate::backend::client_service::terminal_service;
 use crate::processes;
 use crate::processes::io::LocalReader;
 
@@ -27,7 +26,9 @@ pub async fn register(
     debug!("Start");
     async {
         let terminal_address = request.def.address.clone();
-        let stream = register::register(my_client_name, server, request.into()).await?;
+        let stream =
+            self::terminal_service::register::register(my_client_name, server, request.into())
+                .await?;
         let stream = LocalReader(stream);
         push_lease(terminal_address, stream)?;
         Ok(())
@@ -59,7 +60,7 @@ pub enum RegisterStreamError {
     PushLeaseError(#[from] PushLeaseError),
 
     #[error("[{n}] {0}", n = self.name())]
-    Distributed(#[from] DistributedRegisterStreamError),
+    Distributed(#[from] self::terminal_service::register::RegisterStreamError),
 }
 
 impl IsHttpError for RegisterStreamError {

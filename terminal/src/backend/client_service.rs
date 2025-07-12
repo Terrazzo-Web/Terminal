@@ -11,7 +11,6 @@ use trz_gateway_server::server::Server;
 use self::notify::RemoteResponseStream;
 use self::notify::notify_hybrid;
 use self::remotes::list_remotes;
-use self::terminals::list_terminals;
 use super::protos::terrazzo::gateway::client::AckRequest;
 use super::protos::terrazzo::gateway::client::Empty;
 use super::protos::terrazzo::gateway::client::ListRemotesRequest;
@@ -32,21 +31,13 @@ use crate::backend::protos::terrazzo::gateway::client::RemoteFnRequest;
 use crate::backend::protos::terrazzo::gateway::client::ServerFnResponse;
 use crate::processes::io::RemoteReader;
 
-pub mod ack;
-pub mod close;
 pub mod convert;
 pub mod grpc_error;
-pub mod new_id;
 pub mod notify;
-pub mod register;
 pub mod remote_fn;
 pub mod remotes;
-pub mod resize;
 mod routing;
-pub mod set_order;
-pub mod set_title;
-pub mod terminals;
-pub mod write;
+pub mod terminal_service;
 
 pub struct ClientServiceImpl {
     client_name: ClientName,
@@ -78,6 +69,7 @@ impl ClientService for ClientServiceImpl {
         &self,
         mut request: Request<ListTerminalsRequest>,
     ) -> Result<Response<ListTerminalsResponse>, Status> {
+        use self::terminal_service::terminals::list_terminals;
         let mut visited = std::mem::take(&mut request.get_mut().visited);
         visited.push(self.client_name.to_string());
         let terminals = list_terminals(&self.server, visited).await;
@@ -88,8 +80,9 @@ impl ClientService for ClientServiceImpl {
         &self,
         request: Request<NewIdRequest>,
     ) -> Result<Response<NewIdResponse>, Status> {
+        use self::terminal_service::new_id::new_id;
         let address = request.into_inner().address;
-        let next = new_id::new_id(
+        let next = new_id(
             &self.server,
             address.as_ref().map(|a| a.via.as_slice()).unwrap_or(&[]),
         )
@@ -103,7 +96,8 @@ impl ClientService for ClientServiceImpl {
         &self,
         request: Request<RegisterTerminalRequest>,
     ) -> Result<Response<Self::RegisterStream>, Status> {
-        let stream = register::register(
+        use self::terminal_service::register::register;
+        let stream = register(
             Some(self.client_name.clone()),
             &self.server,
             request.into_inner(),
@@ -113,26 +107,29 @@ impl ClientService for ClientServiceImpl {
     }
 
     async fn write(&self, request: Request<WriteRequest>) -> Result<Response<Empty>, Status> {
+        use self::terminal_service::write::write;
         let mut request = request.into_inner();
         let terminal = request.terminal.get_or_insert_default();
         let client_address = std::mem::take(&mut terminal.via.get_or_insert_default().via);
-        let () = write::write(&self.server, &client_address, request).await?;
+        let () = write(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
     }
 
     async fn resize(&self, request: Request<ResizeRequest>) -> Result<Response<Empty>, Status> {
+        use self::terminal_service::resize::resize;
         let mut request = request.into_inner();
         let terminal = request.terminal.get_or_insert_default();
         let client_address = std::mem::take(&mut terminal.via.get_or_insert_default().via);
-        let () = resize::resize(&self.server, &client_address, request).await?;
+        let () = resize(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
     }
 
     async fn close(&self, request: Request<TerminalAddress>) -> Result<Response<Empty>, Status> {
+        use self::terminal_service::close::close;
         let terminal = request.into_inner();
         let terminal_id = terminal.terminal_id.as_str().into();
         let client_address = terminal.client_address();
-        let () = close::close(&self.server, client_address, terminal_id).await?;
+        let () = close(&self.server, client_address, terminal_id).await?;
         Ok(Response::new(Empty {}))
     }
 
@@ -140,10 +137,11 @@ impl ClientService for ClientServiceImpl {
         &self,
         request: Request<SetTitleRequest>,
     ) -> Result<Response<Empty>, Status> {
+        use self::terminal_service::set_title::set_title;
         let mut request = request.into_inner();
         let terminal = request.address.get_or_insert_default();
         let client_address = std::mem::take(&mut terminal.via.get_or_insert_default().via);
-        let () = set_title::set_title(&self.server, &client_address, request).await?;
+        let () = set_title(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
     }
 
@@ -151,15 +149,17 @@ impl ClientService for ClientServiceImpl {
         &self,
         request: Request<SetOrderRequest>,
     ) -> Result<Response<Empty>, Status> {
-        let () = set_order::set_order(&self.server, request.into_inner().terminals).await;
+        use self::terminal_service::set_order::set_order;
+        let () = set_order(&self.server, request.into_inner().terminals).await;
         Ok(Response::new(Empty {}))
     }
 
     async fn ack(&self, request: Request<AckRequest>) -> Result<Response<Empty>, Status> {
+        use self::terminal_service::ack::ack;
         let mut request = request.into_inner();
         let terminal = request.terminal.get_or_insert_default();
         let client_address = std::mem::take(&mut terminal.via.get_or_insert_default().via);
-        let () = ack::ack(&self.server, &client_address, request).await?;
+        let () = ack(&self.server, &client_address, request).await?;
         Ok(Response::new(Empty {}))
     }
 

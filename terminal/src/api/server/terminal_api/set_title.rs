@@ -5,17 +5,16 @@ use trz_gateway_common::http_error::HttpError;
 use trz_gateway_server::server::Server;
 
 use crate::api::shared::terminal_schema::SetTitleRequest;
-use crate::backend::client_service::set_title;
-use crate::backend::client_service::set_title::SetTitleError;
+use crate::backend::client_service::terminal_service;
 use crate::backend::protos::terrazzo::gateway::client::MaybeString;
 use crate::backend::protos::terrazzo::gateway::client::SetTitleRequest as SetTitleRequestProto;
 
 pub async fn set_title(
     server: Arc<Server>,
     Json(request): Json<SetTitleRequest>,
-) -> Result<(), HttpError<SetTitleError>> {
+) -> Result<(), HttpError<self::terminal_service::set_title::SetTitleError>> {
     let client_address = request.terminal.via.to_vec();
-    Ok(set_title::set_title(
+    Ok(self::terminal_service::set_title::set_title(
         &server,
         &client_address,
         SetTitleRequestProto {

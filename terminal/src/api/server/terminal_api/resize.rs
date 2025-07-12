@@ -5,17 +5,16 @@ use trz_gateway_common::http_error::HttpError;
 use trz_gateway_server::server::Server;
 
 use crate::api::shared::terminal_schema::ResizeRequest;
-use crate::backend::client_service::resize;
-use crate::backend::client_service::resize::ResizeError;
+use crate::backend::client_service::terminal_service;
 use crate::backend::protos::terrazzo::gateway::client::ResizeRequest as ResizeRequestProto;
 use crate::backend::protos::terrazzo::gateway::client::Size;
 
 pub async fn resize(
     server: Arc<Server>,
     Json(request): Json<ResizeRequest>,
-) -> Result<(), HttpError<ResizeError>> {
+) -> Result<(), HttpError<self::terminal_service::resize::ResizeError>> {
     let client_address = request.terminal.via.to_vec();
-    let response = resize::resize(
+    let response = self::terminal_service::resize::resize(
         &server,
         &client_address,
         ResizeRequestProto {

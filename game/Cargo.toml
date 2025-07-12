@@ -44,12 +44,12 @@ server = [
     "dep:tracing-subscriber",
     "terrazzo/server",
 ]
-max_level_debug = [
+max-level-debug = [
     "terrazzo?/max_client_level_debug",
     "tracing?/max_level_debug",
     "tracing?/release_max_level_debug",
 ]
-max_level_info = [
+max-level-info = [
     "terrazzo?/max_client_level_info",
     "tracing?/max_level_info",
     "tracing?/release_max_level_info",

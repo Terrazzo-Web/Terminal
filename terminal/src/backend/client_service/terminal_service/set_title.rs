@@ -14,9 +14,9 @@ use tracing::debug_span;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_server::server::Server;
 
-use super::routing::DistributedCallback;
-use super::routing::DistributedCallbackError;
 use crate::api::shared::terminal_schema::TabTitle;
+use crate::backend::client_service::routing::DistributedCallback;
+use crate::backend::client_service::routing::DistributedCallbackError;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::Empty;
 use crate::backend::protos::terrazzo::gateway::client::SetTitleRequest;

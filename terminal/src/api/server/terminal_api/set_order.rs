@@ -6,11 +6,11 @@ use tracing::debug_span;
 use trz_gateway_server::server::Server;
 
 use crate::api::shared::terminal_schema::TerminalAddress;
-use crate::backend::client_service::set_order;
+use crate::backend::client_service::terminal_service;
 use crate::backend::protos::terrazzo::gateway::client::OrderedTerminal;
 
 pub async fn set_order(server: Arc<Server>, Json(terminals): Json<Vec<TerminalAddress>>) {
-    let () = set_order::set_order(
+    let () = self::terminal_service::set_order::set_order(
         &server,
         terminals
             .into_iter()

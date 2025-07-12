@@ -1,9 +1,5 @@
-#[cfg(feature = "client")]
 pub mod client;
-
-#[cfg(feature = "server")]
 pub mod server;
-
 pub mod shared;
 
 #[cfg(feature = "server")]
@@ -15,9 +11,13 @@ use self::client_name::ClientName;
 pub mod client_address;
 pub mod client_name;
 
+#[cfg(feature = "correlation-id")]
 const CORRELATION_ID: &str = "terrazzo-correlation-id";
+
+#[cfg(feature = "terminal")]
 const KEEPALIVE_TTL_HEADER: &str = "terrazzo-keepalive-ttl";
 
+#[cfg(feature = "terminal")]
 const NEWLINE: u8 = b'\n';
 
 #[allow(unused)]

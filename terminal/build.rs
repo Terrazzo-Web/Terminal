@@ -1,15 +1,59 @@
 use std::env;
 use std::path::PathBuf;
 
-use scopeguard::defer;
+use heck::ToKebabCase as _;
+use heck::ToShoutySnakeCase as _;
 use terrazzo_build::BuildOptions;
 
-const SERVER_FEATURE: &str = "CARGO_FEATURE_SERVER";
-const CLIENT_FEATURE: &str = "CARGO_FEATURE_CLIENT";
-const MAX_LEVEL_INFO: &str = "CARGO_FEATURE_MAX_LEVEL_INFO";
-const MAX_LEVEL_DEBUG: &str = "CARGO_FEATURE_MAX_LEVEL_DEBUG";
-const NO_WASM_BUILD: &str = "CARGO_FEATURE_NO_WASM_BUILD";
-const DIAGNOSTICS: &str = "CARGO_FEATURE_DIAGNOSTICS";
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug)]
+enum Feature {
+    DocsRs,
+    Client,
+    Server,
+    MaxLevelDebug,
+    MaxLevelInfo,
+    ConsiseTraces,
+    Diagnostics,
+    NoWasmBuild,
+    Debug,
+    Terminal,
+    TerminalClient,
+    TerminalServer,
+}
+
+impl Feature {
+    fn is_set(self) -> bool {
+        std::env::var(self.env_name()).is_ok()
+    }
+
+    fn feature_name(self) -> String {
+        format!("{self:?}").to_kebab_case()
+    }
+
+    fn env_name(self) -> String {
+        format!("CargoFeature{self:?}").to_shouty_snake_case()
+    }
+
+    fn disable(self) -> Option<impl Drop> {
+        let env_name = self.env_name();
+        let value = std::env::var(&env_name).ok()?;
+        unsafe { env::remove_var(&env_name) };
+        Some(scopeguard::guard((), |_| unsafe {
+            std::env::set_var(env_name, value)
+        }))
+    }
+
+    fn propagate(self, wasm_pack_options: &mut Vec<String>) {
+        if self.is_set() {
+            self.add(wasm_pack_options);
+        }
+    }
+
+    fn add(self, wasm_pack_options: &mut Vec<String>) {
+        wasm_pack_options.extend(["--features".into(), self.feature_name()]);
+    }
+}
 
 fn main() {
     build_client();
@@ -17,21 +61,18 @@ fn main() {
 }
 
 fn build_client() {
-    if env::var(NO_WASM_BUILD).is_ok() {
+    if Feature::NoWasmBuild.is_set() {
+        return;
+    }
+    if Feature::DocsRs.is_set() {
         return;
     }
 
-    if env::var("DOCS_RS") != Err(env::VarError::NotPresent) {
-        return;
-    }
-
-    let Ok(server_feature) = env::var(SERVER_FEATURE) else {
+    let Some(disable_server_feature) = Feature::Server.disable() else {
         return;
     };
-    unsafe { env::remove_var(SERVER_FEATURE) };
-    defer!(unsafe { std::env::set_var(SERVER_FEATURE, server_feature) });
 
-    if env::var(CLIENT_FEATURE).is_ok() {
+    if Feature::Client.is_set() {
         println!("cargo::warning=Can't enable both 'client' and 'server' features");
     }
 
@@ -40,16 +81,19 @@ fn build_client() {
     std::fs::create_dir_all(server_dir.join("assets")).expect("server_dir");
     let client_dir: PathBuf = cargo_manifest_dir.clone();
 
-    let mut wasm_pack_options = vec!["--no-default-features", "--features", "client"];
-    if env::var(MAX_LEVEL_INFO).is_ok() {
-        wasm_pack_options.extend(["--features", "max_level_info"]);
+    let mut wasm_pack_options = vec!["--no-default-features".into()];
+    Feature::Client.add(&mut wasm_pack_options);
+    Feature::MaxLevelDebug.propagate(&mut wasm_pack_options);
+    Feature::MaxLevelInfo.propagate(&mut wasm_pack_options);
+    Feature::Diagnostics.propagate(&mut wasm_pack_options);
+    Feature::Debug.propagate(&mut wasm_pack_options);
+    if Feature::Terminal.is_set() {
+        Feature::TerminalClient.add(&mut wasm_pack_options);
     }
-    if env::var(MAX_LEVEL_DEBUG).is_ok() {
-        wasm_pack_options.extend(["--features", "max_level_debug"]);
-    }
-    if env::var(DIAGNOSTICS).is_ok() {
-        wasm_pack_options.extend(["--features", "diagnostics"]);
-    }
+    let wasm_pack_options = wasm_pack_options
+        .iter()
+        .map(|s| s.as_str())
+        .collect::<Vec<_>>();
     let wasm_pack_options = &wasm_pack_options;
     terrazzo_build::build(BuildOptions {
         client_dir,
@@ -58,10 +102,12 @@ fn build_client() {
     })
     .unwrap();
     terrazzo_build::build_css();
+
+    drop(disable_server_feature);
 }
 
 fn build_protos() {
-    if env::var(SERVER_FEATURE).is_err() {
+    if !Feature::Server.is_set() {
         return;
     };
     tonic_build::configure()

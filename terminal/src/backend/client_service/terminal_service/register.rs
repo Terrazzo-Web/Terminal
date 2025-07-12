@@ -17,11 +17,11 @@ use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
-use super::routing::DistributedCallback;
-use super::routing::DistributedCallbackError;
 use crate::api::shared::terminal_schema::RegisterTerminalMode;
 use crate::api::shared::terminal_schema::STREAMING_WINDOW_SIZE;
 use crate::api::shared::terminal_schema::TerminalDef;
+use crate::backend::client_service::routing::DistributedCallback;
+use crate::backend::client_service::routing::DistributedCallbackError;
 use crate::backend::protos::terrazzo::gateway::client::ClientAddress;
 use crate::backend::protos::terrazzo::gateway::client::RegisterTerminalRequest;
 use crate::backend::protos::terrazzo::gateway::client::client_service_client::ClientServiceClient;

@@ -1,3 +1,5 @@
+#![cfg(feature = "terminal")]
+
 use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::pin::Pin;

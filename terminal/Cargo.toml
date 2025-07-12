@@ -36,7 +36,7 @@ nix = { workspace = true, optional = true, features = ["signal"] }
 notify = { workspace = true, optional = true }
 openssl = { workspace = true, optional = true }
 pbkdf2 = { workspace = true, optional = true }
-pin-project = { workspace = true }
+pin-project = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
 prost-types = { workspace = true, optional = true }
 rpassword = { workspace = true, optional = true }
@@ -90,6 +90,7 @@ web-sys = { workspace = true, optional = true, features = [
 ] }
 
 [build-dependencies]
+heck = { workspace = true }
 scopeguard = { workspace = true }
 terrazzo-build = { workspace = true }
 tonic-build = { workspace = true, features = ["prost"] }
@@ -98,13 +99,12 @@ tonic-build = { workspace = true, features = ["prost"] }
 fluent-asserter = { workspace = true }
 
 [features]
-default = ["server", "max_level_info"]
+default = ["server", "max-level-info"]
 client = [
     "dep:serde-wasm-bindgen",
     "dep:stylance",
     "dep:wasm-bindgen-futures",
     "dep:wasm-bindgen",
-    "dep:wasm-streams",
     "dep:web-sys",
     "server_fn/browser",
     "terrazzo/client",
@@ -145,12 +145,12 @@ server = [
     "server_fn/browser",
     "terrazzo/server",
 ]
-max_level_debug = [
+max-level-debug = [
     "terrazzo?/max_client_level_debug",
     "tracing?/max_level_debug",
     "tracing?/release_max_level_debug",
 ]
-max_level_info = [
+max-level-info = [
     "terrazzo?/max_client_level_info",
     "tracing?/max_level_info",
     "tracing?/release_max_level_info",
@@ -161,7 +161,10 @@ diagnostics = ["terrazzo?/diagnostics"]
 no_wasm_build = []
 debug = ["terrazzo?/debug"]
 
-terminal = []
+terminal = ["correlation-id"]
+terminal-client = ["terminal", "dep:pin-project", "dep:wasm-streams"]
+terminal-server = ["terminal"]
+correlation-id = []
 
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo-terminal.scss"

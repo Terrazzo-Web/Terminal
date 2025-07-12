@@ -31,7 +31,7 @@ use crate::api::NEWLINE;
 use crate::api::server::correlation_id::CorrelationId;
 use crate::api::server::stream::registration::Registration;
 use crate::api::shared::terminal_schema::Chunk;
-use crate::backend::client_service;
+use crate::backend::client_service::terminal_service;
 
 pub const PIPE_TTL: Duration = if cfg!(feature = "concise-traces") {
     Duration::from_secs(3600)
@@ -86,7 +86,7 @@ pub fn pipe(server: Arc<Server>, correlation_id: CorrelationId) -> impl IntoResp
                 };
                 let task = async move {
                     autoclone!(server, terminal_id, client_address);
-                    match client_service::close::close(
+                    match terminal_service::close::close(
                         &server,
                         &client_address,
                         terminal_id.clone(),
