@@ -84,7 +84,7 @@ macro_rules! make_state {
                 use serde::Deserialize;
                 use serde::Serialize;
 
-                use crate::backend::client_service::remote_fn;
+                use crate::backend::client_service::remote_fn_service;
 
                 #[derive(Debug, Default, Serialize, Deserialize)]
                 #[serde(default)]
@@ -97,7 +97,7 @@ macro_rules! make_state {
                     pub value: super::ty::Type,
                 }
 
-                remote_fn::declare_remote_fn!(
+                remote_fn_service::declare_remote_fn!(
                     GET_REMOTE_FN,
                     formatcp!("{}-state-{}", super::GET, stringify!($name)),
                     |_server, _: GetRequest| {
@@ -108,7 +108,7 @@ macro_rules! make_state {
                     }
                 );
 
-                remote_fn::declare_remote_fn!(
+                remote_fn_service::declare_remote_fn!(
                     SET_REMOTE_FN,
                     formatcp!("{}-state-{}", super::SET_IMPL, stringify!($name)),
                     |_server, arg: SetRequest| {

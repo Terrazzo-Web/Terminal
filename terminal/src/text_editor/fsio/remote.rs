@@ -4,7 +4,7 @@ use std::future::ready;
 use std::sync::Arc;
 
 use crate::backend::client_service::grpc_error::GrpcError;
-use crate::backend::client_service::remote_fn;
+use crate::backend::client_service::remote_fn_service;
 use crate::text_editor::file_path::FilePath;
 
 #[derive(Debug, serde::Serialize, serde:: Deserialize)]
@@ -21,7 +21,7 @@ pub struct StoreFileRequest {
     pub content: String,
 }
 
-remote_fn::declare_remote_fn!(
+remote_fn_service::declare_remote_fn!(
     LOAD_FILE_REMOTE_FN,
     super::LOAD_FILE,
     |_server, arg: LoadFileRequest| {
@@ -30,7 +30,7 @@ remote_fn::declare_remote_fn!(
     }
 );
 
-remote_fn::declare_remote_fn!(
+remote_fn_service::declare_remote_fn!(
     STORE_FILE_REMOTE_FN,
     super::STORE_FILE_IMPL,
     |_server, arg: StoreFileRequest| {

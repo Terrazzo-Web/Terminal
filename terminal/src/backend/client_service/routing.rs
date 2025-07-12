@@ -13,8 +13,6 @@ use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
 use trz_gateway_server::server::Server;
 
-use crate::backend::protos::terrazzo::remotefn::remote_fn_service_client::RemoteFnServiceClient;
-
 pub trait DistributedCallback {
     type Request;
     type Response;

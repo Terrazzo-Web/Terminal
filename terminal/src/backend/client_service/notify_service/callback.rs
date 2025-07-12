@@ -4,7 +4,11 @@ use futures::StreamExt as _;
 use nameth::nameth;
 use server_fn::ServerFnError;
 use tonic::Status;
+use tonic::body::Body as BoxBody;
+use tonic::client::GrpcService;
+use tonic::codegen::Bytes;
 use tonic::codegen::StdError;
+use tonic::transport::Body;
 use trz_gateway_server::server::Server;
 
 use crate::backend::client_service::notify_service::request::HybridRequestStream;
@@ -40,10 +44,10 @@ impl DistributedCallback for NotifyCallback {
         request: HybridRequestStream,
     ) -> Result<HybridResponseStream, Box<Status>>
     where
-        T: tonic::client::GrpcService<tonic::body::Body>,
+        T: GrpcService<BoxBody>,
         T::Error: Into<StdError>,
-        T::ResponseBody: tonic::transport::Body<Data = server_fn::Bytes> + Send + 'static,
-        <T::ResponseBody as tonic::transport::Body>::Error: Into<StdError> + Send,
+        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         let client_address = ClientAddressProto::of(client_address);
         let request = RemoteRequestStream(request).filter_map(|request| ready(request.ok()));
