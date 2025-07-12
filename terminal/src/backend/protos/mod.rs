@@ -18,6 +18,7 @@ pub mod terrazzo {
             }
         }
     }
+    #[cfg(feature = "terminal")]
     pub mod terminal {
         include!(concat!(env!("OUT_DIR"), "/terrazzo.terminal.rs"));
     }

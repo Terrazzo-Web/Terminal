@@ -4,10 +4,10 @@ use std::time::Duration;
 use std::time::SystemTime;
 
 use jsonwebtoken::Header;
-use terrazzo::axum;
 use terrazzo::axum::body::Body;
 use terrazzo::axum::body::to_bytes;
 use terrazzo::axum::response::IntoResponse;
+use terrazzo::http;
 use terrazzo::http::Request;
 use terrazzo::http::Response;
 use terrazzo::http::StatusCode;

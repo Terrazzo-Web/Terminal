@@ -71,6 +71,7 @@ fn build_client() {
     let Some(disable_server_feature) = Feature::Server.disable() else {
         return;
     };
+    let disable_terminal_server_feature = Feature::TerminalServer.disable();
 
     if Feature::Client.is_set() {
         println!("cargo::warning=Can't enable both 'client' and 'server' features");
@@ -104,6 +105,7 @@ fn build_client() {
     terrazzo_build::build_css();
 
     drop(disable_server_feature);
+    drop(disable_terminal_server_feature);
 }
 
 fn build_protos() {

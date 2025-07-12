@@ -4,7 +4,7 @@
         "server",
         "no_wasm_build",
         "diagnostics",
-        "terminal-client",
-        "terminal-server",
+        // "terminal-client",
+        // "terminal-server",
     ],
 }
