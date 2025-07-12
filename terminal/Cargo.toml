@@ -159,7 +159,7 @@ no_wasm_build = []
 debug = ["terrazzo?/debug"]
 
 terminal = ["correlation-id"]
-terminal-client = ["terminal", "dep:wasm-streams"]
+terminal-client = ["terminal", "dep:pin-project", "dep:wasm-streams"]
 terminal-server = [
     "dep:dashmap",
     "dep:pin-project",

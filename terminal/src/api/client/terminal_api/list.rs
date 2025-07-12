@@ -2,15 +2,15 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use wasm_bindgen_futures::JsFuture;
 
-use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::send_request;
+use crate::api::client::terminal_api::BASE_TERMINAL_URL;
 use crate::api::shared::terminal_schema::TerminalDef;
 
 #[nameth]
 pub async fn list() -> Result<Vec<TerminalDef>, ListTerminalsError> {
-    let response = send_request(Method::GET, format!("{BASE_URL}/{LIST}"), |_| {}).await?;
+    let response = send_request(Method::GET, format!("{BASE_TERMINAL_URL}/{LIST}"), |_| {}).await?;
     let response = response
         .text()
         .map_err(|_| ListTerminalsError::MissingResponseBody)?;

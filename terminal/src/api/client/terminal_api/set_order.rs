@@ -2,18 +2,18 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use web_sys::Response;
 
-use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_json_body;
+use crate::api::client::terminal_api::BASE_TERMINAL_URL;
 use crate::api::shared::terminal_schema::TerminalAddress;
 
 #[nameth]
 pub async fn set_order(tabs: Vec<TerminalAddress>) -> Result<(), SetOrderError> {
     let _: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/{SET_ORDER}"),
+        format!("{BASE_TERMINAL_URL}/{SET_ORDER}"),
         set_json_body(&tabs)?,
     )
     .await?;

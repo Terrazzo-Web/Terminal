@@ -11,7 +11,6 @@ use self::diagnostics::debug;
 use self::diagnostics::info_span;
 use self::diagnostics::warn;
 use super::DISPATCHERS;
-use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::ThenRequest as _;
@@ -19,6 +18,7 @@ use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
 use crate::api::client::request::set_json_body;
+use crate::api::client::terminal_api::BASE_TERMINAL_URL;
 use crate::api::shared::terminal_schema::TerminalAddress;
 use crate::terminal_id::TerminalId;
 
@@ -29,7 +29,7 @@ pub async fn close(terminal: &TerminalAddress, correlation_id: Option<String>) {
     async move {
         let _: Response = send_request(
             Method::POST,
-            format!("{BASE_URL}/stream/{CLOSE}"),
+            format!("{BASE_TERMINAL_URL}/stream/{CLOSE}"),
             set_headers(set_correlation_id(correlation_id.as_deref()))
                 .then(set_json_body(terminal)?),
         )

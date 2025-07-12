@@ -3,11 +3,11 @@ use nameth::nameth;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::Response;
 
-use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_json_body;
+use crate::api::client::terminal_api::BASE_TERMINAL_URL;
 use crate::api::client_address::ClientAddress;
 use crate::api::shared::terminal_schema::TerminalDef;
 
@@ -15,7 +15,7 @@ use crate::api::shared::terminal_schema::TerminalDef;
 pub async fn new_id(address: ClientAddress) -> Result<TerminalDef, NewIdError> {
     let response: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/{NEW_ID}"),
+        format!("{BASE_TERMINAL_URL}/{NEW_ID}"),
         set_json_body(&address)?,
     )
     .await?;

@@ -10,12 +10,12 @@ use terrazzo::prelude::diagnostics::warn;
 use wasm_bindgen_futures::spawn_local;
 
 use super::pipe::PIPE;
-use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
+use crate::api::client::terminal_api::BASE_TERMINAL_URL;
 use crate::frontend::utils::sleep;
 
 #[nameth]
@@ -60,7 +60,7 @@ async fn send_keepalive(correlation_id: &str) -> Result<(), KeepaliveError> {
     debug!("Send keep-alive");
     let response = send_request(
         Method::POST,
-        format!("{BASE_URL}/stream/{PIPE}/{KEEPALIVE}"),
+        format!("{BASE_TERMINAL_URL}/stream/{PIPE}/{KEEPALIVE}"),
         set_headers(set_correlation_id(correlation_id)),
     )
     .await?;

@@ -4,11 +4,11 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use web_sys::Response;
 
-use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_json_body;
+use crate::api::client::terminal_api::BASE_TERMINAL_URL;
 use crate::api::shared::terminal_schema::TerminalAddress;
 use crate::api::shared::terminal_schema::WriteRequest;
 
@@ -16,7 +16,7 @@ use crate::api::shared::terminal_schema::WriteRequest;
 pub async fn write(terminal: &TerminalAddress, data: String) -> Result<(), WriteError> {
     let _: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/{WRITE}"),
+        format!("{BASE_TERMINAL_URL}/{WRITE}"),
         set_json_body(&WriteRequest { terminal, data })?,
     )
     .await?;

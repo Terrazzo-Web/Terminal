@@ -11,11 +11,11 @@ use web_sys::Response;
 
 use self::diagnostics::debug;
 use self::diagnostics::warn;
-use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_json_body;
+use crate::api::client::terminal_api::BASE_TERMINAL_URL;
 use crate::api::shared::terminal_schema::AckRequest;
 use crate::api::shared::terminal_schema::STREAMING_WINDOW_SIZE;
 use crate::api::shared::terminal_schema::TerminalAddress;
@@ -81,7 +81,7 @@ async fn send_ack(terminal: &TerminalAddress, ack: usize) -> Result<(), AckError
     debug!("Send ack={ack}");
     let _: Response = send_request(
         Method::POST,
-        format!("{BASE_URL}/stream/ack"),
+        format!("{BASE_TERMINAL_URL}/stream/ack"),
         set_json_body(&AckRequest { terminal, ack })?,
     )
     .await?;

@@ -25,12 +25,12 @@ use super::ShutdownPipe;
 use super::dispatch::dispatch;
 use super::keepalive::keepalive;
 use crate::api::KEEPALIVE_TTL_HEADER;
-use crate::api::client::request::BASE_URL;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;
 use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
+use crate::api::client::terminal_api::BASE_TERMINAL_URL;
 
 /// Spawns the pipe in the background.
 #[nameth]
@@ -40,7 +40,7 @@ pub async fn pipe(correlation_id: Arc<str>) -> Result<oneshot::Sender<()>, PipeE
         info!("Start");
         let response = send_request(
             Method::POST,
-            format!("{BASE_URL}/stream/{PIPE}"),
+            format!("{BASE_TERMINAL_URL}/stream/{PIPE}"),
             set_headers(set_correlation_id(correlation_id.as_ref())),
         )
         .await?;
@@ -166,7 +166,7 @@ pub async fn close_pipe(correlation_id: Arc<str>) {
         defer!(debug!("End"));
         let _response = send_request(
             Method::POST,
-            format!("{BASE_URL}/stream/{PIPE}/close"),
+            format!("{BASE_TERMINAL_URL}/stream/{PIPE}/close"),
             set_headers(set_correlation_id(correlation_id.as_ref())),
         )
         .await

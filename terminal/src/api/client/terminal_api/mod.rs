@@ -15,3 +15,5 @@ pub mod stream;
 pub mod write;
 
 pub type LiveTerminalDef = TerminalDefImpl<XSignal<TabTitle<XString>>>;
+
+pub const BASE_TERMINAL_URL: &str = "/api/terminal";
