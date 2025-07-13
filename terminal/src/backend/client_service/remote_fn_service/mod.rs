@@ -10,7 +10,7 @@ use nameth::nameth;
 use tonic::Status;
 use trz_gateway_server::server::Server;
 
-use crate::backend::client_service::remote_fn_service::remote_fn::RemoteFn;
+use crate::backend::client_service::remote_fn_service::remote_fn::RegisteredRemoteFn;
 use crate::backend::client_service::routing::DistributedCallbackError;
 
 mod callback;
@@ -25,14 +25,14 @@ pub mod uplift;
 static SERVER: OnceLock<Weak<Server>> = OnceLock::new();
 
 /// The collection of remote functions, declared using the [::inventory] crate.
-static REMOTE_FNS: OnceLock<HashMap<&'static str, RemoteFn>> = OnceLock::new();
+static REMOTE_FNS: OnceLock<HashMap<&'static str, RegisteredRemoteFn>> = OnceLock::new();
 
-inventory::collect!(RemoteFn);
+inventory::collect!(RegisteredRemoteFn);
 
 /// Initialize the server and the list of remote functions.
 pub fn setup(server: &Arc<Server>) {
-    let mut map: HashMap<&'static str, RemoteFn> = HashMap::new();
-    for remote_server_fn in inventory::iter::<RemoteFn> {
+    let mut map: HashMap<&'static str, RegisteredRemoteFn> = HashMap::new();
+    for remote_server_fn in inventory::iter::<RegisteredRemoteFn> {
         let old = map.insert(remote_server_fn.name, *remote_server_fn);
         assert! { old.is_none(), "Duplicate RemoteFn: {}", old.unwrap().name };
     }
@@ -117,9 +117,9 @@ mod remote_fn_errors_to_status {
 macro_rules! declare_remote_fn {
     (
         $remote_fn:ident,
+        $remote_fn_name:expr,
         $input:ty,
         $output:ty,
-        $remote_fn_name:expr,
         $implem:expr
     ) => {
         pub static $remote_fn: remote_fn_service::remote_fn::RemoteFn<$input, $output> = {
@@ -127,14 +127,15 @@ macro_rules! declare_remote_fn {
                 server: &trz_gateway_server::server::Server,
                 arg: &str,
             ) -> remote_fn_service::remote_fn::RemoteFnResult {
-                let callback = remote_fn_service::uplift::uplift($implem);
+                let callback = remote_fn_service::uplift::uplift::<$input, _, $output, _>($implem);
                 Box::pin(callback(server, arg))
             }
 
-            remote_fn_service::remote_fn::RemoteFn::new($remote_fn_name, callback)
+            static REMOTE_FN_REGISTRATION: remote_fn_service::remote_fn::RegisteredRemoteFn =
+                remote_fn_service::remote_fn::RegisteredRemoteFn::new($remote_fn_name, callback);
+            inventory::submit! { REMOTE_FN_REGISTRATION };
+            remote_fn_service::remote_fn::RemoteFn::new(REMOTE_FN_REGISTRATION)
         };
-
-        inventory::submit! { $remote_fn }
     };
 }
 

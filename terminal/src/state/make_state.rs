@@ -100,6 +100,8 @@ macro_rules! make_state {
             remote_fn_service::declare_remote_fn!(
                 GET_REMOTE_FN,
                 formatcp!("{}-state-{}", super::GET, stringify!($name)),
+                GetRequest,
+                super::ty::Type,
                 |_server, _: GetRequest| {
                     let state = super::STATE.lock().expect(stringify!($name));
                     ready(Ok::<super::ty::Type, StateError>(
@@ -111,6 +113,8 @@ macro_rules! make_state {
             remote_fn_service::declare_remote_fn!(
                 SET_REMOTE_FN,
                 formatcp!("{}-state-{}", super::SET_IMPL, stringify!($name)),
+                SetRequest,
+                (),
                 |_server, arg: SetRequest| {
                     let mut state = super::STATE.lock().expect(stringify!($name));
                     *state = Some(arg.value);

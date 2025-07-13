@@ -17,16 +17,14 @@ use crate::backend::protos::terrazzo::remotefn::RemoteFnRequest;
 ///
 /// They must be statically registered using [inventory::submit].
 pub struct RemoteFn<I, O> {
-    name: &'static str,
-    callback: fn(server: &Server, &str) -> RemoteFnResult,
+    delegate: RegisteredRemoteFn,
     _phantom: PhantomData<(I, O)>,
 }
 
 impl<I, O> Clone for RemoteFn<I, O> {
     fn clone(&self) -> Self {
         Self {
-            name: self.name.clone(),
-            callback: self.callback.clone(),
+            delegate: self.delegate,
             _phantom: PhantomData,
         }
     }
@@ -34,14 +32,28 @@ impl<I, O> Clone for RemoteFn<I, O> {
 
 impl<I, O> Copy for RemoteFn<I, O> {}
 
+#[derive(Clone, Copy)]
+pub struct RegisteredRemoteFn {
+    pub(super) name: &'static str,
+    pub(super) callback: fn(server: &Server, &str) -> RemoteFnResult,
+}
+
+impl RegisteredRemoteFn {
+    pub const fn new(
+        name: &'static str,
+        callback: fn(server: &Server, &str) -> RemoteFnResult,
+    ) -> Self {
+        Self { name, callback }
+    }
+}
+
 /// Shorthand for the result of remote functions.
 pub type RemoteFnResult = Pin<Box<dyn Future<Output = Result<String, RemoteFnError>> + Send>>;
 
 impl<I, O> RemoteFn<I, O> {
-    pub fn new(name: &'static str, callback: fn(server: &Server, &str) -> RemoteFnResult) -> Self {
+    pub const fn new(delegate: RegisteredRemoteFn) -> Self {
         Self {
-            name,
-            callback,
+            delegate,
             _phantom: PhantomData,
         }
     }
@@ -73,7 +85,7 @@ impl<I, O> RemoteFn<I, O> {
                 &address,
                 RemoteFnRequest {
                     address: Default::default(),
-                    server_fn_name: self.name.to_string(),
+                    server_fn_name: self.delegate.name.to_string(),
                     json: request,
                 },
             )

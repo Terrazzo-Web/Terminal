@@ -6,6 +6,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 use serde::Serialize;
 
+use super::AutocompleteItem;
 use crate::backend::client_service::remote_fn_service;
 use crate::text_editor::path_selector::PathSelector;
 
@@ -22,7 +23,9 @@ pub struct AutoCompletePathRequest {
 remote_fn_service::declare_remote_fn!(
     AUTOCOMPLETE_PATH_REMOTE_FN,
     super::AUTOCOMPLETE_PATH,
-    |_server, arg: AutoCompletePathRequest| {
+    AutoCompletePathRequest,
+    Vec<AutocompleteItem>,
+    |_server, arg| {
         ready(super::service::autocomplete_path(
             arg.kind,
             &arg.prefix,
