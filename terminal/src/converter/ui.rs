@@ -23,7 +23,7 @@ pub fn converter() -> XElement {
     let remote_signal: XSignal<Remote> = XSignal::new("remote", Remote::default());
     let left = XSignal::new("left", String::default());
     let right = left.view("right", |left| {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&left) {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(left) {
             if let Ok(json) = serde_json::to_string_pretty(&json) {
                 return json;
             }

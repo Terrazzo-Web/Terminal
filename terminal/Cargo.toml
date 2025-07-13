@@ -166,6 +166,8 @@ terminal-server = [
 text-editor = []
 text-editor-client = [
     "client",
+    "dep:futures",
+    "dep:scopeguard",
     "dep:serde-wasm-bindgen",
     "text-editor",
     "web-sys/KeyboardEvent",
