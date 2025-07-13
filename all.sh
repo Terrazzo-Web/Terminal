@@ -7,6 +7,7 @@ cargo check --bin terrazzo-terminal --no-default-features --features server-all 
 cargo check --bin terrazzo-terminal --no-default-features --features server-all --features max-level-info
 cargo check --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features terminal-server
 cargo check --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features text-editor-server
+cargo check --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features converter-server
 cargo check --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
 cargo check --bin game --no-default-features --features server,max-level-info --release
 
@@ -15,6 +16,7 @@ cargo clippy --bin terrazzo-terminal --no-default-features --features server-all
 cargo clippy --bin terrazzo-terminal --no-default-features --features server-all --features max-level-info
 cargo clippy --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features terminal-server
 cargo clippy --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features text-editor-server
+cargo clippy --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features converter-server
 cargo clippy --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
 cargo clippy --bin game --no-default-features --features server,max-level-info --release
 

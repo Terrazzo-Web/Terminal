@@ -70,6 +70,13 @@ fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -
             show_menu_mut.clone(),
             hide_menu.clone(),
         ));
+        #[cfg(feature = "converter")]
+        items.push(menu_item(
+            App::Converter,
+            app(),
+            show_menu_mut.clone(),
+            hide_menu.clone(),
+        ));
         tag(
             class = style::menu_items,
             mouseover = move |_: MouseEvent| {
@@ -115,6 +122,8 @@ impl App {
             App::Terminal => icons::terminal(),
             #[cfg(feature = "text-editor")]
             App::TextEditor => icons::text_editor(),
+            #[cfg(feature = "converter")]
+            App::Converter => icons::converter(),
         }
     }
 }

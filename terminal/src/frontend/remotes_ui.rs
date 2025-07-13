@@ -1,13 +1,14 @@
-#![cfg(feature = "client")]
+#![cfg(any(feature = "text-editor", feature = "converter"))]
 
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 
 use self::diagnostics::debug;
-use super::style;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes::RemotesState;
+
+stylance::import_crate_style!(style, "src/frontend/remotes_ui.scss");
 
 #[html]
 #[template(tag = div)]
@@ -26,7 +27,7 @@ pub fn show_remote(#[signal] mut cur_remote: Remote) -> XElement {
         class = style::remotes,
         div(
             "{cur_remote_name}",
-            class = super::style::show_current,
+            class = style::show_current,
             mouseenter = remotes_state.mouseenter(),
         ),
         mouseleave = remotes_state.mouseleave(),
@@ -35,7 +36,7 @@ pub fn show_remote(#[signal] mut cur_remote: Remote) -> XElement {
                 let remote_name = remote
                     .map(|remote_name| format!("{remote_name} ⏎"))
                     .unwrap_or_else(|| "Local".into());
-                let remote_class = (cur_remote.as_ref() == remote).then_some(super::style::current);
+                let remote_class = (cur_remote.as_ref() == remote).then_some(style::current);
                 (remote_name, remote_class)
             },
             move |_, new_remote| {

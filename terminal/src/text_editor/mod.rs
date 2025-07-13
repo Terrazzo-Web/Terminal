@@ -9,7 +9,6 @@ mod fsio;
 mod manager;
 pub mod notify;
 mod path_selector;
-mod remotes;
 mod rust_lang;
 mod side;
 mod state;

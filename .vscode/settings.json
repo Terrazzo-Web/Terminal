@@ -1,4 +1,5 @@
 {
+    "rust-analyzer.cargo.noDefaultFeatures": true,
     "rust-analyzer.cargo.features": [
         "client",
         "server",
@@ -8,5 +9,7 @@
         "terminal-server",
         "text-editor-client",
         "text-editor-server",
+        "converter-client",
+        "converter-server",
     ],
 }

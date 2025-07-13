@@ -22,7 +22,6 @@ use super::fsio;
 use super::manager::EditorState;
 use super::manager::TextEditorManager;
 use super::notify::ui::NotifyService;
-use super::remotes::show_remote;
 use super::side::SideViewList;
 use super::side::ui::show_side_view;
 use super::state;
@@ -31,6 +30,7 @@ use super::synchronized_state::SynchronizedState;
 use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
+use crate::frontend::remotes_ui::show_remote;
 
 pub(super) const STORE_FILE_DEBOUNCE_DELAY: Duration = if cfg!(debug_assertions) {
     Duration::from_millis(1500)
