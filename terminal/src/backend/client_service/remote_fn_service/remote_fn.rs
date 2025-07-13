@@ -30,8 +30,6 @@ impl<I, O> Clone for RemoteFn<I, O> {
     }
 }
 
-impl<I, O> Copy for RemoteFn<I, O> {}
-
 #[derive(Clone, Copy)]
 pub struct RegisteredRemoteFn {
     pub(super) name: &'static str,
