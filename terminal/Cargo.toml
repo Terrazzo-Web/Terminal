@@ -71,23 +71,7 @@ uuid = { workspace = true, optional = true, features = ["v4", "fast-rng"] }
 wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { workspace = true, optional = true }
 wasm-streams = { workspace = true, optional = true }
-web-sys = { workspace = true, optional = true, features = [
-    "DataTransfer",
-    "Document",
-    "DragEvent",
-    "Element",
-    "FocusEvent",
-    "Headers",
-    "HtmlInputElement",
-    "KeyboardEvent",
-    "MouseEvent",
-    "Performance",
-    "Request",
-    "RequestInit",
-    "RequestMode",
-    "Response",
-    "Window",
-] }
+web-sys = { workspace = true, optional = true }
 
 [build-dependencies]
 heck = { workspace = true }
@@ -100,14 +84,14 @@ fluent-asserter = { workspace = true }
 
 [features]
 default = ["prod"]
-prod = ["server", "max-level-info", "all"]
-all = ["terminal-server"]
+prod = ["max-level-info", "server-all"]
+server-all = ["terminal-server", "text-editor-server"]
+client-all = ["terminal-client", "text-editor-client"]
 
 client = [
     "dep:stylance",
     "dep:wasm-bindgen-futures",
     "dep:wasm-bindgen",
-    "dep:web-sys",
     "server_fn/browser",
     "terrazzo/client",
 ]
@@ -159,22 +143,34 @@ debug = ["terrazzo?/debug"]
 correlation-id = []
 
 terminal = ["correlation-id"]
-terminal-client = ["terminal", "dep:pin-project", "dep:wasm-streams"]
+terminal-client = [
+    "client",
+    "dep:pin-project",
+    "dep:wasm-streams",
+    "dep:web-sys",
+    "terminal",
+]
 terminal-server = [
     "dep:dashmap",
     "dep:pin-project",
     "dep:static_assertions",
     "dep:terrazzo-pty",
     "dep:tracing-futures",
+    "server",
     "terminal",
 ]
-
 text-editor = []
-text-editor-client = ["dep:serde-wasm-bindgen", "text-editor"]
+text-editor-client = [
+    "client",
+    "dep:serde-wasm-bindgen",
+    "text-editor",
+    "web-sys/KeyboardEvent",
+]
 text-editor-server = [
     "dep:libc",
     "dep:notify",
     "dep:tokio-stream",
+    "server",
     "text-editor",
 ]
 

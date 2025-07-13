@@ -87,7 +87,6 @@ fn build_client() {
     let client_dir: PathBuf = cargo_manifest_dir.clone();
 
     let mut wasm_pack_options = vec!["--no-default-features".into()];
-    Feature::Client.add(&mut wasm_pack_options);
     Feature::MaxLevelDebug.propagate(&mut wasm_pack_options);
     Feature::MaxLevelInfo.propagate(&mut wasm_pack_options);
     Feature::Diagnostics.propagate(&mut wasm_pack_options);
