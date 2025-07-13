@@ -1,10 +1,24 @@
-use tonic::*;
+use tonic::Request;
+use tonic::Response;
+use tonic::Result;
+use tonic::Status;
+use tonic::async_trait;
 
 use crate::backend::client_service::ClientServiceImpl;
 use crate::backend::client_service::terminal_service;
 use crate::backend::protos::terrazzo::shared::Empty;
+use crate::backend::protos::terrazzo::terminal::AckRequest;
+use crate::backend::protos::terrazzo::terminal::ListTerminalsRequest;
+use crate::backend::protos::terrazzo::terminal::ListTerminalsResponse;
+use crate::backend::protos::terrazzo::terminal::NewIdRequest;
+use crate::backend::protos::terrazzo::terminal::NewIdResponse;
+use crate::backend::protos::terrazzo::terminal::RegisterTerminalRequest;
+use crate::backend::protos::terrazzo::terminal::ResizeRequest;
+use crate::backend::protos::terrazzo::terminal::SetOrderRequest;
+use crate::backend::protos::terrazzo::terminal::SetTitleRequest;
+use crate::backend::protos::terrazzo::terminal::TerminalAddress;
+use crate::backend::protos::terrazzo::terminal::WriteRequest;
 use crate::backend::protos::terrazzo::terminal::terminal_service_server::TerminalService;
-use crate::backend::protos::terrazzo::terminal::*;
 use crate::processes::io::RemoteReader;
 
 #[async_trait]
