@@ -26,5 +26,5 @@ pub struct GetConversionsRequest {
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct GetConversionsResponse {
     pub language: String,
-    pub conversio: String,
+    pub conversion: String,
 }

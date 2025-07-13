@@ -2,12 +2,15 @@
 
 use std::sync::Arc;
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
+use terrazzo::widgets::debounce::DoDebounce;
 use wasm_bindgen::JsCast as _;
+use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlTextAreaElement;
 
 use crate::frontend::menu::menu;
@@ -22,14 +25,7 @@ stylance::import_crate_style!(style, "src/converter/converter.scss");
 pub fn converter() -> XElement {
     let remote_signal: XSignal<Remote> = XSignal::new("remote", Remote::default());
     let left = XSignal::new("left", String::default());
-    let right = left.view("right", |left| {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(left) {
-            if let Ok(json) = serde_json::to_string_pretty(&json) {
-                return json;
-            }
-        }
-        return "error".into();
-    });
+    let right = XSignal::new("right", String::default());
     div(
         class = style::outer,
         converter_impl(remote_signal, left, right),
@@ -48,27 +44,84 @@ fn converter_impl(
     div(
         class = style::inner,
         key = "converter",
-        div(class = style::header, menu(), show_remote(remote_signal)),
+        div(
+            class = style::header,
+            menu(),
+            show_remote(remote_signal.clone()),
+        ),
         div(
             class = style::body,
             textarea(
                 "{left}",
                 before_render = move |e| {
                     autoclone!(element);
-                    let _ = &right_mut;
                     element
                         .set(e.dyn_into().or_throw("Element not a textarea"))
                         .or_throw("Element was already set");
                 },
                 input = move |_: web_sys::InputEvent| {
-                    autoclone!(element);
+                    autoclone!(remote_signal, element, right_mut);
                     let element = element.get().or_throw("Element was not set");
-                    let value = element.value();
-                    diagnostics::debug!("Value: {value}");
-                    left_mut.set(value);
+                    get_conversions(
+                        remote_signal.get_value_untracked(),
+                        element.value(),
+                        right_mut.clone(),
+                    );
                 },
             ),
             pre("{right}"),
         ),
     )
 }
+
+fn get_conversions(remote: Remote, content: String, signal: MutableSignal<String>) {
+    let debounced = get_conversions_debounced();
+    debounced(GetConversionsUiRequest {
+        remote,
+        content,
+        signal,
+    })
+}
+
+fn get_conversions_debounced() -> &'static dyn Fn(GetConversionsUiRequest) {
+    use std::sync::OnceLock;
+    static DEBOUNCED: OnceLock<DebouncedGetConversions> = OnceLock::new();
+    &*DEBOUNCED
+        .get_or_init(|| {
+            DebouncedGetConversions(Box::new(DEBOUNCE_DELAY.debounce(
+                |GetConversionsUiRequest {
+                     remote,
+                     content,
+                     signal,
+                 }| {
+                    spawn_local(async move {
+                        match super::api::get_conversions(remote, content)
+                            .await
+                            .as_deref()
+                        {
+                            Ok([first, ..]) => signal.set(first.conversion.clone()),
+                            Ok([]) => signal.set("No conversion found"),
+                            Err(error) => signal.set(error.to_string()),
+                        }
+                    })
+                },
+            )))
+        })
+        .0
+}
+
+static DEBOUNCE_DELAY: Duration = if cfg!(debug_assertions) {
+    Duration::from_millis(700)
+} else {
+    Duration::from_millis(200)
+};
+
+struct GetConversionsUiRequest {
+    remote: Remote,
+    content: String,
+    signal: MutableSignal<String>,
+}
+
+struct DebouncedGetConversions(Box<dyn Fn(GetConversionsUiRequest)>);
+unsafe impl Send for DebouncedGetConversions {}
+unsafe impl Sync for DebouncedGetConversions {}
