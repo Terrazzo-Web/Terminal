@@ -20,6 +20,7 @@ runs:
         cargo check --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features text-editor-server
         cargo check --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
         cargo check --bin game --no-default-features --features server,max-level-info --release
+      shell: bash
 
     - name: Clippy
       run: |
