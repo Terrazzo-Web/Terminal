@@ -29,8 +29,8 @@ use super::style;
 use super::synchronized_state::SynchronizedState;
 use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
-use crate::frontend::remotes::show_remote;
-use crate::frontend::remotes_list::Remote;
+use crate::frontend::remotes::Remote;
+use crate::frontend::remotes_ui::show_remote;
 
 pub(super) const STORE_FILE_DEBOUNCE_DELAY: Duration = if cfg!(debug_assertions) {
     Duration::from_millis(1500)

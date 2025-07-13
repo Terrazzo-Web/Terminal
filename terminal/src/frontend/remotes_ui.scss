@@ -1,0 +1,25 @@
+div.remotes {
+    position: relative;
+    padding-right: var(--padding);
+    margin-left: auto;
+
+    div.show-current {
+        white-space: nowrap;
+    }
+
+    .current {
+        position: relative;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--link-color);
+            opacity: 0.4;
+            z-index: -1;
+        }
+    }
+}

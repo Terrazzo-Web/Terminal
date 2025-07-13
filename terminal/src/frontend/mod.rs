@@ -11,7 +11,7 @@ use self::login::login;
 pub mod login;
 pub mod menu;
 pub mod remotes;
-pub mod remotes_list;
+pub mod remotes_ui;
 pub mod timestamp;
 pub mod utils;
 

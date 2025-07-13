@@ -11,7 +11,7 @@ use super::terminal_tab::TerminalTab;
 use crate::api::client_address::ClientAddress;
 use crate::assets::icons;
 use crate::frontend::menu::menu;
-use crate::frontend::remotes_list::RemotesState;
+use crate::frontend::remotes::RemotesState;
 use crate::terminal::terminal_tabs::add_tab::create_terminal;
 use crate::terminal_id::TerminalId;
 

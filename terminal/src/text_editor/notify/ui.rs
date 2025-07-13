@@ -19,7 +19,7 @@ use terrazzo::prelude::diagnostics::trace;
 use terrazzo::prelude::diagnostics::warn;
 use wasm_bindgen_futures::spawn_local;
 
-use crate::frontend::remotes_list::Remote;
+use crate::frontend::remotes::Remote;
 use crate::text_editor::file_path::FilePath;
 use crate::text_editor::notify::Arc;
 use crate::text_editor::notify::NotifyRequest;

@@ -11,8 +11,8 @@ use wasm_bindgen::JsCast as _;
 use web_sys::HtmlTextAreaElement;
 
 use crate::frontend::menu::menu;
-use crate::frontend::remotes::show_remote;
-use crate::frontend::remotes_list::Remote;
+use crate::frontend::remotes::Remote;
+use crate::frontend::remotes_ui::show_remote;
 
 stylance::import_crate_style!(style, "src/converter/converter.scss");
 
