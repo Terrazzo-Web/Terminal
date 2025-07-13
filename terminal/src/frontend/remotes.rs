@@ -55,7 +55,7 @@ pub fn show_remote(#[signal] mut cur_remote: Remote) -> XElement {
 }
 
 #[derive(Clone)]
-struct RemotesState {
+pub struct RemotesState {
     pub remotes: XSignal<Remotes>,
     show_remotes: Cancellable<()>,
     hide_remotes: Cancellable<Duration>,

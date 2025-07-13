@@ -147,7 +147,9 @@ correlation-id = []
 terminal = ["correlation-id"]
 terminal-client = [
     "client",
+    "dep:futures",
     "dep:pin-project",
+    "dep:scopeguard",
     "dep:wasm-streams",
     "dep:web-sys",
     "terminal",
