@@ -1,3 +1,5 @@
+#![cfg(feature = "terminal")]
+
 use std::time::Duration;
 
 use futures::channel::oneshot;

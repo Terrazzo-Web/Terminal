@@ -10,8 +10,8 @@ use terrazzo_pty::lease::LeaseItem;
 use tonic::Status;
 use tonic::Streaming;
 
-use crate::backend::protos::terrazzo::gateway::client::LeaseItem as LeaseItemProto;
-use crate::backend::protos::terrazzo::gateway::client::lease_item;
+use crate::backend::protos::terrazzo::terminal::LeaseItem as LeaseItemProto;
+use crate::backend::protos::terrazzo::terminal::lease_item;
 use crate::backend::throttling_stream::ThrottleProcessOutput;
 
 #[pin_project(project = HybridReaderProj)]

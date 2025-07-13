@@ -1,3 +1,5 @@
+#![cfg(feature = "terminal")]
+
 use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::pin::Pin;
@@ -17,7 +19,7 @@ use terrazzo_pty::lease::LeaseItem;
 use terrazzo_pty::lease::ProcessOutputLease;
 use tracing::debug;
 
-use crate::api::STREAMING_WINDOW_SIZE;
+use crate::api::shared::terminal_schema::STREAMING_WINDOW_SIZE;
 use crate::terminal_id::TerminalId;
 
 fn streams() -> MutexGuard<'static, HashMap<TerminalId, Arc<Mutex<ThrottlingState>>>> {

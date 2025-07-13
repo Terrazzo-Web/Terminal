@@ -149,7 +149,7 @@ impl CargoWorkspaces {
                         };
                         let diagnostics = match result {
                             Ok(diagnostics) => diagnostics,
-                            Err(error) => return warn!("todo {error}"),
+                            Err(error) => return warn!("Cargo check failed with: {error}"),
                         };
                         let _ = tx.send(Ok(NotifyResponse {
                             path: cargo_path.to_owned_string(),

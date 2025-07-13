@@ -30,18 +30,26 @@ fn install_icons() {
     #[cfg(feature = "client")]
     fn install_icon(_: &'static str) {}
 
-    install_icon(super::icons::add_tab());
-    install_icon(super::icons::chevron_double_right());
     install_icon(super::icons::close_tab());
-    install_icon(super::icons::done());
-    install_icon(super::icons::file());
-    install_icon(super::icons::folder());
     install_icon(super::icons::key_icon());
-    install_icon(super::icons::loading());
     install_icon(super::icons::menu());
-    install_icon(super::icons::slash());
-    install_icon(super::icons::terminal());
-    install_icon(super::icons::text_editor());
+
+    #[cfg(feature = "terminal")]
+    {
+        install_icon(super::icons::add_tab());
+        install_icon(super::icons::terminal());
+    }
+
+    #[cfg(feature = "text-editor")]
+    {
+        install_icon(super::icons::chevron_double_right());
+        install_icon(super::icons::done());
+        install_icon(super::icons::file());
+        install_icon(super::icons::folder());
+        install_icon(super::icons::loading());
+        install_icon(super::icons::slash());
+        install_icon(super::icons::text_editor());
+    }
 }
 
 fn install_xterm() {

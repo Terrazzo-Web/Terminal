@@ -4,7 +4,7 @@ use terrazzo::template;
 
 use self::diagnostics::Instrument as _;
 use self::diagnostics::warn;
-use crate::api;
+use crate::api::client::terminal_api;
 use crate::api::client_address::ClientAddress;
 use crate::frontend::remotes::Remotes;
 use crate::terminal::TerminalsState;
@@ -23,7 +23,7 @@ pub fn active(#[signal] remotes: Remotes) -> XAttributeValue {
 pub fn create_terminal(state: TerminalsState, client_address: ClientAddress) {
     let task = async move {
         autoclone!(state, client_address);
-        let terminal_def = match api::client::new_id::new_id(client_address.clone()).await {
+        let terminal_def = match terminal_api::new_id::new_id(client_address.clone()).await {
             Ok(id) => id,
             Err(error) => {
                 warn!("Failed to allocate new ID: {error}");

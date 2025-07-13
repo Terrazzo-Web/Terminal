@@ -6,7 +6,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::backend::client_service::remote_fn;
+use crate::backend::client_service::remote_fn_service;
 use crate::text_editor::path_selector::PathSelector;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -19,7 +19,7 @@ pub struct AutoCompletePathRequest {
     pub input: String,
 }
 
-remote_fn::declare_remote_fn!(
+remote_fn_service::declare_remote_fn!(
     AUTOCOMPLETE_PATH_REMOTE_FN,
     super::AUTOCOMPLETE_PATH,
     |_server, arg: AutoCompletePathRequest| {

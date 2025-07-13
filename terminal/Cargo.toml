@@ -36,7 +36,7 @@ nix = { workspace = true, optional = true, features = ["signal"] }
 notify = { workspace = true, optional = true }
 openssl = { workspace = true, optional = true }
 pbkdf2 = { workspace = true, optional = true }
-pin-project = { workspace = true }
+pin-project = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
 prost-types = { workspace = true, optional = true }
 rpassword = { workspace = true, optional = true }
@@ -71,25 +71,10 @@ uuid = { workspace = true, optional = true, features = ["v4", "fast-rng"] }
 wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { workspace = true, optional = true }
 wasm-streams = { workspace = true, optional = true }
-web-sys = { workspace = true, optional = true, features = [
-    "DataTransfer",
-    "Document",
-    "DragEvent",
-    "Element",
-    "FocusEvent",
-    "Headers",
-    "HtmlInputElement",
-    "KeyboardEvent",
-    "MouseEvent",
-    "Performance",
-    "Request",
-    "RequestInit",
-    "RequestMode",
-    "Response",
-    "Window",
-] }
+web-sys = { workspace = true, optional = true }
 
 [build-dependencies]
+heck = { workspace = true }
 scopeguard = { workspace = true }
 terrazzo-build = { workspace = true }
 tonic-build = { workspace = true, features = ["prost"] }
@@ -98,14 +83,15 @@ tonic-build = { workspace = true, features = ["prost"] }
 fluent-asserter = { workspace = true }
 
 [features]
-default = ["server", "max_level_info"]
+default = ["prod"]
+prod = ["max-level-info", "server-all"]
+server-all = ["terminal-server", "text-editor-server"]
+client-all = ["terminal-client", "text-editor-client"]
+
 client = [
-    "dep:serde-wasm-bindgen",
     "dep:stylance",
     "dep:wasm-bindgen-futures",
     "dep:wasm-bindgen",
-    "dep:wasm-streams",
-    "dep:web-sys",
     "server_fn/browser",
     "terrazzo/client",
 ]
@@ -114,28 +100,22 @@ server = [
     "dep:base64",
     "dep:clap",
     "dep:const_format",
-    "dep:dashmap",
     "dep:humantime",
     "dep:inventory",
     "dep:jsonwebtoken",
-    "dep:libc",
     "dep:nix",
-    "dep:notify",
     "dep:openssl",
     "dep:pbkdf2",
     "dep:prost-types",
     "dep:prost",
     "dep:rpassword",
     "dep:sha2",
-    "dep:static_assertions",
-    "dep:terrazzo-pty",
-    "dep:tokio-stream",
+    "dep:pin-project",
     "dep:tokio",
     "dep:toml",
     "dep:tonic",
     "dep:tower-http",
     "dep:tower",
-    "dep:tracing-futures",
     "dep:tracing",
     "dep:trz-gateway-client",
     "dep:trz-gateway-common",
@@ -145,12 +125,12 @@ server = [
     "server_fn/browser",
     "terrazzo/server",
 ]
-max_level_debug = [
+max-level-debug = [
     "terrazzo?/max_client_level_debug",
     "tracing?/max_level_debug",
     "tracing?/release_max_level_debug",
 ]
-max_level_info = [
+max-level-info = [
     "terrazzo?/max_client_level_info",
     "tracing?/max_level_info",
     "tracing?/release_max_level_info",
@@ -160,6 +140,39 @@ concise-traces = ["terrazzo?/concise-traces"]
 diagnostics = ["terrazzo?/diagnostics"]
 no_wasm_build = []
 debug = ["terrazzo?/debug"]
+correlation-id = []
+
+terminal = ["correlation-id"]
+terminal-client = [
+    "client",
+    "dep:pin-project",
+    "dep:wasm-streams",
+    "dep:web-sys",
+    "terminal",
+]
+terminal-server = [
+    "dep:dashmap",
+    "dep:pin-project",
+    "dep:static_assertions",
+    "dep:terrazzo-pty",
+    "dep:tracing-futures",
+    "server",
+    "terminal",
+]
+text-editor = []
+text-editor-client = [
+    "client",
+    "dep:serde-wasm-bindgen",
+    "text-editor",
+    "web-sys/KeyboardEvent",
+]
+text-editor-server = [
+    "dep:libc",
+    "dep:notify",
+    "dep:tokio-stream",
+    "server",
+    "text-editor",
+]
 
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo-terminal.scss"

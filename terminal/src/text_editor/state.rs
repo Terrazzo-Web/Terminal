@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::state::make_state;
+use crate::state::make_state::make_state;
 use crate::text_editor::side::SideViewList;
 
 make_state!(base_path, Arc<str>);

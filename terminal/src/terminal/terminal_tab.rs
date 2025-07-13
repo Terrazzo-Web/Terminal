@@ -24,11 +24,11 @@ use super::TerminalsState;
 use super::attach;
 use super::javascript::TerminalJs;
 use super::style;
-use crate::api;
-use crate::api::TabTitle;
-use crate::api::TerminalAddress;
-use crate::api::TerminalDef;
-use crate::api::client::LiveTerminalDef;
+use crate::api::client::terminal_api;
+use crate::api::client::terminal_api::LiveTerminalDef;
+use crate::api::shared::terminal_schema::TabTitle;
+use crate::api::shared::terminal_schema::TerminalAddress;
+use crate::api::shared::terminal_schema::TerminalDef;
 use crate::assets::icons;
 use crate::terminal_id::TerminalId;
 
@@ -87,7 +87,7 @@ impl TerminalTab {
         let set_title = Duration::from_secs(1).async_debounce(
             |(address, title): (TerminalAddress, TabTitle<XString>)| async move {
                 let result =
-                    api::client::set_title::set_title(&address, title.map(|t| t.to_string()));
+                    terminal_api::set_title::set_title(&address, title.map(|t| t.to_string()));
                 if let Err(error) = result.await {
                     warn!("Failed to update title: {error}")
                 }
@@ -161,8 +161,8 @@ impl TabDescriptor for TerminalTab {
                 ev.stop_propagation();
                 let close_task = async move {
                     autoclone!(terminal);
-                    api::client::stream::try_restart_pipe();
-                    api::client::stream::close(&terminal, None).await;
+                    terminal_api::stream::try_restart_pipe();
+                    terminal_api::stream::close(&terminal, None).await;
                 };
                 spawn_local(close_task.in_current_span());
             },

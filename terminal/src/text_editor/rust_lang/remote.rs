@@ -5,7 +5,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::backend::client_service::remote_fn;
+use crate::backend::client_service::remote_fn_service;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CargoCheckRequest {
@@ -15,7 +15,7 @@ pub struct CargoCheckRequest {
     pub features: Vec<String>,
 }
 
-remote_fn::declare_remote_fn!(
+remote_fn_service::declare_remote_fn!(
     CARGO_CHECK_REMOTE_FN,
     super::CARGO_CHECK,
     |_server, arg: CargoCheckRequest| {

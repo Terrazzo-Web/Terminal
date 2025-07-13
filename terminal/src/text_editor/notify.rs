@@ -21,8 +21,8 @@ mod watcher;
 pub async fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
 ) -> Result<BoxedStream<NotifyResponse, ServerFnError>, ServerFnError> {
-    use crate::backend::client_service::notify::notify_hybrid;
-    Ok(notify_hybrid(request.into())?.into())
+    use crate::backend::client_service::notify_service::dispatch::notify_dispatch;
+    Ok(notify_dispatch(request.into())?.into())
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

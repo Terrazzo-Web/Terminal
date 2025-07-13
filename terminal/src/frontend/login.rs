@@ -16,8 +16,6 @@ use self::diagnostics::warn;
 use crate::assets::icons;
 use crate::frontend::menu::app;
 use crate::state::app::App;
-use crate::terminal::terminals;
-use crate::text_editor::ui::text_editor;
 
 stylance::import_crate_style!(style, "src/frontend/login.scss");
 
@@ -93,7 +91,9 @@ pub enum LoggedInStatus {
 #[template]
 fn show_app(#[signal] app: App) -> XElement {
     match app {
-        App::Terminal => div(|t| terminals(t)),
-        App::TextEditor => div(|t| text_editor(t)),
+        #[cfg(feature = "terminal")]
+        App::Terminal => div(|t| crate::terminal::terminals(t)),
+        #[cfg(feature = "text-editor")]
+        App::TextEditor => div(|t| crate::text_editor::ui::text_editor(t)),
     }
 }
