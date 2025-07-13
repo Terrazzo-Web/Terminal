@@ -50,6 +50,11 @@ fn install_icons() {
         install_icon(super::icons::slash());
         install_icon(super::icons::text_editor());
     }
+
+    #[cfg(feature = "converter")]
+    {
+        install_icon(super::icons::converter());
+    }
 }
 
 fn install_xterm() {

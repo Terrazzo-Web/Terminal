@@ -85,8 +85,8 @@ fluent-asserter = { workspace = true }
 [features]
 default = ["prod"]
 prod = ["max-level-info", "server-all"]
-server-all = ["terminal-server", "text-editor-server"]
-client-all = ["terminal-client", "text-editor-client"]
+server-all = ["terminal-server", "text-editor-server", "converter-server"]
+client-all = ["terminal-client", "text-editor-client", "converter-client"]
 
 client = [
     "dep:stylance",
@@ -173,6 +173,15 @@ text-editor-server = [
     "server",
     "text-editor",
 ]
+converter = []
+converter-client = [
+    "client",
+    "converter",
+    "dep:web-sys",
+    "web-sys/HtmlTextAreaElement",
+    "web-sys/InputEvent",
+]
+converter-server = ["server", "converter"]
 
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo-terminal.scss"

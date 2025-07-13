@@ -15,12 +15,18 @@ enum Feature {
     Diagnostics,
     NoWasmBuild,
     Debug,
+
     Terminal,
     TerminalClient,
     TerminalServer,
+
     TextEditor,
     TextEditorClient,
     TextEditorServer,
+
+    Converter,
+    ConverterClient,
+    ConverterServer,
 }
 
 impl Feature {
@@ -75,6 +81,7 @@ fn build_client() {
     let disable_server_features = (
         Feature::TerminalServer.disable(),
         Feature::TextEditorServer.disable(),
+        Feature::ConverterServer.disable(),
     );
 
     if Feature::Client.is_set() {
@@ -96,6 +103,9 @@ fn build_client() {
     }
     if Feature::TextEditor.is_set() {
         Feature::TextEditorClient.add(&mut wasm_pack_options);
+    }
+    if Feature::Converter.is_set() {
+        Feature::ConverterClient.add(&mut wasm_pack_options);
     }
     let wasm_pack_options = wasm_pack_options
         .iter()

@@ -33,6 +33,7 @@ pub type Icon = &'static str;
 declare_icon!(add_tab, "/icons/plus-square.svg"; feature = "terminal");
 declare_icon!(chevron_double_right, "/icons/chevron-double-right.svg"; feature = "text-editor");
 declare_icon!(close_tab, "/icons/x-lg.svg");
+declare_icon!(converter, "/icons/regex.svg"; feature = "converter");
 declare_icon!(done, "/icons/done.svg"; feature = "text-editor");
 declare_icon!(file, "/icons/file-earmark-text.svg"; feature = "text-editor");
 declare_icon!(folder, "/icons/folder2-open.svg"; feature = "text-editor");
