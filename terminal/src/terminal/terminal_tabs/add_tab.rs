@@ -6,7 +6,7 @@ use self::diagnostics::Instrument as _;
 use self::diagnostics::warn;
 use crate::api::client::terminal_api;
 use crate::api::client_address::ClientAddress;
-use crate::frontend::remotes::Remotes;
+use crate::frontend::remotes_list::Remotes;
 use crate::terminal::TerminalsState;
 use crate::terminal::terminal_tab::TerminalTab;
 

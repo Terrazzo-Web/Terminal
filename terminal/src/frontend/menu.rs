@@ -13,7 +13,7 @@ use web_sys::MouseEvent;
 
 use self::diagnostics::Instrument as _;
 use crate::assets::icons;
-use crate::frontend::remotes::Remote;
+use crate::frontend::remotes_list::Remote;
 use crate::state::app;
 use crate::state::app::App;
 

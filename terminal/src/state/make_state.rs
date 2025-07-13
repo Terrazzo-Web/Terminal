@@ -26,7 +26,7 @@ macro_rules! make_state {
         }
 
         #[cfg(feature = "client")]
-        use crate::frontend::remotes::Remote;
+        use crate::frontend::remotes_list::Remote;
 
         #[cfg(feature = "client")]
         pub async fn set(

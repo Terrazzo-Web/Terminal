@@ -9,7 +9,7 @@ use terrazzo::prelude::diagnostics;
 use terrazzo::widgets::debounce::DoDebounce;
 
 use self::diagnostics::warn;
-use crate::frontend::remotes::Remote;
+use crate::frontend::remotes_list::Remote;
 use crate::text_editor::file_path::FilePath;
 use crate::text_editor::ui::STORE_FILE_DEBOUNCE_DELAY;
 

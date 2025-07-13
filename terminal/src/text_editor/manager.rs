@@ -14,7 +14,7 @@ use super::notify::ui::NotifyService;
 use super::side;
 use super::side::SideViewList;
 use super::synchronized_state::SynchronizedState;
-use crate::frontend::remotes::Remote;
+use crate::frontend::remotes_list::Remote;
 use crate::utils::more_path::MorePath as _;
 
 pub(super) struct TextEditorManager {
