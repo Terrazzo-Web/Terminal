@@ -2,6 +2,7 @@ use prost as _;
 use prost_types as _;
 
 pub mod terrazzo {
+    #[cfg(feature = "text-editor")]
     pub mod notify {
         include!(concat!(env!("OUT_DIR"), "/terrazzo.notify.rs"));
     }
