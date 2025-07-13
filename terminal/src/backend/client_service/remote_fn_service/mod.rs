@@ -115,8 +115,14 @@ mod remote_fn_errors_to_status {
 }
 
 macro_rules! declare_remote_fn {
-    ($remote_fn:ident, $remote_fn_name:expr, $implem:expr) => {
-        pub static $remote_fn: remote_fn_service::remote_fn::RemoteFn = {
+    (
+        $remote_fn:ident,
+        $input:ty,
+        $output:ty,
+        $remote_fn_name:expr,
+        $implem:expr
+    ) => {
+        pub static $remote_fn: remote_fn_service::remote_fn::RemoteFn<$input, $output> = {
             fn callback(
                 server: &trz_gateway_server::server::Server,
                 arg: &str,
@@ -125,10 +131,7 @@ macro_rules! declare_remote_fn {
                 Box::pin(callback(server, arg))
             }
 
-            remote_fn_service::remote_fn::RemoteFn {
-                name: $remote_fn_name,
-                callback,
-            }
+            remote_fn_service::remote_fn::RemoteFn::new($remote_fn_name, callback)
         };
 
         inventory::submit! { $remote_fn }
