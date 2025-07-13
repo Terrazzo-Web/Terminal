@@ -13,6 +13,7 @@ use web_sys::MouseEvent;
 
 use self::diagnostics::Instrument as _;
 use self::diagnostics::debug;
+use crate::api::client::remotes_api;
 use crate::api::client_address::ClientAddress;
 
 stylance::import_crate_style!(style, "src/frontend/remotes.scss");
@@ -73,7 +74,7 @@ impl RemotesState {
             });
             hide_remotes.cancel();
             let fetch_remotes = async move {
-                let remotes = crate::api::client::remotes::remotes()
+                let remotes = remotes_api::remotes()
                     .await
                     .or_else_throw(|error| format!("Failed to fetch remotes: {error}"));
                 if update_remotes(remotes).is_none() {
