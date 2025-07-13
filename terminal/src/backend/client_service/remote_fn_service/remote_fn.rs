@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use std::pin::Pin;
 
 use scopeguard::defer;
@@ -16,49 +15,29 @@ use crate::backend::protos::terrazzo::remotefn::RemoteFnRequest;
 /// A struct that holds a remote server function.
 ///
 /// They must be statically registered using [inventory::submit].
-pub struct RemoteFn<I, O> {
-    name: &'static str,
-    callback: fn(server: &Server, &str) -> RemoteFnResult,
-    _phantom: PhantomData<(I, O)>,
+#[derive(Clone, Copy)]
+pub struct RemoteFn {
+    pub name: &'static str,
+    pub callback: fn(server: &Server, &str) -> RemoteFnResult,
 }
-
-impl<I, O> Clone for RemoteFn<I, O> {
-    fn clone(&self) -> Self {
-        Self {
-            name: self.name.clone(),
-            callback: self.callback.clone(),
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<I, O> Copy for RemoteFn<I, O> {}
 
 /// Shorthand for the result of remote functions.
 pub type RemoteFnResult = Pin<Box<dyn Future<Output = Result<String, RemoteFnError>> + Send>>;
 
-impl<I, O> RemoteFn<I, O> {
-    pub fn new(name: &'static str, callback: fn(server: &Server, &str) -> RemoteFnResult) -> Self {
-        Self {
-            name,
-            callback,
-            _phantom: PhantomData,
-        }
-    }
-
+impl RemoteFn {
     /// Calls the remote function.
     ///
     /// The remote function will be called on the client indicated by `address`.
     ///
     /// Takes care of serializing the request and then deserializing the response.
-    pub fn call(
+    pub fn call<Req, Res>(
         &self,
         address: ClientAddress,
-        request: I,
-    ) -> impl Future<Output = Result<O, RemoteFnError>>
+        request: Req,
+    ) -> impl Future<Output = Result<Res, RemoteFnError>>
     where
-        I: serde::Serialize,
-        O: for<'de> serde::Deserialize<'de>,
+        Req: serde::Serialize,
+        Res: for<'de> serde::Deserialize<'de>,
     {
         async move {
             debug!("Start");
