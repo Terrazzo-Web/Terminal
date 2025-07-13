@@ -1,7 +1,6 @@
 #![cfg(feature = "server")]
 
 use terrazzo::declare_asset;
-use terrazzo::declare_assets_dir;
 use terrazzo::declare_scss_asset;
 
 pub fn install_assets() {
@@ -30,6 +29,7 @@ fn install_icons() {
     #[cfg(feature = "client")]
     fn install_icon(_: &'static str) {}
 
+    #[cfg(any(feature = "terminal", feature = "text-editor"))]
     install_icon(super::icons::close_tab());
     install_icon(super::icons::key_icon());
     install_icon(super::icons::menu());
@@ -68,7 +68,8 @@ fn install_wasm() {
     declare_asset!("/target/assets/wasm/terrazzo_terminal_bg.wasm")
         .asset_name("wasm/terrazzo_terminal_bg.wasm")
         .install();
-    declare_assets_dir!(
+    #[cfg(any(feature = "terminal", feature = "text-editor"))]
+    terrazzo::declare_assets_dir!(
         "wasm/snippets",
         "$CARGO_MANIFEST_DIR/target/assets/wasm/snippets"
     );

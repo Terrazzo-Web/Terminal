@@ -11,6 +11,8 @@ use wasm_bindgen::JsCast as _;
 use web_sys::HtmlTextAreaElement;
 
 use crate::frontend::menu::menu;
+use crate::frontend::remotes::Remote;
+use crate::frontend::remotes::show_remote;
 
 stylance::import_crate_style!(style, "src/converter/converter.scss");
 
@@ -18,6 +20,7 @@ stylance::import_crate_style!(style, "src/converter/converter.scss");
 #[html]
 #[template]
 pub fn converter() -> XElement {
+    let remote_signal: XSignal<Remote> = XSignal::new("remote", Remote::default());
     let left = XSignal::new("left", String::default());
     let right = left.view("right", |left| {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&left) {
@@ -27,18 +30,25 @@ pub fn converter() -> XElement {
         }
         return "error".into();
     });
-    div(class = style::outer, converter_impl(left, right))
+    div(
+        class = style::outer,
+        converter_impl(remote_signal, left, right),
+    )
 }
 
 #[autoclone]
 #[html]
 #[template(tag = div)]
-fn converter_impl(#[signal] mut left: String, #[signal] mut right: String) -> XElement {
+fn converter_impl(
+    remote_signal: XSignal<Remote>,
+    #[signal] mut left: String,
+    #[signal] mut right: String,
+) -> XElement {
     let element: Arc<OnceLock<HtmlTextAreaElement>> = Default::default();
     div(
         class = style::inner,
         key = "converter",
-        div(class = style::header, menu()),
+        div(class = style::header, menu(), show_remote(remote_signal)),
         div(
             class = style::body,
             textarea(

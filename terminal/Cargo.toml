@@ -26,7 +26,7 @@ base64 = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 const_format = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
-futures = { workspace = true }
+futures = { workspace = true, optional = true }
 humantime = { workspace = true, optional = true }
 inventory = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
@@ -40,7 +40,7 @@ pin-project = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
 prost-types = { workspace = true, optional = true }
 rpassword = { workspace = true, optional = true }
-scopeguard = { workspace = true }
+scopeguard = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde-wasm-bindgen = { workspace = true, optional = true }
@@ -100,17 +100,19 @@ server = [
     "dep:base64",
     "dep:clap",
     "dep:const_format",
+    "dep:futures",
     "dep:humantime",
     "dep:inventory",
     "dep:jsonwebtoken",
     "dep:nix",
     "dep:openssl",
     "dep:pbkdf2",
+    "dep:pin-project",
     "dep:prost-types",
     "dep:prost",
     "dep:rpassword",
+    "dep:scopeguard",
     "dep:sha2",
-    "dep:pin-project",
     "dep:tokio",
     "dep:toml",
     "dep:tonic",
