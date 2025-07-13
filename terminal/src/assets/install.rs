@@ -68,7 +68,10 @@ fn install_wasm() {
     declare_asset!("/target/assets/wasm/terrazzo_terminal_bg.wasm")
         .asset_name("wasm/terrazzo_terminal_bg.wasm")
         .install();
-    #[cfg(any(feature = "terminal", feature = "text-editor"))]
+    #[cfg(all(
+        not(feature = "client"),
+        any(feature = "terminal", feature = "text-editor")
+    ))]
     terrazzo::declare_assets_dir!(
         "wasm/snippets",
         "$CARGO_MANIFEST_DIR/target/assets/wasm/snippets"
