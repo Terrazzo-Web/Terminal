@@ -10,8 +10,8 @@ use crate::backend::client_service::remote_fn_service;
 use crate::converter::api::Language;
 
 #[nameth]
-pub async fn get_conversions(content: String) -> Result<Conversions, Status> {
-    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
+    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&input) {
         if let Ok(json) = serde_json::to_string_pretty(&json) {
             return Ok(Conversions {
                 conversions: vec![
@@ -30,5 +30,5 @@ remote_fn_service::declare_remote_fn!(
     GET_CONVERSIONS,
     ConversionsRequest,
     Conversions,
-    |_server, arg| get_conversions(arg.content)
+    |_server, arg| get_conversions(arg.input)
 );

@@ -9,10 +9,15 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::debounce::DoDebounce;
+use terrazzo::widgets::tabs::TabsOptions;
+use terrazzo::widgets::tabs::tabs;
 use wasm_bindgen::JsCast as _;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlTextAreaElement;
 
+use self::diagnostics::warn;
+use super::api::Conversions;
+use crate::converter::tabs::ConversionsState;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
@@ -24,24 +29,13 @@ stylance::import_crate_style!(style, "src/converter/converter.scss");
 #[template]
 pub fn converter() -> XElement {
     let remote: XSignal<Remote> = XSignal::new("remote", Remote::default());
-    let left = XSignal::new("left", String::default());
-    let right = XSignal::new("right", String::default());
-    div(
-        class = style::outer,
-        converter_impl(remote.clone(), remote, left, right),
-    )
+    let conversions = XSignal::new("conversions", Conversions::default());
+    div(class = style::outer, converter_impl(remote, conversions))
 }
 
-#[autoclone]
 #[html]
 #[template(tag = div)]
-fn converter_impl(
-    remote_signal: XSignal<Remote>,
-    #[signal] remote: Remote,
-    #[signal] mut left: String,
-    #[signal] mut right: String,
-) -> XElement {
-    let element: Arc<OnceLock<HtmlTextAreaElement>> = Default::default();
+fn converter_impl(remote_signal: XSignal<Remote>, conversions: XSignal<Conversions>) -> XElement {
     div(
         class = style::inner,
         key = "converter",
@@ -52,31 +46,45 @@ fn converter_impl(
         ),
         div(
             class = style::body,
-            textarea(
-                "{left}",
-                before_render = move |e| {
-                    autoclone!(element);
-                    element
-                        .set(e.dyn_into().or_throw("Element not a textarea"))
-                        .or_throw("Element was already set");
-                },
-                input = move |_: web_sys::InputEvent| {
-                    autoclone!(remote, element, right_mut);
-                    let element = element.get().or_throw("Element was not set");
-                    get_conversions(remote.clone(), element.value(), right_mut.clone());
-                },
-            ),
-            pre("{right}"),
+            show_input(remote_signal, conversions.clone()),
+            show_conversions(conversions),
         ),
     )
 }
 
-fn get_conversions(remote: Remote, content: String, signal: MutableSignal<String>) {
+#[autoclone]
+#[html]
+#[template(tag = textarea)]
+fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XElement {
+    let element: Arc<OnceLock<HtmlTextAreaElement>> = Default::default();
+    tag(
+        before_render = move |e| {
+            autoclone!(element);
+            element
+                .set(e.dyn_into().or_throw("Element not a textarea"))
+                .or_throw("Element was already set");
+        },
+        input = move |_: web_sys::InputEvent| {
+            autoclone!(remote, element, conversions);
+            let element = element.get().or_throw("Element was not set");
+            get_conversions(remote.clone(), element.value(), conversions.clone());
+        },
+    )
+}
+
+#[html]
+#[template(tag = div)]
+fn show_conversions(#[signal] conversions: Conversions) -> XElement {
+    let state = ConversionsState::new(&conversions);
+    tabs(conversions, state, TabsOptions::default().into())
+}
+
+fn get_conversions(remote: Remote, content: String, conversions: XSignal<Conversions>) {
     let debounced = get_conversions_debounced();
     debounced(GetConversionsUiRequest {
         remote,
         content,
-        signal,
+        conversions,
     })
 }
 
@@ -93,18 +101,17 @@ fn spawn_conversions_request(
     GetConversionsUiRequest {
         remote,
         content,
-        signal,
+        conversions: conversions_mut,
     }: GetConversionsUiRequest,
 ) {
     spawn_local(async move {
-        let conversions = super::api::get_conversions(remote, content)
-            .await
-            .map(|conversions| conversions.conversions);
-        let conversions = conversions.as_deref().map(Vec::as_slice);
+        let conversions = super::api::get_conversions(remote, content).await;
         match conversions {
-            Ok([first, ..]) => signal.set(first.content.clone()),
-            Ok([]) => signal.set("No conversion found"),
-            Err(error) => signal.set(error.to_string()),
+            Ok(conversions) => conversions_mut.force(conversions),
+            Err(error) => {
+                warn!("Failed to get conversions: {error}");
+                conversions_mut.force(Conversions::default())
+            }
         }
     })
 }
@@ -118,7 +125,7 @@ static DEBOUNCE_DELAY: Duration = if cfg!(debug_assertions) {
 struct GetConversionsUiRequest {
     remote: Remote,
     content: String,
-    signal: MutableSignal<String>,
+    conversions: XSignal<Conversions>,
 }
 
 struct DebouncedGetConversions(Box<dyn Fn(GetConversionsUiRequest)>);

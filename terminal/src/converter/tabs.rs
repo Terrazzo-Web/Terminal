@@ -1,5 +1,9 @@
 #![cfg(feature = "client")]
 
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::widgets::tabs::TabDescriptor;
@@ -8,6 +12,7 @@ use terrazzo::widgets::tabs::TabsState;
 
 use super::api::Conversion;
 use super::api::Conversions;
+use crate::converter::api::Language;
 
 impl TabsDescriptor for Conversions {
     type State = ConversionsState;
@@ -20,7 +25,41 @@ impl TabsDescriptor for Conversions {
 
 #[derive(Clone)]
 pub struct ConversionsState {
-    selected: XSignal<Conversion>,
+    #[expect(unused)]
+    selected: XSignal<Option<Conversion>>,
+    selected_tabs: Arc<HashMap<Language, XSignal<bool>>>,
+}
+
+impl ConversionsState {
+    #[autoclone]
+    pub fn new(conversions: &Conversions) -> Self {
+        let selected = XSignal::new("conversion-selected", None);
+        let selected_tabs = conversions
+            .conversions
+            .iter()
+            .map(|conversion| {
+                let this = conversion.clone();
+                let language = this.language.clone();
+                let is_selected = selected.derive(
+                    format!("selected-{language}"),
+                    move |conversion| {
+                        autoclone!(language);
+                        conversion
+                            .as_ref()
+                            .map(|c: &Conversion| c.language == language)
+                            .unwrap_or(false)
+                    },
+                    move |_, selected| selected.then(|| Some(this.clone())),
+                );
+                (language, is_selected)
+            })
+            .collect::<HashMap<_, _>>()
+            .into();
+        Self {
+            selected,
+            selected_tabs,
+        }
+    }
 }
 
 impl TabsState for ConversionsState {
@@ -48,12 +87,6 @@ impl TabDescriptor for Conversion {
     }
 
     fn selected(&self, state: &Self::State) -> XSignal<bool> {
-        let language = self.language.clone();
-        let this = self.clone();
-        state.selected.derive(
-            format!("selected-{language}"),
-            move |conversion| conversion.language == language,
-            move |_, selected| selected.then(|| this.clone()),
-        )
+        state.selected_tabs.get(&self.language).unwrap().clone()
     }
 }
