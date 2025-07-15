@@ -23,12 +23,12 @@ stylance::import_crate_style!(style, "src/converter/converter.scss");
 #[html]
 #[template]
 pub fn converter() -> XElement {
-    let remote_signal: XSignal<Remote> = XSignal::new("remote", Remote::default());
+    let remote: XSignal<Remote> = XSignal::new("remote", Remote::default());
     let left = XSignal::new("left", String::default());
     let right = XSignal::new("right", String::default());
     div(
         class = style::outer,
-        converter_impl(remote_signal, left, right),
+        converter_impl(remote.clone(), remote, left, right),
     )
 }
 
@@ -37,6 +37,7 @@ pub fn converter() -> XElement {
 #[template(tag = div)]
 fn converter_impl(
     remote_signal: XSignal<Remote>,
+    #[signal] remote: Remote,
     #[signal] mut left: String,
     #[signal] mut right: String,
 ) -> XElement {
@@ -60,13 +61,9 @@ fn converter_impl(
                         .or_throw("Element was already set");
                 },
                 input = move |_: web_sys::InputEvent| {
-                    autoclone!(remote_signal, element, right_mut);
+                    autoclone!(remote, element, right_mut);
                     let element = element.get().or_throw("Element was not set");
-                    get_conversions(
-                        remote_signal.get_value_untracked(),
-                        element.value(),
-                        right_mut.clone(),
-                    );
+                    get_conversions(remote.clone(), element.value(), right_mut.clone());
                 },
             ),
             pre("{right}"),
@@ -86,28 +83,30 @@ fn get_conversions(remote: Remote, content: String, signal: MutableSignal<String
 fn get_conversions_debounced() -> &'static dyn Fn(GetConversionsUiRequest) {
     use std::sync::OnceLock;
     static DEBOUNCED: OnceLock<DebouncedGetConversions> = OnceLock::new();
-    &*DEBOUNCED
-        .get_or_init(|| {
-            DebouncedGetConversions(Box::new(DEBOUNCE_DELAY.debounce(
-                |GetConversionsUiRequest {
-                     remote,
-                     content,
-                     signal,
-                 }| {
-                    spawn_local(async move {
-                        match super::api::get_conversions(remote, content)
-                            .await
-                            .as_deref()
-                        {
-                            Ok([first, ..]) => signal.set(first.conversion.clone()),
-                            Ok([]) => signal.set("No conversion found"),
-                            Err(error) => signal.set(error.to_string()),
-                        }
-                    })
-                },
-            )))
-        })
-        .0
+    let debounced = DEBOUNCED.get_or_init(|| {
+        DebouncedGetConversions(Box::new(DEBOUNCE_DELAY.debounce(spawn_conversions_request)))
+    });
+    &*debounced.0
+}
+
+fn spawn_conversions_request(
+    GetConversionsUiRequest {
+        remote,
+        content,
+        signal,
+    }: GetConversionsUiRequest,
+) {
+    spawn_local(async move {
+        let conversions = super::api::get_conversions(remote, content)
+            .await
+            .map(|conversions| conversions.conversions);
+        let conversions = conversions.as_deref().map(Vec::as_slice);
+        match conversions {
+            Ok([first, ..]) => signal.set(first.content.clone()),
+            Ok([]) => signal.set("No conversion found"),
+            Err(error) => signal.set(error.to_string()),
+        }
+    })
 }
 
 static DEBOUNCE_DELAY: Duration = if cfg!(debug_assertions) {
