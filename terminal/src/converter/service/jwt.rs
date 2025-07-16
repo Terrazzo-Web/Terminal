@@ -34,14 +34,12 @@ fn get_jwt_impl(input: &str) -> Option<String> {
         message: serde_json::Value,
         signature: &'t str,
     }
-    Some(
-        serde_yaml_ng::to_string(&Jwt {
-            header,
-            message,
-            signature,
-        })
-        .ok()?,
-    )
+    serde_yaml_ng::to_string(&Jwt {
+        header,
+        message,
+        signature,
+    })
+    .ok()
 }
 
 fn try_convert_time_claim(time_claim: &str, message: &mut serde_json::Value) -> Option<()> {
