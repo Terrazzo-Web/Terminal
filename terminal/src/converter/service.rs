@@ -60,7 +60,7 @@ remote_fn_service::declare_remote_fn!(
 mod tests {
 
     #[tokio::test]
-    async fn from_json() {
+    async fn json_to_json() {
         let conversion =
             r#" { "a": [1,2,3], "b": {"b1":[11],"b2":"22"}} "#.get_conversion("json").await;
         assert_eq!(
@@ -82,17 +82,80 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn from_yaml() {
-        let conversion = r#"
-a: 1
-b:
+    async fn json_to_yaml() {
+        let conversion =
+            r#" { "a": [1,2,3], "b": {"b1":[11],"b2":"22"}} "#.get_conversion("yaml").await;
+        assert_eq!(
+            r#"a:
+- 1
 - 2
-- a
-- xx:
-  - yy"#
-            .get_conversion("json")
-            .await;
-        assert_eq!("", conversion);
+- 3
+b:
+  b1:
+  - 11
+  b2: '22'
+"#,
+            conversion
+        );
+    }
+
+    #[tokio::test]
+    async fn yaml_to_json() {
+        let conversion = r#"a:
+- 1
+- 2
+- 3
+b:
+  b1:
+  - 11
+  b2: '22'
+"#
+        .get_conversion("json")
+        .await;
+        assert_eq!(
+            r#"{
+  "a": [
+    1,
+    2,
+    3
+  ],
+  "b": {
+    "b1": [
+      11
+    ],
+    "b2": "22"
+  }
+}"#,
+            conversion
+        );
+    }
+
+    #[tokio::test]
+    async fn yaml_to_yaml() {
+        let conversion = r#"
+a:
+    - 1
+    - 2
+    - 3
+b:
+    b1:
+        - 11
+    b2: '22'
+"#
+        .get_conversion("yaml")
+        .await;
+        assert_eq!(
+            r#"a:
+- 1
+- 2
+- 3
+b:
+  b1:
+  - 11
+  b2: '22'
+"#,
+            conversion
+        );
     }
 
     trait GetConversionForTest {
