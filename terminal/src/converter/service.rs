@@ -12,11 +12,11 @@ use crate::converter::api::Language;
 
 mod json;
 mod jwt;
+mod x509;
 
 #[nameth]
 pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
     let mut conversions = vec![];
-
     let mut add_conversion = |language, content| {
         conversions.push(Conversion::new(language, content));
     };
@@ -26,14 +26,17 @@ pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
     });
 }
 
-fn add_conversions(input: &str, add_conversion: &mut impl AddConversionFn) {
-    if self::jwt::add_jwt(input, add_conversion) {
+fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
+    if self::x509::add_x509(input, add) {
         return;
     }
-    if self::json::add_json(input, add_conversion) {
+    if self::jwt::add_jwt(input, add) {
         return;
     }
-    self::json::add_yaml(input, add_conversion);
+    if self::json::add_json(input, add) {
+        return;
+    }
+    self::json::add_yaml(input, add);
 }
 
 declare_trait_aliias!(AddConversionFn, FnMut(Language, String));
