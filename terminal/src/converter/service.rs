@@ -20,13 +20,20 @@ pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
     let mut add_conversion = |language, content| {
         conversions.push(Conversion::new(language, content));
     };
-    if !self::json::add_json(&input, &mut add_conversion) {
-        self::json::add_yaml(&input, &mut add_conversion);
-    }
-    self::jwt::add_jwt(&input, &mut add_conversion);
+    add_conversions(&input, &mut add_conversion);
     return Ok(Conversions {
         conversions: conversions.into(),
     });
+}
+
+fn add_conversions(input: &str, add_conversion: &mut impl AddConversionFn) {
+    if self::jwt::add_jwt(input, add_conversion) {
+        return;
+    }
+    if self::json::add_json(input, add_conversion) {
+        return;
+    }
+    self::json::add_yaml(input, add_conversion);
 }
 
 declare_trait_aliias!(AddConversionFn, FnMut(Language, String));
@@ -143,9 +150,8 @@ b:
 
     #[tokio::test]
     async fn jwt() {
-        let conversion = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3NTI2ODYyNDAsIm5iZiI6MTc1MjY4NTg4MH0.voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw"
-        .get_conversion("jwt")
-        .await;
+        const TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3NTI2ODYyNDAsIm5iZiI6MTc1MjY4NTg4MH0.voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw";
+        let conversion = TOKEN.get_conversion("jwt").await;
         assert_eq!(
             r#"
 header:
@@ -158,6 +164,7 @@ signature: voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw"#
                 .trim(),
             conversion.trim()
         );
+        assert_eq!("Not found", TOKEN.get_conversion("json").await);
     }
 
     trait GetConversionForTest {
@@ -167,12 +174,16 @@ signature: voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw"#
     impl GetConversionForTest for &str {
         async fn get_conversion(&self, language: &str) -> String {
             let conversions = super::get_conversions(self.to_string()).await.unwrap();
-            for conversion in conversions.conversions.iter() {
-                if conversion.language.name.as_ref() == language {
-                    return conversion.content.clone();
-                }
+            let matches = conversions
+                .conversions
+                .iter()
+                .filter(|conversion| conversion.language.name.as_ref() == language)
+                .collect::<Vec<_>>();
+            match matches.as_slice() {
+                &[] => "Not found".to_string(),
+                &[conversion] => conversion.content.clone(),
+                _ => "Duplicates".to_string(),
             }
-            return "Not found".to_string();
         }
     }
 }

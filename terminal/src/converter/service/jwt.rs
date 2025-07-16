@@ -10,11 +10,12 @@ use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use super::AddConversionFn;
 use crate::converter::api::Language;
 
-pub fn add_jwt(input: &str, add: &mut impl AddConversionFn) {
+pub fn add_jwt(input: &str, add: &mut impl AddConversionFn) -> bool {
     let Some(jwt) = get_jwt_impl(input) else {
-        return;
+        return false;
     };
-    add(Language::new("jwt"), jwt)
+    add(Language::new("jwt"), jwt);
+    return true;
 }
 
 fn get_jwt_impl(input: &str) -> Option<String> {
