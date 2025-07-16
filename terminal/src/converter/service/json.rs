@@ -72,7 +72,8 @@ b:
 
     #[tokio::test]
     async fn yaml_to_json() {
-        let conversion = r#"a:
+        let conversion = r#"
+a:
 - 1
 - 2
 - 3

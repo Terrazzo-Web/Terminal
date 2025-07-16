@@ -11,7 +11,7 @@ use super::AddConversionFn;
 use crate::converter::api::Language;
 
 pub fn add_jwt(input: &str, add: &mut impl AddConversionFn) -> bool {
-    let Some(jwt) = get_jwt_impl(input) else {
+    let Some(jwt) = get_jwt_impl(input.trim()) else {
         return false;
     };
     add(Language::new("jwt"), jwt);
@@ -19,10 +19,13 @@ pub fn add_jwt(input: &str, add: &mut impl AddConversionFn) -> bool {
 }
 
 fn get_jwt_impl(input: &str) -> Option<String> {
-    let mut split = input.splitn(3, '.');
+    let mut split = input.split('.');
     let header = parse_base64_json(split.next()?)?;
     let mut message = parse_base64_json(split.next()?)?;
     let signature = split.next()?;
+    let None = split.next() else {
+        return None;
+    };
 
     for time_claim in ["iat", "nbf", "exp"] {
         try_convert_time_claim(time_claim, &mut message);
@@ -95,10 +98,11 @@ fn parse_base64(data: &str) -> Option<Vec<u8>> {
 mod tests {
     use super::super::tests::GetConversionForTest as _;
 
+    const JWT: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3NTI2ODYyNDAsIm5iZiI6MTc1MjY4NTg4MH0.voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw";
+
     #[tokio::test]
     async fn jwt() {
-        const TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3NTI2ODYyNDAsIm5iZiI6MTc1MjY4NTg4MH0.voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw";
-        let conversion = TOKEN.get_conversion("jwt").await;
+        let conversion = JWT.get_conversion("jwt").await;
         assert_eq!(
             r#"
 header:
@@ -111,6 +115,21 @@ signature: voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw"#
                 .trim(),
             conversion.trim()
         );
-        assert_eq!("Not found", TOKEN.get_conversion("json").await);
+        assert_eq!("Not found", JWT.get_conversion("json").await);
+    }
+
+    #[tokio::test]
+    async fn jwt_trim() {
+        let conversion = format!("\r\n\t{JWT}\r\n\t")
+            .as_str()
+            .get_conversion("jwt")
+            .await;
+        assert!(conversion.contains("typ: JWT"));
+    }
+
+    #[tokio::test]
+    async fn jwt_invalid() {
+        let conversion = format!("{JWT}.ABC").as_str().get_conversion("jwt").await;
+        assert_eq!("Not found", conversion);
     }
 }
