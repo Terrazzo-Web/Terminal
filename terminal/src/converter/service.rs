@@ -10,6 +10,9 @@ use super::api::ConversionsRequest;
 use crate::backend::client_service::remote_fn_service;
 use crate::converter::api::Language;
 
+mod json;
+mod jwt;
+
 #[nameth]
 pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
     let mut conversions = vec![];
@@ -17,40 +20,16 @@ pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
     let mut add_conversion = |language, content| {
         conversions.push(Conversion::new(language, content));
     };
-    if !add_json(&input, &mut add_conversion) {
-        add_yaml(&input, &mut add_conversion);
+    if !self::json::add_json(&input, &mut add_conversion) {
+        self::json::add_yaml(&input, &mut add_conversion);
     }
+    self::jwt::add_jwt(&input, &mut add_conversion);
     return Ok(Conversions {
         conversions: conversions.into(),
     });
 }
 
 declare_trait_aliias!(AddConversionFn, FnMut(Language, String));
-
-fn add_json(input: &str, add: &mut impl AddConversionFn) -> bool {
-    let Ok(json) = serde_json::from_str::<serde_json::Value>(&input) else {
-        return false;
-    };
-    if let Ok(json) = serde_json::to_string_pretty(&json) {
-        add(Language::new("json"), json);
-    }
-    if let Ok(yaml) = serde_yaml_ng::to_string(&json) {
-        add(Language::new("yaml"), yaml);
-    }
-    return true;
-}
-
-fn add_yaml(input: &str, add: &mut impl AddConversionFn) {
-    let Ok(json) = serde_yaml_ng::from_str::<serde_json::Value>(&input) else {
-        return;
-    };
-    if let Ok(json) = serde_json::to_string_pretty(&json) {
-        add(Language::new("json"), json);
-    }
-    if let Ok(yaml) = serde_yaml_ng::to_string(&json) {
-        add(Language::new("yaml"), yaml);
-    }
-}
 
 remote_fn_service::declare_remote_fn!(
     GET_CONVERSIONS_FN,
@@ -159,6 +138,25 @@ b:
   b2: '22'
 "#,
             conversion
+        );
+    }
+
+    #[tokio::test]
+    async fn jwt() {
+        let conversion = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3NTI2ODYyNDAsIm5iZiI6MTc1MjY4NTg4MH0.voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw"
+        .get_conversion("jwt")
+        .await;
+        assert_eq!(
+            r#"
+header:
+  alg: HS256
+  typ: JWT
+message:
+  exp: 1752686240 = 2025-07-16T17:17:20Z (in 5m 55s)
+  nbf: 1752685880 = 2025-07-16T17:11:20Z (5s ago)
+signature: voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw"#
+                .trim(),
+            conversion.trim()
         );
     }
 
