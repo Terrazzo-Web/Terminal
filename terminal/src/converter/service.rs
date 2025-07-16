@@ -17,8 +17,9 @@ pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
     let mut add_conversion = |language, content| {
         conversions.push(Conversion::new(language, content));
     };
-    add_json(&input, &mut add_conversion);
-    add_yaml(&input, &mut add_conversion);
+    if !add_json(&input, &mut add_conversion) {
+        add_yaml(&input, &mut add_conversion);
+    }
     return Ok(Conversions {
         conversions: conversions.into(),
     });
@@ -26,25 +27,28 @@ pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
 
 declare_trait_aliias!(AddConversionFn, FnMut(Language, String));
 
-fn add_json(input: &str, add: &mut impl AddConversionFn) {
-    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&input) {
-        if let Ok(json) = serde_json::to_string_pretty(&json) {
-            add(Language::new("json"), json);
-        }
-        if let Ok(yaml) = serde_yaml_ng::to_string(&json) {
-            add(Language::new("yaml"), yaml);
-        }
+fn add_json(input: &str, add: &mut impl AddConversionFn) -> bool {
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(&input) else {
+        return false;
+    };
+    if let Ok(json) = serde_json::to_string_pretty(&json) {
+        add(Language::new("json"), json);
     }
+    if let Ok(yaml) = serde_yaml_ng::to_string(&json) {
+        add(Language::new("yaml"), yaml);
+    }
+    return true;
 }
 
 fn add_yaml(input: &str, add: &mut impl AddConversionFn) {
-    if let Ok(json) = serde_yaml_ng::from_str::<serde_json::Value>(&input) {
-        if let Ok(json) = serde_json::to_string_pretty(&json) {
-            add(Language::new("json"), json);
-        }
-        if let Ok(yaml) = serde_yaml_ng::to_string(&json) {
-            add(Language::new("yaml"), yaml);
-        }
+    let Ok(json) = serde_yaml_ng::from_str::<serde_json::Value>(&input) else {
+        return;
+    };
+    if let Ok(json) = serde_json::to_string_pretty(&json) {
+        add(Language::new("json"), json);
+    }
+    if let Ok(yaml) = serde_yaml_ng::to_string(&json) {
+        add(Language::new("yaml"), yaml);
     }
 }
 
