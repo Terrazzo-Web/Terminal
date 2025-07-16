@@ -90,3 +90,27 @@ fn parse_base64(data: &str) -> Option<Vec<u8>> {
     }
     return None;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::tests::GetConversionForTest as _;
+
+    #[tokio::test]
+    async fn jwt() {
+        const TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3NTI2ODYyNDAsIm5iZiI6MTc1MjY4NTg4MH0.voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw";
+        let conversion = TOKEN.get_conversion("jwt").await;
+        assert_eq!(
+            r#"
+header:
+  alg: HS256
+  typ: JWT
+message:
+  exp: 1752686240 = 2025-07-16T17:17:20Z (in 5m 55s)
+  nbf: 1752685880 = 2025-07-16T17:11:20Z (5s ago)
+signature: voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw"#
+                .trim(),
+            conversion.trim()
+        );
+        assert_eq!("Not found", TOKEN.get_conversion("json").await);
+    }
+}
