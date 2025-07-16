@@ -32,8 +32,20 @@ pub struct ConversionsState {
 
 impl ConversionsState {
     #[autoclone]
-    pub fn new(conversions: &Conversions) -> Self {
-        let selected = XSignal::new("conversion-selected", None);
+    pub fn new(conversions: &Conversions, preferred_language: XSignal<Option<Language>>) -> Self {
+        let current_preferred_language = preferred_language.get_value_untracked();
+        let selected = XSignal::new(
+            "conversion-selected",
+            current_preferred_language
+                .map(|current_preferred_language| {
+                    conversions
+                        .conversions
+                        .iter()
+                        .find(|conversion| conversion.language == current_preferred_language)
+                        .cloned()
+                })
+                .flatten(),
+        );
         let selected_tabs = conversions
             .conversions
             .iter()
@@ -49,7 +61,13 @@ impl ConversionsState {
                             .map(|c: &Conversion| c.language == language)
                             .unwrap_or(false)
                     },
-                    move |_, selected| selected.then(|| Some(this.clone())),
+                    move |_, selected| {
+                        autoclone!(preferred_language);
+                        selected.then(|| {
+                            preferred_language.set(this.language.clone());
+                            Some(this.clone())
+                        })
+                    },
                 );
                 (language, is_selected)
             })
@@ -76,8 +94,11 @@ impl TabDescriptor for Conversion {
 
     #[html]
     fn title(&self, _state: &Self::State) -> impl Into<XNode> {
-        let language = &self.language.name;
-        div("{language}")
+        let language = self.language.name.clone();
+        terrazzo::widgets::link::link(
+            |_click| {},
+            move || [span(class = super::ui::style::title_span, "{language}")],
+        )
     }
 
     #[html]

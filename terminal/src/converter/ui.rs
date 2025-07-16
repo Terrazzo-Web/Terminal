@@ -17,12 +17,13 @@ use web_sys::HtmlTextAreaElement;
 
 use self::diagnostics::warn;
 use super::api::Conversions;
+use crate::converter::api::Language;
 use crate::converter::tabs::ConversionsState;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
 
-stylance::import_crate_style!(style, "src/converter/converter.scss");
+stylance::import_crate_style!(pub(super) style, "src/converter/converter.scss");
 
 /// The UI for the converter app.
 #[html]
@@ -30,12 +31,20 @@ stylance::import_crate_style!(style, "src/converter/converter.scss");
 pub fn converter() -> XElement {
     let remote: XSignal<Remote> = XSignal::new("remote", Remote::default());
     let conversions = XSignal::new("conversions", Conversions::default());
-    div(class = style::outer, converter_impl(remote, conversions))
+    let preferred_language = XSignal::new("preferred-language", None);
+    div(
+        class = style::outer,
+        converter_impl(remote, conversions, preferred_language),
+    )
 }
 
 #[html]
 #[template(tag = div)]
-fn converter_impl(remote_signal: XSignal<Remote>, conversions: XSignal<Conversions>) -> XElement {
+fn converter_impl(
+    remote_signal: XSignal<Remote>,
+    conversions: XSignal<Conversions>,
+    preferred_language: XSignal<Option<Language>>,
+) -> XElement {
     div(
         class = style::inner,
         key = "converter",
@@ -47,7 +56,7 @@ fn converter_impl(remote_signal: XSignal<Remote>, conversions: XSignal<Conversio
         div(
             class = style::body,
             show_input(remote_signal, conversions.clone()),
-            show_conversions(conversions),
+            show_conversions(conversions, preferred_language),
         ),
     )
 }
@@ -74,9 +83,27 @@ fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XE
 
 #[html]
 #[template(tag = div)]
-fn show_conversions(#[signal] conversions: Conversions) -> XElement {
-    let state = ConversionsState::new(&conversions);
-    tabs(conversions, state, TabsOptions::default().into())
+fn show_conversions(
+    #[signal] conversions: Conversions,
+    preferred_language: XSignal<Option<Language>>,
+) -> XElement {
+    let state = ConversionsState::new(&conversions, preferred_language);
+    div(
+        class = style::conversions,
+        tabs(
+            conversions,
+            state,
+            Ptr::new(TabsOptions {
+                tabs_class: Some(style::tabs.into()),
+                titles_class: Some(style::titles.into()),
+                title_class: Some(style::title.into()),
+                items_class: Some(style::items.into()),
+                item_class: Some(style::item.into()),
+                selected_class: Some(style::selected.into()),
+                ..TabsOptions::default()
+            }),
+        ),
+    )
 }
 
 fn get_conversions(remote: Remote, content: String, conversions: XSignal<Conversions>) {
