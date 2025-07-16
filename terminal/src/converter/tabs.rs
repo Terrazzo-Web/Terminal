@@ -36,15 +36,13 @@ impl ConversionsState {
         let current_preferred_language = preferred_language.get_value_untracked();
         let selected = XSignal::new(
             "conversion-selected",
-            current_preferred_language
-                .map(|current_preferred_language| {
-                    conversions
-                        .conversions
-                        .iter()
-                        .find(|conversion| conversion.language == current_preferred_language)
-                        .cloned()
-                })
-                .flatten(),
+            current_preferred_language.and_then(|current_preferred_language| {
+                conversions
+                    .conversions
+                    .iter()
+                    .find(|conversion| conversion.language == current_preferred_language)
+                    .cloned()
+            }),
         );
         let selected_tabs = conversions
             .conversions
