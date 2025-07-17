@@ -92,10 +92,8 @@ pub(super) fn parse_base64(data: &str) -> Option<Vec<u8>> {
             if let Ok(base64) = BASE64_URL_SAFE.decode(data) {
                 return Some(base64);
             }
-        } else {
-            if let Ok(base64) = BASE64_URL_SAFE_NO_PAD.decode(data) {
-                return Some(base64);
-            }
+        } else if let Ok(base64) = BASE64_URL_SAFE_NO_PAD.decode(data) {
+            return Some(base64);
         }
     }
     if !data.contains(['-', '_']) {
@@ -103,10 +101,8 @@ pub(super) fn parse_base64(data: &str) -> Option<Vec<u8>> {
             if let Ok(base64) = BASE64_STANDARD.decode(data) {
                 return Some(base64);
             }
-        } else {
-            if let Ok(base64) = BASE64_STANDARD_NO_PAD.decode(data) {
-                return Some(base64);
-            }
+        } else if let Ok(base64) = BASE64_STANDARD_NO_PAD.decode(data) {
+            return Some(base64);
         }
     }
     return None;
