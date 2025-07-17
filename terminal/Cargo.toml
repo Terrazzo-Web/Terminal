@@ -39,6 +39,7 @@ pbkdf2 = { workspace = true, optional = true }
 pin-project = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
 prost-types = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
 rpassword = { workspace = true, optional = true }
 scopeguard = { workspace = true, optional = true }
 serde = { workspace = true }
@@ -47,6 +48,7 @@ serde_yaml_ng = { workspace = true, optional = true }
 serde-wasm-bindgen = { workspace = true, optional = true }
 server_fn = { workspace = true }
 sha2 = { workspace = true, optional = true }
+simple_asn1 = { workspace = true, optional = true }
 static_assertions = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
 terrazzo = { workspace = true, optional = true }
@@ -188,7 +190,13 @@ converter-client = [
     "web-sys/HtmlTextAreaElement",
     "web-sys/InputEvent",
 ]
-converter-server = ["server", "converter", "dep:serde_yaml_ng"]
+converter-server = [
+    "converter",
+    "dep:regex",
+    "dep:serde_yaml_ng",
+    "dep:simple_asn1",
+    "server",
+]
 
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo-terminal.scss"

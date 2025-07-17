@@ -10,6 +10,7 @@ use super::api::ConversionsRequest;
 use crate::backend::client_service::remote_fn_service;
 use crate::converter::api::Language;
 
+mod asn1;
 mod json;
 mod jwt;
 mod x509;
@@ -31,6 +32,9 @@ fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
         return;
     }
     if self::jwt::add_jwt(input, add) {
+        return;
+    }
+    if self::asn1::add_asn1(input, add) {
         return;
     }
     if self::json::add_json(input, add) {

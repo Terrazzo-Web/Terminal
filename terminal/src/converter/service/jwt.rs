@@ -20,9 +20,15 @@ pub fn add_jwt(input: &str, add: &mut impl AddConversionFn) -> bool {
 
 fn get_jwt_impl(input: &str) -> Option<String> {
     let mut split = input.split('.');
-    let header = parse_base64_json(split.next()?)?;
-    let mut message = parse_base64_json(split.next()?)?;
+    let header = split.next()?;
+    let message = split.next()?;
     let signature = split.next()?;
+    let None = split.next() else {
+        return None;
+    };
+
+    let header = parse_base64_json(header)?;
+    let mut message = parse_base64_json(message)?;
     let None = split.next() else {
         return None;
     };
@@ -80,15 +86,27 @@ fn parse_base64_json(data: &str) -> Option<serde_json::Value> {
     serde_json::from_str::<serde_json::Value>(&data).ok()
 }
 
-fn parse_base64(data: &str) -> Option<Vec<u8>> {
-    for engine in [
-        BASE64_STANDARD,
-        BASE64_STANDARD_NO_PAD,
-        BASE64_URL_SAFE,
-        BASE64_URL_SAFE_NO_PAD,
-    ] {
-        if let Ok(base64) = engine.decode(data) {
-            return Some(base64);
+pub(super) fn parse_base64(data: &str) -> Option<Vec<u8>> {
+    if !data.contains(['+', '/']) {
+        if data.ends_with('=') {
+            if let Ok(base64) = BASE64_URL_SAFE.decode(data) {
+                return Some(base64);
+            }
+        } else {
+            if let Ok(base64) = BASE64_URL_SAFE_NO_PAD.decode(data) {
+                return Some(base64);
+            }
+        }
+    }
+    if !data.contains(['-', '_']) {
+        if data.ends_with('=') {
+            if let Ok(base64) = BASE64_STANDARD.decode(data) {
+                return Some(base64);
+            }
+        } else {
+            if let Ok(base64) = BASE64_STANDARD_NO_PAD.decode(data) {
+                return Some(base64);
+            }
         }
     }
     return None;
