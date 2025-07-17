@@ -21,6 +21,7 @@ path = "src/server.rs"
 required-features = ["server"]
 
 [dependencies]
+asn1-rs = { workspace = true, optional = true }
 axum-extra = { workspace = true, optional = true, features = ["cookie"] }
 base64 = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
@@ -48,7 +49,6 @@ serde_yaml_ng = { workspace = true, optional = true }
 serde-wasm-bindgen = { workspace = true, optional = true }
 server_fn = { workspace = true }
 sha2 = { workspace = true, optional = true }
-simple_asn1 = { workspace = true, optional = true }
 static_assertions = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
 terrazzo = { workspace = true, optional = true }
@@ -192,9 +192,9 @@ converter-client = [
 ]
 converter-server = [
     "converter",
+    "dep:asn1-rs",
     "dep:regex",
     "dep:serde_yaml_ng",
-    "dep:simple_asn1",
     "server",
 ]
 
