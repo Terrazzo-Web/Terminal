@@ -3362,7 +3362,6 @@ dependencies = [
 name = "terrazzo-terminal"
 version = "0.1.15"
 dependencies = [
- "asn1-rs",
  "axum-extra",
  "base64",
  "clap",
@@ -3392,6 +3391,7 @@ dependencies = [
  "serde_yaml_ng",
  "server_fn",
  "sha2",
+ "simple_asn1",
  "static_assertions",
  "stylance",
  "terrazzo",

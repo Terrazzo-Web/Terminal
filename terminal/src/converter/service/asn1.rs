@@ -1,6 +1,5 @@
 use std::sync::OnceLock;
 
-use asn1_rs::FromDer;
 use regex::Regex;
 
 use super::AddConversionFn;
@@ -18,7 +17,7 @@ pub fn add_asn1(input: &str, add: &mut impl AddConversionFn) -> bool {
         return false;
     };
 
-    let Ok((_, asn1)) = asn1_rs::Any::from_der(&input) else {
+    let Ok(asn1) = simple_asn1::from_der(&input) else {
         return false;
     };
 
@@ -40,8 +39,7 @@ mod tests {
         QDAdBgNVHQ4EFgQUEC5YRL04bEDiZ9oic1PZc7bR9P4wDwYDVR0TAQH/BAUwAwEB
         /zAOBgNVHQ8BAf8EBAMCAQYwCgYIKoZIzj0EAwIDSQAwRgIhAJuRb4MWDitsOJqy
         VOj7ugn3k0TlZV3rPSRmuL20bjeeAiEAhVOBRet9JDnQbjG/0SG8QVdJplLL66By
-        RD66UosBh50=
-"#;
+        RD66UosBh50="#;
 
     #[tokio::test]
     async fn asn1() {
