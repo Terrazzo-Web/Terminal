@@ -1,12 +1,21 @@
 .outer,
 .inner,
 .body {
-    width: 100%;
-    height: 100%;
     box-sizing: border-box;
     padding: 0;
     margin: 0;
 }
+
+.outer,
+.inner {
+    height: 100%;
+}
+
+.inner {
+    display: flex;
+    flex-direction: column;
+}
+
 
 .header {
     @include trz-header;
@@ -15,12 +24,11 @@
     flex: 0 0 auto;
 }
 
-.inner {
-    display: flex;
-    flex-direction: column;
-}
 
 .body {
+    flex: 1;
+    min-height: 0;
+
     display: flex;
     flex-direction: row;
 
@@ -97,7 +105,8 @@
     }
 
     .items {
-        height: 100%;
+        flex: 1;
+        min-height: 0;
 
         &>ul {
             height: 100%;

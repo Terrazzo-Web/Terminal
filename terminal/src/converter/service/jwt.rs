@@ -1,7 +1,7 @@
 use std::time::Duration;
 use std::time::SystemTime;
 
-use base64::Engine;
+use base64::Engine as _;
 use base64::prelude::BASE64_STANDARD;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
 use base64::prelude::BASE64_URL_SAFE;

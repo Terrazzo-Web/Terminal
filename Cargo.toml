@@ -105,6 +105,7 @@ wasm-bindgen-futures = { version = "0.4.50" }
 wasm-bindgen-test = { version = "0.3.50" }
 wasm-streams = { version = "0.4.2" }
 web-sys = { version = "0.3.77" }
+x509-parser = { version = "0.17.0" }
 
 [workspace.lints.rust]
 unused = "deny"

@@ -3415,6 +3415,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
+ "x509-parser",
 ]
 
 [[package]]

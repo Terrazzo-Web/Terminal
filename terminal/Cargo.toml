@@ -75,6 +75,7 @@ wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { workspace = true, optional = true }
 wasm-streams = { workspace = true, optional = true }
 web-sys = { workspace = true, optional = true }
+x509-parser = { workspace = true, optional = true }
 
 [build-dependencies]
 heck = { workspace = true }
@@ -195,6 +196,7 @@ converter-server = [
     "dep:regex",
     "dep:serde_yaml_ng",
     "dep:simple_asn1",
+    "dep:x509-parser",
     "server",
 ]
 

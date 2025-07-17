@@ -1,6 +1,10 @@
+use base64::Engine as _;
+use base64::prelude::BASE64_STANDARD;
 use openssl::nid::Nid;
 use openssl::x509::X509Ref;
 use trz_gateway_common::security_configuration::common::parse_pem_certificates;
+use x509_parser::prelude::FromDer as _;
+use x509_parser::prelude::X509Certificate;
 
 use super::AddConversionFn;
 use crate::converter::api::Language;
@@ -19,9 +23,10 @@ pub fn add_x509(input: &str, add: &mut impl AddConversionFn) -> bool {
         .collect::<Vec<_>>();
     let mut result = false;
     for x509 in certificates {
-        let Ok(Ok(text)) = x509.to_text().map(String::from_utf8) else {
+        let Ok(Ok(mut text)) = x509.to_text().map(String::from_utf8) else {
             continue;
         };
+        add_extensions(&x509, &mut text);
         add(Language::new(get_certificate_name(&x509)), text);
         result = true;
     }
@@ -42,6 +47,47 @@ fn get_certificate_common_name(x509: &X509Ref) -> Option<String> {
             .ok()?
             .to_string(),
     )
+}
+
+fn add_extensions(x509: &X509Ref, text: &mut String) -> Option<()> {
+    let der = x509.to_der().ok()?;
+    let (_, certificate) = X509Certificate::from_der(&der).ok()?;
+    let mut extensions = vec![];
+    for extension in certificate.extensions() {
+        let is_ascii = extension.value.iter().all(|c| c.is_ascii_graphic());
+        extensions.push(Extension {
+            oid: extension.oid.to_id_string(),
+            critical: extension.critical,
+            value: is_ascii
+                .then(|| str::from_utf8(extension.value).ok().map(str::to_owned))
+                .flatten()
+                .unwrap_or_else(|| {
+                    BASE64_STANDARD
+                        .encode(extension.value)
+                        .as_bytes()
+                        .chunks(64)
+                        .map(|chunk| std::str::from_utf8(chunk).unwrap())
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                }),
+        });
+    }
+    if !extensions.is_empty() {
+        text.extend(serde_yaml_ng::to_string(&Extensions { extensions }));
+    }
+    Some(())
+}
+
+#[derive(serde::Serialize)]
+struct Extensions {
+    extensions: Vec<Extension>,
+}
+
+#[derive(serde::Serialize)]
+struct Extension {
+    oid: String,
+    critical: bool,
+    value: String,
 }
 
 #[cfg(test)]
