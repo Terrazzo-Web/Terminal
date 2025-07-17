@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 use regex::Regex;
 
 use super::AddConversionFn;
+use super::base64::parse_base64;
 use crate::converter::api::Language;
 
 pub fn add_asn1(input: &str, add: &mut impl AddConversionFn) -> bool {
@@ -13,7 +14,7 @@ pub fn add_asn1(input: &str, add: &mut impl AddConversionFn) -> bool {
         return false;
     }
     let input: String = input.split('\n').map(str::trim).collect();
-    let Some(input) = super::jwt::parse_base64(&input) else {
+    let Some(input) = parse_base64(&input) else {
         return false;
     };
 

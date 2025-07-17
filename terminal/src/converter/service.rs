@@ -11,6 +11,7 @@ use crate::backend::client_service::remote_fn_service;
 use crate::converter::api::Language;
 
 mod asn1;
+mod base64;
 mod json;
 mod jwt;
 mod x509;
