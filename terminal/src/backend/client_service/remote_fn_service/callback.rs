@@ -3,6 +3,7 @@ use tonic::client::GrpcService;
 use tonic::codegen::Bytes;
 use tonic::codegen::StdError;
 use tonic::transport::Body;
+use tracing::debug;
 use trz_gateway_server::server::Server;
 
 use crate::backend::client_service::remote_fn_service::REMOTE_FNS;
@@ -21,6 +22,7 @@ impl DistributedCallback for DistributedFn {
     type RemoteError = tonic::Status;
 
     async fn local(server: &Server, request: RemoteFnRequest) -> Result<String, RemoteFnError> {
+        debug!("Calling local {request:?}");
         let Some(remote_server_fns) = REMOTE_FNS.get() else {
             return Err(RemoteFnError::RemoteFnsNotSet);
         };
@@ -43,6 +45,7 @@ impl DistributedCallback for DistributedFn {
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         request.address = Some(ClientAddressProto::of(client_address));
+        debug!("Calling remote {request:?}");
         let result = RemoteFnServiceClient::new(channel)
             .call_server_fn(request)
             .await?

@@ -21,6 +21,7 @@ use trz_gateway_server::server::Server;
 
 use super::config::mesh::MeshConfig;
 use crate::backend::client_service::ClientServiceImpl;
+use crate::backend::protos::terrazzo::remotefn::remote_fn_service_server::RemoteFnServiceServer;
 use crate::backend::protos::terrazzo::shared::shared_service_server::SharedServiceServer;
 
 #[nameth]
@@ -110,17 +111,20 @@ impl TunnelConfig for AgentTunnelConfig {
         let gateway_server = self.server.clone();
         move |mut server: tonic::transport::Server| {
             info!("Configuring Client gRPC service");
-            let server = server.add_service(SharedServiceServer::new(ClientServiceImpl::new(
-                client_name.clone(),
-                gateway_server.clone(),
-            )));
+            let client_service =
+                ClientServiceImpl::new(client_name.clone(), gateway_server.clone());
+            let server = server
+                .add_service(SharedServiceServer::new(client_service.clone()))
+                .add_service(RemoteFnServiceServer::new(client_service.clone()));
             #[cfg(feature = "terminal")]
             let server = {
                 use crate::backend::protos::terrazzo::terminal::terminal_service_server::TerminalServiceServer;
-                server.add_service(TerminalServiceServer::new(ClientServiceImpl::new(
-                    client_name.clone(),
-                    gateway_server.clone(),
-                )))
+                server.add_service(TerminalServiceServer::new(client_service.clone()))
+            };
+            #[cfg(feature = "terminal")]
+            let server = {
+                use crate::backend::protos::terrazzo::notify::notify_service_server::NotifyServiceServer;
+                server.add_service(NotifyServiceServer::new(client_service.clone()))
             };
             return server;
         }
