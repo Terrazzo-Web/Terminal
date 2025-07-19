@@ -11,6 +11,7 @@ mod routing;
 pub mod shared_service;
 pub mod terminal_service;
 
+#[derive(Clone)]
 pub struct ClientServiceImpl {
     client_name: ClientName,
     server: Arc<Server>,

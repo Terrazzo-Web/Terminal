@@ -41,21 +41,17 @@ pub fn converter() -> XElement {
 #[html]
 #[template(tag = div)]
 fn converter_impl(
-    remote_signal: XSignal<Remote>,
+    remote: XSignal<Remote>,
     conversions: XSignal<Conversions>,
     preferred_language: XSignal<Option<Language>>,
 ) -> XElement {
     div(
         class = style::inner,
         key = "converter",
-        div(
-            class = style::header,
-            menu(),
-            show_remote(remote_signal.clone()),
-        ),
+        div(class = style::header, menu(), show_remote(remote.clone())),
         div(
             class = style::body,
-            show_input(remote_signal, conversions.clone()),
+            show_input(remote, conversions.clone()),
             show_conversions(conversions, preferred_language),
         ),
     )
@@ -74,6 +70,11 @@ fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XE
                 .or_throw("Element was already set");
         },
         input = move |_: web_sys::InputEvent| {
+            autoclone!(remote, element, conversions);
+            let element = element.get().or_throw("Element was not set");
+            get_conversions(remote.clone(), element.value(), conversions.clone());
+        },
+        after_render = move |_| {
             autoclone!(remote, element, conversions);
             let element = element.get().or_throw("Element was not set");
             get_conversions(remote.clone(), element.value(), conversions.clone());
