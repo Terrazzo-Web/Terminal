@@ -23,7 +23,7 @@ pub fn print_oid(oid: cms::cert::x509::spki::ObjectIdentifier) -> String {
         OID_REGISTRY.get_or_init(|| OidRegistry::default().with_all_crypto().with_x509());
     oid_registry
         .get(&oid_registry::Oid::new(oid.as_bytes().into()))
-        .map(|oid| oid.description().to_owned())
+        .map(|oid_entry| format!("{} ({})", oid_entry.description(), oid))
         .unwrap_or_else(|| oid.to_string())
 }
 
