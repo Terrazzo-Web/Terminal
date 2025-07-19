@@ -23,6 +23,7 @@ pub fn add_base64(input: &str, add: &mut impl AddConversionFn) -> bool {
 
     let input = &input;
     return [
+        super::x509::add_x509_base64(input, add),
         super::pkcs7::add_pkcs7(input, add),
         super::asn1::add_asn1(input, add),
     ]

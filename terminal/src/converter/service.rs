@@ -64,6 +64,7 @@ mod tests {
 
     pub trait GetConversionForTest {
         async fn get_conversion(&self, language: &str) -> String;
+        async fn get_languages(&self) -> Vec<String>;
     }
 
     impl GetConversionForTest for &str {
@@ -79,6 +80,17 @@ mod tests {
                 &[conversion] => conversion.content.clone(),
                 _ => "Duplicates".to_string(),
             }
+        }
+
+        async fn get_languages(&self) -> Vec<String> {
+            let conversions = super::get_conversions(self.to_string()).await.unwrap();
+            let mut languages = conversions
+                .conversions
+                .iter()
+                .map(|conversion| conversion.language.name.to_string())
+                .collect::<Vec<_>>();
+            languages.sort();
+            return languages;
         }
     }
 }

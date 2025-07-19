@@ -19,19 +19,25 @@ mod tests {
 
     #[tokio::test]
     async fn nothing_to_unescape() {
-        let conversion = r#"A  B"#.get_conversion(UNESCAPED).await;
+        let input = r#"A  B"#;
+        let conversion = input.get_conversion(UNESCAPED).await;
         assert_eq!("Not found", conversion);
+        assert_eq!(vec!["JSON", "YAML"], input.get_languages().await);
     }
 
     #[tokio::test]
     async fn invalid_escape() {
-        let conversion = r#"\A  \B"#.get_conversion(UNESCAPED).await;
+        let input = r#"\A  \B"#;
+        let conversion = input.get_conversion(UNESCAPED).await;
         assert_eq!("Not found", conversion);
+        assert_eq!(vec!["JSON", "YAML"], input.get_languages().await);
     }
 
     #[tokio::test]
     async fn unescaped() {
-        let conversion = r#"A\n\tB"#.get_conversion(UNESCAPED).await;
+        let input = r#"A\n\tB"#;
+        let conversion = input.get_conversion(UNESCAPED).await;
         assert_eq!("A\n\tB", conversion);
+        assert_eq!(vec![UNESCAPED], input.get_languages().await);
     }
 }
