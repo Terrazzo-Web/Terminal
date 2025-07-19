@@ -14,6 +14,7 @@ mod asn1;
 mod base64;
 mod json;
 mod jwt;
+mod pkcs7;
 mod x509;
 
 #[nameth]
@@ -35,7 +36,7 @@ fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
     if self::jwt::add_jwt(input, add) {
         return;
     }
-    if self::asn1::add_asn1(input, add) {
+    if self::base64::add_base64(input, add) {
         return;
     }
     if self::json::add_json(input, add) {

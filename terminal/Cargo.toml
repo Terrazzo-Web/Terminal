@@ -24,6 +24,7 @@ required-features = ["server"]
 axum-extra = { workspace = true, optional = true, features = ["cookie"] }
 base64 = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
+cms = { workspace = true, optional = true }
 const_format = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
@@ -34,6 +35,7 @@ libc = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 notify = { workspace = true, optional = true }
+oid-registry = { workspace = true, optional = true }
 openssl = { workspace = true, optional = true }
 pbkdf2 = { workspace = true, optional = true }
 pin-project = { workspace = true, optional = true }
@@ -193,6 +195,8 @@ converter-client = [
 ]
 converter-server = [
     "converter",
+    "dep:cms",
+    "dep:oid-registry",
     "dep:regex",
     "dep:serde_yaml_ng",
     "dep:simple_asn1",

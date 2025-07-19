@@ -1,24 +1,8 @@
-use std::sync::OnceLock;
-
-use regex::Regex;
-
 use super::AddConversionFn;
-use super::base64::parse_base64;
 use crate::converter::api::Language;
 
-pub fn add_asn1(input: &str, add: &mut impl AddConversionFn) -> bool {
-    static BASE64_REGEX: OnceLock<Regex> = OnceLock::new();
-    let base64_regex = BASE64_REGEX
-        .get_or_init(|| Regex::new(r"^[-_+/A-Za-z0-9 \r\n\t]+(?:=*)[ \r\n\t]*$").unwrap());
-    if !base64_regex.is_match(input) {
-        return false;
-    }
-    let input: String = input.split('\n').map(str::trim).collect();
-    let Some(input) = parse_base64(&input) else {
-        return false;
-    };
-
-    let Ok(asn1) = simple_asn1::from_der(&input) else {
+pub fn add_asn1(input: &[u8], add: &mut impl AddConversionFn) -> bool {
+    let Ok(asn1) = simple_asn1::from_der(input) else {
         return false;
     };
 
