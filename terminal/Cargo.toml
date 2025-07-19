@@ -72,6 +72,7 @@ tracing-futures = { workspace = true, features = [
 trz-gateway-client = { workspace = true, optional = true }
 trz-gateway-common = { workspace = true, optional = true }
 trz-gateway-server = { workspace = true, optional = true, features = ["acme"] }
+unescaper = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true, features = ["v4", "fast-rng"] }
 wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { workspace = true, optional = true }
@@ -200,6 +201,7 @@ converter-server = [
     "dep:regex",
     "dep:serde_yaml_ng",
     "dep:simple_asn1",
+    "dep:unescaper",
     "dep:x509-parser",
     "server",
 ]

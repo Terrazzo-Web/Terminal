@@ -15,6 +15,7 @@ mod base64;
 mod json;
 mod jwt;
 mod pkcs7;
+mod unescaped;
 mod x509;
 
 #[nameth]
@@ -30,7 +31,10 @@ pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
 }
 
 fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
-    if self::x509::add_x509(input, add) {
+    if self::x509::add_x509_pem(input, add) {
+        return;
+    }
+    if self::unescaped::add_unescape(input, add) {
         return;
     }
     if self::jwt::add_jwt(input, add) {

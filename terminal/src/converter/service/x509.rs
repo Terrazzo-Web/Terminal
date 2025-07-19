@@ -9,7 +9,7 @@ use x509_parser::prelude::X509Certificate;
 use super::AddConversionFn;
 use crate::converter::api::Language;
 
-pub fn add_x509(input: &str, add: &mut impl AddConversionFn) -> bool {
+pub fn add_x509_pem(input: &str, add: &mut impl AddConversionFn) -> bool {
     if !input.contains("-----BEGIN CERTIFICATE-----") {
         return false;
     }
