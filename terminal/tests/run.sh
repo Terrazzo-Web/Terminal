@@ -5,6 +5,6 @@ cargo run \
     --bin terrazzo-terminal \
     --no-default-features \
     --features server,max-level-debug,debug,diagnostics \
-    --features converter-server \
+    --features converter-server,terminal-server \
     -- \
     $@
