@@ -29,7 +29,7 @@ pub fn print_oid(oid: cms::cert::x509::spki::ObjectIdentifier) -> String {
 
 pub fn print_bytes(bytes: &[u8]) -> String {
     let mut result = String::default();
-    let mut iter = bytes.into_iter().peekable();
+    let mut iter = bytes.iter().peekable();
     while let Some(byte) = iter.next() {
         result += &match iter.peek() {
             Some(_) => format!("{:02X}:", byte),

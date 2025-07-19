@@ -152,10 +152,8 @@ fn add_pkcs7_impl(input: &[u8], add: &mut impl AddConversionFn) -> Option<()> {
 fn make_revoked_certificates(
     revoked_certificates: Option<Vec<cms::cert::x509::crl::RevokedCert>>,
 ) -> Vec<RevokedCert> {
-    let revoked_certificates = revoked_certificates
-        .map(|revoked_certificates| revoked_certificates)
-        .unwrap_or_default();
     revoked_certificates
+        .unwrap_or_default()
         .into_iter()
         .map(|revoked_certificate| RevokedCert {
             serial_number: revoked_certificate.serial_number.to_string(),
