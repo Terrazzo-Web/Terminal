@@ -39,27 +39,29 @@ fn add_pkcs7_impl(input: &[u8], add: &mut impl AddConversionFn) -> Option<()> {
         encapsulated_content_type: print_oid(encap_content_info.econtent_type),
         encapsulated_content: encap_content_info.econtent.map(Any::from),
     };
+    let mut x509s = vec![];
     let certificates = {
         let mut list = vec![];
         for certificate in certificates
             .map(|certificates| certificates.0.into_vec())
             .unwrap_or_default()
         {
-            let certificate =
-                match certificate {
-                    cms::cert::CertificateChoices::Certificate(certificate) => {
-                        let x509 = add_certificate(certificate, add);
-                        CertificateChoices::Certificate(x509.unwrap_or_else(|error| {
+            let certificate = match certificate {
+                cms::cert::CertificateChoices::Certificate(certificate) => {
+                    let x509 = add_certificate(certificate, |name, x509| x509s.push((name, x509)));
+                    CertificateChoices::Certificate(
+                        x509.unwrap_or_else(|error| {
                             format!("Failed to parse certificate: {error}")
-                        }))
-                    }
-                    cms::cert::CertificateChoices::Other(other) => {
-                        CertificateChoices::Other(OtherCertificateFormat {
-                            format: print_oid(other.other_cert_format),
-                            certificate: other.other_cert.into(),
-                        })
-                    }
-                };
+                        }),
+                    )
+                }
+                cms::cert::CertificateChoices::Other(other) => {
+                    CertificateChoices::Other(OtherCertificateFormat {
+                        format: print_oid(other.other_cert_format),
+                        certificate: other.other_cert.into(),
+                    })
+                }
+            };
             list.push(certificate);
         }
         list
@@ -146,6 +148,9 @@ fn add_pkcs7_impl(input: &[u8], add: &mut impl AddConversionFn) -> Option<()> {
         serde_yaml_ng::to_string(&content_info).unwrap_or_else(|error| error.to_string());
 
     add(Language::new("PKCS #7"), content_info);
+    for (name, x509) in x509s {
+        add(name, x509);
+    }
     return Some(());
 }
 
@@ -170,7 +175,7 @@ fn make_revoked_certificates(
 
 fn add_certificate(
     certificate: cms::cert::x509::certificate::CertificateInner,
-    add: &mut impl AddConversionFn,
+    mut add: impl AddConversionFn,
 ) -> Result<String, String> {
     let der = certificate.to_der().map_err(|error| error.to_string())?;
     let x509 = X509::from_der(&der).map_err(|error| error.to_string())?;

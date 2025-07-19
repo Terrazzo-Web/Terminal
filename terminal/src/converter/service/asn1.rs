@@ -28,6 +28,11 @@ pub fn print_oid(oid: cms::cert::x509::spki::ObjectIdentifier) -> String {
 }
 
 pub fn print_bytes(bytes: &[u8]) -> String {
+    if bytes.iter().all(|b| b.is_ascii_graphic()) {
+        if let Ok(string) = str::from_utf8(bytes) {
+            return string.to_owned();
+        }
+    }
     let mut result = String::default();
     let mut iter = bytes.iter().peekable();
     while let Some(byte) = iter.next() {
