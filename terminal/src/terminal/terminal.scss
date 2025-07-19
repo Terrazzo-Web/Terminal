@@ -67,7 +67,8 @@
     }
 
     .items {
-        height: 100%;
+        flex: 1;
+        min-height: 0;
 
         &>ul {
             height: 100%;

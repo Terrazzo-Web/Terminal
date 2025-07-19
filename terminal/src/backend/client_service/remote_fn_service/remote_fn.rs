@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::pin::Pin;
 
 use scopeguard::defer;
@@ -15,29 +16,59 @@ use crate::backend::protos::terrazzo::remotefn::RemoteFnRequest;
 /// A struct that holds a remote server function.
 ///
 /// They must be statically registered using [inventory::submit].
+pub struct RemoteFn<I, O> {
+    delegate: RegisteredRemoteFn,
+    _phantom: PhantomData<(I, O)>,
+}
+
+impl<I, O> Clone for RemoteFn<I, O> {
+    fn clone(&self) -> Self {
+        Self {
+            delegate: self.delegate,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
-pub struct RemoteFn {
-    pub name: &'static str,
-    pub callback: fn(server: &Server, &str) -> RemoteFnResult,
+pub struct RegisteredRemoteFn {
+    pub(super) name: &'static str,
+    pub(super) callback: fn(server: &Server, &str) -> RemoteFnResult,
+}
+
+impl RegisteredRemoteFn {
+    pub const fn new(
+        name: &'static str,
+        callback: fn(server: &Server, &str) -> RemoteFnResult,
+    ) -> Self {
+        Self { name, callback }
+    }
 }
 
 /// Shorthand for the result of remote functions.
 pub type RemoteFnResult = Pin<Box<dyn Future<Output = Result<String, RemoteFnError>> + Send>>;
 
-impl RemoteFn {
+impl<I, O> RemoteFn<I, O> {
+    pub const fn new(delegate: RegisteredRemoteFn) -> Self {
+        Self {
+            delegate,
+            _phantom: PhantomData,
+        }
+    }
+
     /// Calls the remote function.
     ///
     /// The remote function will be called on the client indicated by `address`.
     ///
     /// Takes care of serializing the request and then deserializing the response.
-    pub fn call<Req, Res>(
+    pub fn call(
         &self,
         address: ClientAddress,
-        request: Req,
-    ) -> impl Future<Output = Result<Res, RemoteFnError>>
+        request: I,
+    ) -> impl Future<Output = Result<O, RemoteFnError>>
     where
-        Req: serde::Serialize,
-        Res: for<'de> serde::Deserialize<'de>,
+        I: serde::Serialize,
+        O: for<'de> serde::Deserialize<'de>,
     {
         async move {
             debug!("Start");
@@ -52,7 +83,7 @@ impl RemoteFn {
                 &address,
                 RemoteFnRequest {
                     address: Default::default(),
-                    server_fn_name: self.name.to_string(),
+                    server_fn_name: self.delegate.name.to_string(),
                     json: request,
                 },
             )

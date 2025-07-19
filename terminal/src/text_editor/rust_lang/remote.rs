@@ -5,6 +5,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 use serde::Serialize;
 
+use super::synthetic::SyntheticDiagnostic;
 use crate::backend::client_service::remote_fn_service;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -18,7 +19,9 @@ pub struct CargoCheckRequest {
 remote_fn_service::declare_remote_fn!(
     CARGO_CHECK_REMOTE_FN,
     super::CARGO_CHECK,
-    |_server, arg: CargoCheckRequest| {
+    CargoCheckRequest,
+    Vec<SyntheticDiagnostic>,
+    |_server, arg| {
         async move {
             super::service::cargo_check(
                 arg.base_path.as_ref(),

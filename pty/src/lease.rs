@@ -51,7 +51,7 @@ impl ProcessIoEntry {
         return Ok(lease);
     }
 
-    pub async fn input(&self) -> futures::lock::MutexGuard<ProcessInput> {
+    pub async fn input(&self) -> futures::lock::MutexGuard<'_, ProcessInput> {
         self.input.lock().await
     }
 }

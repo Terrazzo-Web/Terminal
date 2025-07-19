@@ -38,6 +38,7 @@ chrono = { version = "0.4.41", default-features = false, features = [
     "wasmbind",
 ] }
 clap = { version = "4.5.41", features = ["derive"] }
+cms = { version = "0.2.3" }
 const_format = { version = "0.2.34" }
 darling = { version = "0.21.0" }
 dashmap = { version = "6.1.0" }
@@ -56,6 +57,7 @@ mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.16" }
 nix = { version = "0.30.1" }
 notify = { version = "8.1.0" }
+oid-registry = { version = "0.8.1" }
 openssl = { version = "0.10.73" }
 pbkdf2 = { version = "0.12.2" }
 pin-project = { version = "1.1.10" }
@@ -64,6 +66,7 @@ proc-macro2 = { version = "1.0.95" }
 prost = { version = "0.13.5" }
 prost-types = { version = "0.13.5" }
 quote = { version = "1.0.40" }
+regex = { version = "1.11.1" }
 reqwest-wasm = { version = "0.11.16" }
 rpassword = { version = "7.4.0" }
 rsass-macros = { version = "0.29.0" }
@@ -72,9 +75,11 @@ scopeguard = { version = "1.2.0" }
 serde = { version = "1.0.219", features = ["derive", "rc"] }
 serde_json = { version = "1.0.140" }
 serde_urlencoded = { version = "0.7.1" }
+serde_yaml_ng = { version = "0.10.0" }
 serde-wasm-bindgen = { version = "0.6.5" }
 server_fn = { version = "0.8.2" }
 sha2 = { version = "0.10.9" }
+simple_asn1 = { version = "0.6.3" }
 static_assertions = { version = "1.1.0" }
 stylance = { version = "0.6.0" }
 syn = { version = "2.0.104" }
@@ -102,6 +107,7 @@ wasm-bindgen-futures = { version = "0.4.50" }
 wasm-bindgen-test = { version = "0.3.50" }
 wasm-streams = { version = "0.4.2" }
 web-sys = { version = "0.3.77" }
+x509-parser = { version = "0.17.0" }
 
 [workspace.lints.rust]
 unused = "deny"

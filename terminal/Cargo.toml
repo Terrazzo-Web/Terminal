@@ -24,6 +24,7 @@ required-features = ["server"]
 axum-extra = { workspace = true, optional = true, features = ["cookie"] }
 base64 = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
+cms = { workspace = true, optional = true }
 const_format = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
@@ -34,18 +35,22 @@ libc = { workspace = true, optional = true }
 nameth = { workspace = true }
 nix = { workspace = true, optional = true, features = ["signal"] }
 notify = { workspace = true, optional = true }
+oid-registry = { workspace = true, optional = true }
 openssl = { workspace = true, optional = true }
 pbkdf2 = { workspace = true, optional = true }
 pin-project = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
 prost-types = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
 rpassword = { workspace = true, optional = true }
 scopeguard = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml_ng = { workspace = true, optional = true }
 serde-wasm-bindgen = { workspace = true, optional = true }
 server_fn = { workspace = true }
 sha2 = { workspace = true, optional = true }
+simple_asn1 = { workspace = true, optional = true }
 static_assertions = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
 terrazzo = { workspace = true, optional = true }
@@ -72,6 +77,7 @@ wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { workspace = true, optional = true }
 wasm-streams = { workspace = true, optional = true }
 web-sys = { workspace = true, optional = true }
+x509-parser = { workspace = true, optional = true }
 
 [build-dependencies]
 heck = { workspace = true }
@@ -187,7 +193,16 @@ converter-client = [
     "web-sys/HtmlTextAreaElement",
     "web-sys/InputEvent",
 ]
-converter-server = ["server", "converter"]
+converter-server = [
+    "converter",
+    "dep:cms",
+    "dep:oid-registry",
+    "dep:regex",
+    "dep:serde_yaml_ng",
+    "dep:simple_asn1",
+    "dep:x509-parser",
+    "server",
+]
 
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo-terminal.scss"

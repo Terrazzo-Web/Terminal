@@ -1,12 +1,21 @@
 .outer,
 .inner,
 .body {
-    width: 100%;
-    height: 100%;
     box-sizing: border-box;
     padding: 0;
     margin: 0;
 }
+
+.outer,
+.inner {
+    height: 100%;
+}
+
+.inner {
+    display: flex;
+    flex-direction: column;
+}
+
 
 .header {
     @include trz-header;
@@ -15,22 +24,23 @@
     flex: 0 0 auto;
 }
 
-.inner {
-    display: flex;
-    flex-direction: column;
-}
 
 .body {
+    flex: 1;
+    min-height: 0;
+
     display: flex;
     flex-direction: row;
 
     textarea,
     pre {
+        flex: 0 0 50%;
         width: 100%;
         height: 100%;
         box-sizing: border-box;
         padding: 0;
         margin: 0;
+        overflow-x: scroll;
 
         @include trz-font;
 
@@ -38,9 +48,81 @@
         color: white;
         border: 0;
         padding: var(--padding);
+    }
 
-        &:last-child {
-            border-left: 1px solid white;
+    textarea {
+        border-right: 1px solid white;
+    }
+}
+
+.conversions {
+    width: 100%;
+    height: 100%;
+    overflow-y: hidden;
+
+    .tabs {
+        --link-underline-thickness: 4px;
+        height: 100%;
+    }
+
+    .titles {
+        @include trz-header;
+
+        background-color: var(--background-color);
+        border: 1px solid var(--color);
+
+        @include prevent-user-select;
+    }
+
+    .titles>ul {
+        @include trz-header;
+        overflow-x: scroll;
+        overflow-y: hidden;
+        @include no-scroll-bar;
+    }
+
+    .title {
+        height: 100%;
+
+        padding-top: calc(var(--padding) - var(--link-underline-thickness));
+        padding-bottom: calc(var(--padding) - var(--link-underline-thickness));
+
+        cursor: pointer;
+        color: var(--color);
+
+        &:hover,
+        &.selected {
+            color: var(--selected-color);
+            background-color: var(--selected-background-color);
         }
+
+        &>div {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            height: 100%;
+        }
+    }
+
+    .items {
+        flex: 1;
+        min-height: 0;
+
+        &>ul {
+            height: 100%;
+
+            &>li {
+                height: 100%;
+            }
+        }
+    }
+
+    .item {
+        height: 100%;
+    }
+
+
+    .title-span {
+        white-space: nowrap;
     }
 }
