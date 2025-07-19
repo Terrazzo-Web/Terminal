@@ -121,7 +121,7 @@ impl TunnelConfig for AgentTunnelConfig {
                 use crate::backend::protos::terrazzo::terminal::terminal_service_server::TerminalServiceServer;
                 server.add_service(TerminalServiceServer::new(client_service.clone()))
             };
-            #[cfg(feature = "terminal")]
+            #[cfg(feature = "text-editor")]
             let server = {
                 use crate::backend::protos::terrazzo::notify::notify_service_server::NotifyServiceServer;
                 server.add_service(NotifyServiceServer::new(client_service.clone()))
