@@ -75,7 +75,7 @@ fn add_pkcs7_impl(input: &[u8], add: &mut impl AddConversionFn) -> Option<()> {
                         version: format!("{:?}", list.tbs_cert_list.version),
                         signature: list.tbs_cert_list.signature.into(),
                         issuer: list.tbs_cert_list.issuer.to_string(),
-                        this_update: list.tbs_cert_list.this_update.to_string(), //todo
+                        this_update: list.tbs_cert_list.this_update.to_string(),
                         next_update: list.tbs_cert_list.next_update.map(|n| n.to_string()),
                         revoked_certificates: make_revoked_certificates(
                             list.tbs_cert_list.revoked_certificates,
