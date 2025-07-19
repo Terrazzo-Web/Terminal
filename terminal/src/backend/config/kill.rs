@@ -24,7 +24,7 @@ impl ServerConfig {
 }
 
 fn kill_aux(pid: i32) -> Result<(), KillServerError> {
-    signal::kill(Pid::from_raw(pid), Signal::SIGTERM)
+    signal::kill(Pid::from_raw(pid), Signal::SIGKILL)
         .map_err(|errno| KillServerError::KillError { pid, errno })
 }
 

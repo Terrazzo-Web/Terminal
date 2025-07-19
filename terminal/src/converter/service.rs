@@ -15,6 +15,7 @@ mod base64;
 mod json;
 mod jwt;
 mod pkcs7;
+mod unescaped;
 mod x509;
 
 #[nameth]
@@ -30,7 +31,10 @@ pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
 }
 
 fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
-    if self::x509::add_x509(input, add) {
+    if self::x509::add_x509_pem(input, add) {
+        return;
+    }
+    if self::unescaped::add_unescape(input, add) {
         return;
     }
     if self::jwt::add_jwt(input, add) {
@@ -60,6 +64,7 @@ mod tests {
 
     pub trait GetConversionForTest {
         async fn get_conversion(&self, language: &str) -> String;
+        async fn get_languages(&self) -> Vec<String>;
     }
 
     impl GetConversionForTest for &str {
@@ -75,6 +80,17 @@ mod tests {
                 &[conversion] => conversion.content.clone(),
                 _ => "Duplicates".to_string(),
             }
+        }
+
+        async fn get_languages(&self) -> Vec<String> {
+            let conversions = super::get_conversions(self.to_string()).await.unwrap();
+            let mut languages = conversions
+                .conversions
+                .iter()
+                .map(|conversion| conversion.language.name.to_string())
+                .collect::<Vec<_>>();
+            languages.sort();
+            return languages;
         }
     }
 }

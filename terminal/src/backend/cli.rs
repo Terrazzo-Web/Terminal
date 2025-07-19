@@ -61,6 +61,9 @@ pub enum Action {
     /// Stop the daemon
     Stop,
 
+    /// Restart the daemon
+    Restart,
+
     /// Sets the password
     SetPassword,
 }

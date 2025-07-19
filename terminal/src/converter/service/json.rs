@@ -6,10 +6,10 @@ pub fn add_json(input: &str, add: &mut impl AddConversionFn) -> bool {
         return false;
     };
     if let Ok(json) = serde_json::to_string_pretty(&json) {
-        add(Language::new("json"), json);
+        add(Language::new("JSON"), json);
     }
     if let Ok(yaml) = serde_yaml_ng::to_string(&json) {
-        add(Language::new("yaml"), yaml);
+        add(Language::new("YAML"), yaml);
     }
     return true;
 }
@@ -19,10 +19,10 @@ pub fn add_yaml(input: &str, add: &mut impl AddConversionFn) {
         return;
     };
     if let Ok(json) = serde_json::to_string_pretty(&json) {
-        add(Language::new("json"), json);
+        add(Language::new("JSON"), json);
     }
     if let Ok(yaml) = serde_yaml_ng::to_string(&json) {
-        add(Language::new("yaml"), yaml);
+        add(Language::new("YAML"), yaml);
     }
 }
 
@@ -33,7 +33,7 @@ mod tests {
     #[tokio::test]
     async fn json_to_json() {
         let conversion =
-            r#" { "a": [1,2,3], "b": {"b1":[11],"b2":"22"}} "#.get_conversion("json").await;
+            r#" { "a": [1,2,3], "b": {"b1":[11],"b2":"22"}} "#.get_conversion("JSON").await;
         assert_eq!(
             r#"{
   "a": [
@@ -55,7 +55,7 @@ mod tests {
     #[tokio::test]
     async fn json_to_yaml() {
         let conversion =
-            r#" { "a": [1,2,3], "b": {"b1":[11],"b2":"22"}} "#.get_conversion("yaml").await;
+            r#" { "a": [1,2,3], "b": {"b1":[11],"b2":"22"}} "#.get_conversion("YAML").await;
         assert_eq!(
             r#"a:
 - 1
@@ -82,7 +82,7 @@ b:
   - 11
   b2: '22'
 "#
-        .get_conversion("json")
+        .get_conversion("JSON")
         .await;
         assert_eq!(
             r#"{
@@ -114,7 +114,7 @@ b:
         - 11
     b2: '22'
 "#
-        .get_conversion("yaml")
+        .get_conversion("YAML")
         .await;
         assert_eq!(
             r#"a:

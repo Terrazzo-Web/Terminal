@@ -1,6 +1,7 @@
 use base64::Engine as _;
 use base64::prelude::BASE64_STANDARD;
 use openssl::nid::Nid;
+use openssl::x509::X509;
 use openssl::x509::X509Ref;
 use trz_gateway_common::security_configuration::common::parse_pem_certificates;
 use x509_parser::prelude::FromDer as _;
@@ -9,7 +10,7 @@ use x509_parser::prelude::X509Certificate;
 use super::AddConversionFn;
 use crate::converter::api::Language;
 
-pub fn add_x509(input: &str, add: &mut impl AddConversionFn) -> bool {
+pub fn add_x509_pem(input: &str, add: &mut impl AddConversionFn) -> bool {
     if !input.contains("-----BEGIN CERTIFICATE-----") {
         return false;
     }
@@ -31,6 +32,18 @@ pub fn add_x509(input: &str, add: &mut impl AddConversionFn) -> bool {
         result = true;
     }
     result
+}
+
+pub fn add_x509_base64(input: &[u8], add: &mut impl AddConversionFn) -> bool {
+    let Ok(x509) = X509::from_der(input) else {
+        return false;
+    };
+    let Ok(Ok(mut text)) = x509.to_text().map(String::from_utf8) else {
+        return false;
+    };
+    add_extensions(&x509, &mut text);
+    add(Language::new(get_certificate_name(&x509)), text);
+    return true;
 }
 
 fn get_certificate_name(x509: &X509Ref) -> String {
@@ -95,7 +108,7 @@ mod tests {
     use super::super::tests::GetConversionForTest as _;
 
     #[tokio::test]
-    async fn single_x509() {
+    async fn single_x509_pem() {
         const CERTIFICATE: &str = r#"
 -----BEGIN CERTIFICATE-----
     MIIBtDCCAVmgAwIBAgIVANSN+BUl1Kf8XjE8anSpXGs1HfaWMAoGCCqGSM49BAMC
@@ -126,6 +139,35 @@ RD66UosBh50=
             .await
             .to_ascii_lowercase();
         assert!(conversion.contains(&"Issuer".to_ascii_lowercase()));
+
+        assert_eq!(
+            vec!["Terrazzo Terminal Root CA"],
+            CERTIFICATE.get_languages().await
+        );
+    }
+
+    #[tokio::test]
+    async fn single_x509_der() {
+        const CERTIFICATE: &str = r#"
+    MIIBtDCCAVmgAwIBAgIVANSN+BUl1Kf8XjE8anSpXGs1HfaWMAoGCCqGSM49BAMC
+ MDcxETAPBgNVBAoMCFRlcnJhenpvMSIwIAYDVQQDDBlUZXJyYXp6byBUZXJtaW5h
+bCBSb290IENBMB4XDTI1MDYwNjEwMDEyN1oXDTQ1MDYwMTEwMDEyN1owNzERMA8G
+   A1UECgwIVGVycmF6em8xIjAgBgNVBAMMGVRlcnJhenpvIFRlcm1pbmFsIFJvb3Qg
+Q0EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATGiH+iC1+6+3YxaWLEW8V1RsHQ
++fToNIBWRRJEV3q9z5YwZWHLZj8RfWCPsc01rKja1lnhfwEGd5qd9UUQk36go0Iw
+QDAdBgNVHQ4EFgQUEC5YRL04bEDiZ9oic1PZc7bR9P4wDwYDVR0TAQH/BAUwAwEB
+/zAOBgNVHQ8BAf8EBAMCAQYwCgYIKoZIzj0EAwIDSQAwRgIhAJuRb4MWDitsOJqy
+VOj7ugn3k0TlZV3rPSRmuL20bjeeAiEAhVOBRet9JDnQbjG/0SG8QVdJplLL66By
+RD66UosBh50=
+"#;
+        let conversion = CERTIFICATE
+            .get_conversion("Terrazzo Terminal Root CA")
+            .await;
+        assert!(conversion.contains(&"Terrazzo Terminal Root CA"));
+        assert_eq!(
+            vec!["ASN.1", "Terrazzo Terminal Root CA"],
+            CERTIFICATE.get_languages().await
+        );
     }
 
     #[tokio::test]

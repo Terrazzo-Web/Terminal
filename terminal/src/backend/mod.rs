@@ -114,6 +114,10 @@ pub fn run_server() -> Result<(), RunServerError> {
         return Ok(config.server.kill()?);
     }
 
+    if cli.action == Action::Restart {
+        config.server.kill()?;
+    }
+
     std::env::set_current_dir(home()).map_err(RunServerError::SetCurrentDir)?;
     if cli.action == Action::Start {
         self::daemonize::daemonize(&config.server)?;

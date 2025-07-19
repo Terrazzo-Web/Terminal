@@ -9,7 +9,7 @@ pub fn add_jwt(input: &str, add: &mut impl AddConversionFn) -> bool {
     let Some(jwt) = get_jwt_impl(input.trim()) else {
         return false;
     };
-    add(Language::new("jwt"), jwt);
+    add(Language::new("JWT"), jwt);
     return true;
 }
 
@@ -89,7 +89,7 @@ mod tests {
 
     #[tokio::test]
     async fn jwt() {
-        let conversion = JWT.get_conversion("jwt").await;
+        let conversion = JWT.get_conversion("JWT").await;
         assert_eq!(
             r#"
 header:
@@ -102,21 +102,21 @@ signature: voEB1O4AnPdCWHARf_1jTNA5CpayxWGyXfMf6p_wfbw"#
                 .trim(),
             conversion.trim()
         );
-        assert_eq!("Not found", JWT.get_conversion("json").await);
+        assert_eq!("Not found", JWT.get_conversion("JSON").await);
     }
 
     #[tokio::test]
     async fn jwt_trim() {
         let conversion = format!("\r\n\t{JWT}\r\n\t")
             .as_str()
-            .get_conversion("jwt")
+            .get_conversion("JWT")
             .await;
         assert!(conversion.contains("typ: JWT"));
     }
 
     #[tokio::test]
     async fn jwt_invalid() {
-        let conversion = format!("{JWT}.ABC").as_str().get_conversion("jwt").await;
+        let conversion = format!("{JWT}.ABC").as_str().get_conversion("JWT").await;
         assert_eq!("Not found", conversion);
     }
 }
