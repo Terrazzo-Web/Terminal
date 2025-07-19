@@ -1,15 +1,14 @@
-use std::sync::OnceLock;
-
 use base64::Engine as _;
 use base64::prelude::BASE64_STANDARD;
 use cms::cert::x509::der::Decode as _;
 use cms::cert::x509::der::Encode as _;
 use cms::cert::x509::der::Tagged as _;
 use oid_registry::OID_PKCS7_ID_SIGNED_DATA;
-use oid_registry::OidRegistry;
 use openssl::x509::X509;
 
 use super::AddConversionFn;
+use super::asn1::print_bytes;
+use super::asn1::print_oid;
 use crate::converter::api::Language;
 
 pub fn add_pkcs7(input: &[u8], add: &mut impl AddConversionFn) -> bool {
@@ -349,97 +348,94 @@ fn make_attributes(
 }
 
 #[derive(serde::Serialize)]
-struct Any {
-    tag: String,
-    value: String,
+enum Any {
+    ASN1(Vec<super::asn1::ASN1Block>),
+    Any { tag: String, value: String },
 }
 
 impl From<cms::cert::x509::der::Any> for Any {
     fn from(any: cms::cert::x509::der::Any) -> Self {
-        Self {
-            tag: format!("{:?}", any.tag()),
-            value: match any.to_der() {
-                Ok(der) => BASE64_STANDARD.encode(der),
-                Err(error) => error.to_string(),
+        match any
+            .to_der()
+            .ok()
+            .and_then(|der| simple_asn1::from_der(&der).ok())
+        {
+            Some(asn1) => Self::ASN1(asn1.into_iter().map(From::from).collect()),
+            None => Self::Any {
+                tag: format!("{:?}", any.tag()),
+                value: match any.to_der() {
+                    Ok(der) => BASE64_STANDARD.encode(der),
+                    Err(error) => error.to_string(),
+                },
             },
         }
     }
 }
 
-fn print_bytes(bytes: &[u8]) -> String {
-    let mut result = String::default();
-    let mut iter = bytes.into_iter().peekable();
-    while let Some(byte) = iter.next() {
-        result += &match iter.peek() {
-            Some(_) => format!("{:02X}:", byte),
-            None => format!("{:02X}", byte),
-        };
+#[cfg(test)]
+mod tests {
+    use super::super::tests::GetConversionForTest as _;
+
+    const PKCS7: &str = r#"
+        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
+        Sk7iZyTCBdh81YLTGkJX
+        "#;
+
+    #[tokio::test]
+    async fn pkcs7() {
+        let conversion = PKCS7.get_conversion("PKCS #7").await;
+        assert!(conversion.contains("munich.pavy.one"));
+        assert!(conversion.contains("2025-06-26 11:32:45.0"));
     }
-    result
 }
-
-fn print_oid(oid: cms::cert::x509::spki::ObjectIdentifier) -> String {
-    static OID_REGISTRY: OnceLock<OidRegistry> = OnceLock::new();
-    let oid_registry = OID_REGISTRY.get_or_init(|| OidRegistry::default().with_all_crypto());
-    oid_registry
-        .get(&oid_registry::Oid::new(oid.as_bytes().into()))
-        .map(|oid| oid.description().to_owned())
-        .unwrap_or_else(|| oid.to_string())
-}
-
-/*
-   MIIJywYJKoZIhvcNAQcCoIIJvDCCCbgCAQMxDTALBglghkgBZQMEAgEwTAYJKoZI
-   hvcNAQcBoD8EPURlYmlhbjoxNzUwOTM3NTY1OjE3NTg3MDg5NjM61hECzPk5N1PM
-   mw4O8REhFEShW1+ULCjwBlV71kkhpOCgggfqMIIDizCCAxCgAwIBAgISBiJH8Uh1
-   EqlFCCX0FZww4iSOMAoGCCqGSM49BAMDMDIxCzAJBgNVBAYTAlVTMRYwFAYDVQQK
-   Ew1MZXQncyBFbmNyeXB0MQswCQYDVQQDEwJFNjAeFw0yNTA2MjYxMDE2MDRaFw0y
-   NTA5MjQxMDE2MDNaMBoxGDAWBgNVBAMTD211bmljaC5wYXZ5Lm9uZTBZMBMGByqG
-   SM49AgEGCCqGSM49AwEHA0IABKtbB5I+eUGPWHl1wKGYZq8hu/kIoUWhLXtpdvC/
-   Lm1SJQLHHAPPvVpt0a4zp1iYr6gu58Sgaa0t/pknyOCUwoCjggIcMIICGDAOBgNV
-   HQ8BAf8EBAMCB4AwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMAwGA1Ud
-   EwEB/wQCMAAwHQYDVR0OBBYEFNXrpRsSLwEmRWE4m6rPmvMIKkEuMB8GA1UdIwQY
-   MBaAFJMnRpgDqVFojpjWxEJI2yO/WJTSMDIGCCsGAQUFBwEBBCYwJDAiBggrBgEF
-   BQcwAoYWaHR0cDovL2U2LmkubGVuY3Iub3JnLzAaBgNVHREEEzARgg9tdW5pY2gu
-   cGF2eS5vbmUwEwYDVR0gBAwwCjAIBgZngQwBAgEwLQYDVR0fBCYwJDAioCCgHoYc
-   aHR0cDovL2U2LmMubGVuY3Iub3JnLzE1LmNybDCCAQMGCisGAQQB1nkCBAIEgfQE
-   gfEA7wB1AMz7D2qFcQll/pWbU87psnwi6YVcDZeNtql+VMD+TA2wAAABl6vyU/0A
-   AAQDAEYwRAIgPw5fa1/ttZNhXtX1GFN5C1KY+A1pzc+X9251JJb3wCACIHLtpXqv
-   OV2999aL3Cks6bTyvUTbeBlhqHEC36JtAjczAHYAGgT/SdBUHUCv9qDDv/HYxGcv
-   TuzuI0BomGsXQC7ciX0AAAGXq/JcJwAABAMARzBFAiAlqFNNtRU1zyONybiJaEKn
-   vikNo+B/V0Wpt+G6BNTZkgIhAO9bbObCVGDWw6H/+P2L7JPaIwW22rYiY4bui6Pf
-   7Q2xMAoGCCqGSM49BAMDA2kAMGYCMQD2ftY1AgUe0bybQKh+q9F727g5YRkuGuyi
-   S2JTBPN48KQ/YGcGn720QUsb9t8DGbICMQDKqPFpuvKo9BaNJh98rMLxxf2UXa81
-   LGRMvYq0NwLlpOgiIFiJj6nMMOJdJcyvIgkwggRXMIICP6ADAgECAhEAsFc+kXOX
-   J3DbtIfLOkUrODANBgkqhkiG9w0BAQsFADBPMQswCQYDVQQGEwJVUzEpMCcGA1UE
-   ChMgSW50ZXJuZXQgU2VjdXJpdHkgUmVzZWFyY2ggR3JvdXAxFTATBgNVBAMTDElT
-   UkcgUm9vdCBYMTAeFw0yNDAzMTMwMDAwMDBaFw0yNzAzMTIyMzU5NTlaMDIxCzAJ
-   BgNVBAYTAlVTMRYwFAYDVQQKEw1MZXQncyBFbmNyeXB0MQswCQYDVQQDEwJFNjB2
-   MBAGByqGSM49AgEGBSuBBAAiA2IABNnxnkaH+CFxYKgm66P6ueraHbkSp9Qm2VEU
-   sWF8dZa/Igs5H9W+0QpGqi08SgmELr5AlVXpGUA3ZnXtMk53BEn4cHvDGOfO93EQ
-   /qx02ADU7W0ccxYzEJw6supsYvS9uKOB+DCB9TAOBgNVHQ8BAf8EBAMCAYYwHQYD
-   VR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMBMBIGA1UdEwEB/wQIMAYBAf8CAQAw
-   HQYDVR0OBBYEFJMnRpgDqVFojpjWxEJI2yO/WJTSMB8GA1UdIwQYMBaAFHm0WeZ7
-   tuXkAXOACIjIGlj26ZtuMDIGCCsGAQUFBwEBBCYwJDAiBggrBgEFBQcwAoYWaHR0
-   cDovL3gxLmkubGVuY3Iub3JnLzATBgNVHSAEDDAKMAgGBmeBDAECATAnBgNVHR8E
-   IDAeMBygGqAYhhZodHRwOi8veDEuYy5sZW5jci5vcmcvMA0GCSqGSIb3DQEBCwUA
-   A4ICAQB9i3tKIDWyBYYIim6eTjqvgATEhFwzGQqBSE2Wuu/UHbWE5pc3/maIT4s5
-   NutyZT8z3K8LoxVjvfQY0WgvwiEnyPy+s4ukxjbY4/ptpLWT1gyu0NOXAkegZvLT
-   hOFNR4EOSxL1GK4e+JxmoF51B0gXrmlm6Gl4NwYFwuJhqxCv8Q7mDHG0vJOaCwdI
-   5VIFwU6f2WC/ssQI+r2LuZ8feanGCtEpLEek6hnQpcxwH6Ee6+WSUee29wjSYwxD
-   SaFiPqq0wVK2QXVGkIbcg90jClUJCq7wZXuzy5uSdHOz7cL8GbX1EU6iI+kOTC/I
-   1++ZDXheTKqoormhnzOEPfaQVFCTFry5lK6HhpMiYXGSe7f3BoHEhFcTiMrGUCZB
-   zhCMVmirUqZCpCDQn/UkXxGUW8lqzVVyMu9iW9QHa3qek7qhCMHeX481/QOlAfuJ
-   THdbPkCNAKLovbkWPITTqroFn9CWa1h2X/xlhqjhJGo8Sz/pwCIX5B/nODZSRpa0
-   OmGXUsoy5M0ui2+xf30c/r1XZ9o3J6Ch1DQvJMCmv+9PTVg8Tjq82wMuAr7hwvpO
-   vML9rhZyYXlJEn3fzOu/924kctdAiS7m/T4TA7Ln0d2bQ9P8Sv/zh0NXQJKN1H/Z
-   e5kzeSnKxIouAPVwqIMD4hGC44MLF871zJgiDjq/2YWYG/IfTjGCAWYwggFiAgED
-   gBTV66UbEi8BJkVhOJuqz5rzCCpBLjALBglghkgBZQMEAgGggeQwGAYJKoZIhvcN
-   AQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjUwNjI2MTEzMjQ1WjAv
-   BgkqhkiG9w0BCQQxIgQgmnXIoExXl364b+OpKjbBpT/6EGZTY9yLctAK77e2QNIw
-   eQYJKoZIhvcNAQkPMWwwajALBglghkgBZQMEASowCwYJYIZIAWUDBAEWMAsGCWCG
-   SAFlAwQBAjAKBggqhkiG9w0DBzAOBggqhkiG9w0DAgICAIAwDQYIKoZIhvcNAwIC
-   AUAwBwYFKw4DAgcwDQYIKoZIhvcNAwICASgwCgYIKoZIzj0EAwIERzBFAiB1WoO8
-   /NIqB/5ZhjPmC3QgMoRXWFPv20Wk80PKpcEzkAIhAM9mMug/xnKP6Nuz/bH17ByI
-   Sk7iZyTCBdh81YLTGkJX
-    *
-*/
