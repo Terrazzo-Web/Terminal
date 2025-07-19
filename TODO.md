@@ -1,14 +1,12 @@
 # TODO
-- `#110`. Add a wrapper around `cargo check` that returns a list of errors or warnings
-- `#115`. Add some caching in the UI around folder I/O, so loading stuff is faster
+- `#·91`. Port forwarding tool
 - `#·95`. File explorer: search tool
+- `#115`. Add some caching in the UI around folder I/O, so loading stuff is faster
 - `#·94`. File explorer: all files
 - `#·92`. File explorer: show files with git changes
-- `#·89`. Anything parser: x509, base64, pem, yaml, json, toml, etc.
 - `#··7`. Text editor: integration with Language Server
 - `#·98`. Text editor: highlight git changes
 - `#·99`. Text editor: status bar: last change, pointer position, branch name
-- `#·91`. Port forwarding tool
 - `#·91`. Configuration tool: show current auth token
 - `#·91`. Configuration tool: password reset
 - `#·91`. Configuration tool: info page (version, metrics, etc.)
@@ -128,3 +126,5 @@ Next: `#116`.
 - `#111`. Update the file in the UI with changes from disk -- unless the UI has pending changes
 - `#·96`. Text editor: watch for changes on disk → refresh UI
 - `#114`. Notification pipeline works with remotes
+- `#110`. Add a wrapper around `cargo check` that returns a list of errors or warnings
+- `#·89`. Anything parser: x509, base64, pem, yaml, json, toml, etc.
