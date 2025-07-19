@@ -1,5 +1,4 @@
 use tonic::Status;
-use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_common::id::ClientName;
 
 use crate::api::client_address::ClientAddress;
@@ -110,20 +109,5 @@ impl From<RegisterTerminalMode> for RegisterTerminalModeProto {
             RegisterTerminalMode::Create => Self::Create,
             RegisterTerminalMode::Reopen => Self::Reopen,
         }
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum Impossible {}
-
-impl From<Impossible> for Status {
-    fn from(_: Impossible) -> Self {
-        unreachable!()
-    }
-}
-
-impl IsHttpError for Impossible {
-    fn status_code(&self) -> terrazzo::http::StatusCode {
-        unreachable!()
     }
 }

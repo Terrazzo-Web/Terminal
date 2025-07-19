@@ -14,7 +14,7 @@ use tracing::info_span;
 use trz_gateway_common::http_error::IsHttpError;
 use trz_gateway_server::server::Server;
 
-use super::convert::Impossible;
+use crate::backend::client_service::convert::Impossible;
 use crate::backend::client_service::routing::DistributedCallback;
 use crate::backend::client_service::routing::DistributedCallbackError;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
