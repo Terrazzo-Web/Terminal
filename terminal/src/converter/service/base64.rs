@@ -8,6 +8,7 @@ use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use regex::Regex;
 
 use super::AddConversionFn;
+use crate::converter::api::Language;
 
 pub fn add_base64(input: &str, add: &mut impl AddConversionFn) -> bool {
     static BASE64_REGEX: OnceLock<Regex> = OnceLock::new();
@@ -23,12 +24,21 @@ pub fn add_base64(input: &str, add: &mut impl AddConversionFn) -> bool {
 
     let input = &input;
     return [
+        add_base64_impl(input, add),
         super::x509::add_x509_base64(input, add),
         super::pkcs7::add_pkcs7(input, add),
         super::asn1::add_asn1(input, add),
     ]
     .into_iter()
     .any(|t| t);
+}
+
+fn add_base64_impl(input: &[u8], add: &mut impl AddConversionFn) -> bool {
+    let Ok(utf_8) = str::from_utf8(input) else {
+        return false;
+    };
+    add(Language::new("Base 64"), utf_8.into());
+    return true;
 }
 
 pub(super) fn parse_base64(data: &str) -> Option<Vec<u8>> {
@@ -51,4 +61,18 @@ pub(super) fn parse_base64(data: &str) -> Option<Vec<u8>> {
         }
     }
     return None;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::tests::GetConversionForTest as _;
+
+    const BASE64: &str = "SGVsbG8gd29ybGQh";
+
+    #[tokio::test]
+    async fn base64() {
+        let conversion = BASE64.get_conversion("Base 64").await;
+        assert_eq!("Hello world!", conversion);
+        assert_eq!(vec!["Base 64"], BASE64.get_languages().await);
+    }
 }

@@ -34,19 +34,16 @@ fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
     if self::x509::add_x509_pem(input, add) {
         return;
     }
-    if self::unescaped::add_unescape(input, add) {
-        return;
-    }
     if self::jwt::add_jwt(input, add) {
         return;
     }
     if self::base64::add_base64(input, add) {
         return;
     }
-    if self::json::add_json(input, add) {
-        return;
+    if !self::json::add_json(input, add) {
+        self::json::add_yaml(input, add);
     }
-    self::json::add_yaml(input, add);
+    self::unescaped::add_unescape(input, add);
 }
 
 declare_trait_aliias!(AddConversionFn, FnMut(Language, String));
