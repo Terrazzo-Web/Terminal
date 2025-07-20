@@ -169,8 +169,8 @@ mod tests {
     const COMPILER_MESSAGE: &'static str = r#"
 {
   "reason": "compiler-message",
-  "package_id": "path+file:///home/richard/Documents/Terminal/terminal#terrazzo-terminal@0.1.15",
-  "manifest_path": "/home/richard/Documents/Terminal/terminal/Cargo.toml",
+  "package_id": "path+file:///home/user/Documents/Terminal/terminal#terrazzo-terminal@0.1.15",
+  "manifest_path": "/home/user/Documents/Terminal/terminal/Cargo.toml",
   "target": {
     "kind": [
       "cdylib",
@@ -181,14 +181,14 @@ mod tests {
       "rlib"
     ],
     "name": "terrazzo_terminal",
-    "src_path": "/home/richard/Documents/Terminal/terminal/src/lib.rs",
+    "src_path": "/home/user/Documents/Terminal/terminal/src/lib.rs",
     "edition": "2024",
     "doc": true,
     "doctest": true,
     "test": true
   },
   "message": {
-    "rendered": "error[E0599]: no method named `expect` found for opaque type `impl futures::Future<Output = Result<ExitStatus, std::io::Error>>` in the current scope\n   --> terminal/src/text_editor/rust_lang/service.rs:48:31\n    |\n48  |     let status = child.wait().expect(\"Failed to wait on child\");\n    |                               ^^^^^^\n    |\nhelp: there is a method `explicit` with a similar name, but with different arguments\n   --> /home/richard/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/asn1-rs-0.7.1/src/traits.rs:324:5\n    |\n324 |     fn explicit(self, class: Class, tag: u32) -> TaggedParser<'a, Explicit, Self, E> {\n    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nhelp: consider `await`ing on the `Future` and calling the method on its `Output`\n    |\n48  |     let status = child.wait().await.expect(\"Failed to wait on child\");\n    |                               ++++++\n\n",
+    "rendered": "error[E0599]: no method named `expect` found for opaque type `impl futures::Future<Output = Result<ExitStatus, std::io::Error>>` in the current scope\n   --> terminal/src/text_editor/rust_lang/service.rs:48:31\n    |\n48  |     let status = child.wait().expect(\"Failed to wait on child\");\n    |                               ^^^^^^\n    |\nhelp: there is a method `explicit` with a similar name, but with different arguments\n   --> /home/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/asn1-rs-0.7.1/src/traits.rs:324:5\n    |\n324 |     fn explicit(self, class: Class, tag: u32) -> TaggedParser<'a, Explicit, Self, E> {\n    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nhelp: consider `await`ing on the `Future` and calling the method on its `Output`\n    |\n48  |     let status = child.wait().await.expect(\"Failed to wait on child\");\n    |                               ++++++\n\n",
     "$message_type": "diagnostic",
     "children": [
       {
@@ -204,7 +204,7 @@ mod tests {
             "column_end": 85,
             "column_start": 5,
             "expansion": null,
-            "file_name": "/home/richard/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/asn1-rs-0.7.1/src/traits.rs",
+            "file_name": "/home/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/asn1-rs-0.7.1/src/traits.rs",
             "is_primary": true,
             "label": null,
             "line_end": 324,
