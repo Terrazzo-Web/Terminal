@@ -44,8 +44,8 @@ impl Config {
             server: DiffArc::from(ServerConfig {
                 host: Some(server.host.clone()),
                 port: Some(server.port),
-                pidfile: Some(server.pidfile.clone()),
-                private_root_ca: Some(server.private_root_ca.clone()),
+                pidfile: Some(collapse_tilde(&server.pidfile)),
+                private_root_ca: Some(collapse_tilde(&server.private_root_ca)),
                 password: server.password.clone(),
                 token_lifetime: Some(humantime::format_duration(server.token_lifetime).to_string()),
                 token_refresh: Some(humantime::format_duration(server.token_refresh).to_string()),
@@ -58,8 +58,8 @@ impl Config {
                 DiffArc::from(MeshConfig {
                     client_name: Some(mesh.client_name.clone()),
                     gateway_url: Some(mesh.gateway_url.clone()),
-                    gateway_pki: mesh.gateway_pki.clone(),
-                    client_certificate: Some(mesh.client_certificate.clone()),
+                    gateway_pki: mesh.gateway_pki.as_ref().map(collapse_tilde),
+                    client_certificate: Some(collapse_tilde(&mesh.client_certificate)),
                     retry_strategy: Some(mesh.retry_strategy.clone()),
                     client_certificate_renewal: Some(
                         humantime::format_duration(mesh.client_certificate_renewal).to_string(),
@@ -87,7 +87,7 @@ fn merge_server_config(
             let pidfile = cli.pidfile.as_deref();
             let pidfile = pidfile.or(server.pidfile.as_deref()).map(expand_tilde);
             pidfile.unwrap_or_else(|| {
-                [home(), format!(".terrazzo/terminal-{port}.pid")]
+                [home(), &format!(".terrazzo/terminal-{port}.pid")]
                     .iter()
                     .collect::<PathBuf>()
                     .to_owned_string()
@@ -99,7 +99,7 @@ fn merge_server_config(
                 .or(server.private_root_ca.as_deref())
                 .map(expand_tilde);
             private_root_ca.unwrap_or_else(|| {
-                [&home(), ".terrazzo/root_ca"]
+                [home(), ".terrazzo/root_ca"]
                     .iter()
                     .collect::<PathBuf>()
                     .to_owned_string()
@@ -147,7 +147,7 @@ fn merge_mesh_config(
             .or(mesh.and_then(|m| m.client_certificate.to_owned()))
             .map(expand_tilde)
             .unwrap_or_else(|| {
-                [&home(), ".terrazzo/client_certificate"]
+                [home(), ".terrazzo/client_certificate"]
                     .iter()
                     .collect::<PathBuf>()
                     .to_owned_string()
@@ -169,6 +169,14 @@ fn expand_tilde(path: impl AsRef<Path>) -> String {
     path.to_owned_string()
 }
 
+fn collapse_tilde(path: impl AsRef<str>) -> String {
+    let path = path.as_ref();
+    return path
+        .strip_prefix(home())
+        .map(|p| ["~", p].into_iter().collect())
+        .unwrap_or_else(|| path.to_owned());
+}
+
 #[cfg(test)]
 mod tests {
     use crate::backend::home;
@@ -176,8 +184,23 @@ mod tests {
     #[test]
     fn expand_tilde() {
         assert!(!home().ends_with("/"));
-        assert_eq!(home() + "/home/path", super::expand_tilde("~//home/path"));
+        assert_eq!(
+            home().to_owned() + "/home/path",
+            super::expand_tilde("~//home/path")
+        );
         assert_eq!("~home/path", super::expand_tilde("~home/path"));
         assert_eq!("/~/home/path", super::expand_tilde("/~/home/path"));
+    }
+
+    #[test]
+    fn collapse_tilde() {
+        assert_eq!(
+            super::collapse_tilde(home().to_owned() + "/home/path"),
+            "~/home/path"
+        );
+        assert_eq!(
+            super::collapse_tilde(home().to_owned() + home() + "/home/path"),
+            "~".to_owned() + home() + "/home/path"
+        );
     }
 }
