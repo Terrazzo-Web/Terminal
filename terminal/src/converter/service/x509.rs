@@ -250,7 +250,7 @@ EwOy59Hdm0PT/Er/84dDV0CSjdR/2XuZM3kpysSKLgD1cKiDA+IRguODCxfO9cyY
 Ig46v9mFmBvyH04=
 -----END CERTIFICATE-----
 "#;
-        assert_eq!(vec! ["E6", "Qwerty"], CERTIFICATE.get_languages().await);
+        assert_eq!(vec!["E6", "Qwerty"], CERTIFICATE.get_languages().await);
         let conversion = CERTIFICATE
             .get_conversion("Qwerty")
             .await

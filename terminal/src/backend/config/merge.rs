@@ -1,4 +1,5 @@
 use std::ops::Deref;
+use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -84,7 +85,7 @@ fn merge_server_config(
         port,
         pidfile: {
             let pidfile = cli.pidfile.as_deref();
-            let pidfile = pidfile.or(server.pidfile.as_deref()).map(str::to_owned);
+            let pidfile = pidfile.or(server.pidfile.as_deref()).map(expand_tilde);
             pidfile.unwrap_or_else(|| {
                 [home(), format!(".terrazzo/terminal-{port}.pid")]
                     .iter()
@@ -96,7 +97,7 @@ fn merge_server_config(
             let private_root_ca = cli.private_root_ca.as_deref();
             let private_root_ca = private_root_ca
                 .or(server.private_root_ca.as_deref())
-                .map(str::to_owned);
+                .map(expand_tilde);
             private_root_ca.unwrap_or_else(|| {
                 [&home(), ".terrazzo/root_ca"]
                     .iter()
@@ -139,9 +140,12 @@ fn merge_mesh_config(
     Some(DiffArc::from(MeshConfig {
         client_name: client_name.or(mesh.and_then(|m| m.client_name.to_owned()))?,
         gateway_url: gateway_url.or(mesh.and_then(|m| m.gateway_url.to_owned()))?,
-        gateway_pki: gateway_pki.or(mesh.and_then(|m| m.gateway_pki.to_owned())),
+        gateway_pki: gateway_pki
+            .or(mesh.and_then(|m| m.gateway_pki.to_owned()))
+            .map(expand_tilde),
         client_certificate: client_certificate
             .or(mesh.and_then(|m| m.client_certificate.to_owned()))
+            .map(expand_tilde)
             .unwrap_or_else(|| {
                 [&home(), ".terrazzo/client_certificate"]
                     .iter()
@@ -155,4 +159,25 @@ fn merge_mesh_config(
             .and_then(|mesh| parse_duration(mesh.client_certificate_renewal.as_deref()))
             .unwrap_or(Duration::from_secs(3600 * 24 * 30)),
     }))
+}
+
+fn expand_tilde(path: impl AsRef<Path>) -> String {
+    let path = path.as_ref();
+    if let Ok(stripped) = path.strip_prefix("~") {
+        return Path::new(&home()).join(stripped).to_owned_string();
+    }
+    path.to_owned_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::backend::home;
+
+    #[test]
+    fn expand_tilde() {
+        assert!(!home().ends_with("/"));
+        assert_eq!(home() + "/home/path", super::expand_tilde("~//home/path"));
+        assert_eq!("~home/path", super::expand_tilde("~home/path"));
+        assert_eq!("/~/home/path", super::expand_tilde("/~/home/path"));
+    }
 }
