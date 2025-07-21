@@ -47,13 +47,22 @@ class CodeMirrorJs {
     }
 
     set_content(content) {
+        const current = this.editorView.state.doc;
+        if (current == content) return;
         this.reloadFromDisk = true;
+        const changes = {
+            from: 0,
+            to: current.length,
+            insert: content
+        };
+        const selection = {
+            anchor: Math.min(
+                this.editorView.state.selection.main.anchor,
+                content.length)
+        };
         this.editorView.dispatch({
-            changes: {
-                from: 0,
-                to: this.editorView.state.doc.length,
-                insert: content
-            }
+            changes,
+            selection
         });
         this.reloadFromDisk = false;
     }

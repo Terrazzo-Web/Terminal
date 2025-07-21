@@ -38,6 +38,6 @@ mod tests {
         let input = r#"A\n\tB"#;
         let conversion = input.get_conversion(UNESCAPED).await;
         assert_eq!("A\n\tB", conversion);
-        assert_eq!(vec![UNESCAPED], input.get_languages().await);
+        assert_eq!(vec!["JSON", UNESCAPED, "YAML"], input.get_languages().await);
     }
 }

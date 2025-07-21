@@ -5,6 +5,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::OnceLock;
 use std::time::Duration;
 use std::time::SystemTime;
 
@@ -93,7 +94,7 @@ pub fn run_server() -> Result<(), RunServerError> {
         let mut cli = Cli::parse();
         if let Some(config_file) = &mut cli.config_file {
             if Path::new(config_file).is_relative() {
-                let concat: PathBuf = [&home(), ".terrazzo", config_file].iter().collect();
+                let concat: PathBuf = [home(), ".terrazzo", config_file].iter().collect();
                 *config_file = concat.to_owned_string()
             }
         }
@@ -443,6 +444,7 @@ pub enum RunClientError {
     Aborted(String),
 }
 
-fn home() -> String {
-    std::env::var("HOME").expect("HOME")
+fn home() -> &'static str {
+    static HOME: OnceLock<String> = OnceLock::new();
+    HOME.get_or_init(|| std::env::var("HOME").expect("HOME"))
 }
