@@ -1,4 +1,5 @@
 # TODO
+- `#116`. Keep current remote in memory
 - `#·91`. Port forwarding tool
 - `#·95`. File explorer: search tool
 - `#115`. Add some caching in the UI around folder I/O, so loading stuff is faster
@@ -25,7 +26,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#116`.
+Next: `#117`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
