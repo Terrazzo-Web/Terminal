@@ -133,13 +133,13 @@ pub enum Applicability {
 }
 
 /// https://github.com/rust-lang/cargo/blob/rust-1.87.0/crates/rustfix/src/diagnostics.rs#L82
+#[cfg(debug_assertions)]
 #[derive(Debug, serde::Deserialize)]
 pub struct DiagnosticSpanLine<'a> {
     #[serde(borrow)]
     pub text: Cow<'a, str>,
 
     pub highlight_start: u32,
-
     pub highlight_end: u32,
 }
 
