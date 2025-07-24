@@ -1,4 +1,4 @@
-#![cfg(any(feature = "text-editor", feature = "converter"))]
+#![cfg(feature = "remotes-ui")]
 
 use terrazzo::html;
 use terrazzo::prelude::*;

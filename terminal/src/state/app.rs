@@ -16,6 +16,14 @@ pub enum App {
     #[cfg_attr(not(any(feature = "terminal", feature = "text-editor")), default)]
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "C"))]
     Converter,
+
+    #[cfg(feature = "port-forward")]
+    #[cfg_attr(
+        not(any(feature = "terminal", feature = "text-editor", feature = "converter")),
+        default
+    )]
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "P"))]
+    PortForward,
 }
 
 impl std::fmt::Display for App {
@@ -27,6 +35,8 @@ impl std::fmt::Display for App {
             App::TextEditor => "Text editor",
             #[cfg(feature = "converter")]
             App::Converter => "Converter",
+            #[cfg(feature = "port-forward")]
+            App::PortForward => "Port forward",
         }
         .fmt(f)
     }

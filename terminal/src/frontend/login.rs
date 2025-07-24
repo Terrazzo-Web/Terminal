@@ -97,5 +97,7 @@ fn show_app(#[signal] app: App) -> XElement {
         App::TextEditor => div(|t| crate::text_editor::ui::text_editor(t)),
         #[cfg(feature = "converter")]
         App::Converter => div(|t| crate::converter::ui::converter(t)),
+        #[cfg(feature = "port-forward")]
+        App::PortForward => div(|t| crate::portforward::ui::port_forward(t)),
     }
 }

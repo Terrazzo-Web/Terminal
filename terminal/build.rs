@@ -27,6 +27,10 @@ enum Feature {
     Converter,
     ConverterClient,
     ConverterServer,
+
+    PortForward,
+    PortForwardClient,
+    PortForwardServer,
 }
 
 impl Feature {
@@ -82,6 +86,7 @@ fn build_client() {
         Feature::TerminalServer.disable(),
         Feature::TextEditorServer.disable(),
         Feature::ConverterServer.disable(),
+        Feature::PortForwardServer.disable(),
     );
 
     if Feature::Client.is_set() {
@@ -106,6 +111,9 @@ fn build_client() {
     }
     if Feature::Converter.is_set() {
         Feature::ConverterClient.add(&mut wasm_pack_options);
+    }
+    if Feature::PortForward.is_set() {
+        Feature::PortForwardClient.add(&mut wasm_pack_options);
     }
     let wasm_pack_options = wasm_pack_options
         .iter()

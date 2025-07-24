@@ -92,8 +92,18 @@ fluent-asserter = { workspace = true }
 [features]
 default = ["prod"]
 prod = ["max-level-info", "server-all"]
-server-all = ["terminal-server", "text-editor-server", "converter-server"]
-client-all = ["terminal-client", "text-editor-client", "converter-client"]
+server-all = [
+    "terminal-server",
+    "text-editor-server",
+    "converter-server",
+    "port-forward-server",
+]
+client-all = [
+    "terminal-client",
+    "text-editor-client",
+    "converter-client",
+    "port-forward-client",
+]
 
 client = [
     "dep:stylance",
@@ -150,6 +160,7 @@ diagnostics = ["terrazzo?/diagnostics"]
 no_wasm_build = []
 debug = ["terrazzo?/debug"]
 correlation-id = []
+remotes-ui = []
 
 terminal = ["correlation-id"]
 terminal-client = [
@@ -170,12 +181,14 @@ terminal-server = [
     "server",
     "terminal",
 ]
+
 text-editor = []
 text-editor-client = [
     "client",
     "dep:futures",
     "dep:scopeguard",
     "dep:serde-wasm-bindgen",
+    "remotes-ui",
     "text-editor",
     "web-sys/KeyboardEvent",
 ]
@@ -186,11 +199,13 @@ text-editor-server = [
     "server",
     "text-editor",
 ]
+
 converter = []
 converter-client = [
     "client",
     "converter",
     "dep:web-sys",
+    "remotes-ui",
     "web-sys/HtmlTextAreaElement",
     "web-sys/InputEvent",
 ]
@@ -205,6 +220,17 @@ converter-server = [
     "dep:x509-parser",
     "server",
 ]
+
+port-forward = []
+port-forward-client = [
+    "client",
+    "dep:web-sys",
+    "port-forward",
+    "remotes-ui",
+    "web-sys/HtmlOptionElement",
+    "web-sys/HtmlSelectElement",
+]
+port-forward-server = ["port-forward", "server"]
 
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo-terminal.scss"

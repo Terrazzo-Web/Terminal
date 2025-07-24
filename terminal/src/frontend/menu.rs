@@ -55,7 +55,7 @@ pub fn menu() -> XElement {
 #[template(tag = ul)]
 fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -> XElement {
     if show_menu {
-        let mut items = vec![];
+        let mut items: Vec<XElement> = vec![];
         #[cfg(feature = "terminal")]
         items.push(menu_item(
             App::Terminal,
@@ -73,6 +73,13 @@ fn menu_items(#[signal] mut show_menu: bool, hide_menu: Cancellable<Duration>) -
         #[cfg(feature = "converter")]
         items.push(menu_item(
             App::Converter,
+            app(),
+            show_menu_mut.clone(),
+            hide_menu.clone(),
+        ));
+        #[cfg(feature = "port-forward")]
+        items.push(menu_item(
+            App::PortForward,
             app(),
             show_menu_mut.clone(),
             hide_menu.clone(),
@@ -124,6 +131,8 @@ impl App {
             App::TextEditor => icons::text_editor(),
             #[cfg(feature = "converter")]
             App::Converter => icons::converter(),
+            #[cfg(feature = "port-forward")]
+            App::PortForward => icons::hub(),
         }
     }
 }

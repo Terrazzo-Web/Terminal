@@ -16,14 +16,12 @@
     flex-direction: column;
 }
 
-
 .header {
     @include trz-header;
     border: 1px solid var(--color);
     box-sizing: border-box;
     flex: 0 0 auto;
 }
-
 
 .body {
     flex: 1;
