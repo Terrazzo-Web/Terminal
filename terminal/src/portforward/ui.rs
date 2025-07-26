@@ -43,7 +43,6 @@ pub fn port_forward() -> XElement {
 }
 
 #[html]
-#[template(tag = div)]
 fn port_forward_impl(
     remotes: XSignal<Vec<ClientAddress>>,
     remote: XSignal<Remote>,
@@ -53,7 +52,7 @@ fn port_forward_impl(
         class = style::inner,
         key = "port-forward",
         div(class = style::header, menu(), show_remote(remote.clone())),
-        show_port_forwards(remotes, port_forwards),
+        show_port_forwards(remotes, remote, port_forwards.clone(), port_forwards),
     )
 }
 
@@ -62,25 +61,67 @@ fn port_forward_impl(
 #[template(tag = div)]
 fn show_port_forwards(
     remotes: XSignal<Vec<ClientAddress>>,
+    #[signal] remote: Remote,
+    port_forwards_signal: XSignal<Arc<[PortForward]>>,
     #[signal] mut port_forwards: Arc<[PortForward]>,
 ) -> XElement {
-    let port_forwards = port_forwards
+    spawn_local(async move {
+        autoclone!(remote, port_forwards_mut);
+        let Ok(port_forwards) = super::state::load_port_forwards(remote).await else {
+            return;
+        };
+        port_forwards_mut.set(port_forwards);
+    });
+
+    let port_forward_tags = port_forwards
         .iter()
         .enumerate()
         .map(|(index, port_forward)| {
             let id = port_forwards[index].id;
             let set = move |new: Option<PortForward>| {
-                autoclone!(port_forwards_mut);
+                autoclone!(remote, port_forwards_signal);
                 if let Some(new) = new {
                     assert!(new.id == id, "PortForward id mismatch {} != {}", new.id, id);
-                    port_forwards_mut.update(set_port_forward(id, new));
+                    save_state_on_update(
+                        port_forwards_signal.clone(),
+                        set_port_forward(id, new),
+                        &remote,
+                    );
                 } else {
-                    port_forwards_mut.update(remove_port_forward(id));
+                    save_state_on_update(
+                        port_forwards_signal.clone(),
+                        remove_port_forward(id),
+                        &remote,
+                    );
                 }
             };
             show_port_forward(remotes.clone(), index, port_forward.clone(), set)
         });
-    tag(class = style::port_forwards, port_forwards..)
+    tag(
+        class = style::port_forwards,
+        port_forward_tags..,
+        div(
+            "+",
+            style::cursor = "pointer",
+            click = move |_| {
+                autoclone!(remote);
+                save_state_on_update(
+                    port_forwards_signal.clone(),
+                    |port_forwards| {
+                        Some(
+                            port_forwards
+                                .iter()
+                                .cloned()
+                                .chain(Some(PortForward::new()))
+                                .collect::<Vec<_>>()
+                                .into(),
+                        )
+                    },
+                    &remote,
+                );
+            },
+        ),
+    )
 }
 
 fn set_port_forward(
@@ -111,6 +152,28 @@ fn remove_port_forward(id: i32) -> impl FnOnce(&Arc<[PortForward]>) -> Option<Ar
             .collect::<Vec<_>>();
         Some(new.into())
     }
+}
+
+#[autoclone]
+fn save_state_on_update(
+    port_forwards: XSignal<Arc<[PortForward]>>,
+    update_fn: impl FnOnce(&Arc<[PortForward]>) -> Option<Arc<[PortForward]>>,
+    remote: &Remote,
+) {
+    let current = port_forwards.get_value_untracked();
+    let Some(new) = update_fn(&current) else {
+        return;
+    };
+    spawn_local(async move {
+        autoclone!(remote);
+        let Ok(()) = super::state::store_port_forwards(remote, new.clone())
+            .await
+            .inspect_err(|error| diagnostics::warn!("Failed to save port forwards: {error}"))
+        else {
+            return;
+        };
+        port_forwards.set(new);
+    })
 }
 
 #[autoclone]

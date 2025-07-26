@@ -1,6 +1,6 @@
 use crate::api::client_address::ClientAddress;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PortForward {
     pub id: i32,
     pub from: HostPortDefinition,
@@ -8,17 +8,21 @@ pub struct PortForward {
 }
 
 impl PortForward {
-    pub fn new(from: HostPortDefinition, to: HostPortDefinition) -> Self {
+    pub fn new() -> Self {
         use std::sync::atomic::AtomicI32;
         use std::sync::atomic::Ordering::SeqCst;
         static NEXT: AtomicI32 = AtomicI32::new(0);
 
         let id = NEXT.fetch_add(1, SeqCst);
-        Self { id, from, to }
+        Self {
+            id,
+            from: HostPortDefinition::default(),
+            to: HostPortDefinition::default(),
+        }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HostPortDefinition {
     pub remote: Option<ClientAddress>,
     pub host: String,
