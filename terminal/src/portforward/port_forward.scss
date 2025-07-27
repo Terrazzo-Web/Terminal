@@ -19,10 +19,26 @@
 }
 
 .port-forwards {
+    --half-padding: calc(var(--padding) / 2);
+
     .port-forward {
-        .title {}
+        width: fit-content;
+        border: 1px solid var(--color);
+        margin-top: var(--half-padding);
+        padding: var(--half-padding);
+
+        &:last-child {
+            border-bottom: 0;
+        }
+
+        .title {
+            margin: var(--half-padding);
+        }
 
         .port-forward-body {
+            display: flex;
+            flex-direction: row;
+
             .from {}
 
             .to {}
@@ -30,10 +46,18 @@
     }
 
     .host-port-definition {
-        .remote {}
+        margin: var(--half-padding);
+        border: 1px solid var(--color);
 
-        .host {}
+        .endpoint {
+            background-color: var(--color);
+            padding: var(--half-padding);
+        }
 
-        .port {}
+        .remote,
+        .host,
+        .port {
+            padding: var(--half-padding);
+        }
     }
 }

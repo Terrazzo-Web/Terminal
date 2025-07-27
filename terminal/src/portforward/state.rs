@@ -56,9 +56,9 @@ mod backend {
         super::LOAD_PORT_FORWARDS,
         (),
         Arc<[PortForward]>,
-        |_server, port_forwards| {
+        |_server, ()| {
             let state = STATE.lock().expect(super::LOAD_PORT_FORWARDS).clone();
-            ready(Ok::<_, tonic::Status>(state))
+            ready(Ok::<_, tonic::Status>(state.unwrap_or_default()))
         }
     );
 }
