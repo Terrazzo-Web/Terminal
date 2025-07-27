@@ -53,6 +53,8 @@ impl Manager {
             remote: XSignal::new("remote", Remote::default()),
             remotes: XSignal::new("remotes", vec![]),
         }));
+
+        // TODO: Show the remotes accessible from the selected remote.
         spawn_local(async move {
             autoclone!(manager);
             let Ok(remotes) = remotes_api::remotes().await else {

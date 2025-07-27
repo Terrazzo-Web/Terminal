@@ -114,12 +114,54 @@ fn host_port_definition(
     set: impl FnOnce(&PortForward, HostPortDefinition) -> Option<PortForward> + Clone + 'static,
 ) -> XElement {
     let HostPortDefinition {
-        remote: selected_remote,
+        forwarded_remote,
         host,
         port,
-    } = host_port_definition.clone();
-    let remote = remote.clone();
-    let host = host.clone();
+    } = host_port_definition;
+    let port = *port;
+
+    let set_remote = move |forwarded_remote| {
+        autoclone!(manager, remote);
+        autoclone!(host, set);
+        manager.set(&remote, id, move |port_forward| {
+            autoclone!(host, set);
+            let new = HostPortDefinition {
+                forwarded_remote,
+                host: host.clone(),
+                port,
+            };
+            set(port_forward, new)
+        });
+    };
+
+    let set_host = move |_| {
+        autoclone!(manager, remote);
+        autoclone!(forwarded_remote, host, set);
+        manager.set(&remote, id, |port_forward| {
+            autoclone!(forwarded_remote, host, set);
+            let new = HostPortDefinition {
+                forwarded_remote,
+                host,
+                port,
+            };
+            set(port_forward, new)
+        })
+    };
+
+    let set_port = move |_| {
+        autoclone!(manager, remote);
+        autoclone!(forwarded_remote, host, set);
+        manager.set(&remote, id, |port_forward| {
+            autoclone!(forwarded_remote, host, set);
+            let new = HostPortDefinition {
+                forwarded_remote,
+                host,
+                port,
+            };
+            set(port_forward, new)
+        })
+    };
+
     div(
         class = style::host_port_definition,
         div(class = style::endpoint, "{endpoint}"),
@@ -129,19 +171,8 @@ fn host_port_definition(
             show_remote_select(
                 format!("host-{id}"),
                 manager.remotes(),
-                selected_remote.clone(),
-                move |new_selected_remote| {
-                    autoclone!(manager, remote, host, set);
-                    manager.set(&remote, id, move |port_forward| {
-                        autoclone!(host, new_selected_remote, set);
-                        let new = HostPortDefinition {
-                            remote: new_selected_remote.clone(),
-                            host: host.clone(),
-                            port,
-                        };
-                        set(port_forward, new)
-                    });
-                },
+                forwarded_remote.clone(),
+                set_remote,
             ),
         ),
         div(
@@ -151,39 +182,19 @@ fn host_port_definition(
                 r#type = "text",
                 id = format!("host-{id}"),
                 value = host.to_owned(),
-                change = move |_| {
-                    autoclone!(manager, set, host, selected_remote, remote);
-                    manager.set(&remote, id, |port_forward| {
-                        autoclone!(set);
-                        let new = HostPortDefinition {
-                            remote: selected_remote.clone(),
-                            host: host.clone(),
-                            port,
-                        };
-                        set(port_forward, new)
-                    })
-                },
+                change = set_host,
             ),
         ),
         div(
             class = style::port,
             label(r#for = format!("port-{id}"), "Port: "),
             input(
-                r#type = "text",
+                r#type = "number",
+                min = "1",
+                max = "65535",
                 id = format!("port-{id}"),
                 value = host_port_definition.port.to_string(),
-                change = move |_| {
-                    autoclone!(manager, remote, host, set);
-                    manager.set(&remote, id, |port_forward| {
-                        autoclone!(set);
-                        let new = HostPortDefinition {
-                            remote: selected_remote.clone(),
-                            host: host.clone(),
-                            port,
-                        };
-                        set(port_forward, new)
-                    })
-                },
+                change = set_port,
             ),
         ),
     )
@@ -257,7 +268,7 @@ impl std::fmt::Display for HostPortDefinition {
         write!(
             f,
             "{}: {}:{}",
-            self.remote
+            self.forwarded_remote
                 .as_ref()
                 .map(|r| r.to_string())
                 .unwrap_or_else(|| "Local".to_string()),

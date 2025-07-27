@@ -24,7 +24,7 @@ impl PortForward {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HostPortDefinition {
-    pub remote: Option<ClientAddress>,
+    pub forwarded_remote: Option<ClientAddress>,
     pub host: String,
     pub port: u16,
 }
