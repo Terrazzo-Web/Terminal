@@ -7,6 +7,7 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use wasm_bindgen::JsCast;
+use web_sys::HtmlInputElement;
 use web_sys::HtmlOptionElement;
 use web_sys::HtmlSelectElement;
 
@@ -134,23 +135,32 @@ fn host_port_definition(
         });
     };
 
-    let set_host = move |_| {
+    let set_host = move |event: web_sys::Event| {
         autoclone!(manager, remote);
-        autoclone!(forwarded_remote, host, set);
+        autoclone!(forwarded_remote, set);
+        let target = event.target().or_throw("targtet for set_host");
+        let target: HtmlInputElement = target.dyn_into().or_throw("input for set_host");
         manager.set(&remote, id, |port_forward| {
-            autoclone!(forwarded_remote, host, set);
+            autoclone!(forwarded_remote, set);
             let new = HostPortDefinition {
                 forwarded_remote,
-                host,
+                host: target.value().trim().to_owned(),
                 port,
             };
             set(port_forward, new)
         })
     };
 
-    let set_port = move |_| {
+    let set_port = move |event: web_sys::Event| {
         autoclone!(manager, remote);
         autoclone!(forwarded_remote, host, set);
+        let target = event.target().or_throw("targtet for set_host");
+        let target: HtmlInputElement = target.dyn_into().or_throw("input for set_host");
+        let port = target.value();
+        let Ok(port) = port.trim().parse() else {
+            diagnostics::warn!("Value doesn't parse as u16: '{port}'");
+            return;
+        };
         manager.set(&remote, id, |port_forward| {
             autoclone!(forwarded_remote, host, set);
             let new = HostPortDefinition {
