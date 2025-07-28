@@ -7,6 +7,12 @@ pub struct PortForward {
     pub to: HostPortDefinition,
 }
 
+impl Default for PortForward {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PortForward {
     pub fn new() -> Self {
         use std::sync::atomic::AtomicI32;
