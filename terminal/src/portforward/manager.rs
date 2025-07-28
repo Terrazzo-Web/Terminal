@@ -11,6 +11,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use self::inner::ManagerImpl;
 use super::schema::PortForward;
+use super::sync_state::SyncState;
 use crate::api::client::remotes_api;
 use crate::api::client_address::ClientAddress;
 use crate::frontend::remotes::Remote;
@@ -92,11 +93,12 @@ impl Manager {
     pub fn set(
         &self,
         remote: &Remote,
+        sync_state: XSignal<SyncState>,
         id: i32,
         update_fn: impl FnOnce(&PortForward) -> Option<PortForward>,
     ) {
         let mut update_fn = Some(update_fn);
-        self.update(remote, move |port_forwards| {
+        self.update(remote, sync_state, move |port_forwards| {
             port_forwards
                 .iter()
                 .filter_map(|port_forward| {
@@ -116,8 +118,10 @@ impl Manager {
     pub fn update(
         &self,
         remote: &Remote,
+        sync_state: XSignal<SyncState>,
         update_fn: impl FnOnce(&Arc<[PortForward]>) -> Arc<[PortForward]>,
     ) {
+        let loading = SyncState::incr_loading(sync_state);
         let mut port_forwards_lock = self.port_forwards_lock();
         let new = update_fn(&port_forwards_lock);
         *port_forwards_lock = new.clone();
@@ -133,6 +137,7 @@ impl Manager {
                 return;
             };
             this.port_forwards_signal.set(new);
+            drop(loading);
         })
     }
 }

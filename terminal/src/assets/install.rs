@@ -59,6 +59,9 @@ fn install_icons() {
     #[cfg(feature = "port-forward")]
     {
         install_icon(super::icons::hub());
+        install_icon(super::icons::port_forward_loading());
+        install_icon(super::icons::port_forward_pending());
+        install_icon(super::icons::port_forward_synchronized());
     }
 }
 
