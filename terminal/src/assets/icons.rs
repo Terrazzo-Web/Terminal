@@ -37,7 +37,7 @@ declare_icon!(converter, "/icons/regex.svg"; feature = "converter");
 declare_icon!(done, "/icons/done.svg"; feature = "text-editor");
 declare_icon!(file, "/icons/file-earmark-text.svg"; feature = "text-editor");
 declare_icon!(folder, "/icons/folder2-open.svg"; feature = "text-editor");
-declare_icon!(hub, "/icons/file-earmark-text.svg"; feature = "port-forward");
+declare_icon!(hub, "/icons/hub.svg"; feature = "port-forward");
 declare_icon!(key_icon, "/icons/key.svg");
 declare_icon!(loading, "/icons/loading2.svg"; feature = "text-editor");
 declare_icon!(menu, "/icons/signpost-split.svg");

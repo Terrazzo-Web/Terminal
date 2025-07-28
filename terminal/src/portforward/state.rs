@@ -47,11 +47,12 @@ mod backend {
         super::STORE_PORT_FORWARDS,
         Arc<[PortForward]>,
         (),
-        |_server, port_forwards| {
+        async |_server, port_forwards| {
             let mut state = STATE.lock().expect(super::STORE_PORT_FORWARDS);
-            super::super::engine::process(state.as_deref().unwrap_or_default(), &port_forwards);
+            super::super::engine::process(state.as_deref().unwrap_or_default(), &port_forwards)
+                .await?;
             *state = Some(port_forwards);
-            ready(Ok::<(), tonic::Status>(()))
+            Ok::<(), super::super::engine::PortForwardError>(())
         }
     );
 
