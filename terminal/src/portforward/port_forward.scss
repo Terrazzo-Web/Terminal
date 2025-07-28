@@ -19,12 +19,17 @@
 }
 
 .port-forwards {
+    --padding: 10px;
     --half-padding: calc(var(--padding) / 2);
 
+    display: flex;
+    flex-direction: column;
+    overflow-y: scroll;
+
     .port-forward {
-        width: fit-content;
         border: 1px solid var(--color);
-        margin-top: var(--half-padding);
+        border-radius: var(--padding);
+        margin-top: var(--padding);
         padding: var(--half-padding);
 
         &:last-child {
@@ -33,38 +38,104 @@
 
         .title {
             margin: var(--half-padding);
+            display: flex;
+            align-items: center;
+
+            .status {
+                --size: 24px;
+                width: var(--size);
+                height: var(--size);
+                margin: var(--half-padding);
+                padding-right: var(--half-padding);
+            }
         }
 
         .port-forward-body {
             display: flex;
             flex-direction: row;
 
-            .from {}
+            .from {
+                flex: 1 1 0;
+                margin-right: var(--half-padding);
+            }
 
-            .to {}
-
-            .status {
-                margin: var(--half-padding);
-                margin-left: auto;
-                filter: invert(1);
-                margin-bottom: auto;
+            .to {
+                flex: 1 1 0;
+                margin-left: var(--half-padding);
             }
         }
     }
 
     .host-port-definition {
         margin: var(--half-padding);
-        border: 1px solid var(--color);
+        margin-bottom: 0;
 
         .endpoint {
             background-color: var(--color);
             padding: var(--half-padding);
+            margin-bottom: var(--half-padding);
         }
 
         .remote,
         .host,
         .port {
-            padding: var(--half-padding);
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+
+        .remote {
+            position: relative;
+
+            &::after {
+                content: '▼';
+                position: absolute;
+                top: 50%;
+                right: calc(var(--padding) + 5px);
+                color: var(--color);
+                transform: translateY(-50%);
+                pointer-events: none;
+            }
+
+            select {
+                width: 100%;
+                border: 1px dotted white;
+                border-radius: 0;
+                padding: var(--half-padding);
+                margin: var(--half-padding);
+                margin-left: var(--padding);
+                margin-right: 0;
+                color: inherit;
+                background: none;
+                box-shadow: none;
+                outline: none;
+                appearance: none;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                font: inherit;
+            }
+        }
+
+        .host,
+        .port {
+            input {
+                width: 100%;
+                border: 0;
+                border-bottom: 1px dotted white;
+                border-radius: 0;
+                padding: var(--half-padding);
+                margin: var(--half-padding);
+                margin-left: var(--padding);
+                margin-right: 0;
+                color: inherit;
+                background: none;
+                box-shadow: none;
+                outline: none;
+                appearance: none;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                font: inherit;
+            }
         }
     }
 }

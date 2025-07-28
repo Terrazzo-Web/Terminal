@@ -1,5 +1,6 @@
 #![cfg(feature = "client")]
 
+use bitflags::bitflags;
 use scopeguard::guard;
 use terrazzo::prelude::XSignal;
 
@@ -7,45 +8,58 @@ use crate::assets::icons;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SyncState {
-    pending: u16,
-    loading: u16,
+    pending: Fields,
+    loading: Fields,
+}
+
+bitflags! {
+    #[derive(Clone, Copy, Debug, Default)]
+    pub struct Fields: u8 {
+        const REMOTE = 1;
+        const HOST = 1 << 1;
+        const PORT = 1 << 2;
+    }
 }
 
 impl SyncState {
     pub fn src(&self) -> icons::Icon {
-        if self.pending > 0 {
+        if !self.pending.is_empty() {
             icons::port_forward_pending()
-        } else if self.loading > 0 {
+        } else if !self.loading.is_empty() {
             icons::port_forward_loading()
         } else {
             icons::port_forward_synchronized()
         }
     }
 
-    pub fn incr_pending(sync_state: XSignal<Self>) -> impl Drop {
-        Self::incr_impl(
-            sync_state,
-            |sync_state| Self {
-                pending: sync_state.pending + 1,
+    pub fn incr_pending(sync_state: XSignal<Self>, field: Fields) {
+        sync_state.update(|sync_state| {
+            Some(Self {
+                pending: sync_state.pending | field,
                 loading: sync_state.loading,
-            },
-            |sync_state| Self {
-                pending: sync_state.pending - 1,
-                loading: sync_state.loading,
-            },
-        )
+            })
+        });
     }
 
-    pub fn incr_loading(sync_state: XSignal<Self>) -> impl Drop {
+    pub fn decr_pending(sync_state: XSignal<Self>, field: Fields) {
+        sync_state.update(|sync_state| {
+            Some(Self {
+                pending: sync_state.pending - field,
+                loading: sync_state.loading,
+            })
+        });
+    }
+
+    pub fn incr_loading(sync_state: XSignal<Self>, field: Fields) -> impl Drop {
         Self::incr_impl(
             sync_state,
-            |sync_state| Self {
-                pending: sync_state.pending,
-                loading: sync_state.loading + 1,
+            move |sync_state| Self {
+                pending: sync_state.pending - field,
+                loading: sync_state.loading | field,
             },
-            |sync_state| Self {
+            move |sync_state| Self {
                 pending: sync_state.pending,
-                loading: sync_state.loading - 1,
+                loading: sync_state.loading - field,
             },
         )
     }

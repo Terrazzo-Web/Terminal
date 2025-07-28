@@ -31,6 +31,7 @@ autoclone = { version = "0.1.16" }
 axum = { version = "0.8.4" }
 axum-extra = { version = "0.10.1" }
 base64 = { version = "0.22.1" }
+bitflags = { version = "2.9.1" }
 bytes = { version = "1.10.1" }
 chrono = { version = "0.4.41", default-features = false, features = [
     "now",

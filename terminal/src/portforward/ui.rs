@@ -12,14 +12,15 @@ use web_sys::HtmlInputElement;
 use web_sys::HtmlOptionElement;
 use web_sys::HtmlSelectElement;
 
+use super::manager::Manager;
+use super::schema::HostPortDefinition;
+use super::schema::PortForward;
+use super::sync_state::Fields;
+use super::sync_state::SyncState;
 use crate::api::client_address::ClientAddress;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
-use crate::portforward::manager::Manager;
-use crate::portforward::schema::HostPortDefinition;
-use crate::portforward::schema::PortForward;
-use crate::portforward::sync_state::SyncState;
 
 stylance::import_crate_style!(style, "src/portforward/port_forward.scss");
 
@@ -66,6 +67,7 @@ fn show_port_forwards(
                 manager.update(
                     &remote,
                     XSignal::new("new sync-state", Default::default()),
+                    Fields::empty(),
                     |port_forwards| {
                         let port_forwards = port_forwards.iter().cloned();
                         let port_forwards = port_forwards.chain(Some(PortForward::new()));
@@ -81,20 +83,25 @@ fn show_port_forwards(
 fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForward) -> XElement {
     let title = port_forward.to_string();
     let PortForward { id, from, to } = port_forward;
+    let sync_state = XSignal::new("sync-state", SyncState::default());
     let params = ShowHostPortDefinition {
         manager,
         remote,
-        sync_state: XSignal::new("sync-state", SyncState::default()),
+        sync_state: &sync_state,
         id: *id,
     };
     div(
         class = style::port_forward,
-        div(class = style::title, "{title}"),
+        div(
+            class = style::title,
+            show_status(sync_state.clone()),
+            "{title}",
+        ),
         div(
             class = style::port_forward_body,
             div(
                 class = style::from,
-                show_host_port_definition(params.clone(), "From", from, |old, new| {
+                show_host_port_definition(params, "From", from, |old, new| {
                     Some(PortForward {
                         id: old.id,
                         from: new,
@@ -104,7 +111,7 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
             ),
             div(
                 class = style::to,
-                show_host_port_definition(params.clone(), "To", to, |old, new| {
+                show_host_port_definition(params, "To", to, |old, new| {
                     Some(PortForward {
                         id: old.id,
                         from: old.from.clone(),
@@ -112,7 +119,6 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
                     })
                 }),
             ),
-            show_status(params.sync_state),
         ),
     )
 }
@@ -123,11 +129,11 @@ fn show_status(#[signal] sync_state: SyncState) -> XElement {
     tag(class = style::status, src = sync_state.src())
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 struct ShowHostPortDefinition<'t> {
     manager: &'t Manager,
     remote: &'t Remote,
-    sync_state: XSignal<SyncState>,
+    sync_state: &'t XSignal<SyncState>,
     id: i32,
 }
 
@@ -160,15 +166,21 @@ fn show_host_port_definition(
     let set_remote = move |forwarded_remote| {
         autoclone!(manager, remote);
         autoclone!(host, set, sync_state);
-        manager.set(&remote, sync_state.clone(), id, move |port_forward| {
-            autoclone!(host, set);
-            let new = HostPortDefinition {
-                forwarded_remote,
-                host: host.clone(),
-                port,
-            };
-            set(port_forward, new)
-        });
+        manager.set(
+            &remote,
+            sync_state.clone(),
+            Fields::REMOTE,
+            id,
+            move |port_forward| {
+                autoclone!(host, set);
+                let new = HostPortDefinition {
+                    forwarded_remote,
+                    host: host.clone(),
+                    port,
+                };
+                set(port_forward, new)
+            },
+        );
     };
 
     let set_host = move |event: web_sys::Event| {
@@ -176,15 +188,21 @@ fn show_host_port_definition(
         autoclone!(forwarded_remote, set, sync_state);
         let target = event.target().or_throw("targtet for set_host");
         let target: HtmlInputElement = target.dyn_into().or_throw("input for set_host");
-        manager.set(&remote, sync_state.clone(), id, |port_forward| {
-            autoclone!(forwarded_remote, set);
-            let new = HostPortDefinition {
-                forwarded_remote,
-                host: target.value().trim().to_owned(),
-                port,
-            };
-            set(port_forward, new)
-        })
+        manager.set(
+            &remote,
+            sync_state.clone(),
+            Fields::HOST,
+            id,
+            |port_forward| {
+                autoclone!(forwarded_remote, set);
+                let new = HostPortDefinition {
+                    forwarded_remote,
+                    host: target.value().trim().to_owned(),
+                    port,
+                };
+                set(port_forward, new)
+            },
+        )
     };
 
     let set_port = move |event: web_sys::Event| {
@@ -197,15 +215,21 @@ fn show_host_port_definition(
             diagnostics::warn!("Value doesn't parse as u16: '{port}'");
             return;
         };
-        manager.set(&remote, sync_state.clone(), id, |port_forward| {
-            autoclone!(forwarded_remote, host, set);
-            let new = HostPortDefinition {
-                forwarded_remote,
-                host,
-                port,
-            };
-            set(port_forward, new)
-        })
+        manager.set(
+            &remote,
+            sync_state.clone(),
+            Fields::PORT,
+            id,
+            |port_forward| {
+                autoclone!(forwarded_remote, host, set);
+                let new = HostPortDefinition {
+                    forwarded_remote,
+                    host,
+                    port,
+                };
+                set(port_forward, new)
+            },
+        )
     };
 
     div(
@@ -229,6 +253,15 @@ fn show_host_port_definition(
                 id = format!("host-{id}"),
                 value = host.to_owned(),
                 change = set_host,
+                keydown = move |_event| {
+                    autoclone!(sync_state);
+                    SyncState::incr_pending(sync_state.clone(), Fields::HOST)
+                },
+                blur = move |_event| {
+                    autoclone!(sync_state);
+                    SyncState::decr_pending(sync_state.clone(), Fields::HOST)
+                },
+                autocomplete = "off",
             ),
         ),
         div(
@@ -241,6 +274,15 @@ fn show_host_port_definition(
                 id = format!("port-{id}"),
                 value = host_port_definition.port.to_string(),
                 change = set_port,
+                keydown = move |_event| {
+                    autoclone!(sync_state);
+                    SyncState::incr_pending(sync_state.clone(), Fields::PORT)
+                },
+                blur = move |_event| {
+                    autoclone!(sync_state);
+                    SyncState::decr_pending(sync_state.clone(), Fields::PORT)
+                },
+                autocomplete = "off",
             ),
         ),
     )
@@ -311,15 +353,13 @@ impl std::fmt::Display for PortForward {
 
 impl std::fmt::Display for HostPortDefinition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}: {}:{}",
-            self.forwarded_remote
-                .as_ref()
-                .map(|r| r.to_string())
-                .unwrap_or_else(|| "Local".to_string()),
-            self.host,
-            self.port
-        )
+        let forwarded_remote = self
+            .forwarded_remote
+            .as_ref()
+            .map(|r| r.to_string())
+            .unwrap_or_else(|| "Local".to_string());
+        let host = &self.host;
+        let port = self.port;
+        write!(f, "{forwarded_remote}:{host}:{port}")
     }
 }
