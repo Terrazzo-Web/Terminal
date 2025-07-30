@@ -121,10 +121,12 @@ impl<S: Stream<Item = PortForwardAcceptRequest> + Send + Unpin + 'static> Distri
             while let Some(request) = next.take() {
                 let span = debug_span!("Request", host = request.host, port = request.port);
                 next = async {
-                    debug!("Port forward request: {request:?}");
-                    defer!(debug!("Port forward shutdown"));
+                    debug!("Start: port forward request = {request:?}");
+                    defer!(debug!("End"));
                     let shutdown = process_request(&notify_tx, request).await?;
+                    debug!("Waiting for next request");
                     let next = requests.next().await;
+                    debug!("Shuting down listeners");
                     let () = shutdown.await;
                     return Ok(next);
                 }
@@ -160,6 +162,7 @@ async fn process_request(
             entry.insert(streams_rx);
         }
     }
+
     for address in addresses {
         let (shutdown, terminated, handle) = ServerHandle::new(format!("port forward"));
         handles.push(handle);
@@ -174,12 +177,15 @@ async fn process_request(
     }
 
     let shutdown = async move {
+        debug!("Removing streams");
+        super::listeners::listeners().remove(&endpoint_id);
         for handle in handles {
             let () = handle
                 .stop("PortForward request shutdown")
                 .await
                 .unwrap_or_else(|error| warn!("{error}"));
         }
+        debug!("All listeners have shutdown");
     };
 
     Ok(shutdown)
@@ -229,7 +235,8 @@ async fn process_listener(
                 let message = format!("Failed to notify tcp_stream: {error}");
                 std::io::Error::new(ErrorKind::BrokenPipe, message)
             })?;
-        let (tcp_stream, _address) = listener.accept().await?;
+        let (tcp_stream, address) = listener.accept().await?;
+        debug!("Received connection on {address}");
         let () = streams.send(tcp_stream).await.map_err(|error| {
             let message = format!("Failed to register tcp_stream: {error}");
             std::io::Error::new(ErrorKind::BrokenPipe, message)
