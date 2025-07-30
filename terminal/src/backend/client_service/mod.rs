@@ -6,6 +6,7 @@ use trz_gateway_server::server::Server;
 pub mod convert;
 pub mod grpc_error;
 pub mod notify_service;
+pub mod port_forward_service;
 pub mod remote_fn_service;
 mod routing;
 pub mod shared_service;

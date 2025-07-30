@@ -16,9 +16,7 @@ message PortForwardAcceptRequest {
   int32 port = 3;
 }
 
-message PortForwardAcceptResponse {
-  int32 stream_id = 1;
-}
+message PortForwardAcceptResponse {}
 
 message PortForwardDataRequest {
   oneof kind {
