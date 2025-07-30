@@ -1,14 +1,14 @@
 #![cfg(feature = "server")]
 
 use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::OnceLock;
 
-use tokio::net::TcpListener;
+use tokio::net::TcpStream;
+use tokio::sync::mpsc;
 
 #[must_use]
 pub fn listeners() -> MutexGuard<'static, Listeners> {
@@ -18,7 +18,13 @@ pub fn listeners() -> MutexGuard<'static, Listeners> {
 
 pub struct Listeners(Option<ListenersMap>);
 
-type ListenersMap = HashMap<i32, HashMap<SocketAddr, TcpListener>>;
+type ListenersMap = HashMap<EndpointId, mpsc::Receiver<TcpStream>>;
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct EndpointId {
+    pub host: String,
+    pub port: i32,
+}
 
 impl Listeners {
     const fn new() -> Self {

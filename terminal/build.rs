@@ -141,6 +141,7 @@ fn build_protos() {
         .compile_protos(
             &[
                 "src/backend/protos/notify.proto",
+                "src/backend/protos/portforward.proto",
                 "src/backend/protos/remote_fn.proto",
                 "src/backend/protos/shared.proto",
                 "src/backend/protos/terminal.proto",

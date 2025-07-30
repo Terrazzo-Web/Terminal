@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package terrazzo.portforward;
+
+import "shared.proto";
+
+service PortForwardService {
+  rpc Bind(stream PortForwardAcceptRequest) returns (stream PortForwardAcceptResponse);
+  rpc Download(stream PortForwardDataRequest) returns (stream PortForwardDataResponse);
+  rpc Upload(stream PortForwardDataRequest) returns (stream PortForwardDataResponse);
+}
+
+message PortForwardAcceptRequest {
+  terrazzo.shared.ClientAddress remote = 1;
+  string host = 2;
+  int32 port = 3;
+}
+
+message PortForwardAcceptResponse {
+  int32 stream_id = 1;
+}
+
+message PortForwardDataRequest {
+  oneof kind {
+    terrazzo.shared.ClientAddress remote = 1;
+    bytes data = 2;
+  }
+}
+
+message PortForwardDataResponse {
+  bytes data = 1;
+}
