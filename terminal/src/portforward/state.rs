@@ -37,6 +37,7 @@ mod backend {
     use std::sync::Arc;
     use std::sync::Mutex;
 
+    use crate::backend::client_service::port_forward_service::bind::BindError;
     use crate::backend::client_service::remote_fn_service;
     use crate::portforward::schema::PortForward;
 
@@ -47,12 +48,20 @@ mod backend {
         super::STORE_PORT_FORWARDS,
         Arc<[PortForward]>,
         (),
-        async |_server, port_forwards| {
-            let mut state = STATE.lock().expect(super::STORE_PORT_FORWARDS);
-            super::super::engine::process(state.as_deref().unwrap_or_default(), &port_forwards)
-                .await?;
-            *state = Some(port_forwards);
-            Ok::<(), super::super::engine::PortForwardError>(())
+        |server, port_forwards| {
+            let server = server.clone();
+            async move {
+                let old = {
+                    let mut old = STATE.lock().expect(super::STORE_PORT_FORWARDS);
+                    *old = Some(port_forwards.clone());
+                    old.clone()
+                };
+
+                use super::super::engine;
+                let old = old.as_deref().unwrap_or_default();
+                engine::process(&server, old, &port_forwards).await?;
+                Ok::<(), BindError>(())
+            }
         }
     );
 

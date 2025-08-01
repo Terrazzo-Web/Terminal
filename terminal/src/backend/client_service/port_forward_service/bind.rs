@@ -46,6 +46,28 @@ use crate::backend::protos::terrazzo::portforward::PortForwardAcceptResponse;
 use crate::backend::protos::terrazzo::portforward::port_forward_service_client::PortForwardServiceClient;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
 
+pub async fn dispatch(
+    server: &Arc<Server>,
+    mut requests: impl Stream<Item = Result<PortForwardAcceptRequest, Status>> + Unpin + Send + 'static,
+) -> Result<BindStream, BindError> {
+    let task = async move {
+        debug!("Start");
+        defer!(debug!("End"));
+        let Some(first_request) = requests.next().await else {
+            return Err(BindError::EmptyRequest);
+        };
+        let first_request =
+            first_request.map_err(|status| BindError::RequestError(Box::new(status)))?;
+        debug!("Port forward request: {first_request:?}");
+
+        let remote = first_request.remote.clone().unwrap_or_default();
+        let requests = requests.filter_map(|request| ready(request.ok()));
+        let stream = BindCallback::process(server, &remote.via, (first_request, requests)).await?;
+        return Ok(stream);
+    };
+    return task.instrument(info_span!("PortForward Bind")).await;
+}
+
 pub struct BindCallback<S: Stream<Item = PortForwardAcceptRequest>>(PhantomData<S>);
 
 #[pin_project(project = BindStreamProj)]
@@ -311,11 +333,24 @@ impl From<Status> for BindRemoteError {
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-#[error("[{n}] {0}", n = Self::type_name())]
-pub struct BindError(#[from] DistributedCallbackError<BindLocalError, BindRemoteError>);
+pub enum BindError {
+    #[error("[{n}] Empty request", n = Self::type_name())]
+    EmptyRequest,
+
+    #[error("[{n}] Failed request: {0}", n = Self::type_name())]
+    RequestError(Box<Status>),
+
+    #[error("[{n}] {0}", n = Self::type_name())]
+    Dispatch(#[from] DistributedCallbackError<BindLocalError, BindRemoteError>),
+}
 
 impl From<BindError> for Status {
-    fn from(BindError(error): BindError) -> Self {
-        error.into()
+    fn from(error: BindError) -> Self {
+        let code = match error {
+            BindError::EmptyRequest => tonic::Code::InvalidArgument,
+            BindError::RequestError { .. } => tonic::Code::FailedPrecondition,
+            BindError::Dispatch(error) => return error.into(),
+        };
+        Self::new(code, error.to_string())
     }
 }

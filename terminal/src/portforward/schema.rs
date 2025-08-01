@@ -34,3 +34,17 @@ pub struct HostPortDefinition {
     pub host: String,
     pub port: u16,
 }
+
+impl std::fmt::Display for HostPortDefinition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let forwarded_remote = self
+            .forwarded_remote
+            .as_ref()
+            .filter(|remote| !remote.is_empty())
+            .map(|remote| remote.to_string())
+            .unwrap_or_else(|| "Local".to_string());
+        let host = &self.host;
+        let port = self.port;
+        write!(f, "{forwarded_remote}:{host}:{port}")
+    }
+}

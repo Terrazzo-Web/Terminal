@@ -1,65 +1,78 @@
 #![cfg(feature = "server")]
 
 use std::collections::HashMap;
-use std::net::ToSocketAddrs;
+use std::future::ready;
+use std::sync::Arc;
 
-use nameth::NamedEnumValues as _;
-use nameth::nameth;
-use tokio::net::TcpListener;
+use futures::StreamExt as _;
+use futures::channel::oneshot;
+use futures::stream;
+use scopeguard::defer;
+use tracing::Instrument as _;
+use tracing::debug;
+use tracing::info_span;
+use tracing::warn;
+use trz_gateway_server::server::Server;
 
-use super::listeners::listeners;
+use super::schema::HostPortDefinition;
 use super::schema::PortForward;
+use crate::backend::client_service::port_forward_service;
+use crate::backend::client_service::port_forward_service::bind::BindError;
+use crate::backend::client_service::port_forward_service::bind::BindStream;
+use crate::backend::protos::terrazzo::portforward::PortForwardAcceptRequest;
+use crate::backend::protos::terrazzo::shared::ClientAddress;
 
-pub async fn process(old: &[PortForward], new: &[PortForward]) -> Result<(), PortForwardError> {
+pub async fn process(
+    server: &Arc<Server>,
+    old: &[PortForward],
+    new: &[PortForward],
+) -> Result<(), BindError> {
     let old = old
         .iter()
         .map(|old| (old.id, old))
         .collect::<HashMap<_, _>>();
     for new in new {
-        let () = process_port_forward(old.get(&new.id).copied(), new).await?;
+        let () = process_port_forward(server, old.get(&new.id).copied(), new).await?;
     }
     Ok(())
 }
 
 async fn process_port_forward(
+    server: &Arc<Server>,
     old: Option<&PortForward>,
     new: &PortForward,
-) -> Result<(), PortForwardError> {
+) -> Result<(), BindError> {
     if old == Some(new) {
         return Ok(());
     }
-    let from = new.from.clone();
-    let endpoint = format!("{}:{}", from.host, from.port);
-    let addresses = endpoint
-        .to_socket_addrs()
-        .map_err(PortForwardError::Hostname)?;
-    let mut listeners = listeners();
-    let mut listeners = listeners.entry(new.id).insert_entry(HashMap::default());
-    for address in addresses {
-        let listener = TcpListener::bind(address)
-            .await
-            .map_err(PortForwardError::Bind)?;
-        listeners.get_mut().insert(address, listener);
-    }
+
+    let (eos_tx, eos_rx) = oneshot::channel();
+    let eos = stream::once(eos_rx).filter_map(|_| ready(None));
+    let requests = stream::once(ready(Ok(PortForwardAcceptRequest {
+        remote: new.from.forwarded_remote.as_deref().map(ClientAddress::of),
+        host: new.from.host.to_owned(),
+        port: new.from.port as i32,
+    })))
+    .chain(eos);
+
+    let stream = port_forward_service::bind::dispatch(server, requests).await?;
+    let span = info_span!("Forward Port", from = %new.from, to = %new.to);
+    tokio::spawn(process_bind_stream(new.to.clone(), stream, eos_tx).instrument(span));
     Ok(())
 }
 
-#[nameth]
-#[derive(thiserror::Error, Debug)]
-pub enum PortForwardError {
-    #[error("[{n}] Failed to resolve: {0}", n = self.name())]
-    Hostname(std::io::Error),
+async fn process_bind_stream(
+    to: HostPortDefinition,
+    mut stream: BindStream,
+    eos: oneshot::Sender<()>,
+) {
+    debug!("Start");
+    defer!(debug!("End"));
 
-    #[error("[{n}] Failed to bind: {0}", n = self.name())]
-    Bind(std::io::Error),
-}
+    while let Some(next) = stream.next().await {}
 
-impl From<PortForwardError> for tonic::Status {
-    fn from(error: PortForwardError) -> Self {
-        let code = match &error {
-            PortForwardError::Hostname { .. } => tonic::Code::InvalidArgument,
-            PortForwardError::Bind { .. } => tonic::Code::InvalidArgument,
-        };
-        Self::new(code, error.to_string())
+    match eos.send(()) {
+        Ok(()) => debug!("Closed PortForward Bind request stream"),
+        Err(()) => warn!("Failed to close PortForward Bind request stream"),
     }
 }
