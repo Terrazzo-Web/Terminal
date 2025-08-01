@@ -5,12 +5,15 @@ use std::task::Poll;
 
 use futures::Stream;
 use futures::StreamExt;
+use scopeguard::defer;
 use tonic::Request;
 use tonic::Response;
 use tonic::Status;
 use tonic::Streaming;
 use tonic::async_trait;
+use tracing::Instrument;
 use tracing::debug;
+use tracing::info_span;
 
 use super::bind::BindCallback;
 use super::bind::BindStream;
@@ -29,19 +32,24 @@ impl PortForwardService for ClientServiceImpl {
         &self,
         requests: Request<Streaming<PortForwardAcceptRequest>>,
     ) -> Result<Response<BindStream>, Status> {
-        let mut requests = requests.into_inner();
-        let Some(first_request) = requests.next().await else {
-            return Err(Status::invalid_argument("Empty request stream"));
-        };
-        let first_request =
-            first_request.map_err(|status| Status::invalid_argument(status.to_string()))?;
-        debug!("Port forward request: {first_request:?}");
+        let task = async move {
+            debug!("Start");
+            defer!(debug!("End"));
+            let mut requests = requests.into_inner();
+            let Some(first_request) = requests.next().await else {
+                return Err(Status::invalid_argument("Empty request stream"));
+            };
+            let first_request =
+                first_request.map_err(|status| Status::invalid_argument(status.to_string()))?;
+            debug!("Port forward request: {first_request:?}");
 
-        let remote = first_request.remote.clone().unwrap_or_default();
-        let requests = requests.filter_map(|request| ready(request.ok()));
-        let stream =
-            BindCallback::process(&self.server, &remote.via, (first_request, requests)).await?;
-        return Ok(Response::new(stream));
+            let remote = first_request.remote.clone().unwrap_or_default();
+            let requests = requests.filter_map(|request| ready(request.ok()));
+            let stream =
+                BindCallback::process(&self.server, &remote.via, (first_request, requests)).await?;
+            return Ok(Response::new(stream));
+        };
+        return task.instrument(info_span!("PortForward Bind")).await;
     }
 
     type DownloadStream = DownloadStream;

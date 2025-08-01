@@ -5,16 +5,18 @@ use std::marker::PhantomData;
 use std::net::SocketAddr;
 use std::net::ToSocketAddrs as _;
 use std::pin::Pin;
+use std::sync::Arc;
 use std::task::Context;
 use std::task::Poll;
 
 use futures::Stream;
-use futures::StreamExt;
+use futures::StreamExt as _;
 use nameth::NamedEnumValues as _;
-use nameth::NamedType;
+use nameth::NamedType as _;
 use nameth::nameth;
 use pin_project::pin_project;
 use scopeguard::defer;
+use terrazzo::autoclone;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -30,6 +32,8 @@ use tonic::transport::Body;
 use tracing::Instrument as _;
 use tracing::debug;
 use tracing::debug_span;
+use tracing::info;
+use tracing::info_span;
 use tracing::warn;
 use trz_gateway_common::handle::ServerHandle;
 use trz_gateway_server::server::Server;
@@ -51,7 +55,9 @@ pub enum BindStream {
 }
 
 #[pin_project]
-pub struct LocalBindStream(#[pin] mpsc::Receiver<PortForwardAcceptResponse>);
+pub struct LocalBindStream(
+    #[pin] mpsc::Receiver<Result<PortForwardAcceptResponse, BindLocalError>>,
+);
 
 #[pin_project]
 pub struct RemoteBindStream(#[pin] Streaming<PortForwardAcceptResponse>);
@@ -63,7 +69,8 @@ impl Stream for BindStream {
         match self.project() {
             BindStreamProj::Local(local) => {
                 match std::task::ready!(local.project().0.poll_recv(cx)) {
-                    Some(response) => Some(Ok(response)),
+                    Some(Ok(response)) => Some(Ok(response)),
+                    Some(Err(error)) => Some(Err(error.into())),
                     None => None,
                 }
                 .into()
@@ -104,44 +111,59 @@ impl<S: Stream<Item = PortForwardAcceptRequest> + Send + Unpin + 'static> Distri
             let response = client.bind(requests).await?;
             Ok(BindStream::Remote(RemoteBindStream(response.into_inner())))
         }
-        .instrument(debug_span!("PortForward remote"))
+        .instrument(info_span!("Remote"))
         .await
     }
 
+    #[autoclone]
     async fn local(
-        _server: &Server,
+        _server: &Arc<Server>,
         (first_request, requests): (PortForwardAcceptRequest, S),
     ) -> Result<BindStream, BindLocalError> {
         let mut requests = futures::stream::once(ready(first_request)).chain(requests);
         async move {
             debug!("Start");
             defer!(debug!("End"));
-            let mut next = requests.next().await;
             let (notify_tx, notify_rx) = mpsc::channel(3);
-            while let Some(request) = next.take() {
-                let span = debug_span!("Request", host = request.host, port = request.port);
-                next = async {
-                    debug!("Start: port forward request = {request:?}");
-                    defer!(debug!("End"));
-                    let shutdown = process_request(&notify_tx, request).await?;
-                    debug!("Waiting for next request");
-                    let next = requests.next().await;
-                    debug!("Shuting down listeners");
-                    let () = shutdown.await;
-                    return Ok(next);
+            let requests_task = async move {
+                autoclone!(notify_tx);
+                let mut next = requests.next().await;
+                while let Some(request) = next.take() {
+                    let span = debug_span!("Request", host = request.host, port = request.port);
+                    next = async {
+                        debug!("Start: port forward request = {request:?}");
+                        defer!(debug!("End"));
+                        let shutdown = process_request(&notify_tx, request).await?;
+                        debug!("Waiting for next request");
+                        let next = requests.next().await;
+                        debug!("Shuting down listeners");
+                        let () = shutdown.await;
+                        return Ok::<_, BindLocalError>(next);
+                    }
+                    .instrument(span)
+                    .await?;
                 }
-                .instrument(span)
-                .await?;
-            }
+                Ok::<_, BindLocalError>(())
+            };
+            let requests_task = async move {
+                match requests_task.await {
+                    Ok(()) => (),
+                    Err(error) => match notify_tx.send(Err(error)).await {
+                        Ok(()) => (),
+                        Err(error) => warn!("Failed to return error: {error}"),
+                    },
+                };
+            };
+            tokio::spawn(requests_task.in_current_span());
             Ok(BindStream::Local(LocalBindStream(notify_rx)))
         }
-        .instrument(debug_span!("PortForward"))
+        .instrument(debug_span!("Local"))
         .await
     }
 }
 
 async fn process_request(
-    notify_tx: &mpsc::Sender<PortForwardAcceptResponse>,
+    notify: &mpsc::Sender<Result<PortForwardAcceptResponse, BindLocalError>>,
     request: PortForwardAcceptRequest,
 ) -> Result<impl Future<Output = ()>, BindLocalError> {
     let endpoint_id = EndpointId {
@@ -168,7 +190,7 @@ async fn process_request(
         handles.push(handle);
         process_socket_address(
             address,
-            notify_tx.clone(),
+            notify.clone(),
             streams_tx.clone(),
             shutdown,
             terminated,
@@ -193,7 +215,7 @@ async fn process_request(
 
 async fn process_socket_address(
     address: SocketAddr,
-    notify: mpsc::Sender<PortForwardAcceptResponse>,
+    notify: mpsc::Sender<Result<PortForwardAcceptResponse, BindLocalError>>,
     streams: mpsc::Sender<TcpStream>,
     shutdown: impl Future<Output = ()> + Send + 'static,
     terminated: oneshot::Sender<()>,
@@ -218,18 +240,20 @@ async fn process_socket_address(
         }
         let _terminated = terminated.send(());
     };
-    let _: JoinHandle<()> = tokio::spawn(task.instrument(debug_span!("Address", %address)));
+    let _: JoinHandle<()> = tokio::spawn(task.instrument(info_span!("Address", %address)));
     Ok(())
 }
 
 async fn process_listener(
     listener: TcpListener,
-    notify: mpsc::Sender<PortForwardAcceptResponse>,
+    notify: mpsc::Sender<Result<PortForwardAcceptResponse, BindLocalError>>,
     streams: mpsc::Sender<TcpStream>,
 ) -> std::io::Result<()> {
+    info!("Listening start");
+    defer!(info!("Listening end"));
     loop {
         let () = notify
-            .send(PortForwardAcceptResponse {})
+            .send(Ok(PortForwardAcceptResponse {}))
             .await
             .map_err(|error| {
                 let message = format!("Failed to notify tcp_stream: {error}");
