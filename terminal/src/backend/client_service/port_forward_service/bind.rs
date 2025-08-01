@@ -41,34 +41,34 @@ use trz_gateway_server::server::Server;
 use crate::backend::client_service::port_forward_service::listeners::EndpointId;
 use crate::backend::client_service::routing::DistributedCallback;
 use crate::backend::client_service::routing::DistributedCallbackError;
-use crate::backend::protos::terrazzo::portforward::PortForwardAcceptRequest;
 use crate::backend::protos::terrazzo::portforward::PortForwardAcceptResponse;
+use crate::backend::protos::terrazzo::portforward::PortForwardEndpoint;
 use crate::backend::protos::terrazzo::portforward::port_forward_service_client::PortForwardServiceClient;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
 
 pub async fn dispatch(
     server: &Arc<Server>,
-    mut requests: impl Stream<Item = Result<PortForwardAcceptRequest, Status>> + Unpin + Send + 'static,
+    mut requests: impl Stream<Item = Result<PortForwardEndpoint, Status>> + Unpin + Send + 'static,
 ) -> Result<BindStream, BindError> {
     let task = async move {
         debug!("Start");
         defer!(debug!("End"));
-        let Some(first_request) = requests.next().await else {
+        let Some(first_message) = requests.next().await else {
             return Err(BindError::EmptyRequest);
         };
-        let first_request =
-            first_request.map_err(|status| BindError::RequestError(Box::new(status)))?;
-        debug!("Port forward request: {first_request:?}");
+        let first_message =
+            first_message.map_err(|status| BindError::RequestError(Box::new(status)))?;
+        debug!("Port forward request: {first_message:?}");
 
-        let remote = first_request.remote.clone().unwrap_or_default();
+        let remote = first_message.remote.clone().unwrap_or_default();
         let requests = requests.filter_map(|request| ready(request.ok()));
-        let stream = BindCallback::process(server, &remote.via, (first_request, requests)).await?;
+        let stream = BindCallback::process(server, &remote.via, (first_message, requests)).await?;
         return Ok(stream);
     };
     return task.instrument(info_span!("PortForward Bind")).await;
 }
 
-pub struct BindCallback<S: Stream<Item = PortForwardAcceptRequest>>(PhantomData<S>);
+pub struct BindCallback<S: Stream<Item = PortForwardEndpoint>>(PhantomData<S>);
 
 #[pin_project(project = BindStreamProj)]
 pub enum BindStream {
@@ -102,10 +102,10 @@ impl Stream for BindStream {
     }
 }
 
-impl<S: Stream<Item = PortForwardAcceptRequest> + Send + Unpin + 'static> DistributedCallback
+impl<S: Stream<Item = PortForwardEndpoint> + Send + Unpin + 'static> DistributedCallback
     for BindCallback<S>
 {
-    type Request = (PortForwardAcceptRequest, S);
+    type Request = (PortForwardEndpoint, S);
     type Response = BindStream;
     type LocalError = BindLocalError;
     type RemoteError = BindRemoteError;
@@ -113,7 +113,7 @@ impl<S: Stream<Item = PortForwardAcceptRequest> + Send + Unpin + 'static> Distri
     async fn remote<T>(
         channel: T,
         client_address: &[impl AsRef<str>],
-        (first_request, requests): (PortForwardAcceptRequest, S),
+        (endpoint, requests): (PortForwardEndpoint, S),
     ) -> Result<BindStream, BindRemoteError>
     where
         T: GrpcService<BoxBody>,
@@ -124,11 +124,11 @@ impl<S: Stream<Item = PortForwardAcceptRequest> + Send + Unpin + 'static> Distri
         async move {
             debug!("Start");
             defer!(debug!("End"));
-            let first_request = PortForwardAcceptRequest {
+            let endpoint = PortForwardEndpoint {
                 remote: Some(ClientAddress::of(client_address)),
-                ..first_request
+                ..endpoint
             };
-            let requests = futures::stream::once(ready(first_request)).chain(requests);
+            let requests = futures::stream::once(ready(endpoint)).chain(requests);
             let mut client = PortForwardServiceClient::new(channel);
             let response = client.bind(requests).await?;
             Ok(BindStream::Remote(RemoteBindStream(response.into_inner())))
@@ -140,9 +140,9 @@ impl<S: Stream<Item = PortForwardAcceptRequest> + Send + Unpin + 'static> Distri
     #[autoclone]
     async fn local(
         _server: &Arc<Server>,
-        (first_request, requests): (PortForwardAcceptRequest, S),
+        (endpoint, requests): (PortForwardEndpoint, S),
     ) -> Result<BindStream, BindLocalError> {
-        let mut requests = futures::stream::once(ready(first_request)).chain(requests);
+        let mut requests = futures::stream::once(ready(endpoint)).chain(requests);
         async move {
             debug!("Start");
             defer!(debug!("End"));
@@ -186,11 +186,11 @@ impl<S: Stream<Item = PortForwardAcceptRequest> + Send + Unpin + 'static> Distri
 
 async fn process_request(
     notify: &mpsc::Sender<Result<PortForwardAcceptResponse, BindLocalError>>,
-    request: PortForwardAcceptRequest,
+    endpoint: PortForwardEndpoint,
 ) -> Result<impl Future<Output = ()>, BindLocalError> {
     let endpoint_id = EndpointId {
-        host: request.host,
-        port: request.port,
+        host: endpoint.host,
+        port: endpoint.port,
     };
     let addresses = format!("{}:{}", endpoint_id.host, endpoint_id.port)
         .to_socket_addrs()
@@ -203,7 +203,9 @@ async fn process_request(
             return Err(BindLocalError::EndpointInUse(endpoint_id));
         }
         hash_map::Entry::Vacant(entry) => {
-            entry.insert(streams_rx);
+            let (tx, rx) = oneshot::channel();
+            let () = tx.send(streams_rx).expect("Failed to set streams");
+            entry.insert(rx);
         }
     }
 

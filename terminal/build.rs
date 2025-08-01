@@ -137,7 +137,11 @@ fn build_protos() {
         return;
     };
     tonic_build::configure()
-        .bytes([".terrazzo.terminal.LeaseItem.data"])
+        .bytes([
+            ".terrazzo.terminal.LeaseItem.data",
+            ".terrazzo.portforward.PortForwardDataRequest.data",
+            ".terrazzo.portforward.PortForwardDataResponse.data",
+        ])
         .compile_protos(
             &[
                 "src/backend/protos/notify.proto",

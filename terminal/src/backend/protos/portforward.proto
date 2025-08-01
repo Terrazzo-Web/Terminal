@@ -5,12 +5,12 @@ package terrazzo.portforward;
 import "shared.proto";
 
 service PortForwardService {
-  rpc Bind(stream PortForwardAcceptRequest) returns (stream PortForwardAcceptResponse);
+  rpc Bind(stream PortForwardEndpoint) returns (stream PortForwardAcceptResponse);
   rpc Download(stream PortForwardDataRequest) returns (stream PortForwardDataResponse);
   rpc Upload(stream PortForwardDataRequest) returns (stream PortForwardDataResponse);
 }
 
-message PortForwardAcceptRequest {
+message PortForwardEndpoint {
   terrazzo.shared.ClientAddress remote = 1;
   string host = 2;
   int32 port = 3;
@@ -20,7 +20,7 @@ message PortForwardAcceptResponse {}
 
 message PortForwardDataRequest {
   oneof kind {
-    terrazzo.shared.ClientAddress remote = 1;
+    PortForwardEndpoint endpoint = 1;
     bytes data = 2;
   }
 }

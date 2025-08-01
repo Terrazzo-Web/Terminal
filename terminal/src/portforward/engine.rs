@@ -19,7 +19,8 @@ use super::schema::PortForward;
 use crate::backend::client_service::port_forward_service;
 use crate::backend::client_service::port_forward_service::bind::BindError;
 use crate::backend::client_service::port_forward_service::bind::BindStream;
-use crate::backend::protos::terrazzo::portforward::PortForwardAcceptRequest;
+use crate::backend::protos::terrazzo::portforward::PortForwardAcceptResponse;
+use crate::backend::protos::terrazzo::portforward::PortForwardEndpoint;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
 
 pub async fn process(
@@ -48,7 +49,7 @@ async fn process_port_forward(
 
     let (eos_tx, eos_rx) = oneshot::channel();
     let eos = stream::once(eos_rx).filter_map(|_| ready(None));
-    let requests = stream::once(ready(Ok(PortForwardAcceptRequest {
+    let requests = stream::once(ready(Ok(PortForwardEndpoint {
         remote: new.from.forwarded_remote.as_deref().map(ClientAddress::of),
         host: new.from.host.to_owned(),
         port: new.from.port as i32,
@@ -69,10 +70,22 @@ async fn process_bind_stream(
     debug!("Start");
     defer!(debug!("End"));
 
-    while let Some(next) = stream.next().await {}
+    defer! {
+        match eos.send(()) {
+            Ok(()) => debug!("Closed PortForward Bind request stream"),
+            Err(()) => warn!("Failed to close PortForward Bind request stream"),
+        }
+    }
 
-    match eos.send(()) {
-        Ok(()) => debug!("Closed PortForward Bind request stream"),
-        Err(()) => warn!("Failed to close PortForward Bind request stream"),
+    while let Some(next) = stream.next().await {
+        match next {
+            Ok(PortForwardAcceptResponse {}) => (),
+            Err(error) => {
+                warn!("Failed to get the next connection: {error}");
+                return;
+            }
+        }
+
+        let x = port_forward_service::download::download(server, requests).await;
     }
 }

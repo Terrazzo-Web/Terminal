@@ -9,6 +9,7 @@ use std::sync::OnceLock;
 
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
+use tokio::sync::oneshot;
 
 #[must_use]
 pub fn listeners() -> MutexGuard<'static, Listeners> {
@@ -18,7 +19,7 @@ pub fn listeners() -> MutexGuard<'static, Listeners> {
 
 pub struct Listeners(Option<ListenersMap>);
 
-type ListenersMap = HashMap<EndpointId, mpsc::Receiver<TcpStream>>;
+type ListenersMap = HashMap<EndpointId, oneshot::Receiver<mpsc::Receiver<TcpStream>>>;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EndpointId {

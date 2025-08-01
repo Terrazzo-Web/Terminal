@@ -59,6 +59,7 @@ fn show_port_forwards(
     tag(
         class = style::port_forwards,
         port_forward_tags..,
+        // TODO: Improve styling for '+', replace it with a loading icon while loading and add a text, ie 'img("+"), "Add a port forward"'.
         div(
             "+",
             style::cursor = "pointer",
@@ -348,18 +349,5 @@ impl std::fmt::Display for PortForward {
             "Listen to traffic from {} and forward it to {}",
             self.from, self.to
         )
-    }
-}
-
-impl std::fmt::Display for HostPortDefinition {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let forwarded_remote = self
-            .forwarded_remote
-            .as_ref()
-            .map(|r| r.to_string())
-            .unwrap_or_else(|| "Local".to_string());
-        let host = &self.host;
-        let port = self.port;
-        write!(f, "{forwarded_remote}:{host}:{port}")
     }
 }

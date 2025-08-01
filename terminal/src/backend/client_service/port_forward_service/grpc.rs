@@ -11,9 +11,9 @@ use tonic::async_trait;
 
 use super::bind::BindStream;
 use crate::backend::client_service::ClientServiceImpl;
-use crate::backend::protos::terrazzo::portforward::PortForwardAcceptRequest;
 use crate::backend::protos::terrazzo::portforward::PortForwardDataRequest;
 use crate::backend::protos::terrazzo::portforward::PortForwardDataResponse;
+use crate::backend::protos::terrazzo::portforward::PortForwardEndpoint;
 use crate::backend::protos::terrazzo::portforward::port_forward_service_server::PortForwardService;
 
 #[async_trait]
@@ -22,7 +22,7 @@ impl PortForwardService for ClientServiceImpl {
 
     async fn bind(
         &self,
-        requests: Request<Streaming<PortForwardAcceptRequest>>,
+        requests: Request<Streaming<PortForwardEndpoint>>,
     ) -> Result<Response<BindStream>, Status> {
         let stream = super::bind::dispatch(&self.server, requests.into_inner()).await?;
         Ok(Response::new(stream))
