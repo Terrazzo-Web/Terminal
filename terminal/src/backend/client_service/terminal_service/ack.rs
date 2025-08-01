@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
@@ -24,7 +26,7 @@ use crate::backend::protos::terrazzo::terminal::terminal_service_client::Termina
 use crate::backend::throttling_stream;
 
 pub fn ack(
-    server: &Server,
+    server: &Arc<Server>,
     client_address: &[impl AsRef<str>],
     request: AckRequest,
 ) -> impl Future<Output = Result<(), AckError>> {
@@ -50,7 +52,7 @@ impl DistributedCallback for AckCallback {
     type LocalError = Impossible;
     type RemoteError = Status;
 
-    async fn local(_: &Server, request: AckRequest) -> Result<(), Impossible> {
+    async fn local(_: &Arc<Server>, request: AckRequest) -> Result<(), Impossible> {
         let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
         throttling_stream::ack(&terminal_id, request.ack as usize);
         Ok(())

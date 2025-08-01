@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
@@ -24,7 +26,7 @@ use crate::processes;
 use crate::processes::resize::ResizeError as ResizeErrorImpl;
 
 pub fn resize(
-    server: &Server,
+    server: &Arc<Server>,
     client_address: &[impl AsRef<str>],
     request: ResizeRequest,
 ) -> impl Future<Output = Result<(), ResizeError>> {
@@ -50,7 +52,7 @@ impl DistributedCallback for ResizeCallback {
     type LocalError = ResizeErrorImpl;
     type RemoteError = Status;
 
-    async fn local(_: &Server, request: ResizeRequest) -> Result<(), ResizeErrorImpl> {
+    async fn local(_: &Arc<Server>, request: ResizeRequest) -> Result<(), ResizeErrorImpl> {
         let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
         let size = request.size.unwrap_or_default();
         processes::resize::resize(&terminal_id, size.rows, size.cols, request.force).await

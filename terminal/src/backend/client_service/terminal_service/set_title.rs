@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
@@ -25,7 +27,7 @@ use crate::processes;
 use crate::processes::set_title::SetTitleError as SetTitleErrorImpl;
 
 pub fn set_title(
-    server: &Server,
+    server: &Arc<Server>,
     client_address: &[impl AsRef<str>],
     request: SetTitleRequest,
 ) -> impl Future<Output = Result<(), SetTitleError>> {
@@ -45,7 +47,7 @@ impl DistributedCallback for SetTitleCallback {
     type LocalError = SetTitleErrorImpl;
     type RemoteError = Status;
 
-    async fn local(_: &Server, request: SetTitleRequest) -> Result<(), SetTitleErrorImpl> {
+    async fn local(_: &Arc<Server>, request: SetTitleRequest) -> Result<(), SetTitleErrorImpl> {
         let terminal_id = request.address.unwrap_or_default().terminal_id.into();
         processes::set_title::set_title(
             &terminal_id,

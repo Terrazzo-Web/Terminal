@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
@@ -25,7 +27,7 @@ use crate::processes::close::CloseProcessError;
 use crate::terminal_id::TerminalId;
 
 pub fn close(
-    server: &Server,
+    server: &Arc<Server>,
     client_address: &[impl AsRef<str>],
     terminal_id: TerminalId,
 ) -> impl Future<Output = Result<(), CloseError>> {
@@ -45,7 +47,7 @@ impl DistributedCallback for CloseCallback {
     type LocalError = CloseProcessError;
     type RemoteError = Status;
 
-    async fn local(_: &Server, terminal_id: TerminalId) -> Result<(), CloseProcessError> {
+    async fn local(_: &Arc<Server>, terminal_id: TerminalId) -> Result<(), CloseProcessError> {
         processes::close::close(&terminal_id)
     }
 

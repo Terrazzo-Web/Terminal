@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::TryFutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -20,7 +22,7 @@ pub trait DistributedCallback {
     type RemoteError: std::error::Error;
 
     fn process(
-        server: &Server,
+        server: &Arc<Server>,
         client_address: &[impl AsRef<str>],
         request: Self::Request,
     ) -> impl Future<
@@ -52,7 +54,7 @@ pub trait DistributedCallback {
     }
 
     fn local(
-        server: &Server,
+        server: &Arc<Server>,
         request: Self::Request,
     ) -> impl Future<Output = Result<Self::Response, Self::LocalError>>;
 

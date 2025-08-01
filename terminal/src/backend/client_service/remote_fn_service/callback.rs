@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use tonic::body::Body as BoxBody;
 use tonic::client::GrpcService;
 use tonic::codegen::Bytes;
@@ -21,7 +23,10 @@ impl DistributedCallback for DistributedFn {
     type LocalError = RemoteFnError;
     type RemoteError = tonic::Status;
 
-    async fn local(server: &Server, request: RemoteFnRequest) -> Result<String, RemoteFnError> {
+    async fn local(
+        server: &Arc<Server>,
+        request: RemoteFnRequest,
+    ) -> Result<String, RemoteFnError> {
         debug!("Calling local {request:?}");
         let Some(remote_server_fns) = REMOTE_FNS.get() else {
             return Err(RemoteFnError::RemoteFnsNotSet);

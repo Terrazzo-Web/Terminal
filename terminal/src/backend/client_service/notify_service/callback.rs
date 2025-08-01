@@ -1,4 +1,5 @@
 use std::future::ready;
+use std::sync::Arc;
 
 use futures::StreamExt as _;
 use nameth::nameth;
@@ -30,7 +31,7 @@ impl DistributedCallback for NotifyCallback {
     type RemoteError = Box<Status>;
 
     async fn local(
-        _server: &Server,
+        _server: &Arc<Server>,
         request: HybridRequestStream,
     ) -> Result<HybridResponseStream, NotifyLocalError> {
         notify_local(request.into())
