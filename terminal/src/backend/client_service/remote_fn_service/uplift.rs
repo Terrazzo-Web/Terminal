@@ -1,4 +1,5 @@
 use std::pin::Pin;
+use std::sync::Arc;
 use std::task::Context;
 use std::task::Poll;
 use std::task::ready;
@@ -12,8 +13,8 @@ use crate::backend::client_service::remote_fn_service::RemoteFnError;
 
 /// Helper to uplift a remote function into a String -> String server_fn.
 pub const fn uplift<Req, F, Res, E>(
-    function: impl Fn(&Server, Req) -> F + 'static,
-) -> impl Fn(&Server, &str) -> UpliftFuture<F>
+    function: impl Fn(&Arc<Server>, Req) -> F + 'static,
+) -> impl Fn(&Arc<Server>, &str) -> UpliftFuture<F>
 where
     Req: for<'de> serde::Deserialize<'de>,
     F: Future<Output = Result<Res, E>> + 'static,

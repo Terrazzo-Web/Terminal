@@ -293,7 +293,7 @@ mod tests {
     use std::time::Duration;
 
     use bytes::Bytes;
-    use futures::StreamExt;
+    use futures::StreamExt as _;
     use tokio::sync::mpsc;
     use tokio::sync::oneshot;
     use tokio_stream::wrappers::UnboundedReceiverStream;

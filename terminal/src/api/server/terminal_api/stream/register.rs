@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::channel::mpsc;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -19,7 +21,7 @@ use crate::processes::io::LocalReader;
 
 pub async fn register(
     my_client_name: Option<ClientName>,
-    server: &Server,
+    server: &Arc<Server>,
     request: RegisterTerminalRequest,
 ) -> Result<(), RegisterStreamError> {
     defer!(debug!("End"));
