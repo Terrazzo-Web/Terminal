@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::task::Context;
 use std::task::Poll;
 
+use futures::Sink;
 use futures::Stream;
 use futures::StreamExt as _;
 use futures::stream;
@@ -14,7 +15,7 @@ use nameth::nameth;
 use pin_project::pin_project;
 use prost::bytes::Bytes;
 use scopeguard::defer;
-use tokio::io::AsyncRead;
+use tokio::io::AsyncRead as _;
 use tokio::io::AsyncWriteExt as _;
 use tokio::io::ReadBuf;
 use tokio::net::tcp::OwnedReadHalf;
@@ -224,6 +225,43 @@ async fn process_write_half(
             Ok(PortForwardDataRequest { kind: None }) => return warn!("Next message is 'None'"),
             Err(error) => return warn!("Failed to get next message: {error}"),
         }
+    }
+}
+
+#[pin_project]
+struct WriteSink<T, WO, W> {
+    #[pin]
+    writer: T,
+    operation: Option<WO>,
+    write_all: W,
+}
+
+impl<T, WO, W> Sink<Bytes> for WriteSink<T, WO, W>
+where
+    T: tokio::io::AsyncWrite,
+    W: Fn(Pin<&mut T>, &[u8]) -> WO,
+    WO: Future<Output = std::io::Result<()>>,
+{
+    type Error = std::io::Error;
+
+    fn poll_ready(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        // Always ready to accept new data
+        Poll::Ready(Ok(()))
+    }
+
+    fn start_send(self: Pin<&mut Self>, item: Bytes) -> Result<(), Self::Error> {
+        let this = self.project();
+        let write_all = this.write_all;
+        *this.operation = Some(write_all(this.writer, &item));
+        Ok(())
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        todo!()
+    }
+
+    fn poll_close(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        todo!()
     }
 }
 
