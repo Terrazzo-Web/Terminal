@@ -7,6 +7,7 @@ use std::task::Poll;
 
 use futures::Stream;
 use futures::StreamExt as _;
+use futures::stream;
 use nameth::NamedEnumValues as _;
 use nameth::NamedType as _;
 use nameth::nameth;
@@ -14,6 +15,7 @@ use pin_project::pin_project;
 use prost::bytes::Bytes;
 use scopeguard::defer;
 use tokio::io::AsyncRead;
+use tokio::io::AsyncWriteExt as _;
 use tokio::io::ReadBuf;
 use tokio::net::tcp::OwnedReadHalf;
 use tokio::net::tcp::OwnedWriteHalf;
@@ -28,10 +30,11 @@ use tracing::Instrument as _;
 use tracing::debug;
 use tracing::debug_span;
 use tracing::info_span;
+use tracing::warn;
 use trz_gateway_server::server::Server;
 
 use super::RequestDataStream;
-use super::listeners;
+use super::listeners::EndpointId;
 use crate::backend::client_service::routing::DistributedCallback;
 use crate::backend::client_service::routing::DistributedCallbackError;
 use crate::backend::protos::terrazzo::portforward::PortForwardDataRequest;
@@ -56,9 +59,9 @@ pub async fn download(
         debug!("Downloading data from: {endpoint:?}");
 
         let remote = endpoint.remote.clone().unwrap_or_default();
-        let requests = upload_stream.filter_map(|request| ready(request.ok()));
-        let stream = DownloadCallback::process(server, &remote.via, (endpoint, requests)).await?;
-        return Ok(stream);
+        let download_stream =
+            DownloadCallback::process(server, &remote.via, (endpoint, upload_stream)).await?;
+        return Ok(download_stream);
     };
     return task.instrument(info_span!("PortForward Download")).await;
 }
@@ -75,7 +78,7 @@ fn get_endpoint(
     }
 }
 
-pub struct DownloadCallback<S: Stream<Item = PortForwardDataRequest>>(PhantomData<S>);
+pub struct DownloadCallback<S: RequestDataStream>(PhantomData<S>);
 
 #[pin_project(project = DownloadStreamProj)]
 pub enum DownloadStream {
@@ -103,12 +106,12 @@ impl Stream for DownloadStream {
                 let mut buf = ReadBuf::new(local.buffer);
                 let () = std::task::ready!(local.tcp_stream.poll_read(cx, &mut buf))
                     .map_err(|error| Status::aborted(error.to_string()))?;
-                let count = buf.filled().len();
-                if count == 0 {
+                let filled = buf.filled();
+                if filled.is_empty() {
                     return Poll::Ready(None);
                 }
                 Poll::Ready(Some(Ok(PortForwardDataResponse {
-                    data: Bytes::copy_from_slice(&local.buffer[..count]),
+                    data: Bytes::copy_from_slice(filled),
                 })))
             }
             DownloadStreamProj::Remote(remote) => remote.project().0.poll_next(cx),
@@ -116,9 +119,7 @@ impl Stream for DownloadStream {
     }
 }
 
-impl<S: Stream<Item = PortForwardDataRequest> + Send + Unpin + 'static> DistributedCallback
-    for DownloadCallback<S>
-{
+impl<S: RequestDataStream> DistributedCallback for DownloadCallback<S> {
     type Request = (PortForwardEndpoint, S);
     type Response = DownloadStream;
     type LocalError = DownloadLocalError;
@@ -127,7 +128,7 @@ impl<S: Stream<Item = PortForwardDataRequest> + Send + Unpin + 'static> Distribu
     async fn remote<T>(
         channel: T,
         client_address: &[impl AsRef<str>],
-        (endpoint, requests): (PortForwardEndpoint, S),
+        (endpoint, upload_stream): (PortForwardEndpoint, S),
     ) -> Result<DownloadStream, DownloadRemoteError>
     where
         T: GrpcService<BoxBody>,
@@ -146,11 +147,12 @@ impl<S: Stream<Item = PortForwardDataRequest> + Send + Unpin + 'static> Distribu
                     },
                 )),
             };
-            let requests = futures::stream::once(ready(first_message)).chain(requests);
+            let upload_stream = stream::once(ready(first_message))
+                .chain(upload_stream.filter_map(|next| ready(next.ok())));
             let mut client = PortForwardServiceClient::new(channel);
-            let response = client.download(requests).await?;
+            let download_stream = client.download(upload_stream).await?;
             Ok(DownloadStream::Remote(RemoteDownloadStream(
-                response.into_inner(),
+                download_stream.into_inner(),
             )))
         }
         .instrument(info_span!("Remote"))
@@ -159,31 +161,26 @@ impl<S: Stream<Item = PortForwardDataRequest> + Send + Unpin + 'static> Distribu
 
     async fn local(
         _server: &Arc<Server>,
-        (endpoint, requests): (PortForwardEndpoint, S),
+        (endpoint, upload_stream): (PortForwardEndpoint, S),
     ) -> Result<DownloadStream, DownloadLocalError> {
         async move {
             debug!("Start");
             defer!(debug!("End"));
 
             let endpoint_id = EndpointId {
-                host: endpoint.host.clone(),
+                host: endpoint.host,
                 port: endpoint.port,
             };
-            let mut requests = futures::stream::once(ready(PortForwardDataRequest {
-                kind: Some(port_forward_data_request::Kind::Endpoint(endpoint)),
-            }))
-            .chain(requests);
 
             let (future_streams, tx) = {
                 let mut listeners = super::listeners::listeners();
-                let streams = listeners
-                    .get_mut(&endpoint_id)
-                    .ok_or(DownloadLocalError::StreamsNotRegistered(endpoint_id))?;
+                let Some(future_streams) = listeners.get_mut(&endpoint_id) else {
+                    return Err(DownloadLocalError::StreamsNotRegistered(endpoint_id));
+                };
                 let (tx, rx) = oneshot::channel();
-                (std::mem::replace(streams, rx), tx)
+                (std::mem::replace(future_streams, rx), tx)
             };
             let (read_half, write_half) = {
-                defer!();
                 let streams = future_streams
                     .await
                     .map_err(DownloadLocalError::StreamsNotAvailable)?;
@@ -197,7 +194,7 @@ impl<S: Stream<Item = PortForwardDataRequest> + Send + Unpin + 'static> Distribu
                     .into_split()
             };
 
-            let requests_task = process_write_half(requests, write_half);
+            let requests_task = process_write_half(upload_stream, write_half);
             tokio::spawn(requests_task.in_current_span());
             Ok(DownloadStream::Local(LocalDownloadStream {
                 tcp_stream: read_half,
@@ -210,10 +207,24 @@ impl<S: Stream<Item = PortForwardDataRequest> + Send + Unpin + 'static> Distribu
 }
 
 async fn process_write_half(
-    requests: impl Stream<Item = PortForwardDataRequest> + Send + Unpin + 'static,
-    write_half: OwnedWriteHalf,
+    mut upload_stream: impl RequestDataStream,
+    mut write_half: OwnedWriteHalf,
 ) {
-    todo!()
+    while let Some(next) = upload_stream.next().await {
+        match next {
+            Ok(PortForwardDataRequest {
+                kind: Some(port_forward_data_request::Kind::Endpoint(endpoint)),
+            }) => return warn!("Invalid next message is endpoint: {endpoint:?}"),
+            Ok(PortForwardDataRequest {
+                kind: Some(port_forward_data_request::Kind::Data(bytes)),
+            }) => match write_half.write_all(&bytes).await {
+                Ok(()) => (),
+                Err(error) => return warn!("Failed to write: {error}"),
+            },
+            Ok(PortForwardDataRequest { kind: None }) => return warn!("Next message is 'None'"),
+            Err(error) => return warn!("Failed to get next message: {error}"),
+        }
+    }
 }
 
 #[nameth]
