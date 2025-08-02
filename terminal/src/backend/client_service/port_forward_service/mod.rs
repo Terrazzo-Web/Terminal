@@ -10,6 +10,7 @@ pub mod bind;
 pub mod download;
 mod grpc;
 mod listeners;
+mod stream;
 pub mod upload;
 
 declare_trait_aliias!(
