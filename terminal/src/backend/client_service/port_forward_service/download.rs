@@ -5,7 +5,8 @@ use std::sync::Arc;
 use std::task::Context;
 use std::task::Poll;
 
-use futures::Sink;
+use futures::AsyncWriteExt as _;
+use futures::SinkExt as _;
 use futures::Stream;
 use futures::StreamExt as _;
 use futures::stream;
@@ -16,7 +17,7 @@ use pin_project::pin_project;
 use prost::bytes::Bytes;
 use scopeguard::defer;
 use tokio::io::AsyncRead as _;
-use tokio::io::AsyncWriteExt as _;
+use tokio::io::AsyncWrite as _;
 use tokio::io::ReadBuf;
 use tokio::net::tcp::OwnedReadHalf;
 use tokio::net::tcp::OwnedWriteHalf;
@@ -207,61 +208,67 @@ impl<S: RequestDataStream> DistributedCallback for DownloadCallback<S> {
     }
 }
 
-async fn process_write_half(
-    mut upload_stream: impl RequestDataStream,
-    mut write_half: OwnedWriteHalf,
-) {
+async fn process_write_half(mut upload_stream: impl RequestDataStream, write_half: OwnedWriteHalf) {
+    let mut sink = WriteHalf(write_half).into_sink::<Bytes>().buffer(8192);
     while let Some(next) = upload_stream.next().await {
         match next {
             Ok(PortForwardDataRequest {
                 kind: Some(port_forward_data_request::Kind::Endpoint(endpoint)),
-            }) => return warn!("Invalid next message is endpoint: {endpoint:?}"),
+            }) => {
+                warn!("Invalid next message is endpoint: {endpoint:?}");
+                break;
+            }
             Ok(PortForwardDataRequest {
                 kind: Some(port_forward_data_request::Kind::Data(bytes)),
-            }) => match write_half.write_all(&bytes).await {
-                Ok(()) => (),
-                Err(error) => return warn!("Failed to write: {error}"),
+            }) => match sink.feed(bytes).await {
+                Ok(()) => {}
+                Err(error) => {
+                    warn!("Failed to write: {error}");
+                    return;
+                }
             },
-            Ok(PortForwardDataRequest { kind: None }) => return warn!("Next message is 'None'"),
-            Err(error) => return warn!("Failed to get next message: {error}"),
+            Ok(PortForwardDataRequest { kind: None }) => {
+                warn!("Next message is 'None'");
+                break;
+            }
+            Err(error) => {
+                warn!("Failed to get next message: {error}");
+                break;
+            }
         }
+    }
+    match sink.flush().await {
+        Ok(()) => {}
+        Err(error) => return warn!("Failed to flush: {error}"),
     }
 }
 
 #[pin_project]
-struct WriteSink<T, WO, W> {
-    #[pin]
-    writer: T,
-    operation: Option<WO>,
-    write_all: W,
-}
+struct WriteHalf(#[pin] OwnedWriteHalf);
 
-impl<T, WO, W> Sink<Bytes> for WriteSink<T, WO, W>
-where
-    T: tokio::io::AsyncWrite,
-    W: Fn(Pin<&mut T>, &[u8]) -> WO,
-    WO: Future<Output = std::io::Result<()>>,
-{
-    type Error = std::io::Error;
-
-    fn poll_ready(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        // Always ready to accept new data
-        Poll::Ready(Ok(()))
+impl futures::AsyncWrite for WriteHalf {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<std::io::Result<usize>> {
+        self.project().0.poll_write(cx, buf)
     }
 
-    fn start_send(self: Pin<&mut Self>, item: Bytes) -> Result<(), Self::Error> {
-        let this = self.project();
-        let write_all = this.write_all;
-        *this.operation = Some(write_all(this.writer, &item));
-        Ok(())
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        self.project().0.poll_flush(cx)
     }
 
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        todo!()
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        self.project().0.poll_shutdown(cx)
     }
 
-    fn poll_close(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        todo!()
+    fn poll_write_vectored(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        bufs: &[std::io::IoSlice<'_>],
+    ) -> Poll<std::io::Result<usize>> {
+        self.project().0.poll_write_vectored(cx, bufs)
     }
 }
 
