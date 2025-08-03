@@ -107,15 +107,17 @@ async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<()
         .map_ok(|response: PortForwardDataResponse| PortForwardDataRequest {
             kind: Some(port_forward_data_request::Kind::Data(response.data)),
         });
+
+    let upload_endpoint = port_forward.to;
     let upload_stream = futures::stream::once(ready(Ok(PortForwardDataRequest {
         kind: Some(port_forward_data_request::Kind::Endpoint(
             PortForwardEndpoint {
-                remote: port_forward
-                    .from
+                remote: upload_endpoint
                     .forwarded_remote
-                    .map(|remote| ClientAddress::of(&remote)),
-                host: port_forward.from.host,
-                port: port_forward.from.port as i32,
+                    .as_deref()
+                    .map(ClientAddress::of),
+                host: upload_endpoint.host.clone(),
+                port: upload_endpoint.port as i32,
             },
         )),
     })))
@@ -126,15 +128,16 @@ async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<()
         .map_ok(|response: PortForwardDataResponse| PortForwardDataRequest {
             kind: Some(port_forward_data_request::Kind::Data(response.data)),
         });
+    let download_endpoint = port_forward.from;
     let download_stream = futures::stream::once(ready(Ok(PortForwardDataRequest {
         kind: Some(port_forward_data_request::Kind::Endpoint(
             PortForwardEndpoint {
-                remote: port_forward
-                    .to
+                remote: download_endpoint
                     .forwarded_remote
-                    .map(|remote| ClientAddress::of(&remote)),
-                host: port_forward.to.host,
-                port: port_forward.to.port as i32,
+                    .as_deref()
+                    .map(ClientAddress::of),
+                host: download_endpoint.host.clone(),
+                port: download_endpoint.port as i32,
             },
         )),
     })))

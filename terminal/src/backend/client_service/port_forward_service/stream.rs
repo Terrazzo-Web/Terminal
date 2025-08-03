@@ -45,6 +45,8 @@ use crate::backend::protos::terrazzo::portforward::port_forward_data_request;
 use crate::backend::protos::terrazzo::portforward::port_forward_service_client::PortForwardServiceClient;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
 
+const STREAM_BUFFER_SIZE: usize = 8192;
+
 /// Download data from listener
 pub(super) async fn stream<F: GetLocalStream>(
     server: &Arc<Server>,
@@ -192,7 +194,7 @@ where
             tokio::spawn(requests_task.in_current_span());
             Ok(GrpcStream::Local(LocalGrpcStream {
                 tcp_stream: read_half,
-                buffer: vec![0; 8192],
+                buffer: vec![0; STREAM_BUFFER_SIZE],
             }))
         }
         .instrument(debug_span!("Local"))
@@ -201,7 +203,9 @@ where
 }
 
 async fn process_write_half(mut upload_stream: impl RequestDataStream, write_half: OwnedWriteHalf) {
-    let mut sink = WriteHalf(write_half).into_sink::<Bytes>().buffer(8192);
+    let mut sink = WriteHalf(write_half)
+        .into_sink::<Bytes>()
+        .buffer(STREAM_BUFFER_SIZE);
     while let Some(next) = upload_stream.next().await {
         match next {
             Ok(PortForwardDataRequest {

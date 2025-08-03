@@ -1,3 +1,6 @@
+use std::ops::Deref;
+use std::sync::Arc;
+
 use crate::api::client_address::ClientAddress;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -29,10 +32,32 @@ impl PortForward {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct HostPortDefinition {
+#[serde(transparent)]
+pub struct HostPortDefinition(Arc<HostPortDefinitionImpl>);
+
+#[derive(Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct HostPortDefinitionImpl {
     pub forwarded_remote: Option<ClientAddress>,
     pub host: String,
     pub port: u16,
+}
+
+impl HostPortDefinition {
+    pub fn new(forwarded_remote: Option<ClientAddress>, host: String, port: u16) -> Self {
+        Self(Arc::new(HostPortDefinitionImpl {
+            forwarded_remote,
+            host,
+            port,
+        }))
+    }
+}
+
+impl Deref for HostPortDefinition {
+    type Target = HostPortDefinitionImpl;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl std::fmt::Display for HostPortDefinition {

@@ -21,6 +21,7 @@ use crate::api::client_address::ClientAddress;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
+use crate::portforward::schema::HostPortDefinitionImpl;
 
 stylance::import_crate_style!(style, "src/portforward/port_forward.scss");
 
@@ -157,11 +158,11 @@ fn show_host_port_definition(
         sync_state,
         id,
     } = params;
-    let HostPortDefinition {
+    let HostPortDefinitionImpl {
         forwarded_remote,
         host,
         port,
-    } = host_port_definition;
+    } = &**host_port_definition;
     let port = *port;
 
     let set_remote = move |forwarded_remote| {
@@ -174,11 +175,7 @@ fn show_host_port_definition(
             id,
             move |port_forward| {
                 autoclone!(host, set);
-                let new = HostPortDefinition {
-                    forwarded_remote,
-                    host: host.clone(),
-                    port,
-                };
+                let new = HostPortDefinition::new(forwarded_remote, host.clone(), port);
                 set(port_forward, new)
             },
         );
@@ -196,11 +193,11 @@ fn show_host_port_definition(
             id,
             |port_forward| {
                 autoclone!(forwarded_remote, set);
-                let new = HostPortDefinition {
+                let new = HostPortDefinition::new(
                     forwarded_remote,
-                    host: target.value().trim().to_owned(),
+                    target.value().trim().to_owned(),
                     port,
-                };
+                );
                 set(port_forward, new)
             },
         )
@@ -223,11 +220,7 @@ fn show_host_port_definition(
             id,
             |port_forward| {
                 autoclone!(forwarded_remote, host, set);
-                let new = HostPortDefinition {
-                    forwarded_remote,
-                    host,
-                    port,
-                };
+                let new = HostPortDefinition::new(forwarded_remote, host, port);
                 set(port_forward, new)
             },
         )
