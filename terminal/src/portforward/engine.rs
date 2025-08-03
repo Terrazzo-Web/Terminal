@@ -51,7 +51,9 @@ async fn process_port_forward(
     old: Option<&PortForward>,
     new: &PortForward,
 ) -> Result<(), BindError> {
+    debug!("Update Port Forward config from {old:#?} to {new:#?}");
     if old == Some(new) {
+        debug!("Port forward config did not change");
         return Ok(());
     }
 
@@ -64,7 +66,9 @@ async fn process_port_forward(
     })))
     .chain(eos);
 
-    let stream = port_forward_service::bind::dispatch(server, requests).await?;
+    let stream = port_forward_service::bind::dispatch(server, requests)
+        .await
+        .inspect_err(|error| debug!("Bind failed: {error}"))?;
     let span = info_span!("Forward Port", from = %new.from, to = %new.to);
     tokio::spawn(process_bind_stream(server.clone(), new.clone(), stream, eos_tx).instrument(span));
     Ok(())
@@ -95,7 +99,7 @@ async fn process_bind_stream(
             }
         }
 
-        tokio::spawn(run_stream(server.clone(), port_forward.clone()));
+        tokio::spawn(run_stream(server.clone(), port_forward.clone()).in_current_span());
     }
 }
 
@@ -108,7 +112,7 @@ async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<()
             kind: Some(port_forward_data_request::Kind::Data(response.data)),
         });
 
-    let upload_endpoint = port_forward.to;
+    let upload_endpoint = port_forward.from;
     let upload_stream = futures::stream::once(ready(Ok(PortForwardDataRequest {
         kind: Some(port_forward_data_request::Kind::Endpoint(
             PortForwardEndpoint {
@@ -128,7 +132,7 @@ async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<()
         .map_ok(|response: PortForwardDataResponse| PortForwardDataRequest {
             kind: Some(port_forward_data_request::Kind::Data(response.data)),
         });
-    let download_endpoint = port_forward.from;
+    let download_endpoint = port_forward.to;
     let download_stream = futures::stream::once(ready(Ok(PortForwardDataRequest {
         kind: Some(port_forward_data_request::Kind::Endpoint(
             PortForwardEndpoint {

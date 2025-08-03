@@ -32,9 +32,13 @@ impl GetLocalStream for GetUploadStream {
 
     async fn get_tcp_stream(endpoint_id: EndpointId) -> Result<TcpStream, Self::Error> {
         let EndpointId { host, port } = endpoint_id;
-        Ok(TcpStream::connect(format!("{host}:{port}"))
+        let tcp_stream = TcpStream::connect(format!("{host}:{port}"))
             .await
-            .map_err(UploadLocalError::Connect)?)
+            .map_err(UploadLocalError::Connect)?;
+        let () = tcp_stream
+            .set_nodelay(true)
+            .map_err(UploadLocalError::SetNodelay)?;
+        Ok(tcp_stream)
     }
 }
 
@@ -43,12 +47,16 @@ impl GetLocalStream for GetUploadStream {
 pub enum UploadLocalError {
     #[error("[{n}] Failed to connect: {0}", n = self.name())]
     Connect(std::io::Error),
+
+    #[error("[{n}] Failed to set TCP_NODELAY option to true: {0}", n = self.name())]
+    SetNodelay(std::io::Error),
 }
 
 impl From<UploadLocalError> for Status {
     fn from(error: UploadLocalError) -> Self {
         let code = match error {
             UploadLocalError::Connect { .. } => tonic::Code::Aborted,
+            UploadLocalError::SetNodelay { .. } => tonic::Code::Internal,
         };
         Self::new(code, error.to_string())
     }

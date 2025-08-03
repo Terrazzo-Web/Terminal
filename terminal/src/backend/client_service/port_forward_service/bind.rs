@@ -144,8 +144,6 @@ impl<S: Stream<Item = PortForwardEndpoint> + Send + Unpin + 'static> Distributed
     ) -> Result<BindStream, BindLocalError> {
         let mut requests = futures::stream::once(ready(endpoint)).chain(requests);
         async move {
-            debug!("Start");
-            defer!(debug!("End"));
             let (notify_tx, notify_rx) = mpsc::channel(3);
             let requests_task = async move {
                 autoclone!(notify_tx);
@@ -168,6 +166,8 @@ impl<S: Stream<Item = PortForwardEndpoint> + Send + Unpin + 'static> Distributed
                 Ok::<_, BindLocalError>(())
             };
             let requests_task = async move {
+                debug!("Start");
+                defer!(debug!("End"));
                 match requests_task.await {
                     Ok(()) => (),
                     Err(error) => match notify_tx.send(Err(error)).await {
@@ -264,7 +264,7 @@ async fn process_socket_address(
         }
         let _terminated = terminated.send(());
     };
-    let _: JoinHandle<()> = tokio::spawn(task.instrument(info_span!("Address", %address)));
+    let _: JoinHandle<()> = tokio::spawn(task.instrument(info_span!("Accept", %address)));
     Ok(())
 }
 
@@ -284,6 +284,7 @@ async fn process_listener(
                 std::io::Error::new(ErrorKind::BrokenPipe, message)
             })?;
         let (tcp_stream, address) = listener.accept().await?;
+        let () = tcp_stream.set_nodelay(true)?;
         debug!("Received connection on {address}");
         let () = streams.send(tcp_stream).await.map_err(|error| {
             let message = format!("Failed to register tcp_stream: {error}");

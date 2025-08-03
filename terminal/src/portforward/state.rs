@@ -15,7 +15,7 @@ pub async fn store_port_forwards(
     port_forwards: Arc<[PortForward]>,
 ) -> Result<(), ServerFnError> {
     #[cfg(debug_assertions)]
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     Ok(backend::STORE_PORT_FORWARDS_FN
         .call(remote.unwrap_or_default(), port_forwards)
         .await?)
@@ -52,9 +52,10 @@ mod backend {
             let server = server.clone();
             async move {
                 let old = {
-                    let mut old = STATE.lock().expect(super::STORE_PORT_FORWARDS);
-                    *old = Some(port_forwards.clone());
-                    old.clone()
+                    let mut lock = STATE.lock().expect(super::STORE_PORT_FORWARDS);
+                    let old = lock.clone();
+                    *lock = Some(port_forwards.clone());
+                    old
                 };
 
                 use super::super::engine;

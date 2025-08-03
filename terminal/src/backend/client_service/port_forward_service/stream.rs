@@ -206,7 +206,28 @@ async fn process_write_half(mut upload_stream: impl RequestDataStream, write_hal
     let mut sink = WriteHalf(write_half)
         .into_sink::<Bytes>()
         .buffer(STREAM_BUFFER_SIZE);
-    while let Some(next) = upload_stream.next().await {
+    let mut should_flush = false;
+    loop {
+        let next = if should_flush {
+            match futures::future::select(upload_stream.next(), sink.flush()).await {
+                futures::future::Either::Left((next, _flush)) => next,
+                futures::future::Either::Right((flush, _next)) => match flush {
+                    Ok(()) => {
+                        should_flush = false;
+                        continue;
+                    }
+                    Err(error) => {
+                        warn!("Failed to flush: {error}");
+                        return;
+                    }
+                },
+            }
+        } else {
+            upload_stream.next().await
+        };
+        let Some(next) = next else {
+            break;
+        };
         match next {
             Ok(PortForwardDataRequest {
                 kind: Some(port_forward_data_request::Kind::Endpoint(endpoint)),
@@ -216,13 +237,16 @@ async fn process_write_half(mut upload_stream: impl RequestDataStream, write_hal
             }
             Ok(PortForwardDataRequest {
                 kind: Some(port_forward_data_request::Kind::Data(bytes)),
-            }) => match sink.feed(bytes).await {
-                Ok(()) => {}
-                Err(error) => {
-                    warn!("Failed to write: {error}");
-                    return;
+            }) => {
+                match sink.feed(bytes).await {
+                    Ok(()) => {}
+                    Err(error) => {
+                        warn!("Failed to write: {error}");
+                        return;
+                    }
                 }
-            },
+                should_flush = true;
+            }
             Ok(PortForwardDataRequest { kind: None }) => {
                 warn!("Next message is 'None'");
                 break;
@@ -233,9 +257,11 @@ async fn process_write_half(mut upload_stream: impl RequestDataStream, write_hal
             }
         }
     }
-    match sink.flush().await {
-        Ok(()) => {}
-        Err(error) => return warn!("Failed to flush: {error}"),
+    if should_flush {
+        match sink.flush().await {
+            Ok(()) => {}
+            Err(error) => return warn!("Failed to flush: {error}"),
+        }
     }
 }
 
