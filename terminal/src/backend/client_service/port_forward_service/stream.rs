@@ -46,7 +46,7 @@ use crate::backend::protos::terrazzo::portforward::port_forward_service_client::
 use crate::backend::protos::terrazzo::shared::ClientAddress;
 
 /// Download data from listener
-pub async fn stream<F: GetLocalStream>(
+pub(super) async fn stream<F: GetLocalStream>(
     server: &Arc<Server>,
     mut upload_stream: impl RequestDataStream,
 ) -> Result<GrpcStream, GrpcStreamError<F::Error>>
@@ -80,7 +80,7 @@ fn get_endpoint<L: std::error::Error>(
     }
 }
 
-pub struct GrpcStreamCallback<F: GetLocalStream, S: RequestDataStream>(PhantomData<(F, S)>)
+struct GrpcStreamCallback<F: GetLocalStream, S: RequestDataStream>(PhantomData<(F, S)>)
 where
     Status: From<F::Error>;
 
@@ -123,24 +123,11 @@ impl Stream for GrpcStream {
     }
 }
 
-pub trait GetLocalStreamError: std::error::Error + Sized
-where
-    Status: From<Self>,
-{
-}
-
-impl<T> GetLocalStreamError for T
-where
-    T: std::error::Error,
-    Status: From<Self>,
-{
-}
-
-pub trait GetLocalStream
+pub(super) trait GetLocalStream
 where
     Status: From<Self::Error>,
 {
-    type Error: GetLocalStreamError;
+    type Error: std::error::Error;
 
     async fn get_tcp_stream(endpoint_id: EndpointId) -> Result<TcpStream, Self::Error>;
 }

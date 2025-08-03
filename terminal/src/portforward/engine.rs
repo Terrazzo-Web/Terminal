@@ -5,8 +5,11 @@ use std::future::ready;
 use std::sync::Arc;
 
 use futures::StreamExt as _;
+use futures::TryStreamExt;
 use futures::channel::oneshot;
 use futures::stream;
+use nameth::NamedEnumValues as _;
+use nameth::nameth;
 use scopeguard::defer;
 use tracing::Instrument as _;
 use tracing::debug;
@@ -14,13 +17,18 @@ use tracing::info_span;
 use tracing::warn;
 use trz_gateway_server::server::Server;
 
-use super::schema::HostPortDefinition;
+use self::port_forward_service::bind::BindError;
+use self::port_forward_service::bind::BindStream;
+use self::port_forward_service::download::DownloadLocalError;
+use self::port_forward_service::stream::GrpcStreamError;
+use self::port_forward_service::upload::UploadLocalError;
 use super::schema::PortForward;
 use crate::backend::client_service::port_forward_service;
-use crate::backend::client_service::port_forward_service::bind::BindError;
-use crate::backend::client_service::port_forward_service::bind::BindStream;
 use crate::backend::protos::terrazzo::portforward::PortForwardAcceptResponse;
+use crate::backend::protos::terrazzo::portforward::PortForwardDataRequest;
+use crate::backend::protos::terrazzo::portforward::PortForwardDataResponse;
 use crate::backend::protos::terrazzo::portforward::PortForwardEndpoint;
+use crate::backend::protos::terrazzo::portforward::port_forward_data_request;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
 
 pub async fn process(
@@ -58,12 +66,13 @@ async fn process_port_forward(
 
     let stream = port_forward_service::bind::dispatch(server, requests).await?;
     let span = info_span!("Forward Port", from = %new.from, to = %new.to);
-    tokio::spawn(process_bind_stream(new.to.clone(), stream, eos_tx).instrument(span));
+    tokio::spawn(process_bind_stream(server.clone(), new.clone(), stream, eos_tx).instrument(span));
     Ok(())
 }
 
 async fn process_bind_stream(
-    to: HostPortDefinition,
+    server: Arc<Server>,
+    port_forward: PortForward,
     mut stream: BindStream,
     eos: oneshot::Sender<()>,
 ) {
@@ -86,6 +95,67 @@ async fn process_bind_stream(
             }
         }
 
-        let x = port_forward_service::download::download(server, requests).await;
+        tokio::spawn(run_stream(server.clone(), port_forward.clone()));
     }
+}
+
+async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<(), RunStreamError> {
+    let (upload_stream_tx, upload_stream_rx) = oneshot::channel();
+    let upload_stream = futures::stream::once(upload_stream_rx)
+        .filter_map(|stream| ready(stream.ok()))
+        .flatten()
+        .map_ok(|response: PortForwardDataResponse| PortForwardDataRequest {
+            kind: Some(port_forward_data_request::Kind::Data(response.data)),
+        });
+    let upload_stream = futures::stream::once(ready(Ok(PortForwardDataRequest {
+        kind: Some(port_forward_data_request::Kind::Endpoint(
+            PortForwardEndpoint {
+                remote: port_forward
+                    .from
+                    .forwarded_remote
+                    .map(|remote| ClientAddress::of(&remote)),
+                host: port_forward.from.host,
+                port: port_forward.from.port as i32,
+            },
+        )),
+    })))
+    .chain(upload_stream);
+
+    let download_stream = port_forward_service::download::download(&server, upload_stream)
+        .await?
+        .map_ok(|response: PortForwardDataResponse| PortForwardDataRequest {
+            kind: Some(port_forward_data_request::Kind::Data(response.data)),
+        });
+    let download_stream = futures::stream::once(ready(Ok(PortForwardDataRequest {
+        kind: Some(port_forward_data_request::Kind::Endpoint(
+            PortForwardEndpoint {
+                remote: port_forward
+                    .to
+                    .forwarded_remote
+                    .map(|remote| ClientAddress::of(&remote)),
+                host: port_forward.to.host,
+                port: port_forward.to.port as i32,
+            },
+        )),
+    })))
+    .chain(download_stream);
+
+    let upload_stream = port_forward_service::upload::upload(&server, download_stream).await?;
+    let () = upload_stream_tx
+        .send(upload_stream)
+        .map_err(|_upload_stream| RunStreamError::SetUploadStream)?;
+    Ok(())
+}
+
+#[nameth]
+#[derive(thiserror::Error, Debug)]
+pub enum RunStreamError {
+    #[error("[{n}] {0}", n = self.name())]
+    UploadStream(#[from] GrpcStreamError<UploadLocalError>),
+
+    #[error("[{n}] {0}", n = self.name())]
+    DownloadStream(#[from] GrpcStreamError<DownloadLocalError>),
+
+    #[error("[{n}] Failed to stich the upload stream", n = self.name())]
+    SetUploadStream,
 }
