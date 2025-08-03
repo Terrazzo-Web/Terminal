@@ -46,17 +46,17 @@ use crate::backend::protos::terrazzo::portforward::port_forward_service_client::
 use crate::backend::protos::terrazzo::shared::ClientAddress;
 
 /// Download data from listener
-pub async fn stream<F: GetTcpStream>(
+pub async fn stream<F: GetLocalStream>(
     server: &Arc<Server>,
     mut upload_stream: impl RequestDataStream,
-) -> Result<GrpcStream, DownloadError<F::Error>>
+) -> Result<GrpcStream, GrpcStreamError<F::Error>>
 where
     Status: From<F::Error>,
 {
     debug!("Start");
     defer!(debug!("End"));
     let Some(first_message) = upload_stream.next().await else {
-        return Err(DownloadError::EmptyRequest);
+        return Err(GrpcStreamError::EmptyRequest);
     };
 
     let endpoint = get_endpoint(first_message)?;
@@ -70,17 +70,17 @@ where
 
 fn get_endpoint<L: std::error::Error>(
     first_message: Result<PortForwardDataRequest, Status>,
-) -> Result<PortForwardEndpoint, DownloadError<L>> {
+) -> Result<PortForwardEndpoint, GrpcStreamError<L>> {
     let PortForwardDataRequest {
         kind: first_message,
-    } = first_message.map_err(|status| DownloadError::RequestError(Box::new(status)))?;
-    match first_message.ok_or(DownloadError::MissingEndpoint)? {
+    } = first_message.map_err(|status| GrpcStreamError::RequestError(Box::new(status)))?;
+    match first_message.ok_or(GrpcStreamError::MissingEndpoint)? {
         port_forward_data_request::Kind::Endpoint(endpoint) => Ok(endpoint),
-        port_forward_data_request::Kind::Data { .. } => Err(DownloadError::MissingEndpoint),
+        port_forward_data_request::Kind::Data { .. } => Err(GrpcStreamError::MissingEndpoint),
     }
 }
 
-pub struct GrpcStreamCallback<F: GetTcpStream, S: RequestDataStream>(PhantomData<(F, S)>)
+pub struct GrpcStreamCallback<F: GetLocalStream, S: RequestDataStream>(PhantomData<(F, S)>)
 where
     Status: From<F::Error>;
 
@@ -123,42 +123,42 @@ impl Stream for GrpcStream {
     }
 }
 
-pub trait GetTcpStreamError: std::error::Error + Sized
+pub trait GetLocalStreamError: std::error::Error + Sized
 where
     Status: From<Self>,
 {
 }
 
-impl<T> GetTcpStreamError for T
+impl<T> GetLocalStreamError for T
 where
     T: std::error::Error,
     Status: From<Self>,
 {
 }
 
-pub trait GetTcpStream
+pub trait GetLocalStream
 where
     Status: From<Self::Error>,
 {
-    type Error: GetTcpStreamError;
+    type Error: GetLocalStreamError;
 
-    async fn get_tcp_stream(endpoint_id: &EndpointId) -> Result<TcpStream, Self::Error>;
+    async fn get_tcp_stream(endpoint_id: EndpointId) -> Result<TcpStream, Self::Error>;
 }
 
-impl<F: GetTcpStream, S: RequestDataStream> DistributedCallback for GrpcStreamCallback<F, S>
+impl<F: GetLocalStream, S: RequestDataStream> DistributedCallback for GrpcStreamCallback<F, S>
 where
     Status: From<F::Error>,
 {
     type Request = (PortForwardEndpoint, S);
     type Response = GrpcStream;
     type LocalError = F::Error;
-    type RemoteError = DownloadRemoteError;
+    type RemoteError = GrpcStreamRemoteError;
 
     async fn remote<T>(
         channel: T,
         client_address: &[impl AsRef<str>],
         (endpoint, upload_stream): (PortForwardEndpoint, S),
-    ) -> Result<GrpcStream, DownloadRemoteError>
+    ) -> Result<GrpcStream, GrpcStreamRemoteError>
     where
         T: GrpcService<BoxBody>,
         T::Error: Into<StdError>,
@@ -199,7 +199,7 @@ where
                 port: endpoint.port,
             };
 
-            let (read_half, write_half) = F::get_tcp_stream(&endpoint_id).await?.into_split();
+            let (read_half, write_half) = F::get_tcp_stream(endpoint_id).await?.into_split();
 
             let requests_task = process_write_half(upload_stream, write_half);
             tokio::spawn(requests_task.in_current_span());
@@ -280,15 +280,15 @@ impl futures::AsyncWrite for WriteHalf {
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 #[error("[{n}] {0}", n = Self::type_name())]
-pub struct DownloadRemoteError(Box<Status>);
+pub struct GrpcStreamRemoteError(Box<Status>);
 
-impl From<DownloadRemoteError> for Status {
-    fn from(DownloadRemoteError(mut status): DownloadRemoteError) -> Self {
+impl From<GrpcStreamRemoteError> for Status {
+    fn from(GrpcStreamRemoteError(mut status): GrpcStreamRemoteError) -> Self {
         std::mem::replace(status.as_mut(), Status::ok(""))
     }
 }
 
-impl From<Status> for DownloadRemoteError {
+impl From<Status> for GrpcStreamRemoteError {
     fn from(status: Status) -> Self {
         Self(Box::new(status))
     }
@@ -296,7 +296,7 @@ impl From<Status> for DownloadRemoteError {
 
 #[nameth]
 #[derive(thiserror::Error, Debug)]
-pub enum DownloadError<L: std::error::Error> {
+pub enum GrpcStreamError<L: std::error::Error> {
     #[error("[{n}] Empty request", n = Self::type_name())]
     EmptyRequest,
 
@@ -307,20 +307,20 @@ pub enum DownloadError<L: std::error::Error> {
     MissingEndpoint,
 
     #[error("[{n}] {0}", n = Self::type_name())]
-    Dispatch(#[from] DistributedCallbackError<L, DownloadRemoteError>),
+    Dispatch(#[from] DistributedCallbackError<L, GrpcStreamRemoteError>),
 }
 
-impl<L> From<DownloadError<L>> for Status
+impl<L> From<GrpcStreamError<L>> for Status
 where
     L: std::error::Error,
     Status: From<L>,
 {
-    fn from(error: DownloadError<L>) -> Self {
+    fn from(error: GrpcStreamError<L>) -> Self {
         let code = match error {
-            DownloadError::EmptyRequest => tonic::Code::InvalidArgument,
-            DownloadError::RequestError { .. } => tonic::Code::FailedPrecondition,
-            DownloadError::MissingEndpoint { .. } => tonic::Code::FailedPrecondition,
-            DownloadError::Dispatch(error) => return error.into(),
+            GrpcStreamError::EmptyRequest => tonic::Code::InvalidArgument,
+            GrpcStreamError::RequestError { .. } => tonic::Code::FailedPrecondition,
+            GrpcStreamError::MissingEndpoint { .. } => tonic::Code::FailedPrecondition,
+            GrpcStreamError::Dispatch(error) => return error.into(),
         };
         Self::new(code, error.to_string())
     }

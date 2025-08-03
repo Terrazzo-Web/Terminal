@@ -6,8 +6,7 @@ use tonic::async_trait;
 
 use super::bind::BindStream;
 use crate::backend::client_service::ClientServiceImpl;
-use crate::backend::client_service::port_forward_service::download::DownloadStream;
-use crate::backend::client_service::port_forward_service::upload::UploadStream;
+use crate::backend::client_service::port_forward_service::stream::GrpcStream;
 use crate::backend::protos::terrazzo::portforward::PortForwardDataRequest;
 use crate::backend::protos::terrazzo::portforward::PortForwardEndpoint;
 use crate::backend::protos::terrazzo::portforward::port_forward_service_server::PortForwardService;
@@ -24,23 +23,23 @@ impl PortForwardService for ClientServiceImpl {
         Ok(Response::new(upload_stream))
     }
 
-    type DownloadStream = DownloadStream;
+    type DownloadStream = GrpcStream;
 
     async fn download(
         &self,
         requests: Request<tonic::Streaming<PortForwardDataRequest>>,
-    ) -> Result<Response<DownloadStream>, Status> {
+    ) -> Result<Response<GrpcStream>, Status> {
         let download_stream =
             super::download::download(&self.server, requests.into_inner()).await?;
         Ok(Response::new(download_stream))
     }
 
-    type UploadStream = UploadStream;
+    type UploadStream = GrpcStream;
 
     async fn upload(
         &self,
         requests: Request<tonic::Streaming<PortForwardDataRequest>>,
-    ) -> Result<Response<UploadStream>, Status> {
+    ) -> Result<Response<GrpcStream>, Status> {
         let upload_stream = super::upload::upload(&self.server, requests.into_inner()).await?;
         Ok(Response::new(upload_stream))
     }
