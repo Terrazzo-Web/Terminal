@@ -51,7 +51,7 @@ fn port_forward_impl(manager: Manager) -> XElement {
 fn show_port_forwards(
     manager: Manager,
     #[signal] remote: Remote,
-    #[signal] port_forwards: Arc<[PortForward]>,
+    #[signal] port_forwards: Arc<Vec<PortForward>>,
 ) -> XElement {
     manager.load_port_forwards(remote.clone());
     let port_forward_tags = port_forwards

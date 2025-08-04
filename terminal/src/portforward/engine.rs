@@ -31,46 +31,120 @@ use crate::backend::protos::terrazzo::portforward::PortForwardEndpoint;
 use crate::backend::protos::terrazzo::portforward::port_forward_data_request;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
 
+pub struct RunningPortForward {
+    pub port_forward: PortForward,
+    ask: oneshot::Sender<()>,
+    ack: oneshot::Receiver<()>,
+}
+
+impl RunningPortForward {
+    pub async fn stop(self) {
+        let Self {
+            port_forward,
+            ask,
+            ack,
+        } = self;
+        if let Err(()) = ask.send(()) {
+            warn!("Failed to stop {port_forward:?}");
+        }
+        if let Err(error) = ack.await {
+            warn!("Failed to stop {port_forward:?}: {error}")
+        }
+    }
+}
+
+pub struct PendingPortForward {
+    port_forward: PortForward,
+    ask: oneshot::Receiver<()>,
+    ack: oneshot::Sender<()>,
+}
+
+pub fn prepare(
+    old: Box<[RunningPortForward]>,
+    new: Arc<Vec<PortForward>>,
+) -> (
+    Box<[RunningPortForward]>,
+    Box<[RunningPortForward]>,
+    Box<[PendingPortForward]>,
+) {
+    let mut running = vec![];
+    let mut stopping = vec![];
+    let mut pending = vec![];
+    let mut old = old
+        .into_iter()
+        .map(|old| (old.port_forward.id, old))
+        .collect::<HashMap<_, _>>();
+    let new = match Arc::try_unwrap(new) {
+        Ok(new) => Box::from(new),
+        Err(new) => Box::new(new.as_ref().clone()),
+    };
+    for new in new.into_iter() {
+        let old = old.remove(&new.id);
+        if let Some(running_old) = old {
+            let old = &running_old.port_forward;
+            debug!("Update Port Forward config from {old:?} to {new:?}");
+            if old == &new {
+                debug!("Port forward config did not change: {old:?}");
+                running.push(running_old);
+                continue;
+            } else {
+                stopping.push(running_old);
+            }
+        } else {
+            debug!("Add Port Forward config {new:?}");
+        }
+
+        let (eos_ask_tx, eos_ask_rx) = oneshot::channel();
+        let (eos_ack_tx, eos_ack_rx) = oneshot::channel();
+        running.push(RunningPortForward {
+            port_forward: new.clone(),
+            ask: eos_ask_tx,
+            ack: eos_ack_rx,
+        });
+        pending.push(PendingPortForward {
+            port_forward: new,
+            ask: eos_ask_rx,
+            ack: eos_ack_tx,
+        });
+    }
+    (Box::from(running), Box::from(stopping), Box::from(pending))
+}
+
 pub async fn process(
     server: &Arc<Server>,
-    old: &[PortForward],
-    new: &[PortForward],
+    new: Box<[PendingPortForward]>,
 ) -> Result<(), BindError> {
-    let old = old
-        .iter()
-        .map(|old| (old.id, old))
-        .collect::<HashMap<_, _>>();
     for new in new {
-        let () = process_port_forward(server, old.get(&new.id).copied(), new).await?;
+        let () = process_port_forward(server, new).await?;
     }
     Ok(())
 }
 
 async fn process_port_forward(
     server: &Arc<Server>,
-    old: Option<&PortForward>,
-    new: &PortForward,
+    new: PendingPortForward,
 ) -> Result<(), BindError> {
-    debug!("Update Port Forward config from {old:#?} to {new:#?}");
-    if old == Some(new) {
-        debug!("Port forward config did not change");
-        return Ok(());
-    }
-
-    let (eos_tx, eos_rx) = oneshot::channel();
-    let eos = stream::once(eos_rx).filter_map(|_| ready(None));
+    let PendingPortForward {
+        port_forward,
+        ask,
+        ack,
+    } = new;
     let requests = stream::once(ready(Ok(PortForwardEndpoint {
-        remote: new.from.forwarded_remote.as_deref().map(ClientAddress::of),
-        host: new.from.host.to_owned(),
-        port: new.from.port as i32,
+        remote: port_forward
+            .from
+            .forwarded_remote
+            .as_deref()
+            .map(ClientAddress::of),
+        host: port_forward.from.host.to_owned(),
+        port: port_forward.from.port as i32,
     })))
-    .chain(eos);
+    .chain(stream::once(ask).filter_map(|_| ready(None)));
 
     let stream = port_forward_service::bind::dispatch(server, requests)
         .await
         .inspect_err(|error| debug!("Bind failed: {error}"))?;
-    let span = info_span!("Forward Port", from = %new.from, to = %new.to);
-    tokio::spawn(process_bind_stream(server.clone(), new.clone(), stream, eos_tx).instrument(span));
+    let span = info_span!("Forward Port", from = %port_forward.from, to = %port_forward.to);
+    tokio::spawn(process_bind_stream(server.clone(), port_forward, stream, ack).instrument(span));
     Ok(())
 }
 
@@ -105,7 +179,7 @@ async fn process_bind_stream(
 
 async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<(), RunStreamError> {
     let (upload_stream_tx, upload_stream_rx) = oneshot::channel();
-    let upload_stream = futures::stream::once(upload_stream_rx)
+    let upload_stream = stream::once(upload_stream_rx)
         .filter_map(|stream| ready(stream.ok()))
         .flatten()
         .map_ok(|response: PortForwardDataResponse| PortForwardDataRequest {
@@ -113,7 +187,7 @@ async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<()
         });
 
     let upload_endpoint = port_forward.from;
-    let upload_stream = futures::stream::once(ready(Ok(PortForwardDataRequest {
+    let upload_stream = stream::once(ready(Ok(PortForwardDataRequest {
         kind: Some(port_forward_data_request::Kind::Endpoint(
             PortForwardEndpoint {
                 remote: upload_endpoint
@@ -133,7 +207,7 @@ async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<()
             kind: Some(port_forward_data_request::Kind::Data(response.data)),
         });
     let download_endpoint = port_forward.to;
-    let download_stream = futures::stream::once(ready(Ok(PortForwardDataRequest {
+    let download_stream = stream::once(ready(Ok(PortForwardDataRequest {
         kind: Some(port_forward_data_request::Kind::Endpoint(
             PortForwardEndpoint {
                 remote: download_endpoint

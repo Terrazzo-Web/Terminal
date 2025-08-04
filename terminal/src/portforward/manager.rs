@@ -31,8 +31,8 @@ mod inner {
     use crate::portforward::schema::PortForward;
 
     pub struct ManagerImpl {
-        pub(super) port_forwards_signal: XSignal<Arc<[PortForward]>>,
-        pub(super) port_forwards: Mutex<Arc<[PortForward]>>,
+        pub(super) port_forwards_signal: XSignal<Arc<Vec<PortForward>>>,
+        pub(super) port_forwards: Mutex<Arc<Vec<PortForward>>>,
         pub(super) remote: XSignal<Remote>,
         pub(super) remotes: XSignal<Vec<ClientAddress>>,
     }
@@ -73,10 +73,10 @@ impl Manager {
     pub fn remotes(&self) -> XSignal<Vec<ClientAddress>> {
         self.remotes.clone()
     }
-    pub fn port_forwards(&self) -> XSignal<Arc<[PortForward]>> {
+    pub fn port_forwards(&self) -> XSignal<Arc<Vec<PortForward>>> {
         self.port_forwards_signal.clone()
     }
-    pub fn port_forwards_lock(&self) -> std::sync::MutexGuard<Arc<[PortForward]>> {
+    pub fn port_forwards_lock(&self) -> std::sync::MutexGuard<Arc<Vec<PortForward>>> {
         self.port_forwards.lock().expect("port_forwards lock")
     }
 
@@ -86,6 +86,7 @@ impl Manager {
             let Ok(port_forwards) = super::state::load_port_forwards(remote).await else {
                 return;
             };
+            let port_forwards: Arc<Vec<PortForward>> = Arc::from(port_forwards);
             *manager.port_forwards_lock() = port_forwards.clone();
             manager.port_forwards_signal.set(port_forwards);
         });
@@ -122,7 +123,7 @@ impl Manager {
         remote: &Remote,
         sync_state: XSignal<SyncState>,
         field: Fields,
-        update_fn: impl FnOnce(&Arc<[PortForward]>) -> Arc<[PortForward]>,
+        update_fn: impl FnOnce(&Arc<Vec<PortForward>>) -> Arc<Vec<PortForward>>,
     ) {
         let loading = SyncState::incr_loading(sync_state, field);
         let mut port_forwards_lock = self.port_forwards_lock();
