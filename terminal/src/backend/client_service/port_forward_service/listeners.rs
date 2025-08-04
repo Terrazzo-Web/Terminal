@@ -11,7 +11,6 @@ use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 
-#[must_use]
 pub fn listeners() -> MutexGuard<'static, Listeners> {
     static LISTENERS: Mutex<Listeners> = Mutex::new(Listeners::new());
     LISTENERS.lock().expect("listeners")
@@ -40,7 +39,7 @@ impl Deref for Listeners {
         static DEFAULT: OnceLock<ListenersMap> = OnceLock::new();
         self.0
             .as_ref()
-            .unwrap_or_else(|| DEFAULT.get_or_init(|| ListenersMap::new()))
+            .unwrap_or_else(|| DEFAULT.get_or_init(ListenersMap::new))
     }
 }
 

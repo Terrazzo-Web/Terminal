@@ -46,10 +46,10 @@ impl GetLocalStream for GetDownloadStream {
         let mut streams = scopeguard::guard(streams, |streams| {
             let _ = tx.send(streams);
         });
-        Ok(streams
+        streams
             .recv()
             .await
-            .ok_or(DownloadLocalError::NoMoreStreams)?)
+            .ok_or(DownloadLocalError::NoMoreStreams)
     }
 }
 
@@ -71,7 +71,7 @@ impl From<DownloadLocalError> for Status {
         let code = match error {
             DownloadLocalError::StreamsNotRegistered { .. } => tonic::Code::InvalidArgument,
             DownloadLocalError::StreamsNotAvailable { .. } => tonic::Code::FailedPrecondition,
-            DownloadLocalError::NoMoreStreams { .. } => tonic::Code::FailedPrecondition,
+            DownloadLocalError::NoMoreStreams => tonic::Code::FailedPrecondition,
         };
         Self::new(code, error.to_string())
     }

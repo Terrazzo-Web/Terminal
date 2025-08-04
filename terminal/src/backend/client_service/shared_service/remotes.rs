@@ -46,7 +46,7 @@ async fn list_remotes_impl(server: &Server, visited: Vec<String>) -> Vec<ClientA
                 via: vec![client_name.to_string()],
             }),
         );
-        list_remotes_for_client(&server, &visited, &mut map, &mut next_entry, &client_name)
+        list_remotes_for_client(server, &visited, &mut map, &mut next_entry, &client_name)
             .instrument(debug_span!("Client", remote_client_name = %client_name))
             .await
     }
@@ -65,7 +65,7 @@ async fn list_remotes_for_client(
     next_entry: &mut impl FnMut(ClientAddress) -> (i32, ClientAddress),
     client_name: &ClientName,
 ) {
-    let Some(client) = server.connections().get_client(&client_name) else {
+    let Some(client) = server.connections().get_client(client_name) else {
         warn!("Client connection not found");
         return;
     };

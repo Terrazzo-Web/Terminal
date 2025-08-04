@@ -82,7 +82,7 @@ pub struct LocalBindStream(
 );
 
 #[pin_project]
-pub struct RemoteBindStream(#[pin] Streaming<PortForwardAcceptResponse>);
+pub struct RemoteBindStream(#[pin] Box<Streaming<PortForwardAcceptResponse>>);
 
 impl Stream for BindStream {
     type Item = Result<PortForwardAcceptResponse, Status>;
@@ -131,7 +131,9 @@ impl<S: Stream<Item = PortForwardEndpoint> + Send + Unpin + 'static> Distributed
             let requests = futures::stream::once(ready(endpoint)).chain(requests);
             let mut client = PortForwardServiceClient::new(channel);
             let response = client.bind(requests).await?;
-            Ok(BindStream::Remote(RemoteBindStream(response.into_inner())))
+            Ok(BindStream::Remote(RemoteBindStream(Box::new(
+                response.into_inner(),
+            ))))
         }
         .instrument(info_span!("Remote"))
         .await
@@ -210,7 +212,7 @@ async fn process_request(
     }
 
     for address in addresses {
-        let (shutdown, terminated, handle) = ServerHandle::new(format!("port forward"));
+        let (shutdown, terminated, handle) = ServerHandle::new("port forward");
         handles.push(handle);
         process_socket_address(
             address,
@@ -264,7 +266,7 @@ async fn process_socket_address(
         }
         let _terminated = terminated.send(());
     };
-    let _: JoinHandle<()> = tokio::spawn(task.instrument(info_span!("Accept", %address)));
+    let _task: JoinHandle<()> = tokio::spawn(task.instrument(info_span!("Accept", %address)));
     Ok(())
 }
 

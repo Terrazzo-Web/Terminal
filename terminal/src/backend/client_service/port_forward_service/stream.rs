@@ -100,7 +100,7 @@ pub struct LocalGrpcStream {
 }
 
 #[pin_project]
-pub struct RemoteGrpcStream(#[pin] Streaming<PortForwardDataResponse>);
+pub struct RemoteGrpcStream(#[pin] Box<Streaming<PortForwardDataResponse>>);
 
 impl Stream for GrpcStream {
     type Item = Result<PortForwardDataResponse, Status>;
@@ -169,7 +169,9 @@ where
                 .chain(upload_stream.filter_map(|next| ready(next.ok())));
             let mut client = PortForwardServiceClient::new(channel);
             let download_stream = client.download(upload_stream).await?.into_inner();
-            Ok(GrpcStream::Remote(RemoteGrpcStream(download_stream)))
+            Ok(GrpcStream::Remote(RemoteGrpcStream(Box::new(
+                download_stream,
+            ))))
         }
         .instrument(info_span!("Remote"))
         .await
@@ -336,7 +338,7 @@ where
         let code = match error {
             GrpcStreamError::EmptyRequest => tonic::Code::InvalidArgument,
             GrpcStreamError::RequestError { .. } => tonic::Code::FailedPrecondition,
-            GrpcStreamError::MissingEndpoint { .. } => tonic::Code::FailedPrecondition,
+            GrpcStreamError::MissingEndpoint => tonic::Code::FailedPrecondition,
             GrpcStreamError::Dispatch(error) => return error.into(),
         };
         Self::new(code, error.to_string())
