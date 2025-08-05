@@ -75,7 +75,7 @@ fn get_endpoint<L: std::error::Error>(
 ) -> Result<PortForwardEndpoint, GrpcStreamError<L>> {
     let PortForwardDataRequest {
         kind: first_message,
-    } = first_message.map_err(|status| GrpcStreamError::RequestError(Box::new(status)))?;
+    } = first_message.map_err(|status| GrpcStreamError::RequestError(status))?;
     match first_message.ok_or(GrpcStreamError::MissingEndpoint)? {
         port_forward_data_request::Kind::Endpoint(endpoint) => Ok(endpoint),
         port_forward_data_request::Kind::Data { .. } => Err(GrpcStreamError::MissingEndpoint),
@@ -299,17 +299,17 @@ impl futures::AsyncWrite for WriteHalf {
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 #[error("[{n}] {0}", n = Self::type_name())]
-pub struct GrpcStreamRemoteError(Box<Status>);
+pub struct GrpcStreamRemoteError(Status);
 
 impl From<GrpcStreamRemoteError> for Status {
-    fn from(GrpcStreamRemoteError(mut status): GrpcStreamRemoteError) -> Self {
-        std::mem::replace(status.as_mut(), Status::ok(""))
+    fn from(GrpcStreamRemoteError(status): GrpcStreamRemoteError) -> Self {
+        status
     }
 }
 
 impl From<Status> for GrpcStreamRemoteError {
     fn from(status: Status) -> Self {
-        Self(Box::new(status))
+        Self(status)
     }
 }
 
@@ -320,7 +320,7 @@ pub enum GrpcStreamError<L: std::error::Error> {
     EmptyRequest,
 
     #[error("[{n}] Failed request: {0}", n = Self::type_name())]
-    RequestError(Box<Status>),
+    RequestError(Status),
 
     #[error("[{n}] Expected the first message to contain the endpoint", n = Self::type_name())]
     MissingEndpoint,

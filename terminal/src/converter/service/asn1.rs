@@ -37,8 +37,8 @@ pub fn print_bytes(bytes: &[u8]) -> String {
     let mut iter = bytes.iter().peekable();
     while let Some(byte) = iter.next() {
         result += &match iter.peek() {
-            Some(_) => format!("{:02X}:", byte),
-            None => format!("{:02X}", byte),
+            Some(_) => format!("{byte:02X}:"),
+            None => format!("{byte:02X}"),
         };
     }
     result

@@ -109,7 +109,7 @@ pub fn run_server() -> Result<(), RunServerError> {
     .merge(&cli);
 
     #[cfg(debug_assertions)]
-    println!("Config: {:#?}", config);
+    println!("Config: {config:#?}");
 
     if cli.action == Action::Stop {
         return Ok(config.server.kill()?);

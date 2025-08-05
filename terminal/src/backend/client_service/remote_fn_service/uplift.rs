@@ -55,7 +55,7 @@ where
                 Ok(response) => {
                     serde_json::to_string(&response).map_err(RemoteFnError::SerializeResponse)
                 }
-                Err(error) => Err(RemoteFnError::ServerFn(Box::new(error.into()))),
+                Err(error) => Err(RemoteFnError::ServerFn(error.into())),
             },
         }
         .into()

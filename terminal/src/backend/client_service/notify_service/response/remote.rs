@@ -38,7 +38,6 @@ fn poll_next_remote(
     Some(poll_next_remote_some(response?))
 }
 
-#[expect(clippy::result_large_err)]
 fn poll_next_remote_some(
     response: Result<NotifyResponse, ServerFnError>,
 ) -> Result<NotifyResponseProto, Status> {
