@@ -155,7 +155,11 @@ impl<S: Stream<Item = PortForwardEndpoint> + Send + Unpin + 'static> Distributed
                     next = async {
                         debug!("Start: port forward request = {request:?}");
                         defer!(debug!("End"));
-                        let shutdown = process_request(&notify_tx, request).await?;
+                        let (shutdown, first_error) = process_request(&notify_tx, request).await?;
+                        if let Some(error) = first_error {
+                            let () = shutdown.await;
+                            return Err(error);
+                        }
                         debug!("Waiting for next request");
                         let next = requests.next().await;
                         debug!("Shuting down listeners");
@@ -189,7 +193,7 @@ impl<S: Stream<Item = PortForwardEndpoint> + Send + Unpin + 'static> Distributed
 async fn process_request(
     notify: &mpsc::Sender<Result<PortForwardAcceptResponse, BindLocalError>>,
     endpoint: PortForwardEndpoint,
-) -> Result<impl Future<Output = ()>, BindLocalError> {
+) -> Result<(impl Future<Output = ()>, Option<BindLocalError>), BindLocalError> {
     let endpoint_id = EndpointId {
         host: endpoint.host,
         port: endpoint.port,
@@ -211,6 +215,7 @@ async fn process_request(
         }
     }
 
+    let mut first_error = None;
     for address in addresses {
         let (shutdown, terminated, handle) = ServerHandle::new("port forward");
         handles.push(handle);
@@ -221,7 +226,12 @@ async fn process_request(
             shutdown,
             terminated,
         )
-        .await?;
+        .await
+        .unwrap_or_else(|error| {
+            if first_error.is_none() {
+                first_error = Some(error);
+            }
+        });
     }
 
     let shutdown = async move {
@@ -236,7 +246,7 @@ async fn process_request(
         debug!("All listeners have shutdown");
     };
 
-    Ok(shutdown)
+    Ok((shutdown, first_error))
 }
 
 async fn process_socket_address(
