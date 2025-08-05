@@ -26,27 +26,31 @@
     flex-direction: column;
     overflow-y: scroll;
 
-    .port-forward {
+    .port-forward,
+    .add {
         border: 1px solid var(--color);
         border-radius: var(--padding);
         margin-top: var(--padding);
         padding: var(--half-padding);
+    }
 
-        &:last-child {
-            border-bottom: 0;
-        }
-
+    .port-forward {
         .title {
             margin: var(--half-padding);
             display: flex;
             align-items: center;
 
-            .status {
+            img.status,
+            img.delete {
                 --size: 24px;
                 width: var(--size);
                 height: var(--size);
                 margin: var(--half-padding);
                 padding-right: var(--half-padding);
+            }
+
+            img.delete {
+                margin-left: auto;
             }
         }
 
@@ -136,6 +140,20 @@
                 -moz-appearance: none;
                 font: inherit;
             }
+        }
+    }
+
+    .add {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+
+        img {
+            --size: 24px;
+            width: var(--size);
+            height: var(--size);
+            margin: var(--half-padding);
+            padding-right: var(--half-padding);
         }
     }
 }

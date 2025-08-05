@@ -18,6 +18,7 @@ use super::schema::PortForward;
 use super::sync_state::Fields;
 use super::sync_state::SyncState;
 use crate::api::client_address::ClientAddress;
+use crate::assets::icons;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
@@ -57,19 +58,18 @@ fn show_port_forwards(
     let port_forward_tags = port_forwards
         .iter()
         .map(|port_forward| show_port_forward(&manager, &remote, port_forward));
+    let new_sync_state = XSignal::new("new sync-state", Default::default());
     tag(
         class = style::port_forwards,
         port_forward_tags..,
-        // TODO: Improve styling for '+', replace it with a loading icon while loading and add a text, ie 'img("+"), "Add a port forward"'.
         div(
-            "+",
-            style::cursor = "pointer",
+            show_add_port_forward(new_sync_state.clone()),
             click = move |_| {
                 autoclone!(remote);
                 manager.update(
                     &remote,
-                    XSignal::new("new sync-state", Default::default()),
-                    Fields::empty(),
+                    new_sync_state.clone(),
+                    Fields::all() - Fields::DELETE,
                     |port_forwards| {
                         let port_forwards = port_forwards.iter().cloned();
                         let port_forwards = port_forwards.chain(Some(PortForward::new()));
@@ -78,6 +78,16 @@ fn show_port_forwards(
                 );
             },
         ),
+    )
+}
+
+#[html]
+#[template(tag = div)]
+fn show_add_port_forward(#[signal] new_sync_state: SyncState) -> XElement {
+    tag(
+        class = style::add,
+        img(src = new_sync_state.add_src()),
+        "Add port forward",
     )
 }
 
@@ -98,6 +108,13 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
             class = style::title,
             show_status(sync_state.clone()),
             "{title}",
+            show_delete(
+                manager.clone(),
+                remote.clone(),
+                *id,
+                sync_state.clone(),
+                sync_state.clone(),
+            ),
         ),
         div(
             class = style::port_forward_body,
@@ -128,7 +145,41 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
 #[html]
 #[template(tag = img)]
 fn show_status(#[signal] sync_state: SyncState) -> XElement {
-    tag(class = style::status, src = sync_state.src())
+    tag(class = style::status, src = sync_state.status_src())
+}
+
+#[autoclone]
+#[html]
+#[template(tag = img)]
+fn show_delete(
+    manager: Manager,
+    remote: Remote,
+    id: i32,
+    sync_state_signal: XSignal<SyncState>,
+    #[signal] sync_state: SyncState,
+) -> XElement {
+    tag(
+        class = style::delete,
+        style::visibility = sync_state.is_deleting().then_some("hidden"),
+        src = icons::trash(),
+        click = move |_| {
+            autoclone!(remote);
+            manager.update(
+                &remote,
+                sync_state_signal.clone(),
+                Fields::DELETE,
+                |port_forwards| {
+                    port_forwards
+                        .iter()
+                        .filter_map(|port_forward| {
+                            (port_forward.id != id).then(|| port_forward.clone())
+                        })
+                        .collect::<Vec<_>>()
+                        .into()
+                },
+            );
+        },
+    )
 }
 
 #[derive(Clone, Copy)]

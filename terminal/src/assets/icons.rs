@@ -30,6 +30,7 @@ macro_rules! declare_icon {
 #[cfg(feature = "client")]
 pub type Icon = &'static str;
 
+declare_icon!(add_port_forward,"/icons/add-port-forward.svg"; feature = "port-forward");
 declare_icon!(add_tab, "/icons/plus-square.svg"; feature = "terminal");
 declare_icon!(chevron_double_right, "/icons/chevron-double-right.svg"; feature = "text-editor");
 declare_icon!(close_tab, "/icons/x-lg.svg"; any(feature = "terminal", feature = "text-editor"));
@@ -47,3 +48,4 @@ declare_icon!(port_forward_synchronized,"/icons/port-forward-synchronized.svg"; 
 declare_icon!(slash, "/icons/slash.svg"; feature = "text-editor");
 declare_icon!(terminal, "/icons/terminal-dash.svg"; feature = "terminal");
 declare_icon!(text_editor, "/icons/layout-text-sidebar-reverse.svg"; feature = "text-editor");
+declare_icon!(trash, "/icons/trash3.svg"; feature = "port-forward");
