@@ -15,7 +15,7 @@ pub async fn store_port_forwards(
     port_forwards: Arc<Vec<PortForward>>,
 ) -> Result<(), ServerFnError> {
     #[cfg(debug_assertions)]
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     Ok(backend::STORE_PORT_FORWARDS_FN
         .call(remote.unwrap_or_default(), port_forwards)
         .await?)

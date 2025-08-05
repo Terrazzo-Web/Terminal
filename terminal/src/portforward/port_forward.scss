@@ -40,17 +40,28 @@
             display: flex;
             align-items: center;
 
-            img.status,
-            img.delete {
+            img.status {
                 --size: 24px;
-                width: var(--size);
-                height: var(--size);
-                margin: var(--half-padding);
+                margin-left: auto;
                 padding-right: var(--half-padding);
+                margin: var(--half-padding);
+                margin-left: 0;
             }
 
             img.delete {
+                --size: 20px;
+                margin: var(--half-padding);
                 margin-left: auto;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+
+            img.status,
+            img.delete {
+                width: var(--size);
+                height: var(--size);
             }
         }
 
