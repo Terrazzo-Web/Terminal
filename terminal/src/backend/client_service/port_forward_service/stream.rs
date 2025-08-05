@@ -42,7 +42,6 @@ use crate::backend::protos::terrazzo::portforward::PortForwardDataRequest;
 use crate::backend::protos::terrazzo::portforward::PortForwardDataResponse;
 use crate::backend::protos::terrazzo::portforward::PortForwardEndpoint;
 use crate::backend::protos::terrazzo::portforward::port_forward_data_request;
-use crate::backend::protos::terrazzo::portforward::port_forward_service_client::PortForwardServiceClient;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
 
 const STREAM_BUFFER_SIZE: usize = 8192;
@@ -132,6 +131,16 @@ where
     type Error: std::error::Error;
 
     async fn get_tcp_stream(endpoint_id: EndpointId) -> Result<TcpStream, Self::Error>;
+    async fn call<S, T>(
+        channel: T,
+        stream: S,
+    ) -> Result<Streaming<PortForwardDataResponse>, Status>
+    where
+        S: Stream<Item = PortForwardDataRequest> + Send + 'static,
+        T: GrpcService<BoxBody>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + Send;
 }
 
 impl<F: GetLocalStream, S: RequestDataStream> DistributedCallback for GrpcStreamCallback<F, S>
@@ -167,8 +176,7 @@ where
             };
             let upload_stream = stream::once(ready(first_message))
                 .chain(upload_stream.filter_map(|next| ready(next.ok())));
-            let mut client = PortForwardServiceClient::new(channel);
-            let download_stream = client.download(upload_stream).await?.into_inner();
+            let download_stream = F::call(channel, upload_stream).await?;
             Ok(GrpcStream::Remote(RemoteGrpcStream(Box::new(
                 download_stream,
             ))))
