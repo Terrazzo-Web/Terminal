@@ -1,11 +1,20 @@
 use std::sync::Arc;
 
+use futures::Stream;
+use futures::TryFutureExt as _;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
+use prost::bytes::Bytes;
 use tokio::sync::oneshot;
 use tonic::Status;
+use tonic::Streaming;
+use tonic::body::Body as BoxBody;
+use tonic::client::GrpcService;
+use tonic::codegen::StdError;
+use tonic::transport::Body;
 use tracing::Instrument as _;
 use tracing::info_span;
+use tracing::warn;
 use trz_gateway_server::server::Server;
 
 use super::RequestDataStream;
@@ -14,6 +23,9 @@ use super::stream::GetLocalStream;
 use super::stream::GrpcStream;
 use super::stream::GrpcStreamError;
 use super::stream::stream;
+use crate::backend::protos::terrazzo::portforward::PortForwardDataRequest;
+use crate::backend::protos::terrazzo::portforward::PortForwardDataResponse;
+use crate::backend::protos::terrazzo::portforward::port_forward_service_client::PortForwardServiceClient;
 
 /// Download data from listener
 pub async fn download(
@@ -21,6 +33,7 @@ pub async fn download(
     upload_stream: impl RequestDataStream,
 ) -> Result<GrpcStream, GrpcStreamError<DownloadLocalError>> {
     stream::<GetDownloadStream>(server, upload_stream)
+        .inspect_err(|error| warn!("Failed: {error}"))
         .instrument(info_span!("PortForward Download"))
         .await
 }
@@ -50,6 +63,18 @@ impl GetLocalStream for GetDownloadStream {
             .recv()
             .await
             .ok_or(DownloadLocalError::NoMoreStreams)
+    }
+
+    async fn call<S, T>(channel: T, stream: S) -> Result<Streaming<PortForwardDataResponse>, Status>
+    where
+        S: Stream<Item = PortForwardDataRequest> + Send + 'static,
+        T: GrpcService<BoxBody>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
+    {
+        let mut client = PortForwardServiceClient::new(channel);
+        Ok(client.download(stream).await?.into_inner())
     }
 }
 

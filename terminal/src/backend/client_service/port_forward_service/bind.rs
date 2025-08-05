@@ -210,6 +210,7 @@ async fn process_request(
         hash_map::Entry::Vacant(entry) => {
             let (tx, rx) = oneshot::channel();
             let () = tx.send(streams_rx).expect("Failed to set streams");
+            info!("Registered bind stream on {:?}", entry.key());
             entry.insert(rx);
         }
     }
