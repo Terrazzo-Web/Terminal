@@ -1,6 +1,5 @@
 # TODO
 - `#116`. Keep current remote in memory
-- `#·91`. Port forwarding tool
 - `#·95`. File explorer: search tool
 - `#115`. Add some caching in the UI around folder I/O, so loading stuff is faster
 - `#·94`. File explorer: all files
@@ -129,3 +128,4 @@ Next: `#117`.
 - `#114`. Notification pipeline works with remotes
 - `#110`. Add a wrapper around `cargo check` that returns a list of errors or warnings
 - `#·89`. Anything parser: x509, base64, pem, yaml, json, toml, etc.
+- `#·91`. Port forwarding tool
