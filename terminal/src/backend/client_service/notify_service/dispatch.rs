@@ -91,7 +91,7 @@ pub fn notify_dispatch(request: HybridRequestStream) -> Result<HybridResponseStr
 #[derive(thiserror::Error, Debug)]
 pub enum NotifyError {
     #[error("[{n}] {0}", n = self.name())]
-    Error(DistributedCallbackError<NotifyLocalError, Box<Status>>),
+    Error(DistributedCallbackError<NotifyLocalError, Status>),
 
     #[error("[{n}] {0}", n = self.name())]
     InvalidStart(ServerFnError),

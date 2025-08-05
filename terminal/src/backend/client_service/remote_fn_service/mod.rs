@@ -63,7 +63,7 @@ pub enum RemoteFnError {
     ServerWasDropped,
 
     #[error("[{n}] {0}", n = self.name())]
-    ServerFn(Box<Status>),
+    ServerFn(Status),
 
     #[error("[{n}] Failed to serialize request: {0}", n = self.name())]
     SerializeRequest(serde_json::Error),
@@ -100,9 +100,7 @@ mod remote_fn_errors_to_status {
                 | RemoteFnError::ServerNotSet
                 | RemoteFnError::ServerWasDropped => Status::internal(error.to_string()),
                 RemoteFnError::RemoteFnNotFound { .. } => Status::not_found(error.to_string()),
-                RemoteFnError::ServerFn(mut error) => {
-                    std::mem::replace(&mut *error, Status::ok(""))
-                }
+                RemoteFnError::ServerFn(error) => error,
                 RemoteFnError::SerializeRequest { .. }
                 | RemoteFnError::DeserializeRequest { .. }
                 | RemoteFnError::SerializeResponse { .. }

@@ -61,6 +61,7 @@ tokio = { workspace = true, optional = true, features = ["full"] }
 tokio-stream = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
+tonic-prost = { workspace = true, optional = true }
 tower = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = [
     "sensitive-headers",
@@ -85,7 +86,7 @@ x509-parser = { workspace = true, optional = true }
 heck = { workspace = true }
 scopeguard = { workspace = true }
 terrazzo-build = { workspace = true }
-tonic-build = { workspace = true, features = ["prost"] }
+tonic-prost-build = { workspace = true }
 
 [dev-dependencies]
 fluent-asserter = { workspace = true }
@@ -134,6 +135,7 @@ server = [
     "dep:tokio",
     "dep:toml",
     "dep:tonic",
+    "dep:tonic-prost",
     "dep:tower-http",
     "dep:tower",
     "dep:tracing",

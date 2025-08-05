@@ -56,8 +56,7 @@ pub async fn dispatch(
         let Some(first_message) = requests.next().await else {
             return Err(BindError::EmptyRequest);
         };
-        let first_message =
-            first_message.map_err(|status| BindError::RequestError(Box::new(status)))?;
+        let first_message = first_message.map_err(BindError::RequestError)?;
         debug!("Port forward request: {first_message:?}");
 
         let remote = first_message.remote.clone().unwrap_or_default();
@@ -332,17 +331,17 @@ impl From<BindLocalError> for Status {
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 #[error("[{n}] {0}", n = Self::type_name())]
-pub struct BindRemoteError(Box<Status>);
+pub struct BindRemoteError(Status);
 
 impl From<BindRemoteError> for Status {
-    fn from(BindRemoteError(mut status): BindRemoteError) -> Self {
-        std::mem::replace(status.as_mut(), Status::ok(""))
+    fn from(BindRemoteError(status): BindRemoteError) -> Self {
+        status
     }
 }
 
 impl From<Status> for BindRemoteError {
     fn from(status: Status) -> Self {
-        Self(Box::new(status))
+        Self(status)
     }
 }
 
@@ -353,7 +352,7 @@ pub enum BindError {
     EmptyRequest,
 
     #[error("[{n}] Failed request: {0}", n = Self::type_name())]
-    RequestError(Box<Status>),
+    RequestError(Status),
 
     #[error("[{n}] {0}", n = Self::type_name())]
     Dispatch(#[from] DistributedCallbackError<BindLocalError, BindRemoteError>),

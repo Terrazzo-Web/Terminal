@@ -28,7 +28,7 @@ impl DistributedCallback for NotifyCallback {
     type Request = HybridRequestStream;
     type Response = HybridResponseStream;
     type LocalError = NotifyLocalError;
-    type RemoteError = Box<Status>;
+    type RemoteError = Status;
 
     async fn local(
         _server: &Arc<Server>,
@@ -43,7 +43,7 @@ impl DistributedCallback for NotifyCallback {
         channel: T,
         client_address: &[impl AsRef<str>],
         request: HybridRequestStream,
-    ) -> Result<HybridResponseStream, Box<Status>>
+    ) -> Result<HybridResponseStream, Status>
     where
         T: GrpcService<BoxBody>,
         T::Error: Into<StdError>,

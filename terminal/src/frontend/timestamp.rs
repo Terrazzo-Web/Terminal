@@ -287,7 +287,7 @@ impl TimerMode {
 fn print_fractions_ago(ago: Duration) -> String {
     let seconds = ago.as_secs();
     let millis = ago.subsec_millis();
-    return format!("{:0>2}.{:0>3}s ago", seconds, millis);
+    return format!("{seconds:0>2}.{millis:0>3}s ago");
 }
 
 fn print_ago(mut ago: Duration) -> String {
