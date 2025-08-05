@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use nameth::NamedType;
+use nameth::NamedType as _;
 use nameth::nameth;
 use terrazzo::autoclone;
 use terrazzo::html;

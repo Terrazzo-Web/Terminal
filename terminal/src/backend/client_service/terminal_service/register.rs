@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
@@ -31,7 +33,7 @@ use crate::processes::io::HybridReader;
 
 pub async fn register(
     my_client_name: Option<ClientName>,
-    server: &Server,
+    server: &Arc<Server>,
     mut request: RegisterTerminalRequest,
 ) -> Result<HybridReader, RegisterStreamError> {
     let terminal_def = request.def.get_or_insert_default();
@@ -57,7 +59,7 @@ impl DistributedCallback for RegisterCallback {
     type RemoteError = Status;
 
     async fn local(
-        server: &Server,
+        server: &Arc<Server>,
         (my_client_name, request): (Option<ClientName>, RegisterTerminalRequest),
     ) -> Result<HybridReader, RegisterStreamError> {
         let mode = request.mode().try_into()?;

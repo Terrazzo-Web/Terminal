@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use scopeguard::defer;
@@ -23,7 +25,7 @@ use crate::processes;
 use crate::processes::write::WriteError as WriteErrorImpl;
 
 pub fn write(
-    server: &Server,
+    server: &Arc<Server>,
     client_address: &[impl AsRef<str>],
     request: WriteRequest,
 ) -> impl Future<Output = Result<(), WriteError>> {
@@ -43,7 +45,7 @@ impl DistributedCallback for WriteCallback {
     type LocalError = WriteErrorImpl;
     type RemoteError = tonic::Status;
 
-    async fn local(_: &Server, request: WriteRequest) -> Result<(), WriteErrorImpl> {
+    async fn local(_: &Arc<Server>, request: WriteRequest) -> Result<(), WriteErrorImpl> {
         let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
         processes::write::write(&terminal_id, request.data.as_bytes()).await
     }

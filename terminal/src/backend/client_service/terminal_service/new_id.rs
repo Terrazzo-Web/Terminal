@@ -1,4 +1,5 @@
 use std::future::ready;
+use std::sync::Arc;
 
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -25,7 +26,7 @@ use crate::backend::protos::terrazzo::terminal::terminal_service_client::Termina
 use crate::processes::next_terminal_id;
 
 pub fn new_id(
-    server: &Server,
+    server: &Arc<Server>,
     client_address: &[impl AsRef<str>],
 ) -> impl Future<Output = Result<i32, NewIdError>> {
     async {
@@ -44,7 +45,7 @@ impl DistributedCallback for NewIdCallback {
     type LocalError = Impossible;
     type RemoteError = Status;
 
-    fn local(_: &Server, (): ()) -> impl Future<Output = Result<i32, Impossible>> {
+    fn local(_: &Arc<Server>, (): ()) -> impl Future<Output = Result<i32, Impossible>> {
         ready(Ok(next_terminal_id()))
     }
 

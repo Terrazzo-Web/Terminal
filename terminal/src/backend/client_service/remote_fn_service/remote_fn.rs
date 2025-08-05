@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 use std::pin::Pin;
+use std::sync::Arc;
 
 use scopeguard::defer;
 use tracing::Instrument as _;
@@ -33,13 +34,13 @@ impl<I, O> Clone for RemoteFn<I, O> {
 #[derive(Clone, Copy)]
 pub struct RegisteredRemoteFn {
     pub(super) name: &'static str,
-    pub(super) callback: fn(server: &Server, &str) -> RemoteFnResult,
+    pub(super) callback: fn(server: &Arc<Server>, &str) -> RemoteFnResult,
 }
 
 impl RegisteredRemoteFn {
     pub const fn new(
         name: &'static str,
-        callback: fn(server: &Server, &str) -> RemoteFnResult,
+        callback: fn(server: &Arc<Server>, &str) -> RemoteFnResult,
     ) -> Self {
         Self { name, callback }
     }

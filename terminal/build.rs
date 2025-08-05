@@ -27,6 +27,10 @@ enum Feature {
     Converter,
     ConverterClient,
     ConverterServer,
+
+    PortForward,
+    PortForwardClient,
+    PortForwardServer,
 }
 
 impl Feature {
@@ -82,6 +86,7 @@ fn build_client() {
         Feature::TerminalServer.disable(),
         Feature::TextEditorServer.disable(),
         Feature::ConverterServer.disable(),
+        Feature::PortForwardServer.disable(),
     );
 
     if Feature::Client.is_set() {
@@ -107,6 +112,9 @@ fn build_client() {
     if Feature::Converter.is_set() {
         Feature::ConverterClient.add(&mut wasm_pack_options);
     }
+    if Feature::PortForward.is_set() {
+        Feature::PortForwardClient.add(&mut wasm_pack_options);
+    }
     let wasm_pack_options = wasm_pack_options
         .iter()
         .map(|s| s.as_str())
@@ -129,10 +137,15 @@ fn build_protos() {
         return;
     };
     tonic_build::configure()
-        .bytes([".terrazzo.terminal.LeaseItem.data"])
+        .bytes([
+            ".terrazzo.terminal.LeaseItem.data",
+            ".terrazzo.portforward.PortForwardDataRequest.data",
+            ".terrazzo.portforward.PortForwardDataResponse.data",
+        ])
         .compile_protos(
             &[
                 "src/backend/protos/notify.proto",
+                "src/backend/protos/portforward.proto",
                 "src/backend/protos/remote_fn.proto",
                 "src/backend/protos/shared.proto",
                 "src/backend/protos/terminal.proto",

@@ -8,6 +8,7 @@ mod assets;
 mod backend;
 mod converter;
 mod frontend;
+mod portforward;
 mod processes;
 mod state;
 mod terminal;

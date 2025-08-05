@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use nameth::NamedType;
+use nameth::NamedType as _;
 use nameth::nameth;
 use serde::Deserialize;
 use serde::Serialize;

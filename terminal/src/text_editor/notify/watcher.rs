@@ -13,7 +13,7 @@ use notify::Watcher as _;
 use server_fn::ServerFnError;
 use terrazzo::autoclone;
 use tokio::sync::mpsc;
-use tracing::Instrument;
+use tracing::Instrument as _;
 use tracing::Span;
 use tracing::debug;
 use tracing::warn;

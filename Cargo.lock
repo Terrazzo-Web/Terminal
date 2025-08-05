@@ -3364,6 +3364,7 @@ version = "0.1.17"
 dependencies = [
  "axum-extra",
  "base64",
+ "bitflags 2.9.1",
  "clap",
  "cms",
  "const_format",

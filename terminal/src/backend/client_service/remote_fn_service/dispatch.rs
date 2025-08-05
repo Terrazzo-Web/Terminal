@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use scopeguard::defer;
 use tracing::Instrument as _;
 use tracing::debug;
@@ -11,7 +13,7 @@ use crate::backend::protos::terrazzo::remotefn::RemoteFnRequest;
 
 /// Calls a [RemoteFn] using the [DistributedCallback] framework.
 pub fn remote_fn_dispatch(
-    server: &Server,
+    server: &Arc<Server>,
     client_address: &[impl AsRef<str>],
     request: RemoteFnRequest,
 ) -> impl Future<Output = Result<String, RemoteFnError>> {

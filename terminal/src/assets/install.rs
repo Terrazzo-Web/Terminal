@@ -55,6 +55,14 @@ fn install_icons() {
     {
         install_icon(super::icons::converter());
     }
+
+    #[cfg(feature = "port-forward")]
+    {
+        install_icon(super::icons::hub());
+        install_icon(super::icons::port_forward_loading());
+        install_icon(super::icons::port_forward_pending());
+        install_icon(super::icons::port_forward_synchronized());
+    }
 }
 
 fn install_xterm() {

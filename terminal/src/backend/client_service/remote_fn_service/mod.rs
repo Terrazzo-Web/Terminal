@@ -124,7 +124,7 @@ macro_rules! declare_remote_fn {
     ) => {
         pub static $remote_fn: remote_fn_service::remote_fn::RemoteFn<$input, $output> = {
             fn callback(
-                server: &trz_gateway_server::server::Server,
+                server: &std::sync::Arc<trz_gateway_server::server::Server>,
                 arg: &str,
             ) -> remote_fn_service::remote_fn::RemoteFnResult {
                 let callback = remote_fn_service::uplift::uplift::<$input, _, $output, _>($implem);

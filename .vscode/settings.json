@@ -5,11 +5,7 @@
         "server",
         "no_wasm_build",
         "diagnostics",
-        "terminal-client",
-        "terminal-server",
-        "text-editor-client",
-        "text-editor-server",
-        "converter-client",
-        "converter-server",
+        "client-all",
+        "server-all",
     ],
 }
