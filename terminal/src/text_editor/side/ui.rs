@@ -14,7 +14,7 @@ use crate::text_editor::side::SideViewList;
 use crate::text_editor::side::SideViewNode;
 use crate::utils::more_path::MorePath as _;
 
-stylance::import_crate_style!(style, "src/text_editor/side.scss");
+stylance::import_style!(style, "side.scss");
 
 #[html]
 #[template(tag = div, key = "side-view")]

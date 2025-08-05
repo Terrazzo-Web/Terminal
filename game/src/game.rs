@@ -18,7 +18,7 @@ mod position;
 mod size;
 mod state;
 
-stylance::import_crate_style!(style, "src/game.scss");
+stylance::import_style!(style, "game.scss");
 
 #[autoclone]
 #[template]

@@ -23,7 +23,7 @@ use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
 use crate::portforward::schema::HostPortDefinitionImpl;
 
-stylance::import_crate_style!(style, "src/portforward/port_forward.scss");
+stylance::import_style!(style, "port_forward.scss");
 
 /// The UI for the port forward app.
 #[html]

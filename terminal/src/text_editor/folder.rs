@@ -21,7 +21,7 @@ use crate::frontend::timestamp::datetime::DateTime;
 use crate::frontend::timestamp::display_timestamp;
 use crate::utils::more_path::MorePath as _;
 
-stylance::import_crate_style!(style, "src/text_editor/folder.scss");
+stylance::import_style!(style, "folder.scss");
 
 #[autoclone]
 #[html]
