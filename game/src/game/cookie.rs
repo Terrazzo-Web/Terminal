@@ -16,7 +16,7 @@ use super::position::Position;
 use super::size::Size;
 use super::state::Game;
 
-stylance::import_crate_style!(style, "src/game/cookie.scss");
+stylance::import_style!(style, "cookie.scss");
 
 #[autoclone]
 #[template(tag = img, key = c.id.to_string())]

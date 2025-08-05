@@ -17,7 +17,7 @@ use crate::assets::icons;
 use crate::frontend::menu::app;
 use crate::state::app::App;
 
-stylance::import_crate_style!(style, "src/frontend/login.scss");
+stylance::import_style!(style, "login.scss");
 
 #[autoclone]
 #[html]

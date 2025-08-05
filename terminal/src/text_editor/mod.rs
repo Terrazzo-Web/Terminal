@@ -16,4 +16,4 @@ mod synchronized_state;
 pub mod ui;
 
 #[cfg(feature = "client")]
-stylance::import_crate_style!(style, "src/text_editor/text_editor.scss");
+stylance::import_style!(style, "text_editor.scss");

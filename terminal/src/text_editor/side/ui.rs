@@ -14,7 +14,7 @@ use crate::text_editor::side::SideViewList;
 use crate::text_editor::side::SideViewNode;
 use crate::utils::more_path::MorePath as _;
 
-stylance::import_crate_style!(style, "src/text_editor/side.scss");
+stylance::import_style!(style, "side.scss");
 
 #[html]
 #[template(tag = div, key = "side-view")]
@@ -117,7 +117,7 @@ pub fn selected_item(#[signal] file_path: Arc<str>, path: Arc<Path>) -> XAttribu
 fn close_icon(manager: &Ptr<TextEditorManager>, path: &Arc<Path>) -> XElement {
     img(
         src = icons::close_tab(),
-        class = format!("{} {}", style::icon, style::close,),
+        class = format!("{} {}", style::icon, style::close),
         click = move |_ev| {
             autoclone!(manager, path);
             manager.remove_from_side_view(&path);

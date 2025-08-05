@@ -18,7 +18,7 @@ use self::terminal_tabs::TerminalTabs;
 use crate::api::client::terminal_api;
 use crate::terminal_id::TerminalId;
 
-stylance::import_crate_style!(style, "src/terminal/terminal.scss");
+stylance::import_style!(style, "terminal.scss");
 
 mod attach;
 mod javascript;

@@ -17,7 +17,7 @@ use crate::frontend::remotes::Remote;
 use crate::state::app;
 use crate::state::app::App;
 
-stylance::import_crate_style!(style, "src/frontend/menu.scss");
+stylance::import_style!(style, "menu.scss");
 
 pub fn before_menu() -> MutexGuard<'static, Option<Box<dyn FnOnce() + Send>>> {
     static BEFORE_MENU: Mutex<Option<Box<dyn FnOnce() + Send>>> = Mutex::new(None);

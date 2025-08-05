@@ -18,7 +18,7 @@ use crate::terminal_id::TerminalId;
 mod add_tab;
 mod move_tab;
 
-stylance::import_crate_style!(style, "src/terminal/terminal_tabs.scss");
+stylance::import_style!(style, "terminal_tabs.scss");
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TerminalTabs {

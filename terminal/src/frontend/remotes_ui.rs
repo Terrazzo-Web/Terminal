@@ -8,7 +8,7 @@ use self::diagnostics::debug;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes::RemotesState;
 
-stylance::import_crate_style!(style, "src/frontend/remotes_ui.scss");
+stylance::import_style!(style, "remotes_ui.scss");
 
 #[html]
 #[template(tag = div)]

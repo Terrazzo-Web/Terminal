@@ -5,7 +5,7 @@ use terrazzo::template;
 use super::cookie::Cookie;
 use super::cookie::cookie;
 
-stylance::import_crate_style!(style, "src/game/cookies.scss");
+stylance::import_style!(style, "cookies.scss");
 
 #[template(tag = div)]
 #[html]
