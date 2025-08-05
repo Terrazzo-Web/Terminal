@@ -117,7 +117,7 @@ pub fn selected_item(#[signal] file_path: Arc<str>, path: Arc<Path>) -> XAttribu
 fn close_icon(manager: &Ptr<TextEditorManager>, path: &Arc<Path>) -> XElement {
     img(
         src = icons::close_tab(),
-        class = format!("{} {}", style::icon, style::close,),
+        class = format!("{} {}", style::icon, style::close),
         click = move |_ev| {
             autoclone!(manager, path);
             manager.remove_from_side_view(&path);
