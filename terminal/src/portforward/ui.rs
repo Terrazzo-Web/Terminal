@@ -171,9 +171,8 @@ fn show_delete(
                 |port_forwards| {
                     port_forwards
                         .iter()
-                        .filter_map(|port_forward| {
-                            (port_forward.id != id).then(|| port_forward.clone())
-                        })
+                        .filter(|&port_forward| port_forward.id != id)
+                        .cloned()
                         .collect::<Vec<_>>()
                         .into()
                 },
