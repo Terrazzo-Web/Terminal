@@ -28,7 +28,7 @@ stylance::import_style!(style, "port_forward.scss");
 
 /*
 TODO
-- Report errors per portforward item
+- Report errors per portforward item -- wip not all errors are reported
 - Report number of open connections
 - Close connection when remote is deleted or changed
 */
@@ -78,8 +78,18 @@ fn show_port_forwards(
                     new_sync_state.clone(),
                     Fields::all() - Fields::DELETE,
                     |port_forwards| {
+                        let next_id = port_forwards
+                            .iter()
+                            .map(|port_forward| port_forward.id)
+                            .max()
+                            .map(|next_id| next_id + 1)
+                            .unwrap_or(1);
                         let port_forwards = port_forwards.iter().cloned();
-                        let port_forwards = port_forwards.chain(Some(PortForward::new()));
+                        let next = PortForward {
+                            id: next_id,
+                            ..PortForward::default()
+                        };
+                        let port_forwards = port_forwards.chain(Some(next));
                         port_forwards.collect::<Vec<_>>().into()
                     },
                 );
@@ -101,7 +111,12 @@ fn show_add_port_forward(#[signal] new_sync_state: SyncState) -> XElement {
 #[html]
 fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForward) -> XElement {
     let title = port_forward.to_string();
-    let PortForward { id, from, to } = port_forward;
+    let PortForward {
+        id,
+        from,
+        to,
+        error,
+    } = port_forward;
     let sync_state = XSignal::new("sync-state", SyncState::default());
     let params = ShowHostPortDefinition {
         manager,
@@ -109,6 +124,7 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
         sync_state: &sync_state,
         id: *id,
     };
+    let error = error.as_ref().map(|error| div("Error: {error}"));
     div(
         class = style::port_forward,
         div(
@@ -129,9 +145,8 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
                 class = style::from,
                 show_host_port_definition(params, "From", from, |old, new| {
                     Some(PortForward {
-                        id: old.id,
                         from: new,
-                        to: old.to.clone(),
+                        ..old.clone()
                     })
                 }),
             ),
@@ -139,13 +154,13 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
                 class = style::to,
                 show_host_port_definition(params, "To", to, |old, new| {
                     Some(PortForward {
-                        id: old.id,
-                        from: old.from.clone(),
                         to: new,
+                        ..old.clone()
                     })
                 }),
             ),
         ),
+        error..,
     )
 }
 

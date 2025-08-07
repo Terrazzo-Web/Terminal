@@ -1,6 +1,7 @@
 #![cfg(feature = "server")]
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::future::ready;
 use std::sync::Arc;
 
@@ -30,6 +31,7 @@ use crate::backend::protos::terrazzo::portforward::PortForwardDataResponse;
 use crate::backend::protos::terrazzo::portforward::PortForwardEndpoint;
 use crate::backend::protos::terrazzo::portforward::port_forward_data_request;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
+use crate::portforward::state::report_error;
 
 pub struct RunningPortForward {
     pub port_forward: PortForward,
@@ -75,10 +77,14 @@ pub fn prepare(
         .map(|old| (old.port_forward.id, old))
         .collect::<HashMap<_, _>>();
     let new = match Arc::try_unwrap(new) {
-        Ok(new) => Box::from(new),
-        Err(new) => Box::new(new.as_ref().clone()),
+        Ok(new) => new,
+        Err(new) => new.as_ref().clone(),
     };
+    let mut deduplicate = HashSet::new();
     for new in new.into_iter() {
+        if !deduplicate.insert(new.id) {
+            continue;
+        }
         let old = old.remove(&new.id);
         if let Some(running_old) = old {
             let old = &running_old.port_forward;
@@ -97,7 +103,10 @@ pub fn prepare(
         let (eos_ask_tx, eos_ask_rx) = oneshot::channel();
         let (eos_ack_tx, eos_ack_rx) = oneshot::channel();
         running.push(RunningPortForward {
-            port_forward: new.clone(),
+            port_forward: PortForward {
+                error: None,
+                ..new.clone()
+            },
             ask: eos_ask_tx,
             ack: eos_ack_rx,
         });
@@ -110,14 +119,13 @@ pub fn prepare(
     (Box::from(running), Box::from(stopping), Box::from(pending))
 }
 
-pub async fn process(
-    server: &Arc<Server>,
-    new: Box<[PendingPortForward]>,
-) -> Result<(), BindError> {
+pub async fn process(server: &Arc<Server>, new: Box<[PendingPortForward]>) {
     for new in new {
-        let () = process_port_forward(server, new).await?;
+        let id = new.port_forward.id;
+        let () = process_port_forward(server, new)
+            .await
+            .unwrap_or_else(|error| report_error(id, error.to_string()));
     }
-    Ok(())
 }
 
 async fn process_port_forward(
@@ -168,7 +176,9 @@ async fn process_bind_stream(
         match next {
             Ok(PortForwardAcceptResponse {}) => (),
             Err(error) => {
+                let error = error.message().to_owned();
                 warn!("Failed to get the next connection: {error}");
+                report_error(port_forward.id, error);
                 return;
             }
         }
@@ -239,4 +249,13 @@ pub enum RunStreamError {
 
     #[error("[{n}] Failed to stich the upload stream", n = self.name())]
     SetUploadStream,
+}
+
+#[cfg(test)]
+#[test]
+fn duplicate_key() {
+    let t: HashMap<i32, &str> = [(1, "a"), (2, "b"), (3, "c")].into_iter().collect();
+    assert_eq!(Some(&"a"), t.get(&1));
+    let t: HashMap<i32, &str> = [(1, "a"), (2, "b"), (1, "c")].into_iter().collect();
+    assert_eq!(Some(&"c"), t.get(&1));
 }
