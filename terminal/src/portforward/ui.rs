@@ -26,6 +26,13 @@ use crate::portforward::schema::HostPortDefinitionImpl;
 
 stylance::import_style!(style, "port_forward.scss");
 
+/*
+TODO
+- Report errors per portforward item
+- Report number of open connections
+- Close connection when remote is deleted or changed
+*/
+
 /// The UI for the port forward app.
 #[html]
 #[template]
@@ -86,7 +93,7 @@ fn show_port_forwards(
 fn show_add_port_forward(#[signal] new_sync_state: SyncState) -> XElement {
     tag(
         class = style::add,
-        img(src = new_sync_state.add_src()),
+        div(img(src = new_sync_state.add_src())),
         "Add port forward",
     )
 }

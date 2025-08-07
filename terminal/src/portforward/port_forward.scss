@@ -44,17 +44,20 @@
                 --size: 24px;
                 margin-left: auto;
                 padding-right: var(--half-padding);
-                margin: var(--half-padding);
-                margin-left: 0;
+                margin: 0;
             }
 
             img.delete {
                 --size: 20px;
-                margin: var(--half-padding);
+                margin: 0;
                 margin-left: auto;
+                padding: var(--half-padding);
+                position: relative;
+                right: calc(-1 * var(--half-padding));
+                cursor: pointer;
 
                 &:hover {
-                    cursor: pointer;
+                    background-color: var(--color);
                 }
             }
 
@@ -163,8 +166,19 @@
             --size: 24px;
             width: var(--size);
             height: var(--size);
-            margin: var(--half-padding);
-            padding-right: var(--half-padding);
+            margin: 0;
+            padding: var(--half-padding);
+
+        }
+
+        &:hover {
+            div {
+                background-color: var(--color);
+
+                img {
+                    filter: invert(1);
+                }
+            }
         }
     }
 }
