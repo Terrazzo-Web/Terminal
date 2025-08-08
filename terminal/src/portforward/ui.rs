@@ -30,7 +30,7 @@ stylance::import_style!(style, "port_forward.scss");
 
 /*
 TODO
-- Reload UI when remote changes
+- Show the remotes accessible from the selected remote.
 - Reconnect when connection fails
 */
 
