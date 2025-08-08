@@ -37,7 +37,7 @@ pub fn remotes_routes(
         })
 }
 
-pub async fn call_list_remotes(
+async fn call_list_remotes(
     my_client_name: Option<ClientName>,
     server: Arc<Server>,
 ) -> Json<Vec<ClientAddress>> {
