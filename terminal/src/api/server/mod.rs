@@ -13,7 +13,7 @@ use crate::api::server::common::remotes::remotes_routes;
 use crate::backend::auth::AuthConfig;
 use crate::backend::config::DynConfig;
 
-mod common;
+pub mod common;
 mod correlation_id;
 
 mod terminal_api;

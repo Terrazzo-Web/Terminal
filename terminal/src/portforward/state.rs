@@ -31,12 +31,24 @@ pub async fn load_port_forwards(
         .await?)
 }
 
+#[server(protocol = Http<Json, Json>)]
+#[cfg_attr(feature = "server", nameth::nameth)]
+pub async fn load_remotes(
+    remote: Option<ClientAddress>,
+) -> Result<Vec<ClientAddress>, ServerFnError> {
+    Ok(backend::LOAD_REMOTES_FN
+        .call(remote.unwrap_or_default(), ())
+        .await?)
+}
+
 #[cfg(feature = "server")]
 mod backend {
     use std::future::ready;
     use std::sync::Arc;
     use std::sync::Mutex;
 
+    use crate::api::client_address::ClientAddress;
+    use crate::api::server::common::remotes::call_list_remotes;
     use crate::backend::client_service::remote_fn_service;
     use crate::portforward::engine::RunningPortForward;
     use crate::portforward::schema::PortForward;
@@ -84,6 +96,20 @@ mod backend {
                 .map(|running| running.port_forward.clone())
                 .collect::<Vec<_>>();
             ready(Ok::<_, tonic::Status>(state.into()))
+        }
+    );
+
+    remote_fn_service::declare_remote_fn!(
+        LOAD_REMOTES_FN,
+        super::LOAD_REMOTES,
+        (),
+        Vec<ClientAddress>,
+        |server, ()| {
+            let server = server.clone();
+            async move {
+                let terrazzo::axum::Json(remotes) = call_list_remotes(None, server).await;
+                Ok::<_, tonic::Status>(remotes)
+            }
         }
     );
 }
