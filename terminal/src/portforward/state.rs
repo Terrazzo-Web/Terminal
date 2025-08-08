@@ -32,15 +32,10 @@ pub async fn load_port_forwards(
 }
 
 #[cfg(feature = "server")]
-pub use backend::report_error;
-
-#[cfg(feature = "server")]
 mod backend {
     use std::future::ready;
     use std::sync::Arc;
     use std::sync::Mutex;
-
-    use nameth::nameth;
 
     use crate::backend::client_service::remote_fn_service;
     use crate::portforward::engine::RunningPortForward;
@@ -91,17 +86,4 @@ mod backend {
             ready(Ok::<_, tonic::Status>(state.into()))
         }
     );
-
-    #[nameth]
-    pub fn report_error(id: i32, error: String) {
-        let mut state = STATE.lock().expect(REPORT_ERROR);
-        if let Some(running_port_forwards) = &mut *state {
-            for running_port_forward in running_port_forwards {
-                if running_port_forward.port_forward.id == id {
-                    running_port_forward.port_forward.error = Some(error);
-                    return;
-                }
-            }
-        }
-    }
 }

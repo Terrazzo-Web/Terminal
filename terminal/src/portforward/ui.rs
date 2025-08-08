@@ -14,7 +14,9 @@ use web_sys::HtmlSelectElement;
 
 use super::manager::Manager;
 use super::schema::HostPortDefinition;
+use super::schema::HostPortDefinitionImpl;
 use super::schema::PortForward;
+use super::schema::PortForwardStatus;
 use super::sync_state::Fields;
 use super::sync_state::SyncState;
 use crate::api::client_address::ClientAddress;
@@ -22,7 +24,7 @@ use crate::assets::icons;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
-use crate::portforward::schema::HostPortDefinitionImpl;
+use crate::portforward::schema::PortForwardState;
 
 stylance::import_style!(style, "port_forward.scss");
 
@@ -31,6 +33,8 @@ TODO
 - Report errors per portforward item -- wip not all errors are reported
 - Report number of open connections
 - Close connection when remote is deleted or changed
+- Reload UI when remote changes
+- Reconnect when connection fails
 */
 
 /// The UI for the port forward app.
@@ -53,7 +57,6 @@ fn port_forward_impl(manager: Manager) -> XElement {
     )
 }
 
-#[autoclone]
 #[html]
 #[template(tag = div)]
 fn show_port_forwards(
@@ -71,31 +74,35 @@ fn show_port_forwards(
         port_forward_tags..,
         div(
             show_add_port_forward(new_sync_state.clone()),
-            click = move |_| {
-                autoclone!(remote);
-                manager.update(
-                    &remote,
-                    new_sync_state.clone(),
-                    Fields::all() - Fields::DELETE,
-                    |port_forwards| {
-                        let next_id = port_forwards
-                            .iter()
-                            .map(|port_forward| port_forward.id)
-                            .max()
-                            .map(|next_id| next_id + 1)
-                            .unwrap_or(1);
-                        let port_forwards = port_forwards.iter().cloned();
-                        let next = PortForward {
-                            id: next_id,
-                            ..PortForward::default()
-                        };
-                        let port_forwards = port_forwards.chain(Some(next));
-                        port_forwards.collect::<Vec<_>>().into()
-                    },
-                );
-            },
+            click = click_add_port_forward(manager, remote, new_sync_state),
         ),
     )
+}
+
+fn click_add_port_forward(
+    manager: Manager,
+    remote: Remote,
+    new_sync_state: XSignal<SyncState>,
+) -> impl Fn(web_sys::MouseEvent) {
+    move |_| {
+        manager.update(
+            &remote,
+            new_sync_state.clone(),
+            Fields::all() - Fields::DELETE,
+            |port_forwards| {
+                let next_id = {
+                    let ids = port_forwards.iter().map(|port_forward| port_forward.id);
+                    ids.max().unwrap_or(0) + 1
+                };
+                let port_forwards = port_forwards.iter().cloned();
+                let next = PortForward {
+                    id: next_id,
+                    ..PortForward::default()
+                };
+                port_forwards.chain(Some(next)).collect::<Vec<_>>().into()
+            },
+        );
+    }
 }
 
 #[html]
@@ -115,7 +122,7 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
         id,
         from,
         to,
-        error,
+        state,
     } = port_forward;
     let sync_state = XSignal::new("sync-state", SyncState::default());
     let params = ShowHostPortDefinition {
@@ -124,7 +131,6 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
         sync_state: &sync_state,
         id: *id,
     };
-    let error = error.as_ref().map(|error| div("Error: {error}"));
     div(
         class = style::port_forward,
         div(
@@ -160,8 +166,23 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
                 }),
             ),
         ),
-        error..,
+        show_state(&state),
     )
+}
+
+#[html]
+fn show_state(state: &PortForwardState) -> XElement {
+    let state = state.lock();
+    let count = state.count;
+    match &state.status {
+        PortForwardStatus::Pending => div(class = style::port_forward_status, "Pending..."),
+        PortForwardStatus::Up => div(class = style::port_forward_status, "Up: {count}"),
+        PortForwardStatus::Failed(error) => div(
+            class = style::port_forward_status,
+            span(style::color = "red", style::font_weight = "bold", "Error: "),
+            "{error}",
+        ),
+    }
 }
 
 #[html]

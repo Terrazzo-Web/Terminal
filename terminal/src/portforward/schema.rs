@@ -1,5 +1,7 @@
 use std::ops::Deref;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
 
 use crate::api::client_address::ClientAddress;
 
@@ -8,7 +10,38 @@ pub struct PortForward {
     pub id: i32,
     pub from: HostPortDefinition,
     pub to: HostPortDefinition,
-    pub error: Option<String>,
+    pub state: PortForwardState,
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct PortForwardState(Arc<Mutex<PortForwardStateImpl>>);
+
+impl PortForwardState {
+    pub fn lock(&self) -> MutexGuard<PortForwardStateImpl> {
+        self.0.lock().expect("PortForwardState")
+    }
+}
+
+impl PartialEq for PortForwardState {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for PortForwardState {}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct PortForwardStateImpl {
+    pub count: i32,
+    pub status: PortForwardStatus,
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub enum PortForwardStatus {
+    #[default]
+    Pending,
+    Up,
+    Failed(String),
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

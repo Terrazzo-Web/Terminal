@@ -5,9 +5,12 @@ use std::collections::HashSet;
 use std::future::ready;
 use std::sync::Arc;
 
+use futures::FutureExt as _;
 use futures::StreamExt as _;
-use futures::TryStreamExt;
+use futures::TryFutureExt as _;
+use futures::TryStreamExt as _;
 use futures::channel::oneshot;
+use futures::future::Shared;
 use futures::stream;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -23,15 +26,16 @@ use self::port_forward_service::bind::BindStream;
 use self::port_forward_service::download::DownloadLocalError;
 use self::port_forward_service::stream::GrpcStreamError;
 use self::port_forward_service::upload::UploadLocalError;
+use self::protos::PortForwardAcceptResponse;
+use self::protos::PortForwardDataRequest;
+use self::protos::PortForwardDataResponse;
+use self::protos::PortForwardEndpoint;
+use self::protos::port_forward_data_request;
 use super::schema::PortForward;
 use crate::backend::client_service::port_forward_service;
-use crate::backend::protos::terrazzo::portforward::PortForwardAcceptResponse;
-use crate::backend::protos::terrazzo::portforward::PortForwardDataRequest;
-use crate::backend::protos::terrazzo::portforward::PortForwardDataResponse;
-use crate::backend::protos::terrazzo::portforward::PortForwardEndpoint;
-use crate::backend::protos::terrazzo::portforward::port_forward_data_request;
+use crate::backend::protos::terrazzo::portforward as protos;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
-use crate::portforward::state::report_error;
+use crate::portforward::schema::PortForwardStatus;
 
 pub struct RunningPortForward {
     pub port_forward: PortForward,
@@ -57,7 +61,7 @@ impl RunningPortForward {
 
 pub struct PendingPortForward {
     port_forward: PortForward,
-    ask: oneshot::Receiver<()>,
+    ask: Shared<oneshot::Receiver<()>>,
     ack: oneshot::Sender<()>,
 }
 
@@ -100,13 +104,12 @@ pub fn prepare(
             debug!("Add Port Forward config {new:?}");
         }
 
+        new.state.lock().status = PortForwardStatus::Pending;
         let (eos_ask_tx, eos_ask_rx) = oneshot::channel();
         let (eos_ack_tx, eos_ack_rx) = oneshot::channel();
+        let eos_ask_rx = eos_ask_rx.shared();
         running.push(RunningPortForward {
-            port_forward: PortForward {
-                error: None,
-                ..new.clone()
-            },
+            port_forward: new.clone(),
             ask: eos_ask_tx,
             ack: eos_ack_rx,
         });
@@ -121,10 +124,12 @@ pub fn prepare(
 
 pub async fn process(server: &Arc<Server>, new: Box<[PendingPortForward]>) {
     for new in new {
-        let id = new.port_forward.id;
+        let state = new.port_forward.state.clone();
         let () = process_port_forward(server, new)
             .await
-            .unwrap_or_else(|error| report_error(id, error.to_string()));
+            .unwrap_or_else(move |error| {
+                state.lock().status = PortForwardStatus::Failed(error.to_string())
+            });
     }
 }
 
@@ -146,13 +151,15 @@ async fn process_port_forward(
         host: port_forward.from.host.to_owned(),
         port: port_forward.from.port as i32,
     })))
-    .chain(stream::once(ask).filter_map(|_| ready(None)));
+    .chain(stream::once(ask.clone()).filter_map(|_| ready(None)));
 
     let stream = port_forward_service::bind::dispatch(server, requests)
         .await
         .inspect_err(|error| debug!("Bind failed: {error}"))?;
     let span = info_span!("Forward Port", from = %port_forward.from, to = %port_forward.to);
-    tokio::spawn(process_bind_stream(server.clone(), port_forward, stream, ack).instrument(span));
+    tokio::spawn(
+        process_bind_stream(server.clone(), port_forward, stream, ask, ack).instrument(span),
+    );
     Ok(())
 }
 
@@ -160,6 +167,7 @@ async fn process_bind_stream(
     server: Arc<Server>,
     port_forward: PortForward,
     mut stream: BindStream,
+    ask_eos: Shared<oneshot::Receiver<()>>,
     eos: oneshot::Sender<()>,
 ) {
     debug!("Start");
@@ -172,22 +180,42 @@ async fn process_bind_stream(
         }
     }
 
+    match &mut port_forward.state.lock().status {
+        status @ PortForwardStatus::Pending => *status = PortForwardStatus::Up,
+        status @ (PortForwardStatus::Up | PortForwardStatus::Failed { .. }) => {
+            warn!("Expected status to be pending, got {status:?}")
+        }
+    };
     while let Some(next) = stream.next().await {
         match next {
             Ok(PortForwardAcceptResponse {}) => (),
             Err(error) => {
                 let error = error.message().to_owned();
                 warn!("Failed to get the next connection: {error}");
-                report_error(port_forward.id, error);
+                port_forward.state.lock().status = PortForwardStatus::Failed(error);
                 return;
             }
         }
 
-        tokio::spawn(run_stream(server.clone(), port_forward.clone()).in_current_span());
+        let state = port_forward.state.clone();
+        tokio::spawn(
+            run_stream(server.clone(), ask_eos.clone(), port_forward.clone())
+                .unwrap_or_else(move |error| {
+                    state.lock().status = PortForwardStatus::Failed(error.to_string());
+                })
+                .in_current_span(),
+        );
     }
 }
 
-async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<(), RunStreamError> {
+async fn run_stream(
+    server: Arc<Server>,
+    ask_eos: Shared<oneshot::Receiver<()>>,
+    port_forward: PortForward,
+) -> Result<(), RunStreamError> {
+    let state = port_forward.state;
+    state.lock().count += 1;
+    defer!(state.lock().count -= 1);
     let (upload_stream_tx, upload_stream_rx) = oneshot::channel();
     let upload_stream = stream::once(upload_stream_rx)
         .filter_map(|stream| ready(stream.ok()))
@@ -229,7 +257,8 @@ async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<()
             },
         )),
     })))
-    .chain(download_stream);
+    .chain(download_stream)
+    .take_until(ask_eos);
 
     let upload_stream = port_forward_service::upload::upload(&server, download_stream).await?;
     let () = upload_stream_tx

@@ -82,6 +82,10 @@
                 margin-left: var(--half-padding);
             }
         }
+
+        .port-forward-status {
+            margin: var(--half-padding);
+        }
     }
 
     .host-port-definition {
