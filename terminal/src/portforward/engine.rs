@@ -85,7 +85,7 @@ pub fn prepare(
         Err(new) => new.as_ref().clone(),
     };
     let mut deduplicate = HashSet::new();
-    for new in new.into_iter() {
+    for mut new in new.into_iter() {
         if !deduplicate.insert(new.id) {
             continue;
         }
@@ -93,6 +93,7 @@ pub fn prepare(
         if let Some(running_old) = old {
             let old = &running_old.port_forward;
             debug!("Update Port Forward config from {old:?} to {new:?}");
+            new.state = old.state.clone();
             if old == &new {
                 debug!("Port forward config did not change: {old:?}");
                 running.push(running_old);
@@ -156,7 +157,7 @@ async fn process_port_forward(
     let stream = port_forward_service::bind::dispatch(server, requests)
         .await
         .inspect_err(|error| debug!("Bind failed: {error}"))?;
-    let span = info_span!("Forward Port", from = %port_forward.from, to = %port_forward.to);
+    let span = info_span!("Forward Port", id = port_forward.id, from = %port_forward.from, to = %port_forward.to);
     tokio::spawn(
         process_bind_stream(server.clone(), port_forward, stream, ask, ack).instrument(span),
     );
@@ -213,9 +214,6 @@ async fn run_stream(
     ask_eos: Shared<oneshot::Receiver<()>>,
     port_forward: PortForward,
 ) -> Result<(), RunStreamError> {
-    let state = port_forward.state;
-    state.lock().count += 1;
-    defer!(state.lock().count -= 1);
     let (upload_stream_tx, upload_stream_rx) = oneshot::channel();
     let upload_stream = stream::once(upload_stream_rx)
         .filter_map(|stream| ready(stream.ok()))
@@ -257,10 +255,27 @@ async fn run_stream(
             },
         )),
     })))
-    .chain(download_stream)
-    .take_until(ask_eos);
+    .chain(download_stream);
 
     let upload_stream = port_forward_service::upload::upload(&server, download_stream).await?;
+
+    let state = port_forward.state;
+    {
+        let mut lock = state.lock();
+        lock.count += 1;
+        lock.status = PortForwardStatus::Up;
+        debug!("Increment count of running streams");
+    }
+    let decrement = scopeguard::guard((), move |()| {
+        state.lock().count -= 1;
+        debug!("Decrement count of running streams");
+    });
+    let decrement = async move {
+        drop(decrement);
+    };
+    let upload_stream = upload_stream
+        .take_until(ask_eos)
+        .chain(stream::once(Box::pin(decrement)).filter_map(|_| ready(None)));
     let () = upload_stream_tx
         .send(upload_stream)
         .map_err(|_upload_stream| RunStreamError::SetUploadStream)?;

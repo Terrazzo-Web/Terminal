@@ -30,9 +30,6 @@ stylance::import_style!(style, "port_forward.scss");
 
 /*
 TODO
-- Report errors per portforward item -- wip not all errors are reported
-- Report number of open connections
-- Close connection when remote is deleted or changed
 - Reload UI when remote changes
 - Reconnect when connection fails
 */
