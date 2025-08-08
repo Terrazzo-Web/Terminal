@@ -163,7 +163,7 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
                 }),
             ),
         ),
-        show_state(&state),
+        show_state(state),
     )
 }
 
