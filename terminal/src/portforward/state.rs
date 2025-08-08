@@ -37,7 +37,6 @@ mod backend {
     use std::sync::Arc;
     use std::sync::Mutex;
 
-    use crate::backend::client_service::port_forward_service::bind::BindError;
     use crate::backend::client_service::remote_fn_service;
     use crate::portforward::engine::RunningPortForward;
     use crate::portforward::schema::PortForward;
@@ -65,8 +64,8 @@ mod backend {
                 }
 
                 use super::super::engine;
-                engine::process(&server, pending).await?;
-                Ok::<(), BindError>(())
+                let () = engine::process(&server, pending).await;
+                Ok::<(), tonic::Status>(())
             }
         }
     );

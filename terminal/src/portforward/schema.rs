@@ -1,34 +1,47 @@
 use std::ops::Deref;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
 
 use crate::api::client_address::ClientAddress;
 
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PortForward {
     pub id: i32,
     pub from: HostPortDefinition,
     pub to: HostPortDefinition,
+    pub state: PortForwardState,
 }
 
-impl Default for PortForward {
-    fn default() -> Self {
-        Self::new()
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct PortForwardState(Arc<Mutex<PortForwardStateImpl>>);
+
+impl PortForwardState {
+    pub fn lock(&self) -> MutexGuard<PortForwardStateImpl> {
+        self.0.lock().expect("PortForwardState")
     }
 }
 
-impl PortForward {
-    pub fn new() -> Self {
-        use std::sync::atomic::AtomicI32;
-        use std::sync::atomic::Ordering::SeqCst;
-        static NEXT: AtomicI32 = AtomicI32::new(0);
-
-        let id = NEXT.fetch_add(1, SeqCst);
-        Self {
-            id,
-            from: HostPortDefinition::default(),
-            to: HostPortDefinition::default(),
-        }
+impl PartialEq for PortForwardState {
+    fn eq(&self, _other: &Self) -> bool {
+        true
     }
+}
+
+impl Eq for PortForwardState {}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct PortForwardStateImpl {
+    pub count: i32,
+    pub status: PortForwardStatus,
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub enum PortForwardStatus {
+    #[default]
+    Pending,
+    Up,
+    Failed(String),
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

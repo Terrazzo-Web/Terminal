@@ -1,12 +1,16 @@
 #![cfg(feature = "server")]
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::future::ready;
 use std::sync::Arc;
 
+use futures::FutureExt as _;
 use futures::StreamExt as _;
-use futures::TryStreamExt;
+use futures::TryFutureExt as _;
+use futures::TryStreamExt as _;
 use futures::channel::oneshot;
+use futures::future::Shared;
 use futures::stream;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
@@ -22,14 +26,16 @@ use self::port_forward_service::bind::BindStream;
 use self::port_forward_service::download::DownloadLocalError;
 use self::port_forward_service::stream::GrpcStreamError;
 use self::port_forward_service::upload::UploadLocalError;
+use self::protos::PortForwardAcceptResponse;
+use self::protos::PortForwardDataRequest;
+use self::protos::PortForwardDataResponse;
+use self::protos::PortForwardEndpoint;
+use self::protos::port_forward_data_request;
 use super::schema::PortForward;
 use crate::backend::client_service::port_forward_service;
-use crate::backend::protos::terrazzo::portforward::PortForwardAcceptResponse;
-use crate::backend::protos::terrazzo::portforward::PortForwardDataRequest;
-use crate::backend::protos::terrazzo::portforward::PortForwardDataResponse;
-use crate::backend::protos::terrazzo::portforward::PortForwardEndpoint;
-use crate::backend::protos::terrazzo::portforward::port_forward_data_request;
+use crate::backend::protos::terrazzo::portforward as protos;
 use crate::backend::protos::terrazzo::shared::ClientAddress;
+use crate::portforward::schema::PortForwardStatus;
 
 pub struct RunningPortForward {
     pub port_forward: PortForward,
@@ -55,7 +61,7 @@ impl RunningPortForward {
 
 pub struct PendingPortForward {
     port_forward: PortForward,
-    ask: oneshot::Receiver<()>,
+    ask: Shared<oneshot::Receiver<()>>,
     ack: oneshot::Sender<()>,
 }
 
@@ -75,14 +81,19 @@ pub fn prepare(
         .map(|old| (old.port_forward.id, old))
         .collect::<HashMap<_, _>>();
     let new = match Arc::try_unwrap(new) {
-        Ok(new) => Box::from(new),
-        Err(new) => Box::new(new.as_ref().clone()),
+        Ok(new) => new,
+        Err(new) => new.as_ref().clone(),
     };
-    for new in new.into_iter() {
+    let mut deduplicate = HashSet::new();
+    for mut new in new.into_iter() {
+        if !deduplicate.insert(new.id) {
+            continue;
+        }
         let old = old.remove(&new.id);
         if let Some(running_old) = old {
             let old = &running_old.port_forward;
             debug!("Update Port Forward config from {old:?} to {new:?}");
+            new.state = old.state.clone();
             if old == &new {
                 debug!("Port forward config did not change: {old:?}");
                 running.push(running_old);
@@ -94,8 +105,10 @@ pub fn prepare(
             debug!("Add Port Forward config {new:?}");
         }
 
+        new.state.lock().status = PortForwardStatus::Pending;
         let (eos_ask_tx, eos_ask_rx) = oneshot::channel();
         let (eos_ack_tx, eos_ack_rx) = oneshot::channel();
+        let eos_ask_rx = eos_ask_rx.shared();
         running.push(RunningPortForward {
             port_forward: new.clone(),
             ask: eos_ask_tx,
@@ -110,14 +123,15 @@ pub fn prepare(
     (Box::from(running), Box::from(stopping), Box::from(pending))
 }
 
-pub async fn process(
-    server: &Arc<Server>,
-    new: Box<[PendingPortForward]>,
-) -> Result<(), BindError> {
+pub async fn process(server: &Arc<Server>, new: Box<[PendingPortForward]>) {
     for new in new {
-        let () = process_port_forward(server, new).await?;
+        let state = new.port_forward.state.clone();
+        let () = process_port_forward(server, new)
+            .await
+            .unwrap_or_else(move |error| {
+                state.lock().status = PortForwardStatus::Failed(error.to_string())
+            });
     }
-    Ok(())
 }
 
 async fn process_port_forward(
@@ -138,13 +152,15 @@ async fn process_port_forward(
         host: port_forward.from.host.to_owned(),
         port: port_forward.from.port as i32,
     })))
-    .chain(stream::once(ask).filter_map(|_| ready(None)));
+    .chain(stream::once(ask.clone()).filter_map(|_| ready(None)));
 
     let stream = port_forward_service::bind::dispatch(server, requests)
         .await
         .inspect_err(|error| debug!("Bind failed: {error}"))?;
-    let span = info_span!("Forward Port", from = %port_forward.from, to = %port_forward.to);
-    tokio::spawn(process_bind_stream(server.clone(), port_forward, stream, ack).instrument(span));
+    let span = info_span!("Forward Port", id = port_forward.id, from = %port_forward.from, to = %port_forward.to);
+    tokio::spawn(
+        process_bind_stream(server.clone(), port_forward, stream, ask, ack).instrument(span),
+    );
     Ok(())
 }
 
@@ -152,6 +168,7 @@ async fn process_bind_stream(
     server: Arc<Server>,
     port_forward: PortForward,
     mut stream: BindStream,
+    ask_eos: Shared<oneshot::Receiver<()>>,
     eos: oneshot::Sender<()>,
 ) {
     debug!("Start");
@@ -164,20 +181,39 @@ async fn process_bind_stream(
         }
     }
 
+    match &mut port_forward.state.lock().status {
+        status @ PortForwardStatus::Pending => *status = PortForwardStatus::Up,
+        status @ (PortForwardStatus::Up | PortForwardStatus::Failed { .. }) => {
+            warn!("Expected status to be pending, got {status:?}")
+        }
+    };
     while let Some(next) = stream.next().await {
         match next {
             Ok(PortForwardAcceptResponse {}) => (),
             Err(error) => {
+                let error = error.message().to_owned();
                 warn!("Failed to get the next connection: {error}");
+                port_forward.state.lock().status = PortForwardStatus::Failed(error);
                 return;
             }
         }
 
-        tokio::spawn(run_stream(server.clone(), port_forward.clone()).in_current_span());
+        let state = port_forward.state.clone();
+        tokio::spawn(
+            run_stream(server.clone(), ask_eos.clone(), port_forward.clone())
+                .unwrap_or_else(move |error| {
+                    state.lock().status = PortForwardStatus::Failed(error.to_string());
+                })
+                .in_current_span(),
+        );
     }
 }
 
-async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<(), RunStreamError> {
+async fn run_stream(
+    server: Arc<Server>,
+    ask_eos: Shared<oneshot::Receiver<()>>,
+    port_forward: PortForward,
+) -> Result<(), RunStreamError> {
     let (upload_stream_tx, upload_stream_rx) = oneshot::channel();
     let upload_stream = stream::once(upload_stream_rx)
         .filter_map(|stream| ready(stream.ok()))
@@ -222,6 +258,24 @@ async fn run_stream(server: Arc<Server>, port_forward: PortForward) -> Result<()
     .chain(download_stream);
 
     let upload_stream = port_forward_service::upload::upload(&server, download_stream).await?;
+
+    let state = port_forward.state;
+    {
+        let mut lock = state.lock();
+        lock.count += 1;
+        lock.status = PortForwardStatus::Up;
+        debug!("Increment count of running streams");
+    }
+    let decrement = scopeguard::guard((), move |()| {
+        state.lock().count -= 1;
+        debug!("Decrement count of running streams");
+    });
+    let decrement = async move {
+        drop(decrement);
+    };
+    let upload_stream = upload_stream
+        .take_until(ask_eos)
+        .chain(stream::once(Box::pin(decrement)).filter_map(|_| ready(None)));
     let () = upload_stream_tx
         .send(upload_stream)
         .map_err(|_upload_stream| RunStreamError::SetUploadStream)?;
@@ -239,4 +293,13 @@ pub enum RunStreamError {
 
     #[error("[{n}] Failed to stich the upload stream", n = self.name())]
     SetUploadStream,
+}
+
+#[cfg(test)]
+#[test]
+fn duplicate_key() {
+    let t: HashMap<i32, &str> = [(1, "a"), (2, "b"), (3, "c")].into_iter().collect();
+    assert_eq!(Some(&"a"), t.get(&1));
+    let t: HashMap<i32, &str> = [(1, "a"), (2, "b"), (1, "c")].into_iter().collect();
+    assert_eq!(Some(&"c"), t.get(&1));
 }

@@ -34,7 +34,7 @@ pub async fn download(
 ) -> Result<GrpcStream, GrpcStreamError<DownloadLocalError>> {
     stream::<GetDownloadStream>(server, upload_stream)
         .inspect_err(|error| warn!("Failed: {error}"))
-        .instrument(info_span!("PortForward Download"))
+        .instrument(info_span!("Download"))
         .await
 }
 

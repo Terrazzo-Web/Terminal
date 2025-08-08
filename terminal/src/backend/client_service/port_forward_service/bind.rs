@@ -197,9 +197,10 @@ async fn process_request(
         host: endpoint.host,
         port: endpoint.port,
     };
-    let addresses = format!("{}:{}", endpoint_id.host, endpoint_id.port)
+    let hostname = format!("{}:{}", endpoint_id.host, endpoint_id.port);
+    let addresses = hostname
         .to_socket_addrs()
-        .map_err(BindLocalError::Hostname)?;
+        .map_err(|error| BindLocalError::Hostname { hostname, error })?;
 
     let mut handles = vec![];
     let (streams_tx, streams_rx) = mpsc::channel(3);
@@ -258,7 +259,7 @@ async fn process_socket_address(
 ) -> Result<(), BindLocalError> {
     let listener = TcpListener::bind(address)
         .await
-        .map_err(BindLocalError::Bind)?;
+        .map_err(|error| BindLocalError::Bind { address, error })?;
     let task = async move {
         debug!("Start");
         defer!(debug!("End"));
@@ -308,11 +309,17 @@ async fn process_listener(
 #[nameth]
 #[derive(thiserror::Error, Debug)]
 pub enum BindLocalError {
-    #[error("[{n}] Failed to resolve: {0}", n = self.name())]
-    Hostname(std::io::Error),
+    #[error("[{n}] Failed to resolve '{hostname}': {error}", n = self.name())]
+    Hostname {
+        hostname: String,
+        error: std::io::Error,
+    },
 
-    #[error("[{n}] Failed to bind: {0}", n = self.name())]
-    Bind(std::io::Error),
+    #[error("[{n}] Failed to bind '{address}': {error}", n = self.name())]
+    Bind {
+        address: SocketAddr,
+        error: std::io::Error,
+    },
 
     #[error("[{n}] The endpoint is already used: {0:?}", n = self.name())]
     EndpointInUse(EndpointId),
