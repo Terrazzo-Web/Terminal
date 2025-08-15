@@ -146,6 +146,10 @@ async fn process_port_forward(
         ask,
         ack,
     } = new;
+    if !port_forward.checked {
+        port_forward.state.lock().status = PortForwardStatus::Offline;
+        return Ok(());
+    }
     let requests = stream::once(ready(Ok(PortForwardEndpoint {
         remote: port_forward
             .from
@@ -186,7 +190,9 @@ async fn process_bind_stream(
 
     match &mut port_forward.state.lock().status {
         status @ PortForwardStatus::Pending => *status = PortForwardStatus::Up,
-        status @ (PortForwardStatus::Up | PortForwardStatus::Failed { .. }) => {
+        status @ (PortForwardStatus::Up
+        | PortForwardStatus::Offline
+        | PortForwardStatus::Failed { .. }) => {
             warn!("Expected status to be pending, got {status:?}")
         }
     };
