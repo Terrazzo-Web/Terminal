@@ -134,11 +134,18 @@ impl Manager {
         let this = self.clone();
         spawn_local(async move {
             autoclone!(remote);
-            let Ok(()) = super::state::store_port_forwards(remote, new.clone())
+            let Ok(()) = super::state::store_port_forwards(remote.clone(), new.clone())
                 .await
                 .inspect_err(|error| diagnostics::warn!("Failed to save port forwards: {error}"))
             else {
                 return;
+            };
+            let new = match super::state::load_port_forwards(remote).await {
+                Ok(new) => new.into(),
+                Err(error) => {
+                    diagnostics::warn!("Failed to load port forwards: {error}");
+                    new
+                }
             };
             this.port_forwards_signal.set(new);
             drop(loading);

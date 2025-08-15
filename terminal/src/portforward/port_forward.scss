@@ -85,6 +85,11 @@
 
         .port-forward-status {
             margin: var(--half-padding);
+            margin-top: var(--padding);
+        }
+
+        .active-checkbox {
+            margin: var(--half-padding);
         }
     }
 

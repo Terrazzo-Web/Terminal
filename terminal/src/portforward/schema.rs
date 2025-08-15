@@ -11,6 +11,7 @@ pub struct PortForward {
     pub from: HostPortDefinition,
     pub to: HostPortDefinition,
     pub state: PortForwardState,
+    pub checked: bool,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -41,6 +42,7 @@ pub enum PortForwardStatus {
     #[default]
     Pending,
     Up,
+    Offline,
     Failed(String),
 }
 
