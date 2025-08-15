@@ -65,14 +65,13 @@ pub struct PendingPortForward {
     ack: oneshot::Sender<()>,
 }
 
-pub fn prepare(
-    old: Box<[RunningPortForward]>,
-    new: Arc<Vec<PortForward>>,
-) -> (
-    Box<[RunningPortForward]>,
-    Box<[RunningPortForward]>,
-    Box<[PendingPortForward]>,
-) {
+pub struct PreparedPortForwards {
+    pub running: Box<[RunningPortForward]>,
+    pub stopping: Box<[RunningPortForward]>,
+    pub pending: Box<[PendingPortForward]>,
+}
+
+pub fn prepare(old: Box<[RunningPortForward]>, new: Arc<Vec<PortForward>>) -> PreparedPortForwards {
     let mut running = vec![];
     let mut stopping = vec![];
     let mut pending = vec![];
@@ -120,7 +119,11 @@ pub fn prepare(
             ack: eos_ack_tx,
         });
     }
-    (Box::from(running), Box::from(stopping), Box::from(pending))
+    PreparedPortForwards {
+        running: Box::from(running),
+        stopping: Box::from(stopping),
+        pending: Box::from(pending),
+    }
 }
 
 pub async fn process(server: &Arc<Server>, new: Box<[PendingPortForward]>) {
