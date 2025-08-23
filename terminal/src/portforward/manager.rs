@@ -76,7 +76,7 @@ impl Manager {
     pub fn port_forwards(&self) -> XSignal<Arc<Vec<PortForward>>> {
         self.port_forwards_signal.clone()
     }
-    pub fn port_forwards_lock(&self) -> std::sync::MutexGuard<Arc<Vec<PortForward>>> {
+    pub fn port_forwards_lock(&self) -> std::sync::MutexGuard<'_, Arc<Vec<PortForward>>> {
         self.port_forwards.lock().expect("port_forwards lock")
     }
 

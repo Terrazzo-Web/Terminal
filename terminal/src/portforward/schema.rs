@@ -18,7 +18,7 @@ pub struct PortForward {
 pub struct PortForwardState(Arc<Mutex<PortForwardStateImpl>>);
 
 impl PortForwardState {
-    pub fn lock(&self) -> MutexGuard<PortForwardStateImpl> {
+    pub fn lock(&self) -> MutexGuard<'_, PortForwardStateImpl> {
         self.0.lock().expect("PortForwardState")
     }
 }
