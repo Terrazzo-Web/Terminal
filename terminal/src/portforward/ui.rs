@@ -27,12 +27,7 @@ use crate::frontend::remotes_ui::show_remote;
 use crate::portforward::schema::PortForwardState;
 
 stylance::import_style!(style, "port_forward.scss");
-
-/*
-TODO
-- Show the remotes accessible from the selected remote.
-- Reconnect when connection fails
-*/
+pub use style::tag;
 
 /// The UI for the port forward app.
 #[html]
@@ -114,12 +109,12 @@ fn show_add_port_forward(#[signal] new_sync_state: SyncState) -> XElement {
 
 #[html]
 fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForward) -> XElement {
-    let title = port_forward.to_string();
     let PortForward {
         id,
         from,
         to,
         state,
+        checked: _,
     } = port_forward;
     let sync_state = XSignal::new("sync-state", SyncState::default());
     let params = ShowHostPortDefinition {
@@ -128,12 +123,16 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
         sync_state: &sync_state,
         id: *id,
     };
+
     div(
         class = style::port_forward,
         div(
             class = style::title,
             show_status(sync_state.clone()),
-            "{title}",
+            "Listen to traffic from\u{00A0}",
+            port_forward.from.show(),
+            "\u{00A0}and forward it to\u{00A0}",
+            port_forward.to.show(),
             show_delete(
                 manager.clone(),
                 remote.clone(),
@@ -163,7 +162,51 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
                 }),
             ),
         ),
+        show_active_checkbox(params, port_forward),
         show_state(state),
+    )
+}
+
+#[html]
+#[autoclone]
+fn show_active_checkbox(params: ShowHostPortDefinition, port_forward: &PortForward) -> XElement {
+    let ShowHostPortDefinition {
+        manager,
+        remote,
+        sync_state,
+        id,
+    } = params;
+    let checked = port_forward.checked;
+
+    let toggle_status = move |event: web_sys::Event| {
+        autoclone!(manager, remote);
+        autoclone!(sync_state);
+        let target = event.target().or_throw("targtet for toggle_status");
+        let target: HtmlInputElement = target.dyn_into().or_throw("input for toggle_status");
+        let checked = target.checked();
+        manager.set(
+            &remote,
+            sync_state.clone(),
+            Fields::ACTIVE,
+            id,
+            |port_forward| {
+                Some(PortForward {
+                    checked,
+                    ..port_forward.clone()
+                })
+            },
+        )
+    };
+
+    div(
+        class = style::active_checkbox,
+        label(r#for = format!("active-{id}"), "Active "),
+        input(
+            r#type = "checkbox",
+            id = format!("active-{id}"),
+            change = toggle_status,
+            checked = checked.then(|| "checked".to_owned()),
+        ),
     )
 }
 
@@ -174,6 +217,16 @@ fn show_state(state: &PortForwardState) -> XElement {
     match &state.status {
         PortForwardStatus::Pending => div(class = style::port_forward_status, "Pending..."),
         PortForwardStatus::Up => div(class = style::port_forward_status, "Up: {count}"),
+        PortForwardStatus::Offline => {
+            if count == 0 {
+                div(class = style::port_forward_status, "Offline")
+            } else {
+                div(
+                    class = style::port_forward_status,
+                    "Pending shutdown: {count}",
+                )
+            }
+        }
         PortForwardStatus::Failed(error) => div(
             class = style::port_forward_status,
             span(style::color = "red", style::font_weight = "bold", "Error: "),
@@ -296,8 +349,8 @@ fn show_host_port_definition(
     let set_port = move |event: web_sys::Event| {
         autoclone!(manager, remote);
         autoclone!(forwarded_remote, host, set, sync_state);
-        let target = event.target().or_throw("targtet for set_host");
-        let target: HtmlInputElement = target.dyn_into().or_throw("input for set_host");
+        let target = event.target().or_throw("targtet for set_port");
+        let target: HtmlInputElement = target.dyn_into().or_throw("input for set_port");
         let port = target.value();
         let Ok(port) = port.trim().parse() else {
             diagnostics::warn!("Value doesn't parse as u16: '{port}'");
@@ -423,14 +476,4 @@ fn show_remote_select(
         },
         options..,
     )
-}
-
-impl std::fmt::Display for PortForward {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Listen to traffic from {} and forward it to {}",
-            self.from, self.to
-        )
-    }
 }

@@ -18,7 +18,8 @@ bitflags! {
         const REMOTE = 1;
         const HOST = 1 << 1;
         const PORT = 1 << 2;
-        const DELETE = 1 << 2;
+        const DELETE = 1 << 3;
+        const ACTIVE = 1 << 4;
     }
 }
 

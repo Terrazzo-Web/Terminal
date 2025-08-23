@@ -3,11 +3,11 @@ use std::future::ready;
 use std::io::ErrorKind;
 use std::marker::PhantomData;
 use std::net::SocketAddr;
-use std::net::ToSocketAddrs as _;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::Context;
 use std::task::Poll;
+use std::time::Duration;
 
 use futures::Stream;
 use futures::StreamExt as _;
@@ -17,6 +17,7 @@ use nameth::nameth;
 use pin_project::pin_project;
 use scopeguard::defer;
 use terrazzo::autoclone;
+use terrazzo::declare_trait_aliias;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -73,6 +74,11 @@ pub struct BindCallback<S: Stream<Item = PortForwardEndpoint>>(PhantomData<S>);
 pub enum BindStream {
     Local(#[pin] LocalBindStream),
     Remote(#[pin] RemoteBindStream),
+}
+
+declare_trait_aliias! {
+    IsBindStream,
+    Stream<Item = Result<PortForwardAcceptResponse, Status>> + Unpin + Send + 'static
 }
 
 #[pin_project]
@@ -197,10 +203,25 @@ async fn process_request(
         host: endpoint.host,
         port: endpoint.port,
     };
-    let hostname = format!("{}:{}", endpoint_id.host, endpoint_id.port);
-    let addresses = hostname
-        .to_socket_addrs()
-        .map_err(|error| BindLocalError::Hostname { hostname, error })?;
+    let addresses = {
+        let hostname = format!("{}:{}", endpoint_id.host, endpoint_id.port);
+        let addresses =
+            tokio::net::lookup_host((endpoint_id.host.as_str(), endpoint_id.port as u16));
+        let addresses = tokio::time::timeout(Duration::from_secs(2), addresses).await;
+        let addresses = match addresses {
+            Ok(addresses) => addresses,
+            Err(error) => {
+                return Err(BindLocalError::Hostname {
+                    hostname,
+                    error: std::io::Error::new(ErrorKind::AddrNotAvailable, error),
+                });
+            }
+        };
+        match addresses {
+            Ok(addresses) => addresses.collect::<Vec<_>>(),
+            Err(error) => return Err(BindLocalError::Hostname { hostname, error }),
+        }
+    };
 
     let mut handles = vec![];
     let (streams_tx, streams_rx) = mpsc::channel(3);
@@ -364,6 +385,9 @@ pub enum BindError {
 
     #[error("[{n}] {0}", n = Self::type_name())]
     Dispatch(#[from] DistributedCallbackError<BindLocalError, BindRemoteError>),
+
+    #[error("[{n}] Canceled", n = Self::type_name())]
+    Canceled,
 }
 
 impl From<BindError> for Status {
@@ -372,6 +396,7 @@ impl From<BindError> for Status {
             BindError::EmptyRequest => tonic::Code::InvalidArgument,
             BindError::RequestError { .. } => tonic::Code::FailedPrecondition,
             BindError::Dispatch(error) => return error.into(),
+            BindError::Canceled => tonic::Code::Cancelled,
         };
         Self::new(code, error.to_string())
     }

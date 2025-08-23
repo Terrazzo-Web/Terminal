@@ -38,6 +38,7 @@ mod backend {
     use std::sync::Mutex;
 
     use crate::backend::client_service::remote_fn_service;
+    use crate::portforward::engine::PreparedPortForwards;
     use crate::portforward::engine::RunningPortForward;
     use crate::portforward::schema::PortForward;
 
@@ -53,8 +54,11 @@ mod backend {
             async move {
                 let (stopping, pending) = {
                     let mut lock = STATE.lock().expect(super::STORE_PORT_FORWARDS);
-                    let (running, stopping, pending) =
-                        engine::prepare(lock.take().unwrap_or_default(), port_forwards);
+                    let PreparedPortForwards {
+                        running,
+                        stopping,
+                        pending,
+                    } = engine::prepare(lock.take().unwrap_or_default(), port_forwards);
                     *lock = Some(running);
                     (stopping, pending)
                 };
