@@ -270,7 +270,6 @@ async fn run_stream(
     {
         let mut lock = state.lock();
         lock.count += 1;
-        lock.status = PortForwardStatus::Up;
         debug!("Increment count of running streams");
     }
     let decrement = scopeguard::guard((), move |()| {

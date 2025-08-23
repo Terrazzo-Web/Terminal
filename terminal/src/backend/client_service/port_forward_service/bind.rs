@@ -3,11 +3,11 @@ use std::future::ready;
 use std::io::ErrorKind;
 use std::marker::PhantomData;
 use std::net::SocketAddr;
-use std::net::ToSocketAddrs as _;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::Context;
 use std::task::Poll;
+use std::time::Duration;
 
 use futures::Stream;
 use futures::StreamExt as _;
@@ -203,10 +203,25 @@ async fn process_request(
         host: endpoint.host,
         port: endpoint.port,
     };
-    let hostname = format!("{}:{}", endpoint_id.host, endpoint_id.port);
-    let addresses = hostname
-        .to_socket_addrs()
-        .map_err(|error| BindLocalError::Hostname { hostname, error })?;
+    let addresses = {
+        let hostname = format!("{}:{}", endpoint_id.host, endpoint_id.port);
+        let addresses =
+            tokio::net::lookup_host((endpoint_id.host.as_str(), endpoint_id.port as u16));
+        let addresses = tokio::time::timeout(Duration::from_secs(2), addresses).await;
+        let addresses = match addresses {
+            Ok(addresses) => addresses,
+            Err(error) => {
+                return Err(BindLocalError::Hostname {
+                    hostname,
+                    error: std::io::Error::new(ErrorKind::AddrNotAvailable, error),
+                });
+            }
+        };
+        match addresses {
+            Ok(addresses) => addresses.collect::<Vec<_>>(),
+            Err(error) => return Err(BindLocalError::Hostname { hostname, error }),
+        }
+    };
 
     let mut handles = vec![];
     let (streams_tx, streams_rx) = mpsc::channel(3);

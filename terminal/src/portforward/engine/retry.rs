@@ -23,6 +23,7 @@ use self::protos::PortForwardAcceptResponse;
 use crate::backend::client_service::port_forward_service;
 use crate::backend::protos::terrazzo::portforward as protos;
 use crate::portforward::schema::PortForward;
+use crate::portforward::schema::PortForwardStatus;
 
 pub struct BindStreamWithRetry(BindStreamWithRetryImpl);
 
@@ -131,6 +132,8 @@ impl StreamingPrep {
     ) -> ControlFlow<StreamItem, BindStreamWithRetryImpl> {
         match self.stream.poll_unpin(cx) {
             Poll::Ready(Ok(stream)) => {
+                debug!("Got bind stream");
+                self.info.port_forward.state.lock().status = PortForwardStatus::Up;
                 ControlFlow::Continue(BindStreamWithRetryImpl::Streaming(Streaming {
                     started_at: self.started_at,
                     retry_strategy: self.retry_strategy.clone(),
@@ -138,7 +141,18 @@ impl StreamingPrep {
                     info: self.info.clone(),
                 }))
             }
-            Poll::Ready(Err(error)) => ControlFlow::Break(Poll::Ready(Some(Err(error.into())))),
+            Poll::Ready(Err(error)) => {
+                warn!("Failed to get bind stream, will retry: {error}");
+                self.info.port_forward.state.lock().status =
+                    PortForwardStatus::Failed(format!("{error} (will retry)"));
+                let mut retry_strategy = self.retry_strategy.clone();
+                let sleep = Box::pin(retry_strategy.wait());
+                ControlFlow::Continue(BindStreamWithRetryImpl::Retrying(Retrying {
+                    sleep,
+                    retry_strategy,
+                    info: self.info.clone(),
+                }))
+            }
             Poll::Pending => ControlFlow::Break(Poll::Pending),
         }
     }
@@ -155,6 +169,8 @@ impl Streaming {
         };
 
         warn!("The bind stream failed: {error}");
+        self.info.port_forward.state.lock().status =
+            PortForwardStatus::Failed(format!("{error} (will retry)"));
 
         let now = Instant::now();
         if self.started_at < now - RETRY_COOLDOWN {
@@ -185,6 +201,8 @@ impl Retrying {
     ) -> ControlFlow<StreamItem, BindStreamWithRetryImpl> {
         match self.sleep.poll_unpin(cx) {
             Poll::Ready(()) => {
+                warn!("Retry cooldown: DONE");
+                self.info.port_forward.state.lock().status = PortForwardStatus::Pending;
                 ControlFlow::Continue(BindStreamWithRetryImpl::StreamingPrep(StreamingPrep {
                     started_at: Instant::now(),
                     retry_strategy: self.retry_strategy.clone(),
@@ -192,7 +210,10 @@ impl Retrying {
                     info: self.info.clone(),
                 }))
             }
-            Poll::Pending => ControlFlow::Break(Poll::Pending),
+            Poll::Pending => {
+                warn!("Retry cooldown: PENDING");
+                ControlFlow::Break(Poll::Pending)
+            }
         }
     }
 }
