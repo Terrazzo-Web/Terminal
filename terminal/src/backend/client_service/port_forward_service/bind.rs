@@ -385,6 +385,9 @@ pub enum BindError {
 
     #[error("[{n}] {0}", n = Self::type_name())]
     Dispatch(#[from] DistributedCallbackError<BindLocalError, BindRemoteError>),
+
+    #[error("[{n}] Canceled", n = Self::type_name())]
+    Canceled,
 }
 
 impl From<BindError> for Status {
@@ -393,6 +396,7 @@ impl From<BindError> for Status {
             BindError::EmptyRequest => tonic::Code::InvalidArgument,
             BindError::RequestError { .. } => tonic::Code::FailedPrecondition,
             BindError::Dispatch(error) => return error.into(),
+            BindError::Canceled => tonic::Code::Cancelled,
         };
         Self::new(code, error.to_string())
     }

@@ -11,6 +11,8 @@ use futures::Stream;
 use futures::StreamExt as _;
 use futures::channel::oneshot;
 use futures::future::Shared;
+use tokio::time::Timeout;
+use tokio::time::error::Elapsed;
 use tonic::Status;
 use tracing::debug;
 use tracing::warn;
@@ -73,7 +75,7 @@ struct StreamingImpl<T> {
 }
 
 struct Retrying {
-    sleep: Pin<Box<tokio::time::Sleep>>,
+    sleep: Pin<Box<Timeout<Shared<oneshot::Receiver<()>>>>>,
     retry_strategy: RetryStrategy,
     info: Arc<StreamInfo>,
 }
@@ -146,7 +148,10 @@ impl StreamingPrep {
                 self.info.port_forward.state.lock().status =
                     PortForwardStatus::Failed(format!("{error} (will retry)"));
                 let mut retry_strategy = self.retry_strategy.clone();
-                let sleep = Box::pin(retry_strategy.wait());
+                let sleep = Box::pin(tokio::time::timeout(
+                    retry_strategy.delay(),
+                    self.info.ask.clone(),
+                ));
                 ControlFlow::Continue(BindStreamWithRetryImpl::Retrying(Retrying {
                     sleep,
                     retry_strategy,
@@ -184,7 +189,10 @@ impl Streaming {
         } else {
             debug!("The bind stream crashed before {:?}", RETRY_COOLDOWN);
             let mut retry_strategy = self.retry_strategy.clone();
-            let sleep = Box::pin(retry_strategy.wait());
+            let sleep = Box::pin(tokio::time::timeout(
+                retry_strategy.delay(),
+                self.info.ask.clone(),
+            ));
             ControlFlow::Continue(BindStreamWithRetryImpl::Retrying(Retrying {
                 sleep,
                 retry_strategy,
@@ -200,7 +208,7 @@ impl Retrying {
         cx: &mut Context<'_>,
     ) -> ControlFlow<StreamItem, BindStreamWithRetryImpl> {
         match self.sleep.poll_unpin(cx) {
-            Poll::Ready(()) => {
+            Poll::Ready(Err(Elapsed { .. })) => {
                 warn!("Retry cooldown: DONE");
                 self.info.port_forward.state.lock().status = PortForwardStatus::Pending;
                 ControlFlow::Continue(BindStreamWithRetryImpl::StreamingPrep(StreamingPrep {
@@ -209,6 +217,9 @@ impl Retrying {
                     stream: Box::pin(self.info.get_bind_stream()),
                     info: self.info.clone(),
                 }))
+            }
+            Poll::Ready(Ok(_ask)) => {
+                ControlFlow::Break(Poll::Ready(Some(Err(BindError::Canceled.into()))))
             }
             Poll::Pending => {
                 warn!("Retry cooldown: PENDING");
@@ -220,10 +231,17 @@ impl Retrying {
 
 impl StreamInfo {
     fn get_bind_stream(&self) -> impl Future<Output = Result<BindStream, BindError>> + 'static {
-        super::get_bind_stream(
+        let stream = Box::pin(super::get_bind_stream(
             self.server.clone(),
             self.port_forward.clone(),
             self.ask.clone(),
-        )
+        ));
+        let ask = self.ask.clone();
+        async move {
+            match futures::future::select(stream, ask).await {
+                futures::future::Either::Left((stream, _ask)) => stream,
+                futures::future::Either::Right((_ask, _stream)) => Err(BindError::Canceled),
+            }
+        }
     }
 }
