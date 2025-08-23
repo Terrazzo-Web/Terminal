@@ -17,6 +17,7 @@ use nameth::nameth;
 use pin_project::pin_project;
 use scopeguard::defer;
 use terrazzo::autoclone;
+use terrazzo::declare_trait_aliias;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -73,6 +74,11 @@ pub struct BindCallback<S: Stream<Item = PortForwardEndpoint>>(PhantomData<S>);
 pub enum BindStream {
     Local(#[pin] LocalBindStream),
     Remote(#[pin] RemoteBindStream),
+}
+
+declare_trait_aliias! {
+    IsBindStream,
+    Stream<Item = Result<PortForwardAcceptResponse, Status>> + Unpin + Send + 'static
 }
 
 #[pin_project]

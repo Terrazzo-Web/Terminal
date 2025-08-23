@@ -77,14 +77,43 @@ impl Deref for HostPortDefinition {
 
 impl std::fmt::Display for HostPortDefinition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let forwarded_remote = self
-            .forwarded_remote
-            .as_ref()
-            .filter(|remote| !remote.is_empty())
-            .map(|remote| remote.to_string())
-            .unwrap_or_else(|| "Local".to_string());
+        let forwarded_remote = self.forwarded_remote();
         let host = &self.host;
         let port = self.port;
         write!(f, "{forwarded_remote}:{host}:{port}")
+    }
+}
+
+#[cfg(feature = "client")]
+mod server {
+    use terrazzo::html;
+    use terrazzo::prelude::*;
+
+    use super::HostPortDefinition;
+
+    impl HostPortDefinition {
+        #[html]
+        pub fn show(&self) -> XElement {
+            let forwarded_remote = self.forwarded_remote();
+            let host = &self.host;
+            let port = self.port;
+            span(
+                span("{forwarded_remote}", class = super::super::ui::tag),
+                ":",
+                span("{host}", class = super::super::ui::tag),
+                ":",
+                span("{port}", class = super::super::ui::tag),
+            )
+        }
+    }
+}
+
+impl HostPortDefinition {
+    fn forwarded_remote(&self) -> String {
+        self.forwarded_remote
+            .as_ref()
+            .filter(|remote| !remote.is_empty())
+            .map(|remote| remote.to_string())
+            .unwrap_or_else(|| "Local".to_string())
     }
 }

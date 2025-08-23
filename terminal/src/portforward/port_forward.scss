@@ -66,6 +66,15 @@
                 width: var(--size);
                 height: var(--size);
             }
+
+
+            span.tag {
+                background-color: rgba(255, 255, 255, 0.2);
+                padding: 3px;
+                border: 1px solid var(--color);
+                border-radius: 7px;
+                text-transform: uppercase;
+            }
         }
 
         .port-forward-body {

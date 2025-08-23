@@ -27,6 +27,7 @@ use crate::frontend::remotes_ui::show_remote;
 use crate::portforward::schema::PortForwardState;
 
 stylance::import_style!(style, "port_forward.scss");
+pub use style::tag;
 
 /// The UI for the port forward app.
 #[html]
@@ -108,7 +109,6 @@ fn show_add_port_forward(#[signal] new_sync_state: SyncState) -> XElement {
 
 #[html]
 fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForward) -> XElement {
-    let title = port_forward.to_string();
     let PortForward {
         id,
         from,
@@ -123,12 +123,16 @@ fn show_port_forward(manager: &Manager, remote: &Remote, port_forward: &PortForw
         sync_state: &sync_state,
         id: *id,
     };
+
     div(
         class = style::port_forward,
         div(
             class = style::title,
             show_status(sync_state.clone()),
-            "{title}",
+            "Listen to traffic from\u{00A0}",
+            port_forward.from.show(),
+            "\u{00A0}and forward it to\u{00A0}",
+            port_forward.to.show(),
             show_delete(
                 manager.clone(),
                 remote.clone(),
@@ -472,14 +476,4 @@ fn show_remote_select(
         },
         options..,
     )
-}
-
-impl std::fmt::Display for PortForward {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Listen to traffic from {} and forward it to {}",
-            self.from, self.to
-        )
-    }
 }
