@@ -169,7 +169,7 @@ async fn get_bind_stream(
     })))
     .chain(stream::once(ask.clone()).filter_map(|_| ready(None)));
     let stream = port_forward_service::bind::dispatch(&server, requests).await;
-    Ok(stream.inspect_err(|error| debug!("Bind failed: {error}"))?)
+    stream.inspect_err(|error| debug!("Bind failed: {error}"))
 }
 
 async fn process_bind_stream(

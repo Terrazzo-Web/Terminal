@@ -240,7 +240,11 @@ impl StreamInfo {
         async move {
             match futures::future::select(stream, ask).await {
                 futures::future::Either::Left((stream, _ask)) => stream,
-                futures::future::Either::Right((_ask, _stream)) => Err(BindError::Canceled),
+                futures::future::Either::Right((Ok(()), _stream)) => Err(BindError::Canceled),
+                futures::future::Either::Right((Err(oneshot::Canceled), _stream)) => {
+                    debug!("Ask to shutdown canceled without being explicitly set");
+                    Err(BindError::Canceled)
+                }
             }
         }
     }
