@@ -1011,7 +1011,7 @@ dependencies = [
 
 [[package]]
 name = "game"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "scopeguard",
  "stylance",
@@ -3436,7 +3436,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-pty"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "bytes",
  "futures",
@@ -3455,7 +3455,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-terminal"
-version = "0.1.18"
+version = "0.1.19"
 dependencies = [
  "axum-extra",
  "base64",
