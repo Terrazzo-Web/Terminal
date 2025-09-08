@@ -31,14 +31,14 @@ autoclone = { version = "0.1.17" }
 axum = { version = "0.8.4" }
 axum-extra = { version = "0.10.1" }
 base64 = { version = "0.22.1" }
-bitflags = { version = "2.9.3" }
+bitflags = { version = "2.9.4" }
 bytes = { version = "1.10.1" }
 chrono = { version = "0.4.41", default-features = false, features = [
     "now",
     "std",
     "wasmbind",
 ] }
-clap = { version = "4.5.45", features = ["derive"] }
+clap = { version = "4.5.47", features = ["derive"] }
 cms = { version = "0.2.3" }
 const_format = { version = "0.2.34" }
 darling = { version = "0.21.3" }
@@ -78,11 +78,11 @@ serde_json = { version = "1.0.143" }
 serde_urlencoded = { version = "0.7.1" }
 serde_yaml_ng = { version = "0.10.0" }
 serde-wasm-bindgen = { version = "0.6.5" }
-server_fn = { version = "0.8.5" }
+server_fn = { version = "0.8.6" }
 sha2 = { version = "0.10.9" }
 simple_asn1 = { version = "0.6.3" }
 static_assertions = { version = "1.1.0" }
-stylance = { version = "0.7.0" }
+stylance = { version = "0.7.1" }
 syn = { version = "2.0.106" }
 terrazzo = { version = "0.1.17", default-features = false }
 terrazzo-build = { version = "0.1.17" }
@@ -91,20 +91,20 @@ tokio = { version = "1.47.1" }
 tokio-stream = { version = "0.1.17" }
 tokio-util = { version = "0.7.16" }
 toml = { version = "0.9.5" }
-tonic = { version = "0.14.1" }
-tonic-prost = { version = "0.14.1" }
-tonic-prost-build = { version = "0.14.1" }
+tonic = { version = "0.14.2" }
+tonic-prost = { version = "0.14.2" }
+tonic-prost-build = { version = "0.14.2" }
 tower = { version = "0.5.2" }
 tower-http = { version = "0.6.4" }
 tracing = { version = "0.1.41" }
 tracing-futures = { version = "0.2.5" }
-tracing-subscriber = { version = "0.3.19" }
+tracing-subscriber = { version = "0.3.20" }
 tracing-subscriber-wasm = { version = "0.1.0" }
 trz-gateway-client = { version = "0.1.17" }
 trz-gateway-common = { version = "0.1.17" }
 trz-gateway-server = { version = "0.1.17" }
 unescaper = { version = "0.1.6" }
-uuid = { version = "1.18.0" }
+uuid = { version = "1.18.1" }
 wasm-bindgen = { version = "0.2.100" }
 wasm-bindgen-futures = { version = "0.4.50" }
 wasm-bindgen-test = { version = "0.3.50" }
