@@ -5,13 +5,13 @@ runs:
     # Avoids race with two build scripts installing wasm-bindgen-cli at the same time.
     - name: First compile
       run: |
-        cargo build --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
-        cargo build --bin terrazzo-terminal --no-default-features --features server-all,max-level-debug,diagnostics
+        cargo build --locked --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
+        cargo build --locked --bin terrazzo-terminal --no-default-features --features server-all,max-level-debug,diagnostics
       shell: bash
 
     - name: Test client
       run: |
-        cargo test --no-default-features --features diagnostics,client-all
-        cargo test --no-default-features --features diagnostics,server-all
-        cargo test --no-default-features --features diagnostics,server-all,client-all
+        cargo test --locked --no-default-features --features diagnostics,client-all
+        cargo test --locked --no-default-features --features diagnostics,server-all
+        cargo test --locked --no-default-features --features diagnostics,server-all,client-all
       shell: bash

@@ -9,14 +9,14 @@ Pre-requisite:
 - [`stylance-cli` CLI](https://github.com/basro/stylance-rs?tab=readme-ov-file#stylance-cli)
 
 ```
-cargo install wasm-pack
-cargo install stylance-cli
+cargo install --locked wasm-pack
+cargo install --locked stylance-cli
 ```
 
 ## Compile from source
 Then run `terrazzo-terminal` using
 ```
-cargo run --bin terrazzo-terminal --release
+cargo run --locked --bin terrazzo-terminal --release
 ```
 
 Open the address printed on the terminal to stack hacking
@@ -26,7 +26,7 @@ Listening on http://127.0.0.1:3001
 
 ## Install using `cargo install`
 ```
-cargo install terrazzo-terminal
+cargo install --locked terrazzo-terminal
 ```
 
 Then start it using
