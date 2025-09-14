@@ -52,11 +52,11 @@ runs:
 
     - name: Install wasm-pack
       shell: bash
-      run: cargo install wasm-pack --version 0.13.1
+      run: cargo install --locked wasm-pack --version 0.13.1
 
     - name: Install stylance
       shell: bash
-      run: cargo install stylance-cli --version 0.7.0
+      run: cargo install --locked stylance-cli --version 0.7.0
 
     - name: Install Protoc
       uses: arduino/setup-protoc@v3

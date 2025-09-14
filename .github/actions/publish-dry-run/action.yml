@@ -4,6 +4,6 @@ runs:
   steps:
     - name: Publish (dry-run)
       run: |
-        cargo publish -p terrazzo-pty --dry-run
-        cargo publish -p terrazzo-terminal --dry-run
+        cargo publish --locked -p terrazzo-pty --dry-run
+        cargo publish --locked -p terrazzo-terminal --dry-run
       shell: bash

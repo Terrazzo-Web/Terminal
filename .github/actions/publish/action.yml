@@ -3,10 +3,10 @@ runs:
   using: "composite"
   steps:
     - name: Login
-      run: cargo login $CRATES_TOKEN
+      run: cargo login --locked $CRATES_TOKEN
       shell: bash
     - name: Publish
       run: |
-        cargo publish -p terrazzo-pty
-        cargo publish -p terrazzo-terminal
+        cargo publish --locked -p terrazzo-pty
+        cargo publish --locked -p terrazzo-terminal
       shell: bash
