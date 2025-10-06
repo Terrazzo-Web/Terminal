@@ -28,8 +28,8 @@ terrazzo-pty = { version = "0.1.19", path = "pty" }
 
 async-trait = { version = "0.1.89" }
 autoclone = { version = "0.1.17" }
-axum = { version = "0.8.5" }
-axum-extra = { version = "0.10.2" }
+axum = { version = "0.8.6" }
+axum-extra = { version = "0.10.3" }
 base64 = { version = "0.22.1" }
 bitflags = { version = "2.9.4" }
 bytes = { version = "1.10.1" }
@@ -40,7 +40,7 @@ chrono = { version = "0.4.41", default-features = false, features = [
 ] }
 clap = { version = "4.5.48", features = ["derive"] }
 cms = { version = "0.2.3" }
-const_format = { version = "0.2.34" }
+const_format = { version = "0.2.35" }
 darling = { version = "0.21.3" }
 dashmap = { version = "6.1.0" }
 deluxe = { version = "0.5.0" }
