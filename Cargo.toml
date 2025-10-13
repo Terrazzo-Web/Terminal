@@ -38,7 +38,7 @@ chrono = { version = "0.4.41", default-features = false, features = [
     "std",
     "wasmbind",
 ] }
-clap = { version = "4.5.48", features = ["derive"] }
+clap = { version = "4.5.49", features = ["derive"] }
 cms = { version = "0.2.3" }
 const_format = { version = "0.2.35" }
 darling = { version = "0.21.3" }
@@ -52,7 +52,7 @@ humantime = { version = "2.3.0" }
 include_directory = { version = "0.1.1" }
 inventory = { version = "0.3.21" }
 jsonwebtoken = { version = "9.3.1" }
-libc = { version = "0.2.176" }
+libc = { version = "0.2.177" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.17" }
@@ -67,7 +67,7 @@ proc-macro2 = { version = "1.0.101" }
 prost = { version = "0.14.1" }
 prost-types = { version = "0.14.1" }
 quote = { version = "1.0.41" }
-regex = { version = "1.11.3" }
+regex = { version = "1.12.2" }
 reqwest-wasm = { version = "0.11.16" }
 rpassword = { version = "7.4.0" }
 rsass-macros = { version = "0.29.0" }
@@ -90,7 +90,7 @@ thiserror = { version = "2.0.17" }
 tokio = { version = "1.47.1" }
 tokio-stream = { version = "0.1.17" }
 tokio-util = { version = "0.7.16" }
-toml = { version = "0.9.7" }
+toml = { version = "0.9.8" }
 tonic = { version = "0.14.2" }
 tonic-prost = { version = "0.14.2" }
 tonic-prost-build = { version = "0.14.2" }
