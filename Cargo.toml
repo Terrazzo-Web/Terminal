@@ -63,7 +63,7 @@ openssl = { version = "0.10.74" }
 pbkdf2 = { version = "0.12.2" }
 pin-project = { version = "1.1.10" }
 prettyplease = { version = "0.2.37" }
-proc-macro2 = { version = "1.0.101" }
+proc-macro2 = { version = "1.0.103" }
 prost = { version = "0.14.1" }
 prost-types = { version = "0.14.1" }
 quote = { version = "1.0.41" }
@@ -78,12 +78,12 @@ serde_json = { version = "1.0.145" }
 serde_urlencoded = { version = "0.7.1" }
 serde_yaml_ng = { version = "0.10.0" }
 serde-wasm-bindgen = { version = "0.6.5" }
-server_fn = { version = "0.8.7" }
+server_fn = { version = "0.8.8" }
 sha2 = { version = "0.10.9" }
 simple_asn1 = { version = "0.6.3" }
 static_assertions = { version = "1.1.0" }
 stylance = { version = "0.7.1" }
-syn = { version = "2.0.107" }
+syn = { version = "2.0.108" }
 terrazzo = { version = "0.1.17", default-features = false }
 terrazzo-build = { version = "0.1.17" }
 thiserror = { version = "2.0.17" }
