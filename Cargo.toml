@@ -29,7 +29,7 @@ terrazzo-pty = { version = "0.1.19", path = "pty" }
 async-trait = { version = "0.1.89" }
 autoclone = { version = "0.1.17" }
 axum = { version = "0.8.6" }
-axum-extra = { version = "0.10.3" }
+axum-extra = { version = "0.12.1" }
 base64 = { version = "0.22.1" }
 bitflags = { version = "2.10.0" }
 bytes = { version = "1.10.1" }
