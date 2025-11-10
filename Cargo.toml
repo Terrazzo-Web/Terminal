@@ -59,14 +59,14 @@ nameth = { version = "0.1.17" }
 nix = { version = "0.30.1" }
 notify = { version = "8.2.0" }
 oid-registry = { version = "0.8.1" }
-openssl = { version = "0.10.74" }
+openssl = { version = "0.10.75" }
 pbkdf2 = { version = "0.12.2" }
 pin-project = { version = "1.1.10" }
 prettyplease = { version = "0.2.37" }
 proc-macro2 = { version = "1.0.103" }
 prost = { version = "0.14.1" }
 prost-types = { version = "0.14.1" }
-quote = { version = "1.0.41" }
+quote = { version = "1.0.42" }
 regex = { version = "1.12.2" }
 reqwest-wasm = { version = "0.11.16" }
 rpassword = { version = "7.4.0" }
@@ -83,7 +83,7 @@ sha2 = { version = "0.10.9" }
 simple_asn1 = { version = "0.6.3" }
 static_assertions = { version = "1.1.0" }
 stylance = { version = "0.7.1" }
-syn = { version = "2.0.108" }
+syn = { version = "2.0.110" }
 terrazzo = { version = "0.1.17", default-features = false }
 terrazzo-build = { version = "0.1.17" }
 thiserror = { version = "2.0.17" }
