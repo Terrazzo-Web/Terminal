@@ -18,6 +18,7 @@ pub async fn get_conversions(
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct ConversionsRequest {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "c"))]
     pub input: String,

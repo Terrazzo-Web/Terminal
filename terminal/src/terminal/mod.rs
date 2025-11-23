@@ -108,10 +108,10 @@ impl TerminalsState {
             selected_tab,
             terminal_tabs,
         } = self;
-        if selected_tab.get_value_untracked() == *terminal_id {
-            if let Some(next_selected_tab) = next_selected_tab(terminal_tabs, terminal_id) {
-                selected_tab.set(next_selected_tab);
-            }
+        if selected_tab.get_value_untracked() == *terminal_id
+            && let Some(next_selected_tab) = next_selected_tab(terminal_tabs, terminal_id)
+        {
+            selected_tab.set(next_selected_tab);
         }
         terminal_tabs.update(|terminal_tabs| Some(terminal_tabs.clone().remove_tab(terminal_id)));
         if let Some(last_dispatcher) = terminal_api::stream::drop_dispatcher(terminal_id) {

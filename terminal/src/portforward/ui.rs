@@ -443,19 +443,19 @@ fn show_remote_select(
         }
         options.push(option(value = i.to_string(), "{remote}"))
     }
-    if let Some(selected) = &selected {
-        if selected_index == 0 {
-            // selected_index is "Local" but non-Local remote is selected
-            selected_index = options.len();
-            options.push(option(
-                value = format!("{selected} (offline)"),
-                "{selected} (offline)",
-                after_render = |option| {
-                    let option: HtmlOptionElement = option.dyn_into().or_throw("option");
-                    option.set_disabled(true);
-                },
-            ));
-        }
+    if let Some(selected) = &selected
+        && selected_index == 0
+    {
+        // selected_index is "Local" but non-Local remote is selected
+        selected_index = options.len();
+        options.push(option(
+            value = format!("{selected} (offline)"),
+            "{selected} (offline)",
+            after_render = |option| {
+                let option: HtmlOptionElement = option.dyn_into().or_throw("option");
+                option.set_disabled(true);
+            },
+        ));
     }
     tag(
         id = tag_id,

@@ -4,6 +4,7 @@ use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
 
+#[allow(dead_code)]
 pub trait MorePath {
     fn to_owned_string(self) -> String;
 }
