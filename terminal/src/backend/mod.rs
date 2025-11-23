@@ -92,11 +92,11 @@ pub fn run_server() -> Result<(), RunServerError> {
     crypto_provider();
     let cli = {
         let mut cli = Cli::parse();
-        if let Some(config_file) = &mut cli.config_file {
-            if Path::new(config_file).is_relative() {
-                let concat: PathBuf = [home(), ".terrazzo", config_file].iter().collect();
-                *config_file = concat.to_owned_string()
-            }
+        if let Some(config_file) = &mut cli.config_file
+            && Path::new(config_file).is_relative()
+        {
+            let concat: PathBuf = [home(), ".terrazzo", config_file].iter().collect();
+            *config_file = concat.to_owned_string()
         }
         cli
     };

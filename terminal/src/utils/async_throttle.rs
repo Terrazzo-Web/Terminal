@@ -41,11 +41,9 @@ impl<F> Throttle<F> {
         {
             let (tx, rx) = oneshot::channel();
             let signal = self.signal.lock().unwrap().replace(tx).is_some();
-            if signal {
-                if let Err(oneshot::error::RecvError { .. }) = rx.await {
-                    // This run_again was stolen by a newer one.
-                    return O::Output::default();
-                }
+            if signal && let Err(oneshot::error::RecvError { .. }) = rx.await {
+                // This run_again was stolen by a newer one.
+                return O::Output::default();
             }
         };
 
@@ -63,10 +61,10 @@ impl<F> Throttle<F> {
             let () = tokio::time::sleep(cooldown).await;
             let (tx, _rx) = oneshot::channel();
             let mut lock = this.signal.lock().unwrap();
-            if let Some(signal) = lock.replace(tx) {
-                if let Err(()) = signal.send(()) {
-                    *lock = None;
-                }
+            if let Some(signal) = lock.replace(tx)
+                && let Err(()) = signal.send(())
+            {
+                *lock = None;
             }
         };
         tokio::spawn(cooldown_task.in_current_span());

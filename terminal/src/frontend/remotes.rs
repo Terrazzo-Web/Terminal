@@ -109,26 +109,26 @@ fn show_remotes_dropdown(
     hide_remotes: Cancellable<Duration>,
 ) -> XElement {
     debug!("Render remote names");
-    if let Remotes::Some(remotes) = remotes {
-        if !remotes.is_empty() {
-            let local_and_remotes = once(None).chain(remotes.into_iter().map(Some));
-            let remote_names = local_and_remotes.map(|remote| {
-                let (remote_name, remote_class) = display_remote(remote.as_ref());
-                li(
-                    class = remote_class,
-                    "{remote_name}",
-                    mouseenter = move |_ev| {
-                        autoclone!(hide_remotes);
-                        hide_remotes.cancel();
-                    },
-                    click = move |ev| {
-                        autoclone!(click);
-                        click(ev, remote.clone())
-                    },
-                )
-            });
-            return tag(class = style::remotes_list, remote_names..);
-        }
+    if let Remotes::Some(remotes) = remotes
+        && !remotes.is_empty()
+    {
+        let local_and_remotes = once(None).chain(remotes.into_iter().map(Some));
+        let remote_names = local_and_remotes.map(|remote| {
+            let (remote_name, remote_class) = display_remote(remote.as_ref());
+            li(
+                class = remote_class,
+                "{remote_name}",
+                mouseenter = move |_ev| {
+                    autoclone!(hide_remotes);
+                    hide_remotes.cancel();
+                },
+                click = move |ev| {
+                    autoclone!(click);
+                    click(ev, remote.clone())
+                },
+            )
+        });
+        return tag(class = style::remotes_list, remote_names..);
     }
     return tag(style::visibility = "hidden", style::display = "none");
 }

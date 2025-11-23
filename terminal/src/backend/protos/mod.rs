@@ -1,6 +1,7 @@
 use prost as _;
 use prost_types as _;
 
+#[allow(dead_code)]
 pub mod terrazzo {
     #[cfg(feature = "text-editor")]
     pub mod notify {

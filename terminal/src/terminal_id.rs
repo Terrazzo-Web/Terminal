@@ -8,6 +8,7 @@ use serde::Serialize;
 #[nameth]
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
+#[allow(dead_code)]
 pub struct TerminalId {
     id: Arc<str>,
 }

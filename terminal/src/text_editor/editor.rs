@@ -170,10 +170,10 @@ fn make_diagnostics_notify_handler(
         let EventKind::CargoCheck(diagnostics) = &event.kind else {
             return;
         };
-        if let Ok(diagnostics) = serde_wasm_bindgen::to_value(diagnostics) {
-            if let Some(code_mirror) = &*code_mirror.lock().unwrap() {
-                code_mirror.cargo_check(diagnostics);
-            }
+        if let Ok(diagnostics) = serde_wasm_bindgen::to_value(diagnostics)
+            && let Some(code_mirror) = &*code_mirror.lock().unwrap()
+        {
+            code_mirror.cargo_check(diagnostics);
         }
     }
 }
