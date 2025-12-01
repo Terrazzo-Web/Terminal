@@ -96,9 +96,9 @@ tonic-prost = { version = "0.14.2" }
 tonic-prost-build = { version = "0.14.2" }
 tower = { version = "0.5.2" }
 tower-http = { version = "0.6.7" }
-tracing = { version = "0.1.41" }
+tracing = { version = "0.1.43" }
 tracing-futures = { version = "0.2.5" }
-tracing-subscriber = { version = "0.3.20" }
+tracing-subscriber = { version = "0.3.22" }
 tracing-subscriber-wasm = { version = "0.1.0" }
 trz-gateway-client = { version = "0.1.18" }
 trz-gateway-common = { version = "0.1.18" }
