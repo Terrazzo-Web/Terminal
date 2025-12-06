@@ -41,8 +41,7 @@ pub(super) const STORE_FILE_DEBOUNCE_DELAY: Duration = if cfg!(debug_assertions)
 /// The UI for the text editor app.
 #[html]
 #[template]
-pub fn text_editor() -> XElement {
-    let remote = XSignal::new("remote", None);
+pub fn text_editor(remote: XSignal<Remote>) -> XElement {
     div(
         style = "height: 100%;",
         text_editor_impl(remote.clone(), remote),

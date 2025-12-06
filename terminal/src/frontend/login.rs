@@ -15,6 +15,7 @@ use self::diagnostics::info;
 use self::diagnostics::warn;
 use crate::assets::icons;
 use crate::frontend::menu::app;
+use crate::frontend::remotes::Remote;
 use crate::state::app::App;
 
 stylance::import_style!(style, "login.scss");
@@ -22,9 +23,12 @@ stylance::import_style!(style, "login.scss");
 #[autoclone]
 #[html]
 #[template]
-pub fn login(#[signal] mut logged_in: LoggedInStatus) -> XElement {
+pub fn login(#[signal] mut logged_in: LoggedInStatus, remote: XSignal<Remote>) -> XElement {
     match logged_in {
-        LoggedInStatus::Login => div(key = "app", div(|t| show_app(t, app()))),
+        LoggedInStatus::Login => div(
+            key = "app",
+            div(move |t| show_app(t, app(), remote.clone())),
+        ),
         LoggedInStatus::Logout => div(
             key = "login",
             class = style::login,
@@ -89,15 +93,15 @@ pub enum LoggedInStatus {
 
 #[html]
 #[template]
-fn show_app(#[signal] app: App) -> XElement {
+fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
     match app {
         #[cfg(feature = "terminal")]
         App::Terminal => div(|t| crate::terminal::terminals(t)),
         #[cfg(feature = "text-editor")]
-        App::TextEditor => div(|t| crate::text_editor::ui::text_editor(t)),
+        App::TextEditor => div(move |t| crate::text_editor::ui::text_editor(t, remote.clone())),
         #[cfg(feature = "converter")]
-        App::Converter => div(|t| crate::converter::ui::converter(t)),
+        App::Converter => div(move |t| crate::converter::ui::converter(t, remote.clone())),
         #[cfg(feature = "port-forward")]
-        App::PortForward => div(|t| crate::portforward::ui::port_forward(t)),
+        App::PortForward => div(move |t| crate::portforward::ui::port_forward(t, remote.clone())),
     }
 }
