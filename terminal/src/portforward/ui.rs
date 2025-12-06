@@ -32,8 +32,8 @@ pub use style::tag;
 /// The UI for the port forward app.
 #[html]
 #[template]
-pub fn port_forward() -> XElement {
-    let manager = Manager::new();
+pub fn port_forward(remote: XSignal<Remote>) -> XElement {
+    let manager = Manager::new(remote);
     div(class = style::outer, port_forward_impl(manager))
 }
 

@@ -48,11 +48,11 @@ impl Deref for Manager {
 
 impl Manager {
     #[autoclone]
-    pub fn new() -> Self {
+    pub fn new(remote: XSignal<Remote>) -> Self {
         let manager = Self(Arc::new(ManagerImpl {
             port_forwards_signal: XSignal::new("port-forwards", Default::default()),
             port_forwards: Mutex::default(),
-            remote: XSignal::new("remote", Remote::default()),
+            remote,
             remotes: XSignal::new("remotes", vec![]),
         }));
 

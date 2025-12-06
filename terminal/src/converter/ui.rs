@@ -28,8 +28,7 @@ stylance::import_style!(pub(super) style, "converter.scss");
 /// The UI for the converter app.
 #[html]
 #[template]
-pub fn converter() -> XElement {
-    let remote: XSignal<Remote> = XSignal::new("remote", Remote::default());
+pub fn converter(remote: XSignal<Remote>) -> XElement {
     let conversions = XSignal::new("conversions", Conversions::default());
     let preferred_language = XSignal::new("preferred-language", None);
     div(
