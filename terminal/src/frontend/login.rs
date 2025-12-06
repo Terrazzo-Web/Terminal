@@ -96,7 +96,10 @@ pub enum LoggedInStatus {
 fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
     match app {
         #[cfg(feature = "terminal")]
-        App::Terminal => div(|t| crate::terminal::terminals(t)),
+        App::Terminal => {
+            drop(remote);
+            div(|t| crate::terminal::terminals(t))
+        }
         #[cfg(feature = "text-editor")]
         App::TextEditor => div(move |t| crate::text_editor::ui::text_editor(t, remote.clone())),
         #[cfg(feature = "converter")]
