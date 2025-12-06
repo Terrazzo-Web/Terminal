@@ -104,7 +104,7 @@ impl TabDescriptor for Conversion {
     #[html]
     fn item(&self, _state: &Self::State) -> impl Into<XNode> {
         let content = &self.content;
-        pre("{content}")
+        textarea("{content}")
     }
 
     fn selected(&self, state: &Self::State) -> XSignal<bool> {
