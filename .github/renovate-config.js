@@ -7,7 +7,7 @@ module.exports = {
     automergeStrategy: "squash",
     gitAuthor: "Renovate Bot <bot@renovateapp.com>",
     platform: "github",
-    repositories: ["Terrazzo-Web/Terrazzo"],
+    repositories: ["Terrazzo-Web/Terminal"],
     packageRules: [
         {
             description: "lockFileMaintenance",
