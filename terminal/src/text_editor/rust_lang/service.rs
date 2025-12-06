@@ -59,7 +59,7 @@ pub fn cargo_check(
         command
     };
 
-    debug!("Spawn");
+    debug!("Spawn {command:?}");
     async move {
         let mut child = command.spawn().map_err(CargoCheckError::SpawnProcess)?;
         let output = child.stdout.take().ok_or(CargoCheckError::MissingStdout)?;
@@ -159,7 +159,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Does not seem to work on 1.91.1"]
     async fn terminal() {
         enable_tracing_for_tests();
         let base_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
