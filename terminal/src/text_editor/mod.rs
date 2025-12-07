@@ -6,6 +6,7 @@ mod editor;
 pub mod file_path;
 mod folder;
 mod fsio;
+mod graph;
 mod manager;
 pub mod notify;
 mod path_selector;
