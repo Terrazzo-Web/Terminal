@@ -159,6 +159,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Not a good idea to compile the current project"]
     async fn terminal() {
         enable_tracing_for_tests();
         let base_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
