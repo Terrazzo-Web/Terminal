@@ -29,6 +29,7 @@ use super::notify::FileEventKind;
 use super::notify::NotifyResponse;
 use super::style;
 use super::synchronized_state::SynchronizedState;
+use crate::text_editor::graph::graph_editor;
 use crate::utils::more_path::MorePath as _;
 
 #[autoclone]
@@ -67,7 +68,7 @@ pub fn editor(
     });
 
     if path.file.ends_with(".graph") {
-        return tag(class = style::editor, "This is a graph!");
+        return graph_editor(manager, path, content);
     }
 
     return tag(

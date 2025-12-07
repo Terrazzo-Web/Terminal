@@ -194,6 +194,7 @@ text-editor-client = [
     "remotes-ui",
     "text-editor",
     "web-sys/KeyboardEvent",
+    "web-sys/SvgCircleElement",
 ]
 text-editor-server = [
     "dep:libc",
