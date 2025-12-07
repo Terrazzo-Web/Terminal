@@ -3,7 +3,7 @@ members = ["game", "pty", "terminal"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.19"
+version = "0.1.20"
 authors = ["Lamparo <LamparoS@Pavy.one>"]
 edition = "2024"
 repository = "https://github.com/Terrazzo-Web/Terminal"
@@ -24,7 +24,7 @@ panic = "abort"          # The panic strategy.
 incremental = true       # Incremental compilation.
 
 [workspace.dependencies]
-terrazzo-pty = { version = "0.1.19", path = "pty" }
+terrazzo-pty = { version = "0.1.20", path = "pty" }
 
 async-trait = { version = "0.1.89" }
 autoclone = { version = "0.1.19" }
