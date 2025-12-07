@@ -29,7 +29,7 @@ use super::notify::FileEventKind;
 use super::notify::NotifyResponse;
 use super::style;
 use super::synchronized_state::SynchronizedState;
-use crate::text_editor::graph::graph_editor;
+use crate::text_editor::graph_editor::graph_editor;
 use crate::utils::more_path::MorePath as _;
 
 #[autoclone]
