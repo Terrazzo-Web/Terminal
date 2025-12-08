@@ -95,7 +95,7 @@ tonic = { version = "0.14.2" }
 tonic-prost = { version = "0.14.2" }
 tonic-prost-build = { version = "0.14.2" }
 tower = { version = "0.5.2" }
-tower-http = { version = "0.6.7" }
+tower-http = { version = "0.6.8" }
 tracing = { version = "0.1.43" }
 tracing-futures = { version = "0.2.5" }
 tracing-subscriber = { version = "0.3.22" }
