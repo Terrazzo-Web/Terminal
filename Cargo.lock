@@ -149,9 +149,9 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "autoclone"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2ff2d74150460e8a4f727c674f4dbcccd979b4985baba79e0fdd8c8427a82d7"
+checksum = "396e1d93ed21c782a12a05d3784b44a93a9f3a3f4de129fc750cd78a8e7f6d5c"
 dependencies = [
  "darling",
  "prettyplease",
@@ -1850,18 +1850,18 @@ checksum = "1d87ecb2933e8aeadb3e3a02b828fed80a7528047e68b4f424523a0981a3a084"
 
 [[package]]
 name = "nameth"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f320c675c311daa6d839e67b8b4807aa2369498a9eb724ab9db9fc8031f8bdf"
+checksum = "f7f16186feec065056310fa2a9d6b10b0e5e925f6d264a188c817a9d24f5113d"
 dependencies = [
  "nameth-macro",
 ]
 
 [[package]]
 name = "nameth-macro"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afc4761296ce88ad1b16d22d2538fcc33c2e13d0e4b71eb5d3448d6d5a1ac850"
+checksum = "6eb584bfaf463d8af489eb62d68f4203cf7ffde6adaf431e26e641e406ff39d9"
 dependencies = [
  "darling",
  "quote",
@@ -2400,15 +2400,16 @@ dependencies = [
 
 [[package]]
 name = "rcgen"
-version = "0.14.5"
+version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fae430c6b28f1ad601274e78b7dffa0546de0b73b4cd32f46723c0c2a16f7a5"
+checksum = "3ec0a99f2de91c3cddc84b37e7db80e4d96b743e05607f647eb236fc0455907f"
 dependencies = [
  "aws-lc-rs",
  "pem",
  "ring",
  "rustls-pki-types",
  "time",
+ "x509-parser",
  "yasna",
 ]
 
@@ -3182,9 +3183,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e47cfc2faca9164fbb7876faa0e0ceec02843a5b56a8aa2a0f96ed6bb16a0ca"
+checksum = "d1162f579fff4aa286bdd77332cd0005d488739159bed67859fc980173566247"
 dependencies = [
  "autoclone",
  "axum",
@@ -3210,9 +3211,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-build"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "953c0c0a4f74ba78b56085b45e585517e42d6b306656a28b139fc9031f56b359"
+checksum = "74f1b0e868f39c81c82d50acce764809f6adf99e140f8f8fcafb543cdbeeb544"
 dependencies = [
  "nameth",
  "thiserror 2.0.17",
@@ -3220,9 +3221,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-client"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e73ee54207df2b1ef283406dd72ace29c8561abccdc78199884f2a9a7c052bc"
+checksum = "1526f02373ee6df7bad065ada9bc084165fae2e6cfa40f8e6ba82b4c0cec17fe"
 dependencies = [
  "autoclone",
  "nameth",
@@ -3237,9 +3238,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-macro"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ba47022add737fdb80552ae3b0efa130defd9a45f76c0e5f6863a72bddd4586"
+checksum = "0af59e28308eac8cfa92e46d286664203d95014d0008ae616b5cfe388ffa434a"
 dependencies = [
  "deluxe",
  "prettyplease",
@@ -3861,9 +3862,9 @@ dependencies = [
 
 [[package]]
 name = "trz-gateway-common"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17b973fc70f76128914d4a5c480ace20a57d7701221d2cfba6910b2bd9f221c5"
+checksum = "ccfe1b137d946f480af88e2223c90b65507784b2745c63c205538c28c8ba5f09"
 dependencies = [
  "axum",
  "bytes",
@@ -3892,9 +3893,9 @@ dependencies = [
 
 [[package]]
 name = "trz-gateway-server"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86691c109a34a105443c49629b3fa1052e8a144559e83522b1dc083f950daa03"
+checksum = "70b1768a4f569538df9edd63b0c517b7e5727bd14099b0f092824ec2c7de889c"
 dependencies = [
  "autoclone",
  "axum",
@@ -4507,11 +4508,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb3e137310115a65136898d2079f003ce33331a6c4b0d51f1531d1be082b6425"
 dependencies = [
  "asn1-rs",
+ "aws-lc-rs",
  "data-encoding",
  "der-parser",
  "lazy_static",
  "nom 7.1.3",
  "oid-registry",
+ "ring",
  "rusticata-macros",
  "thiserror 2.0.17",
  "time",
