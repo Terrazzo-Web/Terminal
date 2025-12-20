@@ -72,6 +72,7 @@ reqwest-wasm = { version = "0.11.16" }
 rpassword = { version = "7.4.0" }
 rsass-macros = { version = "0.29.0" }
 rustix = { version = "1.0.8" }
+rustls-native-certs = { version = "0.8.2" }
 scopeguard = { version = "1.2.0" }
 serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = { version = "1.0.145" }
@@ -88,6 +89,7 @@ terrazzo = { version = "0.1.20", default-features = false }
 terrazzo-build = { version = "0.1.19" }
 thiserror = { version = "2.0.17" }
 tokio = { version = "1.48.0" }
+tokio-rustls = { version = "0.24" }
 tokio-stream = { version = "0.1.17" }
 tokio-util = { version = "0.7.17" }
 toml = { version = "0.9.8" }
@@ -104,6 +106,7 @@ trz-gateway-client = { version = "0.1.19" }
 trz-gateway-common = { version = "0.1.20" }
 trz-gateway-server = { version = "0.1.20" }
 unescaper = { version = "0.1.6" }
+url = { version = "2.5.7" }
 uuid = { version = "1.18.1" }
 wasm-bindgen = { version = "0.2.105" }
 wasm-bindgen-futures = { version = "0.4.55" }

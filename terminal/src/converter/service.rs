@@ -14,6 +14,7 @@ use crate::converter::api::Language;
 
 mod asn1;
 mod base64;
+mod https_info;
 mod json;
 mod jwt;
 mod pkcs7;
@@ -26,13 +27,13 @@ pub async fn get_conversions(input: Arc<str>) -> Result<Conversions, Status> {
     let mut add_conversion = |language, content| {
         conversions.push(Conversion::new(language, content));
     };
-    add_conversions(&input, &mut add_conversion);
+    add_conversions(&input, &mut add_conversion).await;
     return Ok(Conversions {
         conversions: conversions.into(),
     });
 }
 
-fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
+async fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
     if self::x509::add_x509_pem(input, add) {
         return;
     }
@@ -46,6 +47,7 @@ fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
         self::json::add_yaml(input, add);
     }
     self::unescaped::add_unescape(input, add);
+    self::https_info::add_https_info(input, add).await;
 }
 
 declare_trait_aliias!(AddConversionFn, FnMut(Language, String));
