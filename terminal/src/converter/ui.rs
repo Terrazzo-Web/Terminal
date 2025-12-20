@@ -19,7 +19,7 @@ use self::diagnostics::warn;
 use super::api::Conversions;
 use super::content_state;
 use crate::converter::api::Language;
-use crate::converter::tabs::ConversionsState;
+use crate::converter::conversion_tabs::ConversionsState;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;

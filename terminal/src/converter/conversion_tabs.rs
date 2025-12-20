@@ -26,7 +26,7 @@ use crate::converter::api::Language;
 use crate::frontend::utils::SleepError;
 use crate::frontend::utils::sleep;
 
-stylance::import_style!(style, "tabs.scss");
+stylance::import_style!(style, "conversion_tabs.scss");
 
 impl TabsDescriptor for Conversions {
     type State = ConversionsState;
