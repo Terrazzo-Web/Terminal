@@ -207,10 +207,17 @@ converter = []
 converter-client = [
     "client",
     "converter",
+    "dep:futures",
     "dep:web-sys",
     "remotes-ui",
+    "web-sys/Clipboard",
+    "web-sys/ClipboardEvent",
+    "web-sys/DragEvent",
+    "dep:scopeguard",
     "web-sys/HtmlTextAreaElement",
     "web-sys/InputEvent",
+    "web-sys/KeyboardEvent",
+    "web-sys/Navigator",
 ]
 converter-server = [
     "converter",
