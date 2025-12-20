@@ -47,6 +47,7 @@ deluxe = { version = "0.5.0" }
 fluent-asserter = { version = "0.1.9" }
 futures = { version = "0.3.31" }
 heck = { version = "0.5.0" }
+hickory-client = { version = "0.25.2" }
 http = { version = "1.4.0" }
 humantime = { version = "2.3.0" }
 include_directory = { version = "0.1.1" }
