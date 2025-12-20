@@ -4,11 +4,12 @@ use std::time::Duration;
 use futures::channel::oneshot;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
-use terrazzo::prelude::diagnostics::Instrument as _;
-use terrazzo::prelude::diagnostics::debug;
-use terrazzo::prelude::diagnostics::warn;
+use terrazzo::prelude::diagnostics;
 use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::Instrument as _;
+use self::diagnostics::debug;
+use self::diagnostics::warn;
 use super::pipe::PIPE;
 use crate::api::client::request::Method;
 use crate::api::client::request::SendRequestError;

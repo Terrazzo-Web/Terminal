@@ -1,5 +1,7 @@
 #![cfg(feature = "server")]
 
+use std::sync::Arc;
+
 use nameth::nameth;
 use terrazzo::declare_trait_aliias;
 use tonic::Status;
@@ -19,7 +21,7 @@ mod unescaped;
 mod x509;
 
 #[nameth]
-pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
+pub async fn get_conversions(input: Arc<str>) -> Result<Conversions, Status> {
     let mut conversions = vec![];
     let mut add_conversion = |language, content| {
         conversions.push(Conversion::new(language, content));
@@ -66,7 +68,9 @@ mod tests {
 
     impl GetConversionForTest for &str {
         async fn get_conversion(&self, language: &str) -> String {
-            let conversions = super::get_conversions(self.to_string()).await.unwrap();
+            let conversions = super::get_conversions(self.to_string().into())
+                .await
+                .unwrap();
             let matches = conversions
                 .conversions
                 .iter()
@@ -80,7 +84,9 @@ mod tests {
         }
 
         async fn get_languages(&self) -> Vec<String> {
-            let conversions = super::get_conversions(self.to_string()).await.unwrap();
+            let conversions = super::get_conversions(self.to_string().into())
+                .await
+                .unwrap();
             let mut languages = conversions
                 .conversions
                 .iter()

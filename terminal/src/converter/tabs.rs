@@ -6,7 +6,6 @@ use std::time::Duration;
 
 use terrazzo::autoclone;
 use terrazzo::html;
-use terrazzo::prelude::diagnostics::warn;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::tabs::TabDescriptor;
@@ -19,6 +18,7 @@ use web_sys::DragEvent;
 use web_sys::KeyboardEvent;
 use web_sys::MouseEvent;
 
+use self::diagnostics::warn;
 use super::api::Conversion;
 use super::api::Conversions;
 use crate::assets::icons;
