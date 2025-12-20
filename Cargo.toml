@@ -28,8 +28,8 @@ terrazzo-pty = { version = "0.1.20", path = "pty" }
 
 async-trait = { version = "0.1.89" }
 autoclone = { version = "0.1.20" }
-axum = { version = "0.8.7" }
-axum-extra = { version = "0.12.2" }
+axum = { version = "0.8.8" }
+axum-extra = { version = "0.12.3" }
 base64 = { version = "0.22.1" }
 bitflags = { version = "2.10.0" }
 bytes = { version = "1.11.0" }
@@ -89,7 +89,7 @@ terrazzo = { version = "0.1.20", default-features = false }
 terrazzo-build = { version = "0.1.19" }
 thiserror = { version = "2.0.17" }
 tokio = { version = "1.48.0" }
-tokio-rustls = { version = "0.24" }
+tokio-rustls = { version = "0.26.4" }
 tokio-stream = { version = "0.1.17" }
 tokio-util = { version = "0.7.17" }
 toml = { version = "0.9.8" }

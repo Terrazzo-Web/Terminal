@@ -5,7 +5,7 @@ use tokio_rustls::TlsConnector;
 use tokio_rustls::client::TlsStream;
 use tokio_rustls::rustls::ClientConfig;
 use tokio_rustls::rustls::RootCertStore;
-use tokio_rustls::rustls::ServerName;
+use tokio_rustls::rustls::pki_types::ServerName;
 use tracing::debug;
 use url::Url;
 
@@ -14,8 +14,9 @@ pub async fn add_tls_info(input: &str, add: &mut impl super::AddConversionFn) ->
 }
 
 async fn add_tls_info_impl(input: &str, add: &mut impl super::AddConversionFn) -> Result<(), ()> {
+    let url = Url::parse(input).ignore_err("url")?;
+
     let tls: TlsStream<TcpStream> = {
-        let url = Url::parse(input).ignore_err("url")?;
         let host = url.host_str().ignore_err("host")?;
         let port = url.port_or_known_default().ignore_err("port")?;
 
@@ -24,15 +25,17 @@ async fn add_tls_info_impl(input: &str, add: &mut impl super::AddConversionFn) -
             .ignore_err("TCP connect")?;
 
         let mut root_store = RootCertStore::empty();
-        root_store.add_parsable_certificates(&rustls_native_certs::load_native_certs().certs);
+        root_store
+            .add_parsable_certificates(rustls_native_certs::load_native_certs().certs.into_iter());
 
         let client_config = ClientConfig::builder()
-            .with_safe_defaults()
             .with_root_certificates(root_store)
             .with_no_client_auth();
 
         let connector = TlsConnector::from(Arc::new(client_config));
-        let server_name = ServerName::try_from(host).ignore_err("server_name")?;
+        let server_name = ServerName::try_from(host)
+            .ignore_err("server_name")?
+            .to_owned();
 
         connector
             .connect(server_name, tcp)
