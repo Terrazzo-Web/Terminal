@@ -9,11 +9,11 @@ use tokio_rustls::rustls::ServerName;
 use tracing::debug;
 use url::Url;
 
-pub async fn add_https_info(input: &str, add: &mut impl super::AddConversionFn) -> bool {
-    add_https_info_impl(input, add).await.is_ok()
+pub async fn add_tls_info(input: &str, add: &mut impl super::AddConversionFn) -> bool {
+    add_tls_info_impl(input, add).await.is_ok()
 }
 
-async fn add_https_info_impl(input: &str, add: &mut impl super::AddConversionFn) -> Result<(), ()> {
+async fn add_tls_info_impl(input: &str, add: &mut impl super::AddConversionFn) -> Result<(), ()> {
     let tls: TlsStream<TcpStream> = {
         let url = Url::parse(input).ignore_err("url")?;
         let host = url.host_str().ignore_err("host")?;

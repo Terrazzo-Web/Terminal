@@ -14,10 +14,10 @@ use crate::converter::api::Language;
 
 mod asn1;
 mod base64;
-mod https_info;
 mod json;
 mod jwt;
 mod pkcs7;
+mod tls_info;
 mod unescaped;
 mod x509;
 
@@ -47,7 +47,7 @@ async fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
         self::json::add_yaml(input, add);
     }
     self::unescaped::add_unescape(input, add);
-    self::https_info::add_https_info(input, add).await;
+    self::tls_info::add_tls_info(input, add).await;
 }
 
 declare_trait_aliias!(AddConversionFn, FnMut(Language, String));
