@@ -44,6 +44,7 @@ prost = { workspace = true, optional = true }
 prost-types = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 rpassword = { workspace = true, optional = true }
+rustls-native-certs = { workspace = true, optional = true }
 scopeguard = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -58,6 +59,7 @@ terrazzo = { workspace = true, optional = true }
 terrazzo-pty = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
+tokio-rustls = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
@@ -75,6 +77,7 @@ trz-gateway-client = { workspace = true, optional = true }
 trz-gateway-common = { workspace = true, optional = true }
 trz-gateway-server = { workspace = true, optional = true, features = ["acme"] }
 unescaper = { workspace = true, optional = true }
+url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true, features = ["v4", "fast-rng"] }
 wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { workspace = true, optional = true }
@@ -207,19 +210,29 @@ converter = []
 converter-client = [
     "client",
     "converter",
+    "dep:futures",
     "dep:web-sys",
     "remotes-ui",
+    "web-sys/Clipboard",
+    "web-sys/ClipboardEvent",
+    "web-sys/DragEvent",
+    "dep:scopeguard",
     "web-sys/HtmlTextAreaElement",
     "web-sys/InputEvent",
+    "web-sys/KeyboardEvent",
+    "web-sys/Navigator",
 ]
 converter-server = [
     "converter",
     "dep:cms",
     "dep:oid-registry",
     "dep:regex",
+    "dep:rustls-native-certs",
     "dep:serde_yaml_ng",
     "dep:simple_asn1",
+    "dep:tokio-rustls",
     "dep:unescaper",
+    "dep:url",
     "dep:x509-parser",
     "server",
 ]

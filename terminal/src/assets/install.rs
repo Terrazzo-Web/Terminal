@@ -43,7 +43,6 @@ fn install_icons() {
     #[cfg(feature = "text-editor")]
     {
         install_icon(super::icons::chevron_double_right());
-        install_icon(super::icons::done());
         install_icon(super::icons::file());
         install_icon(super::icons::folder());
         install_icon(super::icons::loading());
@@ -54,7 +53,11 @@ fn install_icons() {
     #[cfg(feature = "converter")]
     {
         install_icon(super::icons::converter());
+        install_icon(super::icons::copy());
     }
+
+    #[cfg(any(feature = "converter", feature = "text-editor"))]
+    install_icon(super::icons::done());
 
     #[cfg(feature = "port-forward")]
     {
