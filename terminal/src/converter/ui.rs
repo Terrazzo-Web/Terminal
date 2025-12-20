@@ -17,8 +17,9 @@ use web_sys::HtmlTextAreaElement;
 
 use self::diagnostics::warn;
 use super::api::Conversions;
+use super::content_state;
 use crate::converter::api::Language;
-use crate::converter::tabs::ConversionsState;
+use crate::converter::conversion_tabs::ConversionsState;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
@@ -71,12 +72,25 @@ fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XE
         input = move |_: web_sys::InputEvent| {
             autoclone!(remote, element, conversions);
             let element = element.get().or_throw("Element was not set");
-            get_conversions(remote.clone(), element.value(), conversions.clone());
+            let value: Arc<str> = element.value().into();
+            spawn_local(async move {
+                autoclone!(remote, value);
+                let _set = content_state::set(remote.clone(), value.clone()).await;
+            });
+            get_conversions(remote.clone(), value, conversions.clone());
         },
         after_render = move |_| {
             autoclone!(remote, element, conversions);
             let element = element.get().or_throw("Element was not set");
-            get_conversions(remote.clone(), element.value(), conversions.clone());
+            spawn_local(async move {
+                autoclone!(remote, element, conversions);
+                let Ok(content) = content_state::get(remote.clone()).await else {
+                    warn!("Failed to load converter content");
+                    return;
+                };
+                element.set_value(&content);
+                get_conversions(remote.clone(), content, conversions.clone());
+            });
         },
     )
 }
@@ -106,7 +120,7 @@ fn show_conversions(
     )
 }
 
-fn get_conversions(remote: Remote, content: String, conversions: XSignal<Conversions>) {
+fn get_conversions(remote: Remote, content: Arc<str>, conversions: XSignal<Conversions>) {
     let debounced = get_conversions_debounced();
     debounced(GetConversionsUiRequest {
         remote,
@@ -151,7 +165,7 @@ static DEBOUNCE_DELAY: Duration = if cfg!(debug_assertions) {
 
 struct GetConversionsUiRequest {
     remote: Remote,
-    content: String,
+    content: Arc<str>,
     conversions: XSignal<Conversions>,
 }
 

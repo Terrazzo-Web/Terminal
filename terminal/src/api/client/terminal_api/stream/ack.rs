@@ -5,10 +5,10 @@ use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::prelude::Ptr;
 use terrazzo::prelude::diagnostics;
-use terrazzo::prelude::diagnostics::Instrument as _;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::Response;
 
+use self::diagnostics::Instrument as _;
 use self::diagnostics::debug;
 use self::diagnostics::warn;
 use crate::api::client::request::Method;

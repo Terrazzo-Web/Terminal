@@ -30,7 +30,8 @@
     display: flex;
     flex-direction: row;
 
-    textarea {
+    textarea,
+    pre {
         flex: 0 0 50%;
         width: 100%;
         height: 100%;

@@ -1,0 +1,19 @@
+.label {
+    margin-left: auto;
+    padding-left: var(--padding);
+    padding-right: var(--padding);
+
+    &:hover {
+        background-color: var(--link-color);
+        cursor: pointer;
+    }
+
+    >div {
+        @include trz-header;
+
+        img.copy-icon {
+            @include trz-icon;
+            margin-right: var(--padding);
+        }
+    }
+}

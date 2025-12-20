@@ -9,6 +9,7 @@ use terrazzo::prelude::XSignal;
 use terrazzo::prelude::diagnostics;
 use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::warn;
 use self::inner::ManagerImpl;
 use super::schema::PortForward;
 use super::sync_state::Fields;
@@ -136,14 +137,14 @@ impl Manager {
             autoclone!(remote);
             let Ok(()) = super::state::store_port_forwards(remote.clone(), new.clone())
                 .await
-                .inspect_err(|error| diagnostics::warn!("Failed to save port forwards: {error}"))
+                .inspect_err(|error| warn!("Failed to save port forwards: {error}"))
             else {
                 return;
             };
             let new = match super::state::load_port_forwards(remote).await {
                 Ok(new) => new.into(),
                 Err(error) => {
-                    diagnostics::warn!("Failed to load port forwards: {error}");
+                    warn!("Failed to load port forwards: {error}");
                     new
                 }
             };

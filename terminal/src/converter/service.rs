@@ -1,5 +1,7 @@
 #![cfg(feature = "server")]
 
+use std::sync::Arc;
+
 use nameth::nameth;
 use terrazzo::declare_trait_aliias;
 use tonic::Status;
@@ -15,22 +17,23 @@ mod base64;
 mod json;
 mod jwt;
 mod pkcs7;
+mod tls_info;
 mod unescaped;
 mod x509;
 
 #[nameth]
-pub async fn get_conversions(input: String) -> Result<Conversions, Status> {
+pub async fn get_conversions(input: Arc<str>) -> Result<Conversions, Status> {
     let mut conversions = vec![];
     let mut add_conversion = |language, content| {
         conversions.push(Conversion::new(language, content));
     };
-    add_conversions(&input, &mut add_conversion);
+    add_conversions(&input, &mut add_conversion).await;
     return Ok(Conversions {
         conversions: conversions.into(),
     });
 }
 
-fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
+async fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
     if self::x509::add_x509_pem(input, add) {
         return;
     }
@@ -44,6 +47,7 @@ fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
         self::json::add_yaml(input, add);
     }
     self::unescaped::add_unescape(input, add);
+    self::tls_info::add_tls_info(input, add).await;
 }
 
 declare_trait_aliias!(AddConversionFn, FnMut(Language, String));
@@ -66,7 +70,9 @@ mod tests {
 
     impl GetConversionForTest for &str {
         async fn get_conversion(&self, language: &str) -> String {
-            let conversions = super::get_conversions(self.to_string()).await.unwrap();
+            let conversions = super::get_conversions(self.to_string().into())
+                .await
+                .unwrap();
             let matches = conversions
                 .conversions
                 .iter()
@@ -80,7 +86,9 @@ mod tests {
         }
 
         async fn get_languages(&self) -> Vec<String> {
-            let conversions = super::get_conversions(self.to_string()).await.unwrap();
+            let conversions = super::get_conversions(self.to_string().into())
+                .await
+                .unwrap();
             let mut languages = conversions
                 .conversions
                 .iter()

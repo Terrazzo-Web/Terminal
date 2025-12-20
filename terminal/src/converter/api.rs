@@ -10,7 +10,7 @@ use crate::api::client_address::ClientAddress;
 #[server(protocol = Http<Json, Json>)]
 pub async fn get_conversions(
     remote: Option<ClientAddress>,
-    input: String,
+    input: Arc<str>,
 ) -> Result<Conversions, ServerFnError> {
     Ok(super::service::GET_CONVERSIONS_FN
         .call(remote.unwrap_or_default(), ConversionsRequest { input })
@@ -21,7 +21,7 @@ pub async fn get_conversions(
 #[allow(dead_code)]
 pub struct ConversionsRequest {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "c"))]
-    pub input: String,
+    pub input: Arc<str>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]

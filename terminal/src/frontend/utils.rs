@@ -1,4 +1,4 @@
-#![cfg(feature = "terminal")]
+#![cfg(any(feature = "converter", feature = "terminal"))]
 
 use std::time::Duration;
 
