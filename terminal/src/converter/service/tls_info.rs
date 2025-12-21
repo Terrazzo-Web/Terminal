@@ -18,7 +18,7 @@ async fn add_tls_info_impl(input: &str, add: &mut impl super::AddConversionFn) -
     let url = Url::parse(input).ignore_err("url")?;
     let host = url.host_str().ignore_err("host")?;
     let port = url.port_or_known_default().ignore_err("port")?;
-    super::dns::add_dns(host, add).await;
+    super::dns::add_dns_impl(host, add).await;
 
     let tls: TlsStream<TcpStream> = {
         let tcp = TcpStream::connect((host, port))

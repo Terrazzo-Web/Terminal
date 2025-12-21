@@ -34,17 +34,16 @@ use tracing::warn;
 use crate::converter::api::Language;
 
 pub async fn add_dns(input: &str, add: &mut impl super::AddConversionFn) -> bool {
-    add_dns_impl(input, add).await.is_some()
-}
-
-async fn add_dns_impl(input: &str, add: &mut impl super::AddConversionFn) -> Option<()> {
     static DNS_REGEX: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^[a-z0-9_-]+(\.[a-z0-9_-]+)+\.?$").unwrap());
     if !DNS_REGEX.is_match(input) {
         debug!("Not a valid DNS name: {input}");
-        return None;
+        return false;
     }
+    add_dns_impl(input, add).await.is_some()
+}
 
+pub async fn add_dns_impl(input: &str, add: &mut impl super::AddConversionFn) -> Option<()> {
     let name = Name::from_str(input).ok()?;
     debug!("Running DNS query for {name}");
     let responses = futures::future::join_all([
