@@ -4,12 +4,14 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use base64::Engine as _;
 use futures::FutureExt as _;
 use futures::future::BoxFuture;
 use futures::future::Shared;
 use hickory_client::client::Client;
 use hickory_client::client::ClientHandle;
 use hickory_client::proto::op::Edns;
+use hickory_client::proto::op::EdnsFlags;
 use hickory_client::proto::op::Header;
 use hickory_client::proto::op::Message;
 use hickory_client::proto::op::MessageType;
@@ -21,6 +23,9 @@ use hickory_client::proto::rr::Name;
 use hickory_client::proto::rr::RData;
 use hickory_client::proto::rr::Record;
 use hickory_client::proto::rr::RecordType;
+use hickory_client::proto::rr::rdata::opt::ClientSubnet;
+use hickory_client::proto::rr::rdata::opt::EdnsCode;
+use hickory_client::proto::rr::rdata::opt::EdnsOption;
 use hickory_client::proto::runtime::TokioRuntimeProvider;
 use hickory_client::proto::udp::UdpClientStream;
 use tracing::warn;
@@ -100,8 +105,8 @@ struct Message2<'t> {
     additionals: Vec<Record2<'t>>,
     #[serde(skip_serializing_if = "is_empty")]
     signature: Vec<Record2<'t>>,
-    #[serde(skip_serializing_if = "is_default")]
-    edns: Option<Edns>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    edns: Option<Edns2<'t>>,
 }
 
 impl<'t> From<&'t Message> for Message2<'t> {
@@ -113,7 +118,7 @@ impl<'t> From<&'t Message> for Message2<'t> {
             name_servers: value.name_servers().iter().map(Into::into).collect(),
             additionals: value.additionals().iter().map(Into::into).collect(),
             signature: value.signature().iter().map(Into::into).collect(),
-            edns: value.extensions().clone(),
+            edns: value.extensions().as_ref().map(Into::into),
         }
     }
 }
@@ -200,6 +205,98 @@ impl<'t> From<&'t RData> for RData2<'t> {
             _ => Self::Other(value),
         }
     }
+}
+
+#[derive(serde::Serialize)]
+struct Edns2<'t> {
+    #[serde(skip_serializing_if = "is_default")]
+    rcode_high: u8,
+    #[serde(skip_serializing_if = "is_default")]
+    version: u8,
+    #[serde(skip_serializing_if = "is_default")]
+    flags: EdnsFlags2,
+    #[serde(skip_serializing_if = "is_default")]
+    max_payload: u16,
+    #[serde(skip_serializing_if = "is_empty")]
+    options: Vec<EdnsOptionEntry<'t>>,
+}
+
+impl<'t> From<&'t Edns> for Edns2<'t> {
+    fn from(value: &'t Edns) -> Self {
+        Self {
+            rcode_high: value.rcode_high(),
+            version: value.version(),
+            flags: value.flags().into(),
+            max_payload: value.max_payload(),
+            options: value
+                .options()
+                .as_ref()
+                .iter()
+                .map(|(code, option)| EdnsOptionEntry {
+                    code: *code,
+                    value: option.into(),
+                })
+                .collect(),
+        }
+    }
+}
+
+#[derive(Default, PartialEq, Eq, serde::Serialize)]
+struct EdnsFlags2 {
+    #[serde(skip_serializing_if = "is_default")]
+    dnssec_ok: bool,
+    #[serde(skip_serializing_if = "is_default")]
+    z: u16,
+}
+
+impl<'t> From<&'t EdnsFlags> for EdnsFlags2 {
+    fn from(value: &'t EdnsFlags) -> Self {
+        Self {
+            dnssec_ok: value.dnssec_ok,
+            z: value.z,
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+struct EdnsOptionEntry<'t> {
+    code: EdnsCode,
+    value: EdnsOption2<'t>,
+}
+
+#[derive(serde::Serialize)]
+enum EdnsOption2<'t> {
+    Subnet(&'t ClientSubnet),
+    Unknown { code: u16, value: Cow<'t, str> },
+}
+
+impl<'t> From<&'t EdnsOption> for EdnsOption2<'t> {
+    fn from(value: &'t EdnsOption) -> Self {
+        match value {
+            EdnsOption::Subnet(client_subnet) => Self::Subnet(client_subnet),
+            EdnsOption::Unknown(code, items) => Self::Unknown {
+                code: *code,
+                value: to_string_lossy(items),
+            },
+            _ => Self::Unknown {
+                code: 0,
+                value: "Not implemented".into(),
+            },
+        }
+    }
+}
+
+fn to_string_lossy(data: &impl AsRef<[u8]>) -> Cow<'_, str> {
+    let data = data.as_ref();
+    str::from_utf8(data)
+        .map(|txt| Cow::Borrowed(txt))
+        .unwrap_or_else(|_utf8_error| {
+            use base64::prelude::BASE64_STANDARD_NO_PAD;
+            Cow::Owned(format!(
+                "Not UTF-8: {}",
+                BASE64_STANDARD_NO_PAD.encode(data)
+            ))
+        })
 }
 
 fn is_default<T: Default + PartialEq>(v: &T) -> bool {
