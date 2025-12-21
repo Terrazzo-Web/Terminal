@@ -34,7 +34,8 @@ impl MousemoveManager {
         let delta = self.delta.clone();
         let events = self.events.clone();
         move |ev| {
-            *start.lock().or_throw("start") = Some(ev.into());
+            *start.lock().or_throw("start") =
+                Some(Position::from(ev) - delta.get_value_untracked().unwrap_or_default());
             events.lock().or_throw("events").clear();
 
             let window = window().or_throw("window");
@@ -44,17 +45,13 @@ impl MousemoveManager {
                     return;
                 };
                 let cur = Position::from(ev);
-                delta.set(Some(Position {
-                    x: cur.x - start.x,
-                    y: cur.y - start.y,
-                }));
+                delta.set(Some(cur - *start));
             });
             let mousemove = RegisteredEvent::register(window.clone(), "mousemove", mousemove);
 
             let mouseup: Closure<dyn Fn(MouseEvent)> = Closure::new(move |_: MouseEvent| {
-                autoclone!(start, delta, events);
+                autoclone!(start, events);
                 *start.lock().or_throw("start") = None;
-                delta.set(None);
                 events.lock().or_throw("events").clear();
             });
             let mouseup = RegisteredEvent::register(window.clone(), "mouseup", mouseup);
@@ -77,6 +74,16 @@ impl From<MouseEvent> for Position {
         Self {
             x: ev.page_x(),
             y: ev.page_y(),
+        }
+    }
+}
+
+impl std::ops::Sub for Position {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
         }
     }
 }

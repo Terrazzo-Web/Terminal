@@ -67,7 +67,7 @@ fn converter_impl(
 fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XElement {
     let element: Arc<OnceLock<HtmlTextAreaElement>> = Default::default();
     tag(
-        style::width %= |t| width(t, RESIZE_MANAGER.delta.clone()),
+        style::flex %= |t| width(t, RESIZE_MANAGER.delta.clone()),
         before_render = move |e| {
             autoclone!(element);
             element
@@ -102,7 +102,7 @@ fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XE
 
 #[template]
 fn width(#[signal] mut position: Option<Position>) -> XAttributeValue {
-    position.map(|position| format!("calc(50% + {}px)", position.x))
+    position.map(|position| format!("0 0 calc(50% + {}px)", position.x))
 }
 
 #[html]
@@ -188,6 +188,7 @@ fn show_resize_bar() -> XElement {
     div(
         class = style::resize_bar,
         mousedown = RESIZE_MANAGER.mousedown(),
+        dblclick = |_| RESIZE_MANAGER.delta.set(None),
         div(div()),
     )
 }
