@@ -59,6 +59,7 @@ stylance = { workspace = true, optional = true }
 terrazzo = { workspace = true, optional = true }
 terrazzo-pty = { workspace = true, optional = true }
 thiserror = { workspace = true }
+tls-parser = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["full"] }
 tokio-rustls = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
@@ -232,6 +233,7 @@ converter-server = [
     "dep:rustls-native-certs",
     "dep:serde_yaml_ng",
     "dep:simple_asn1",
+    "dep:tls-parser",
     "dep:tokio-rustls",
     "dep:unescaper",
     "dep:url",
