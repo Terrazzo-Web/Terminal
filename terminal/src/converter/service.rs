@@ -14,6 +14,7 @@ use crate::converter::api::Language;
 
 mod asn1;
 mod base64;
+mod dns;
 mod json;
 mod jwt;
 mod pkcs7;
@@ -47,7 +48,10 @@ async fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
         self::json::add_yaml(input, add);
     }
     self::unescaped::add_unescape(input, add);
-    self::tls_info::add_tls_info(input, add).await;
+    if self::tls_info::add_tls_info(input, add).await {
+        return;
+    }
+    self::dns::add_dns(input, add).await;
 }
 
 declare_trait_aliias!(AddConversionFn, FnMut(Language, String));

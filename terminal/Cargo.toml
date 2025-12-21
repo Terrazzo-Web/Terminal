@@ -29,6 +29,7 @@ cms = { workspace = true, optional = true }
 const_format = { workspace = true, optional = true }
 dashmap = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
+hickory-client = { workspace = true, optional = true }
 humantime = { workspace = true, optional = true }
 inventory = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
@@ -225,6 +226,7 @@ converter-client = [
 converter-server = [
     "converter",
     "dep:cms",
+    "dep:hickory-client",
     "dep:oid-registry",
     "dep:regex",
     "dep:rustls-native-certs",
@@ -234,6 +236,7 @@ converter-server = [
     "dep:unescaper",
     "dep:url",
     "dep:x509-parser",
+    "hickory-client/serde",
     "server",
 ]
 

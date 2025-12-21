@@ -14,12 +14,13 @@ pub async fn add_tls_info(input: &str, add: &mut impl super::AddConversionFn) ->
 }
 
 async fn add_tls_info_impl(input: &str, add: &mut impl super::AddConversionFn) -> Result<(), ()> {
+    let input = input.trim();
     let url = Url::parse(input).ignore_err("url")?;
+    let host = url.host_str().ignore_err("host")?;
+    let port = url.port_or_known_default().ignore_err("port")?;
+    super::dns::add_dns_impl(host, add).await;
 
     let tls: TlsStream<TcpStream> = {
-        let host = url.host_str().ignore_err("host")?;
-        let port = url.port_or_known_default().ignore_err("port")?;
-
         let tcp = TcpStream::connect((host, port))
             .await
             .ignore_err("TCP connect")?;
