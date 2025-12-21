@@ -210,14 +210,14 @@ impl TabDescriptor for Conversion {
                         shift_key: false,
                         ctrl_key: true,
                         meta_key: false,
-                        key: "c" | "a",
+                        key: "c" | "a" | "f",
                     }
                     | KeyEvent {
                         alt_key: false,
                         shift_key: false,
                         ctrl_key: false,
                         meta_key: true,
-                        key: "c" | "a",
+                        key: "c" | "a" | "f",
                     }
                     | KeyEvent {
                         key: "ArrowDown" | "ArrowUp" | "ArrowLeft" | "ArrowRight",
