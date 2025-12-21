@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
-use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio_rustls::TlsConnector;
 use tokio_rustls::client::TlsStream;
 use tokio_rustls::rustls::ClientConfig;
 use tokio_rustls::rustls::RootCertStore;
+use tokio_rustls::rustls::client::Resumption;
 use tokio_rustls::rustls::pki_types::ServerName;
+use tokio_rustls::rustls::version::TLS12;
 use tracing::debug;
 use url::Url;
 
@@ -29,14 +30,15 @@ async fn add_tls_info_impl(input: &str, add: &mut impl AddConversionFn) -> Resul
         .ignore_err("TCP connect")?;
     let mut tcp_buffered = BufferedStream::from(tcp);
 
-    let mut tls: TlsStream<&mut BufferedStream> = {
+    let tls: TlsStream<&mut BufferedStream> = {
         let mut root_store = RootCertStore::empty();
         root_store
             .add_parsable_certificates(rustls_native_certs::load_native_certs().certs.into_iter());
 
-        let client_config = ClientConfig::builder()
+        let mut client_config = ClientConfig::builder_with_protocol_versions(&[&TLS12])
             .with_root_certificates(root_store)
             .with_no_client_auth();
+        client_config.resumption = Resumption::disabled();
 
         let connector = TlsConnector::from(Arc::new(client_config));
         let server_name = ServerName::try_from(host)
@@ -55,8 +57,6 @@ async fn add_tls_info_impl(input: &str, add: &mut impl AddConversionFn) -> Resul
         }
         tls_stream?
     };
-
-    let _result = tls.write_all(b"GET / HTTP/1.1").await;
 
     let (tcp_stream, session) = tls.get_ref();
     let certificates = session

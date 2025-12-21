@@ -64,7 +64,6 @@ fn write_tls_record(w: &mut Writer, raw_record: TlsRawRecord<'_>) {
         .write("Record: ")
         .debug(raw_record.hdr.record_type)
         .indent();
-
     let mut buffer = raw_record.data;
     loop {
         if buffer.is_empty() {
