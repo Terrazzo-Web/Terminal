@@ -94,7 +94,7 @@ async fn query_dns(name: &Name, record_type: RecordType) -> Option<(RecordType, 
         .boxed()
         .shared()
     });
-    let mut client = LazyLock::force(&CLIENT).clone().await?;
+    let mut client = CLIENT.clone().await?;
 
     let response = client
         .query(name.to_owned(), DNSClass::IN, record_type)
