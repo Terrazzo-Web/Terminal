@@ -28,6 +28,7 @@ use hickory_client::proto::rr::rdata::opt::EdnsOption;
 use hickory_client::proto::runtime::TokioRuntimeProvider;
 use hickory_client::proto::udp::UdpClientStream;
 use regex::Regex;
+use tokio::process::Command;
 use tracing::debug;
 use tracing::warn;
 
@@ -44,6 +45,9 @@ pub async fn add_dns(input: &str, add: &mut impl super::AddConversionFn) -> bool
 }
 
 pub async fn add_dns_impl(input: &str, add: &mut impl super::AddConversionFn) -> Option<()> {
+    let nslookup = Command::new("nslookup").arg(input).output().await.ok()?;
+    let nslookup = str::from_utf8(&nslookup.stdout).ok()?;
+
     let name = Name::from_str(input).ok()?;
     debug!("Running DNS query for {name}");
     let responses = futures::future::join_all([
@@ -65,7 +69,7 @@ pub async fn add_dns_impl(input: &str, add: &mut impl super::AddConversionFn) ->
         .collect::<Vec<_>>();
 
     let response = serde_yaml_ng::to_string(&responses).ok()?;
-    add(Language::new("DNS"), response);
+    add(Language::new("DNS"), format!("{nslookup}\n\n{response}"));
     Some(())
 }
 
