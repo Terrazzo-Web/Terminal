@@ -1,4 +1,5 @@
 use scopeguard::guard;
+use tls_parser::SignatureScheme;
 use tls_parser::TlsCertificateContents;
 use tls_parser::TlsCertificateRequestContents;
 use tls_parser::TlsCipherSuiteID;
@@ -18,36 +19,55 @@ use tls_parser::TlsVersion;
 use tls_parser::parse_tls_extensions;
 use tls_parser::parse_tls_raw_record;
 use tls_parser::parse_tls_record_with_header;
+use tracing::debug;
+use x509_parser::asn1_rs::FromDer;
+use x509_parser::prelude::X509Certificate;
 
-use super::indented_writer::Indented;
 use super::indented_writer::Writer;
 use crate::converter::api::Language;
 use crate::converter::service::AddConversionFn;
 
 pub fn add_tls_handshake(name: &'static str, mut buffer: &[u8], add: &mut impl AddConversionFn) {
-    tracing::debug!("Adding TLS handshake info");
+    debug!("Adding TLS handshake info");
     let writer = Writer::new();
-    let mut writer = guard(writer, |w| add(Language::new(name), w.to_string()));
-    while let Ok((rest, raw_record)) = parse_tls_raw_record(buffer) {
-        write_tls_record(&mut writer, raw_record);
-        buffer = rest;
+    let mut w = guard(writer, |w| add(Language::new(name), w.to_string()));
+
+    loop {
+        if buffer.is_empty() {
+            break;
+        }
+        let raw_record = match parse_tls_raw_record(buffer) {
+            Ok((rest, raw_record)) => {
+                buffer = rest;
+                raw_record
+            }
+            Err(error) => {
+                w.write("TlsRawRecord ERROR");
+                if cfg!(feature = "debug") {
+                    w.write(": ").print(error);
+                }
+                break;
+            }
+        };
+        write_tls_record(&mut w, raw_record);
     }
 }
 
 fn write_tls_record(w: &mut Writer, raw_record: TlsRawRecord<'_>) {
-    match raw_record.hdr.record_type {
-        TlsRecordType::ChangeCipherSpec | TlsRecordType::ApplicationData => return,
-        _ => (),
+    if !cfg!(feature = "debug") {
+        match raw_record.hdr.record_type {
+            TlsRecordType::ChangeCipherSpec | TlsRecordType::ApplicationData => return,
+            _ => (),
+        }
     }
     let mut w = w
         .write("Record: ")
         .debug(raw_record.hdr.record_type)
         .indent();
+
     let mut buffer = raw_record.data;
     loop {
         if buffer.is_empty() {
-            #[cfg(debug_assertions)]
-            w.write("DONE");
             break;
         }
         let messages = match parse_tls_record_with_header(buffer, &raw_record.hdr) {
@@ -55,22 +75,22 @@ fn write_tls_record(w: &mut Writer, raw_record: TlsRawRecord<'_>) {
                 buffer = rest;
                 messages
             }
-            Err(_error) => {
-                w.write("ERROR");
+            Err(error) => {
+                w.write("TlsMessages ERROR");
+                if cfg!(feature = "debug") {
+                    w.write(": ").print(error);
+                }
                 break;
             }
         };
-        let mut w = guard(&mut w, |w| {
-            w.write("]").writeln();
-        });
-        let mut w = w.write("Message [").print(messages.len()).indent();
         for message in messages {
             write_tls_message(&mut w, message);
+            w.writeln();
         }
     }
 }
 
-fn write_tls_message(w: &mut Indented<'_>, message: TlsMessage<'_>) {
+fn write_tls_message(w: &mut Writer, message: TlsMessage<'_>) {
     match message {
         TlsMessage::Handshake(handshake) => {
             write_handshake(w, handshake);
@@ -90,7 +110,7 @@ fn write_tls_message(w: &mut Indented<'_>, message: TlsMessage<'_>) {
     }
 }
 
-fn write_handshake(w: &mut Indented<'_>, handshake: TlsMessageHandshake<'_>) {
+fn write_handshake(w: &mut Writer, handshake: TlsMessageHandshake<'_>) {
     match handshake {
         TlsMessageHandshake::HelloRequest => {
             w.write("HelloRequest");
@@ -103,9 +123,9 @@ fn write_handshake(w: &mut Indented<'_>, handshake: TlsMessageHandshake<'_>) {
             comp: compression,
             ext: extensions,
         }) => {
-            let w = w.write("ClientHello").indent();
+            let mut w = w.write("ClientHello").indent();
             write_hello(
-                w,
+                &mut *w,
                 version,
                 random,
                 session_id,
@@ -122,9 +142,9 @@ fn write_handshake(w: &mut Indented<'_>, handshake: TlsMessageHandshake<'_>) {
             compression,
             ext: extensions,
         }) => {
-            let w = w.write("ServerHello").indent();
+            let mut w = w.write("ServerHello").indent();
             write_hello(
-                w,
+                &mut *w,
                 version,
                 random,
                 session_id,
@@ -162,8 +182,18 @@ fn write_handshake(w: &mut Indented<'_>, handshake: TlsMessageHandshake<'_>) {
         }) => {
             w.write("HelloRetryRequest");
         }
-        TlsMessageHandshake::Certificate(TlsCertificateContents { cert_chain: _ }) => {
-            w.write("Certificate");
+        TlsMessageHandshake::Certificate(TlsCertificateContents { cert_chain }) => {
+            let mut w = w.write("Certificate").indent();
+            for certificate in cert_chain {
+                match X509Certificate::from_der(certificate.data) {
+                    Ok((_rest, certificate)) => {
+                        w.print(certificate.subject()).writeln();
+                    }
+                    Err(error) => {
+                        w.print(error).writeln();
+                    }
+                }
+            }
         }
         TlsMessageHandshake::ServerKeyExchange(TlsServerKeyExchangeContents { parameters: _ }) => {
             w.write("ServerKeyExchange");
@@ -200,7 +230,7 @@ fn write_handshake(w: &mut Indented<'_>, handshake: TlsMessageHandshake<'_>) {
 }
 
 fn write_hello(
-    mut w: Indented<'_>,
+    w: &mut Writer,
     version: TlsVersion,
     random: &[u8],
     session_id: Option<&[u8]>,
@@ -214,10 +244,16 @@ fn write_hello(
         w.write("Session ID: ").print(hex(session_id)).writeln();
     }
     if !ciphers.is_empty() {
-        w.write("Ciphers: ").debug(ciphers).writeln();
+        let mut w = w.write("Ciphers").indent();
+        for cipher in ciphers {
+            w.debug(cipher).writeln();
+        }
     }
     if !compression.is_empty() {
-        w.write("Compression: ").debug(compression).writeln();
+        let mut w = w.write("Compression").indent();
+        for compression in compression {
+            w.print(compression).writeln();
+        }
     }
     if let Some(extensions) = extensions {
         let Ok((_rest, extensions)) = parse_tls_extensions(extensions) else {
@@ -227,13 +263,13 @@ fn write_hello(
     }
 }
 
-fn write_extensions(w: &mut Indented<'_>, extensions: &[TlsExtension<'_>]) {
+fn write_extensions(w: &mut Writer, extensions: &[TlsExtension<'_>]) {
     for extension in extensions {
         write_extension(w, extension);
     }
 }
 
-fn write_extension(w: &mut Indented<'_>, extension: &TlsExtension<'_>) {
+fn write_extension(w: &mut Writer, extension: &TlsExtension<'_>) {
     let mut w = guard(w, |w| {
         w.writeln();
     });
@@ -251,9 +287,12 @@ fn write_extension(w: &mut Indented<'_>, extension: &TlsExtension<'_>) {
             w.write("MaxFragmentLength: ").print(v);
         }
         TlsExtension::StatusRequest(v) => {
-            w.write("StatusRequest: ");
+            let mut w = w.write("StatusRequest").indent();
             if let Some((t, s)) = v {
-                w.debug(t).write(" = ").write(&String::from_utf8_lossy(s));
+                w.write("type='").debug(t).write("'").writeln();
+                w.write("data='")
+                    .write(&String::from_utf8_lossy(s))
+                    .write("'");
             } else {
                 w.write("None");
             }
@@ -268,8 +307,11 @@ fn write_extension(w: &mut Indented<'_>, extension: &TlsExtension<'_>) {
             w.write("EcPointFormats");
             w.write(&format!(" ({})", data.len()));
         }
-        TlsExtension::SignatureAlgorithms(_) => {
-            w.debug(extension);
+        TlsExtension::SignatureAlgorithms(algs) => {
+            let mut w = w.write("SignatureSchemes").indent();
+            for alg in algs {
+                w.print(SignatureScheme(*alg)).writeln();
+            }
         }
         TlsExtension::RecordSizeLimit(limit) => {
             w.write("RecordSizeLimit: ").print(limit);
@@ -297,7 +339,10 @@ fn write_extension(w: &mut Indented<'_>, extension: &TlsExtension<'_>) {
             }
         }
         TlsExtension::SupportedVersions(tls_versions) => {
-            w.write("SupportedVersions: ").debug(tls_versions);
+            let mut w = w.write("SupportedVersions").indent();
+            for tls_version in tls_versions {
+                w.print(tls_version).writeln();
+            }
         }
         TlsExtension::Cookie(data) => {
             w.write("Cookie");

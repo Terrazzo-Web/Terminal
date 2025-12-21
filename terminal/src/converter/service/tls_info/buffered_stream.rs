@@ -7,6 +7,7 @@ use std::task::ready;
 use pin_project::pin_project;
 use tokio::io::AsyncRead;
 use tokio::io::AsyncWrite;
+use tokio::io::ReadBuf;
 use tokio::net::TcpStream;
 
 #[pin_project]
@@ -31,7 +32,7 @@ impl AsyncRead for BufferedStream {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut tokio::io::ReadBuf<'_>,
+        buf: &mut ReadBuf<'_>,
     ) -> Poll<Result<()>> {
         let this = self.project();
         let start = buf.filled().len();
