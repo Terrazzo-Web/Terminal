@@ -79,7 +79,7 @@ impl<'t> Deref for Indented<'t> {
 
 impl<'t> DerefMut for Indented<'t> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-         self.0
+        self.0
     }
 }
 

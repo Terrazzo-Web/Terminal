@@ -1,18 +1,23 @@
 use scopeguard::guard;
 use tls_parser::TlsCertificateContents;
 use tls_parser::TlsCertificateRequestContents;
+use tls_parser::TlsCipherSuiteID;
 use tls_parser::TlsClientHelloContents;
+use tls_parser::TlsCompressionID;
 use tls_parser::TlsExtension;
 use tls_parser::TlsHelloRetryRequestContents;
 use tls_parser::TlsMessage;
 use tls_parser::TlsMessageHandshake;
 use tls_parser::TlsNewSessionTicketContent;
-use tls_parser::TlsPlaintext;
-use tls_parser::TlsRecordHeader;
+use tls_parser::TlsRawRecord;
+use tls_parser::TlsRecordType;
 use tls_parser::TlsServerHelloContents;
 use tls_parser::TlsServerHelloV13Draft18Contents;
 use tls_parser::TlsServerKeyExchangeContents;
+use tls_parser::TlsVersion;
 use tls_parser::parse_tls_extensions;
+use tls_parser::parse_tls_raw_record;
+use tls_parser::parse_tls_record_with_header;
 
 use super::indented_writer::Indented;
 use super::indented_writer::Writer;
@@ -23,32 +28,42 @@ pub fn add_tls_handshake(name: &'static str, mut buffer: &[u8], add: &mut impl A
     tracing::debug!("Adding TLS handshake info");
     let writer = Writer::new();
     let mut writer = guard(writer, |w| add(Language::new(name), w.to_string()));
-    while let Ok((rest, plaintext)) = tls_parser::parse_tls_plaintext(buffer) {
-        write_tls_plaintext(&mut writer, plaintext);
+    while let Ok((rest, raw_record)) = parse_tls_raw_record(buffer) {
+        write_tls_record(&mut writer, raw_record);
         buffer = rest;
     }
 }
 
-fn write_tls_plaintext(w: &mut Writer, plaintext: TlsPlaintext<'_>) {
-    let TlsPlaintext {
-        hdr: header,
-        msg: messages,
-    } = plaintext;
-    {
-        let mut w = w.write("Header").indent();
-        let TlsRecordHeader {
-            record_type,
-            version,
-            len: _,
-        } = header;
-        w.debug(record_type).writeln();
-        w.debug(version).writeln();
+fn write_tls_record(w: &mut Writer, raw_record: TlsRawRecord<'_>) {
+    match raw_record.hdr.record_type {
+        TlsRecordType::ChangeCipherSpec | TlsRecordType::ApplicationData => return,
+        _ => (),
     }
-    {
-        let mut w = guard(w, |w| {
+    let mut w = w
+        .write("Record: ")
+        .debug(raw_record.hdr.record_type)
+        .indent();
+    let mut buffer = raw_record.data;
+    loop {
+        if buffer.is_empty() {
+            #[cfg(debug_assertions)]
+            w.write("DONE");
+            break;
+        }
+        let messages = match parse_tls_record_with_header(buffer, &raw_record.hdr) {
+            Ok((rest, messages)) => {
+                buffer = rest;
+                messages
+            }
+            Err(_error) => {
+                w.write("ERROR");
+                break;
+            }
+        };
+        let mut w = guard(&mut w, |w| {
             w.write("]").writeln();
         });
-        let mut w = w.write("Message [").indent();
+        let mut w = w.write("Message [").print(messages.len()).indent();
         for message in messages {
             write_tls_message(&mut w, message);
         }
@@ -76,7 +91,6 @@ fn write_tls_message(w: &mut Indented<'_>, message: TlsMessage<'_>) {
 }
 
 fn write_handshake(w: &mut Indented<'_>, handshake: TlsMessageHandshake<'_>) {
-    let mut w = w.write("Handshake").indent();
     match handshake {
         TlsMessageHandshake::HelloRequest => {
             w.write("HelloRequest");
@@ -187,11 +201,11 @@ fn write_handshake(w: &mut Indented<'_>, handshake: TlsMessageHandshake<'_>) {
 
 fn write_hello(
     mut w: Indented<'_>,
-    version: tls_parser::TlsVersion,
+    version: TlsVersion,
     random: &[u8],
     session_id: Option<&[u8]>,
-    ciphers: Vec<tls_parser::TlsCipherSuiteID>,
-    compression: Vec<tls_parser::TlsCompressionID>,
+    ciphers: Vec<TlsCipherSuiteID>,
+    compression: Vec<TlsCompressionID>,
     extensions: Option<&[u8]>,
 ) {
     w.write("Version: ").debug(version).writeln();
