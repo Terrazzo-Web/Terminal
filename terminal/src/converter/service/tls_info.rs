@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio_rustls::TlsConnector;
 use tokio_rustls::client::TlsStream;
@@ -23,11 +24,12 @@ async fn add_tls_info_impl(input: &str, add: &mut impl AddConversionFn) -> Resul
     let port = url.port_or_known_default().ignore_err("port")?;
     super::dns::add_dns_impl(host, add).await;
 
-    let tls: TlsStream<BufferedStream> = {
-        let tcp = TcpStream::connect((host, port))
-            .await
-            .ignore_err("TCP connect")?;
+    let tcp = TcpStream::connect((host, port))
+        .await
+        .ignore_err("TCP connect")?;
+    let mut tcp_buffered = BufferedStream::from(tcp);
 
+    let mut tls: TlsStream<&mut BufferedStream> = {
         let mut root_store = RootCertStore::empty();
         root_store
             .add_parsable_certificates(rustls_native_certs::load_native_certs().certs.into_iter());
@@ -41,11 +43,20 @@ async fn add_tls_info_impl(input: &str, add: &mut impl AddConversionFn) -> Resul
             .ignore_err("server_name")?
             .to_owned();
 
-        connector
-            .connect(server_name, BufferedStream::from(tcp))
+        let tls_stream = connector
+            .connect(server_name, &mut tcp_buffered)
             .await
-            .ignore_err("TLS connect")?
+            .ignore_err("TLS connect");
+        if let Err(error) = tls_stream {
+            drop(tls_stream);
+            self::tls_handshake::add_tls_handshake("TLS Server", &tcp_buffered.read_buffer, add);
+            self::tls_handshake::add_tls_handshake("TLS Client", &tcp_buffered.write_buffer, add);
+            return Err(error)?;
+        }
+        tls_stream?
     };
+
+    let _result = tls.write_all(b"GET / HTTP/1.1").await;
 
     let (tcp_stream, session) = tls.get_ref();
     let certificates = session
@@ -56,7 +67,8 @@ async fn add_tls_info_impl(input: &str, add: &mut impl AddConversionFn) -> Resul
         super::x509::add_x509_base64(certificate.as_ref(), add);
     }
 
-    self::tls_handshake::add_tls_handshake(&tcp_stream.buffer, add);
+    self::tls_handshake::add_tls_handshake("TLS Server", &tcp_stream.read_buffer, add);
+    self::tls_handshake::add_tls_handshake("TLS Client", &tcp_stream.write_buffer, add);
 
     Ok(())
 }

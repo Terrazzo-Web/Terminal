@@ -1,11 +1,7 @@
-#![expect(unused)]
-
 use scopeguard::guard;
 use tls_parser::TlsCertificateContents;
 use tls_parser::TlsCertificateRequestContents;
-use tls_parser::TlsCipherSuiteID;
 use tls_parser::TlsClientHelloContents;
-use tls_parser::TlsCompressionID;
 use tls_parser::TlsExtension;
 use tls_parser::TlsHelloRetryRequestContents;
 use tls_parser::TlsMessage;
@@ -16,60 +12,74 @@ use tls_parser::TlsRecordHeader;
 use tls_parser::TlsServerHelloContents;
 use tls_parser::TlsServerHelloV13Draft18Contents;
 use tls_parser::TlsServerKeyExchangeContents;
-use tls_parser::TlsVersion;
 use tls_parser::parse_tls_extensions;
-use tls_parser::parse_tls_plaintext;
 
 use super::indented_writer::Indented;
+use super::indented_writer::Writer;
 use crate::converter::api::Language;
 use crate::converter::service::AddConversionFn;
 
-pub fn add_tls_handshake(mut buffer: &[u8], add: &mut impl AddConversionFn) {
+pub fn add_tls_handshake(name: &'static str, mut buffer: &[u8], add: &mut impl AddConversionFn) {
     tracing::debug!("Adding TLS handshake info");
-    let mut writer = super::indented_writer::Writer::new();
-    let mut writer = guard(writer, |w| {
-        add(Language::new("TLS handshake"), w.to_string())
-    });
+    let writer = Writer::new();
+    let mut writer = guard(writer, |w| add(Language::new(name), w.to_string()));
     while let Ok((rest, plaintext)) = tls_parser::parse_tls_plaintext(&buffer) {
         buffer = rest;
-        let TlsPlaintext { hdr, msg } = plaintext;
-        {
-            let mut header = writer.write("Header").indent();
-            let TlsRecordHeader {
-                record_type,
-                version,
-                len: _,
-            } = hdr;
-            header.debug(record_type).writeln();
-            header.debug(version).writeln();
-        }
-        {
-            let mut message = guard(&mut writer, |w| {
-                w.write("]").writeln();
-            });
-            let mut message = message.write("Message [").indent();
-            for msg in msg {
-                match msg {
-                    TlsMessage::Handshake(msg) => {
-                        write_handshake(&mut message, msg);
-                    }
-                    TlsMessage::ChangeCipherSpec => {
-                        message.write("ChangeCipherSpec");
-                    }
-                    TlsMessage::Alert(msg) => {}
-                    TlsMessage::ApplicationData(msg) => {}
-                    TlsMessage::Heartbeat(msg) => {}
-                }
-            }
+        write_tls_plaintext(&mut *writer, plaintext);
+    }
+}
+
+fn write_tls_plaintext(w: &mut Writer, plaintext: TlsPlaintext<'_>) {
+    let TlsPlaintext {
+        hdr: header,
+        msg: messages,
+    } = plaintext;
+    {
+        let mut w = w.write("Header").indent();
+        let TlsRecordHeader {
+            record_type,
+            version,
+            len: _,
+        } = header;
+        w.debug(record_type).writeln();
+        w.debug(version).writeln();
+    }
+    {
+        let mut w = guard(w, |w| {
+            w.write("]").writeln();
+        });
+        let mut w = w.write("Message [").indent();
+        for message in messages {
+            write_tls_message(&mut w, message);
         }
     }
 }
 
-fn write_handshake(message: &mut Indented<'_>, msg: TlsMessageHandshake<'_>) {
-    let mut handshake = message.write("Handshake").indent();
-    match msg {
+fn write_tls_message(w: &mut Indented<'_>, message: TlsMessage<'_>) {
+    match message {
+        TlsMessage::Handshake(handshake) => {
+            write_handshake(w, handshake);
+        }
+        TlsMessage::ChangeCipherSpec => {
+            w.write("ChangeCipherSpec");
+        }
+        TlsMessage::Alert(alert) => {
+            w.write("Alert: ").debug(alert);
+        }
+        TlsMessage::ApplicationData(_data) => {
+            w.write("ApplicationData");
+        }
+        TlsMessage::Heartbeat(heartbeat) => {
+            w.write("Heartbeat: ").debug(heartbeat.heartbeat_type);
+        }
+    }
+}
+
+fn write_handshake(w: &mut Indented<'_>, handshake: TlsMessageHandshake<'_>) {
+    let mut w = w.write("Handshake").indent();
+    match handshake {
         TlsMessageHandshake::HelloRequest => {
-            handshake.write("HelloRequest");
+            w.write("HelloRequest");
         }
         TlsMessageHandshake::ClientHello(TlsClientHelloContents {
             version,
@@ -79,7 +89,7 @@ fn write_handshake(message: &mut Indented<'_>, msg: TlsMessageHandshake<'_>) {
             comp: compression,
             ext: extensions,
         }) => {
-            let mut w = handshake.write("ClientHello").indent();
+            let w = w.write("ClientHello").indent();
             write_hello(
                 w,
                 version,
@@ -98,7 +108,7 @@ fn write_handshake(message: &mut Indented<'_>, msg: TlsMessageHandshake<'_>) {
             compression,
             ext: extensions,
         }) => {
-            let mut w = handshake.write("ServerHello").indent();
+            let w = w.write("ServerHello").indent();
             write_hello(
                 w,
                 version,
@@ -110,35 +120,68 @@ fn write_handshake(message: &mut Indented<'_>, msg: TlsMessageHandshake<'_>) {
             );
         }
         TlsMessageHandshake::ServerHelloV13Draft18(TlsServerHelloV13Draft18Contents {
-            version,
-            random,
-            cipher,
-            ext,
-        }) => {}
+            version: _,
+            random: _,
+            cipher: _,
+            ext: _,
+        }) => {
+            w.write("ServerHelloV13Draft18");
+        }
         TlsMessageHandshake::NewSessionTicket(TlsNewSessionTicketContent {
             ticket_lifetime_hint,
             ticket,
-        }) => {}
-        TlsMessageHandshake::EndOfEarlyData => {}
+        }) => {
+            w.write("NewSessionTicket");
+            w.write(&format!(
+                ": hint={} ticket={}",
+                ticket_lifetime_hint,
+                hex(ticket)
+            ));
+        }
+        TlsMessageHandshake::EndOfEarlyData => {
+            w.write("EndOfEarlyData");
+        }
         TlsMessageHandshake::HelloRetryRequest(TlsHelloRetryRequestContents {
-            version,
-            cipher,
-            ext,
-        }) => {}
-        TlsMessageHandshake::Certificate(TlsCertificateContents { cert_chain }) => {}
-        TlsMessageHandshake::ServerKeyExchange(TlsServerKeyExchangeContents { parameters }) => {}
+            version: _,
+            cipher: _,
+            ext: _,
+        }) => {
+            w.write("HelloRetryRequest");
+        }
+        TlsMessageHandshake::Certificate(TlsCertificateContents { cert_chain: _ }) => {
+            w.write("Certificate");
+        }
+        TlsMessageHandshake::ServerKeyExchange(TlsServerKeyExchangeContents { parameters: _ }) => {
+            w.write("ServerKeyExchange");
+        }
         TlsMessageHandshake::CertificateRequest(TlsCertificateRequestContents {
-            cert_types,
-            sig_hash_algs,
-            unparsed_ca,
-        }) => {}
-        TlsMessageHandshake::ServerDone(items) => {}
-        TlsMessageHandshake::CertificateVerify(items) => {}
-        TlsMessageHandshake::ClientKeyExchange(msg) => {}
-        TlsMessageHandshake::Finished(items) => {}
-        TlsMessageHandshake::CertificateStatus(msg) => {}
-        TlsMessageHandshake::NextProtocol(msg) => {}
-        TlsMessageHandshake::KeyUpdate(_) => {}
+            cert_types: _,
+            sig_hash_algs: _,
+            unparsed_ca: _,
+        }) => {
+            w.write("CertificateRequest");
+        }
+        TlsMessageHandshake::ServerDone(_) => {
+            w.write("ServerDone");
+        }
+        TlsMessageHandshake::CertificateVerify(_) => {
+            w.write("CertificateVerify");
+        }
+        TlsMessageHandshake::ClientKeyExchange(_) => {
+            w.write("ClientKeyExchange");
+        }
+        TlsMessageHandshake::Finished(_) => {
+            w.write("Finished");
+        }
+        TlsMessageHandshake::CertificateStatus(_) => {
+            w.write("CertificateStatus");
+        }
+        TlsMessageHandshake::NextProtocol(_) => {
+            w.write("NextProtocol");
+        }
+        TlsMessageHandshake::KeyUpdate(_) => {
+            w.write("KeyUpdate");
+        }
     }
 }
 
@@ -176,7 +219,7 @@ fn write_extensions(w: &mut Indented<'_>, extensions: &[TlsExtension<'_>]) {
     }
 }
 
-fn write_extension(mut w: &mut Indented<'_>, extension: &TlsExtension<'_>) {
+fn write_extension(w: &mut Indented<'_>, extension: &TlsExtension<'_>) {
     let mut w = guard(w, |w| {
         w.writeln();
     });
@@ -184,7 +227,7 @@ fn write_extension(mut w: &mut Indented<'_>, extension: &TlsExtension<'_>) {
         TlsExtension::SNI(items) => {
             let mut w = w.write("SNI").indent();
             for (sni_type, sni) in items {
-                w.debug(sni_type)
+                w.print(sni_type)
                     .write(": ")
                     .write(&String::from_utf8_lossy(sni))
                     .writeln();
@@ -211,7 +254,7 @@ fn write_extension(mut w: &mut Indented<'_>, extension: &TlsExtension<'_>) {
             w.write("EcPointFormats");
             w.write(&format!(" ({})", data.len()));
         }
-        TlsExtension::SignatureAlgorithms(items) => {
+        TlsExtension::SignatureAlgorithms(_) => {
             w.debug(extension);
         }
         TlsExtension::RecordSizeLimit(limit) => {

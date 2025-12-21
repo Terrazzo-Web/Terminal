@@ -36,7 +36,7 @@ impl Writer {
 
     #[allow(unused)]
     pub fn debug(&mut self, txt: impl std::fmt::Debug) -> &mut Self {
-        self.write(&format!("{txt:?}"))
+        self.write(&format!("{txt:#?}"))
     }
 
     #[allow(unused)]
