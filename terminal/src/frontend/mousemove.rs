@@ -1,3 +1,5 @@
+#![cfg(feature = "converter")]
+
 use std::sync::Arc;
 use std::sync::Mutex;
 
