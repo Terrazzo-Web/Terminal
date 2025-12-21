@@ -29,6 +29,7 @@ use super::notify::FileEventKind;
 use super::notify::NotifyResponse;
 use super::style;
 use super::synchronized_state::SynchronizedState;
+use crate::text_editor::graph_editor::graph_editor;
 use crate::utils::more_path::MorePath as _;
 
 #[autoclone]
@@ -66,6 +67,24 @@ pub fn editor(
         spawn_local(write.in_current_span());
     });
 
+    if path.file.ends_with(".graph") {
+        return graph_editor(manager, path, content);
+    }
+
+    return tag(
+        class = style::editor,
+        after_render = make_code_mirror_registration(manager, writing, path, on_change, content),
+    );
+}
+
+#[autoclone]
+fn make_code_mirror_registration(
+    manager: Ptr<TextEditorManager>,
+    writing: Arc<AtomicBool>,
+    path: FilePath<Arc<str>>,
+    on_change: Closure<dyn FnMut(JsValue)>,
+    content: Arc<str>,
+) -> impl Fn(Element) {
     let code_mirror = Ptr::new(Mutex::new(None));
 
     let edits_notify_registration = manager.notify_service.watch_file(
@@ -81,21 +100,18 @@ pub fn editor(
         make_diagnostics_notify_handler(&code_mirror, &base_path),
     );
 
-    tag(
-        class = style::editor,
-        after_render = move |element| {
-            autoclone!(path);
-            let _moved = &edits_notify_registration;
-            let _moved = &diagnostics_notify_registration;
-            *code_mirror.lock().unwrap() = Some(CodeMirrorJs::new(
-                element,
-                content.as_ref().into(),
-                &on_change,
-                path.base.to_string(),
-                path.as_deref().full_path().to_owned_string(),
-            ));
-        },
-    )
+    move |element| {
+        autoclone!(path);
+        let _moved = &edits_notify_registration;
+        let _moved = &diagnostics_notify_registration;
+        *code_mirror.lock().unwrap() = Some(CodeMirrorJs::new(
+            element,
+            content.as_ref().into(),
+            &on_change,
+            path.base.to_string(),
+            path.as_deref().full_path().to_owned_string(),
+        ));
+    }
 }
 
 #[autoclone]
