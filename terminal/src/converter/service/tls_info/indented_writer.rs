@@ -73,13 +73,13 @@ impl<'t> Deref for Indented<'t> {
     type Target = Writer;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        self.0
     }
 }
 
 impl<'t> DerefMut for Indented<'t> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+         self.0
     }
 }
 

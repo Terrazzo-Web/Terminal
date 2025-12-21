@@ -23,9 +23,9 @@ pub fn add_tls_handshake(name: &'static str, mut buffer: &[u8], add: &mut impl A
     tracing::debug!("Adding TLS handshake info");
     let writer = Writer::new();
     let mut writer = guard(writer, |w| add(Language::new(name), w.to_string()));
-    while let Ok((rest, plaintext)) = tls_parser::parse_tls_plaintext(&buffer) {
+    while let Ok((rest, plaintext)) = tls_parser::parse_tls_plaintext(buffer) {
+        write_tls_plaintext(&mut writer, plaintext);
         buffer = rest;
-        write_tls_plaintext(&mut *writer, plaintext);
     }
 }
 
