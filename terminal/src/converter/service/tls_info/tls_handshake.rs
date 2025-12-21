@@ -124,7 +124,7 @@ fn write_handshake(w: &mut Writer, handshake: TlsMessageHandshake<'_>) {
         }) => {
             let mut w = w.write("ClientHello").indent();
             write_hello(
-                &mut *w,
+                &mut w,
                 version,
                 random,
                 session_id,
@@ -143,7 +143,7 @@ fn write_handshake(w: &mut Writer, handshake: TlsMessageHandshake<'_>) {
         }) => {
             let mut w = w.write("ServerHello").indent();
             write_hello(
-                &mut *w,
+                &mut w,
                 version,
                 random,
                 session_id,
