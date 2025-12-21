@@ -1,6 +1,7 @@
 #![cfg(feature = "client")]
 
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -21,6 +22,8 @@ use super::content_state;
 use crate::converter::api::Language;
 use crate::converter::conversion_tabs::ConversionsState;
 use crate::frontend::menu::menu;
+use crate::frontend::mousemove::MousemoveManager;
+use crate::frontend::mousemove::Position;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
 
@@ -52,6 +55,7 @@ fn converter_impl(
         div(
             class = style::body,
             show_input(remote, conversions.clone()),
+            show_resize_bar(),
             show_conversions(conversions, preferred_language),
         ),
     )
@@ -63,6 +67,7 @@ fn converter_impl(
 fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XElement {
     let element: Arc<OnceLock<HtmlTextAreaElement>> = Default::default();
     tag(
+        style::flex %= |t| width(t, RESIZE_MANAGER.delta.clone()),
         before_render = move |e| {
             autoclone!(element);
             element
@@ -93,6 +98,11 @@ fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XE
             });
         },
     )
+}
+
+#[template]
+fn width(#[signal] mut position: Option<Position>) -> XAttributeValue {
+    position.map(|position| format!("0 0 calc(50% + {}px)", position.x))
 }
 
 #[html]
@@ -172,3 +182,15 @@ struct GetConversionsUiRequest {
 struct DebouncedGetConversions(Box<dyn Fn(GetConversionsUiRequest)>);
 unsafe impl Send for DebouncedGetConversions {}
 unsafe impl Sync for DebouncedGetConversions {}
+
+#[html]
+fn show_resize_bar() -> XElement {
+    div(
+        class = style::resize_bar,
+        mousedown = RESIZE_MANAGER.mousedown(),
+        dblclick = |_| RESIZE_MANAGER.delta.set(None),
+        div(div()),
+    )
+}
+
+static RESIZE_MANAGER: LazyLock<MousemoveManager> = LazyLock::new(MousemoveManager::new);

@@ -29,6 +29,7 @@
 
     display: flex;
     flex-direction: row;
+    position: relative;
 
     textarea,
     pre {
@@ -55,6 +56,41 @@
         resize: none;
         box-shadow: none;
         border-right: 1px solid var(--color);
+    }
+
+    .resize-bar {
+        position: relative;
+
+        width: 0;
+        height: 100%;
+        z-index: 100;
+
+        >div {
+            --padding: 3px;
+            --width: 5px;
+            position: absolute;
+            padding-left: var(--padding);
+            padding-right: var(--padding);
+            height: 100%;
+            left: calc(-1 * var(--padding));
+            cursor: col-resize;
+
+            >div {
+                position: absolute;
+                width: 0;
+                height: 100%;
+                left: 50%;
+                transform: translateX(-50%) scaleX(1);
+                transform-origin: center;
+                transition-duration: 0.2s;
+            }
+
+            &:hover>div {
+                width: var(--width);
+                background-color: var(--color);
+            }
+        }
+
     }
 }
 
