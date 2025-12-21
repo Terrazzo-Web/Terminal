@@ -1,15 +1,25 @@
+use std::borrow::Cow;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 use futures::FutureExt as _;
 use futures::future::BoxFuture;
 use futures::future::Shared;
 use hickory_client::client::Client;
 use hickory_client::client::ClientHandle;
+use hickory_client::proto::op::Edns;
+use hickory_client::proto::op::Header;
 use hickory_client::proto::op::Message;
+use hickory_client::proto::op::MessageType;
+use hickory_client::proto::op::OpCode;
+use hickory_client::proto::op::Query;
+use hickory_client::proto::op::ResponseCode;
 use hickory_client::proto::rr::DNSClass;
 use hickory_client::proto::rr::Name;
+use hickory_client::proto::rr::RData;
+use hickory_client::proto::rr::Record;
 use hickory_client::proto::rr::RecordType;
 use hickory_client::proto::runtime::TokioRuntimeProvider;
 use hickory_client::proto::udp::UdpClientStream;
@@ -31,17 +41,28 @@ async fn add_dns_impl(input: &str, add: &mut impl super::AddConversionFn) -> Opt
         query_dns(&name, RecordType::MX),
         query_dns(&name, RecordType::SRV),
     ])
-    .await
-    .into_iter()
-    .filter_map(|response| response)
-    .collect::<Vec<_>>();
+    .await;
+    let responses = responses
+        .iter()
+        .filter_map(|response| response.as_ref())
+        .map(|(record_type, response)| DnsResponse {
+            record_type: *record_type,
+            response: response.into(),
+        })
+        .collect::<Vec<_>>();
 
     let response = serde_yaml_ng::to_string(&responses).ok()?;
     add(Language::new("DNS"), response);
     Some(())
 }
 
-async fn query_dns(name: &Name, record_type: RecordType) -> Option<DnsResponse> {
+#[derive(serde::Serialize)]
+struct DnsResponse<'t> {
+    record_type: RecordType,
+    response: Message2<'t>,
+}
+
+async fn query_dns(name: &Name, record_type: RecordType) -> Option<(RecordType, Message)> {
     static CLIENT: LazyLock<Shared<BoxFuture<Option<Client>>>> = LazyLock::new(|| {
         let address = SocketAddr::from(([8, 8, 8, 8], 53));
         let conn = UdpClientStream::builder(address, TokioRuntimeProvider::default()).build();
@@ -63,15 +84,128 @@ async fn query_dns(name: &Name, record_type: RecordType) -> Option<DnsResponse> 
         .await
         .ok()?
         .into_message();
-    let response = DnsResponse {
-        record_type,
-        response,
-    };
-    Some(response)
+    Some((record_type, response))
 }
 
 #[derive(serde::Serialize)]
-struct DnsResponse {
-    record_type: RecordType,
-    response: Message,
+struct Message2<'t> {
+    header: Header2,
+    #[serde(skip_serializing_if = "is_empty")]
+    queries: Vec<Query>,
+    #[serde(skip_serializing_if = "is_empty")]
+    answers: Vec<Record2<'t>>,
+    #[serde(skip_serializing_if = "is_empty")]
+    name_servers: Vec<Record2<'t>>,
+    #[serde(skip_serializing_if = "is_empty")]
+    additionals: Vec<Record2<'t>>,
+    #[serde(skip_serializing_if = "is_empty")]
+    signature: Vec<Record2<'t>>,
+    #[serde(skip_serializing_if = "is_default")]
+    edns: Option<Edns>,
+}
+
+impl<'t> From<&'t Message> for Message2<'t> {
+    fn from(value: &'t Message) -> Self {
+        Self {
+            header: value.header().into(),
+            queries: value.queries().into(),
+            answers: value.answers().iter().map(Into::into).collect(),
+            name_servers: value.name_servers().iter().map(Into::into).collect(),
+            additionals: value.additionals().iter().map(Into::into).collect(),
+            signature: value.signature().iter().map(Into::into).collect(),
+            edns: value.extensions().clone(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+struct Header2 {
+    #[serde(skip_serializing_if = "is_default")]
+    id: u16,
+    message_type: MessageType,
+    op_code: OpCode,
+    #[serde(skip_serializing_if = "is_default")]
+    authoritative: bool,
+    #[serde(skip_serializing_if = "is_default")]
+    truncation: bool,
+    #[serde(skip_serializing_if = "is_default")]
+    recursion_desired: bool,
+    #[serde(skip_serializing_if = "is_default")]
+    recursion_available: bool,
+    #[serde(skip_serializing_if = "is_default")]
+    authentic_data: bool,
+    #[serde(skip_serializing_if = "is_default")]
+    checking_disabled: bool,
+    response_code: ResponseCode,
+}
+
+impl<'t> From<&'t Header> for Header2 {
+    fn from(value: &'t Header) -> Self {
+        Self {
+            id: value.id(),
+            message_type: value.message_type(),
+            op_code: value.op_code(),
+            authoritative: value.authoritative(),
+            truncation: value.truncated(),
+            recursion_desired: value.recursion_desired(),
+            recursion_available: value.recursion_available(),
+            authentic_data: value.authentic_data(),
+            checking_disabled: value.checking_disabled(),
+            response_code: value.response_code(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+struct Record2<'t> {
+    name_labels: &'t Name,
+    dns_class: DNSClass,
+    ttl: String,
+    rdata: RData2<'t>,
+}
+
+impl<'t> From<&'t Record> for Record2<'t> {
+    fn from(value: &'t Record) -> Self {
+        Self {
+            name_labels: value.name(),
+            dns_class: value.dns_class(),
+            ttl: humantime::Duration::from(Duration::from_secs(value.ttl() as u64)).to_string(),
+            rdata: value.data().into(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+enum RData2<'t> {
+    TXT(Vec<Cow<'t, str>>),
+    #[serde(untagged)]
+    Other(&'t RData),
+}
+
+impl<'t> From<&'t RData> for RData2<'t> {
+    fn from(value: &'t RData) -> Self {
+        match value {
+            RData::TXT(txt) => {
+                return Self::TXT(
+                    txt.txt_data()
+                        .iter()
+                        .map(|txt| {
+                            str::from_utf8(txt)
+                                .map(|txt| Cow::Borrowed(txt))
+                                .unwrap_or_else(|err| Cow::Owned(format!("Not UTF-8: {}", err)))
+                        })
+                        .collect(),
+                );
+            }
+            _ => Self::Other(value),
+        }
+    }
+}
+
+fn is_default<T: Default + PartialEq>(v: &T) -> bool {
+    v == &T::default()
+}
+
+fn is_empty<T: AsRef<[E]>, E>(v: &T) -> bool {
+    v.as_ref().is_empty()
 }
