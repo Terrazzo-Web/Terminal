@@ -23,11 +23,12 @@ use hickory_client::proto::rr::Name;
 use hickory_client::proto::rr::RData;
 use hickory_client::proto::rr::Record;
 use hickory_client::proto::rr::RecordType;
-use hickory_client::proto::rr::rdata::opt::ClientSubnet;
 use hickory_client::proto::rr::rdata::opt::EdnsCode;
 use hickory_client::proto::rr::rdata::opt::EdnsOption;
 use hickory_client::proto::runtime::TokioRuntimeProvider;
 use hickory_client::proto::udp::UdpClientStream;
+use regex::Regex;
+use tracing::debug;
 use tracing::warn;
 
 use crate::converter::api::Language;
@@ -37,7 +38,15 @@ pub async fn add_dns(input: &str, add: &mut impl super::AddConversionFn) -> bool
 }
 
 async fn add_dns_impl(input: &str, add: &mut impl super::AddConversionFn) -> Option<()> {
+    static DNS_REGEX: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^[a-z0-9_-]+(\.[a-z0-9_-]+)+\.?$").unwrap());
+    if !DNS_REGEX.is_match(input) {
+        debug!("Not a valid DNS name: {input}");
+        return None;
+    }
+
     let name = Name::from_str(input).ok()?;
+    debug!("Running DNS query for {name}");
     let responses = futures::future::join_all([
         query_dns(&name, RecordType::A),
         query_dns(&name, RecordType::AAAA),
@@ -182,6 +191,7 @@ impl<'t> From<&'t Record> for Record2<'t> {
 
 #[derive(serde::Serialize)]
 enum RData2<'t> {
+    #[allow(clippy::upper_case_acronyms)]
     TXT(Vec<Cow<'t, str>>),
     #[serde(untagged)]
     Other(&'t RData),
@@ -190,18 +200,7 @@ enum RData2<'t> {
 impl<'t> From<&'t RData> for RData2<'t> {
     fn from(value: &'t RData) -> Self {
         match value {
-            RData::TXT(txt) => {
-                return Self::TXT(
-                    txt.txt_data()
-                        .iter()
-                        .map(|txt| {
-                            str::from_utf8(txt)
-                                .map(|txt| Cow::Borrowed(txt))
-                                .unwrap_or_else(|err| Cow::Owned(format!("Not UTF-8: {}", err)))
-                        })
-                        .collect(),
-                );
-            }
+            RData::TXT(txt) => Self::TXT(txt.txt_data().iter().map(to_string_lossy).collect()),
             _ => Self::Other(value),
         }
     }
@@ -266,22 +265,22 @@ struct EdnsOptionEntry<'t> {
 
 #[derive(serde::Serialize)]
 enum EdnsOption2<'t> {
-    Subnet(&'t ClientSubnet),
-    Unknown { code: u16, value: Cow<'t, str> },
+    Unknown {
+        code: u16,
+        value: Cow<'t, str>,
+    },
+    #[serde(untagged)]
+    Other(&'t EdnsOption),
 }
 
 impl<'t> From<&'t EdnsOption> for EdnsOption2<'t> {
     fn from(value: &'t EdnsOption) -> Self {
         match value {
-            EdnsOption::Subnet(client_subnet) => Self::Subnet(client_subnet),
             EdnsOption::Unknown(code, items) => Self::Unknown {
                 code: *code,
                 value: to_string_lossy(items),
             },
-            _ => Self::Unknown {
-                code: 0,
-                value: "Not implemented".into(),
-            },
+            _ => Self::Other(value),
         }
     }
 }
@@ -289,7 +288,7 @@ impl<'t> From<&'t EdnsOption> for EdnsOption2<'t> {
 fn to_string_lossy(data: &impl AsRef<[u8]>) -> Cow<'_, str> {
     let data = data.as_ref();
     str::from_utf8(data)
-        .map(|txt| Cow::Borrowed(txt))
+        .map(Cow::Borrowed)
         .unwrap_or_else(|_utf8_error| {
             use base64::prelude::BASE64_STANDARD_NO_PAD;
             Cow::Owned(format!(
