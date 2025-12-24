@@ -72,11 +72,11 @@ regex = { version = "1.12.2" }
 reqwest-wasm = { version = "0.11.16" }
 rpassword = { version = "7.4.0" }
 rsass-macros = { version = "0.29.0" }
-rustix = { version = "1.0.8" }
+rustix = { version = "1.1.3" }
 rustls-native-certs = { version = "0.8.2" }
 scopeguard = { version = "1.2.0" }
 serde = { version = "1.0.228", features = ["derive", "rc"] }
-serde_json = { version = "1.0.146" }
+serde_json = { version = "1.0.147" }
 serde_urlencoded = { version = "0.7.1" }
 serde_yaml_ng = { version = "0.10.0" }
 serde-wasm-bindgen = { version = "0.6.5" }
