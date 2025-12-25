@@ -4,7 +4,7 @@ cd "$(dirname "$0")" || exit
 cargo run --locked \
     --bin terrazzo-terminal \
     --no-default-features \
-    --features server,max-level-debug,debug,diagnostics \
-    --features prod \
+    --features max-level-debug,debug,diagnostics \
+    --features server-all \
     -- \
     $@
