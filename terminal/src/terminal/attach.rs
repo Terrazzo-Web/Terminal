@@ -38,14 +38,13 @@ pub fn attach(template: XTemplate, state: TerminalsState, terminal_tab: Terminal
     let terminal_def = terminal_tab.to_terminal_def();
     let _span = info_span!("XTermJS", %terminal_id).entered();
     let element = template.element();
-    if let Some(IS_ATTACHED) = element.get_attribute(XTERMJS_ATTR).as_deref()
-        && terminal_tab.selected.get_value_untracked()
-    {
-        if let Some(xtermjs) = terminal_tab
-            .xtermjs
-            .lock()
-            .or_throw("xtermjs.lock()")
-            .clone()
+    if let Some(IS_ATTACHED) = element.get_attribute(XTERMJS_ATTR).as_deref() {
+        if terminal_tab.selected.get_value_untracked()
+            && let Some(xtermjs) = terminal_tab
+                .xtermjs
+                .lock()
+                .or_throw("xtermjs.lock()")
+                .clone()
         {
             debug!("Focus and fit size");
             xtermjs.focus();
