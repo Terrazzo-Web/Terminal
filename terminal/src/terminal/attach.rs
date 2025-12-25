@@ -156,7 +156,7 @@ impl TerminalJs {
         element: Element,
     ) {
         async {
-            debug!("Start");
+            info!("Start");
             let on_init = || {
                 self.fit();
                 ready(())
