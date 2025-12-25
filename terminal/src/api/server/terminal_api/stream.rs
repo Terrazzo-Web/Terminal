@@ -31,10 +31,10 @@ pub async fn register(
     my_client_name: Option<ClientName>,
     server: Arc<Server>,
     Json(request): Json<RegisterTerminalRequest>,
-) -> Result<(), HttpError<RegisterStreamError>> {
+) -> Result<Json<RegisterTerminalRequest>, HttpError<RegisterStreamError>> {
     let span = info_span!("Register", terminal_id = %request.def.address.id);
     let response = register::register(my_client_name, &server, request)
         .instrument(span)
         .await;
-    Ok(response?)
+    Ok(response?).map(|r| r.into())
 }

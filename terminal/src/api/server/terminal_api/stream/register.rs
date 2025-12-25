@@ -23,17 +23,20 @@ pub async fn register(
     my_client_name: Option<ClientName>,
     server: &Arc<Server>,
     request: RegisterTerminalRequest,
-) -> Result<(), RegisterStreamError> {
+) -> Result<RegisterTerminalRequest, RegisterStreamError> {
     defer!(debug!("End"));
     debug!("Start");
     async {
         let terminal_address = request.def.address.clone();
-        let stream =
-            self::terminal_service::register::register(my_client_name, server, request.into())
-                .await?;
+        let stream = self::terminal_service::register::register(
+            my_client_name,
+            server,
+            request.clone().into(),
+        )
+        .await?;
         let stream = LocalReader(stream);
         push_lease(terminal_address, stream)?;
-        Ok(())
+        Ok(request)
     }
     .await
     .inspect_err(|err| warn!("{err}"))

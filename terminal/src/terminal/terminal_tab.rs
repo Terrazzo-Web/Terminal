@@ -175,7 +175,13 @@ impl TabDescriptor for TerminalTab {
     fn item(&self, state: &TerminalsState) -> impl Into<XNode> {
         let this = self.clone();
         let state = state.clone();
+        diagnostics::info!(
+            "Rendering {}={}",
+            self.title.get_value_untracked().shell_title,
+            self.address.id
+        );
         div(
+            id = self.address.id.to_string(),
             class = style::terminal,
             div(move |template| attach::attach(template, state.clone(), this.clone())),
         )
