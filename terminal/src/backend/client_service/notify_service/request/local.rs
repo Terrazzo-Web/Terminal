@@ -11,7 +11,7 @@ use super::HybridRequestStream;
 use super::HybridRequestStreamProj;
 use crate::backend::protos::terrazzo::notify::NotifyRequest as NotifyRequestProto;
 use crate::backend::protos::terrazzo::notify::notify_request::RequestType as RequestTypeProto;
-use crate::text_editor::notify::NotifyRequest;
+use crate::text_editor::notify::server_fn::NotifyRequest;
 
 #[pin_project(project = LocalRequestStreamProj)]
 pub struct LocalRequestStream(#[pin] pub HybridRequestStream);

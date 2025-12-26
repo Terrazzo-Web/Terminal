@@ -24,7 +24,7 @@ use crate::backend::client_service::remote_fn_service::RemoteFnError;
 use crate::backend::client_service::remote_fn_service::remote_fn_server;
 use crate::backend::client_service::routing::DistributedCallback as _;
 use crate::backend::client_service::routing::DistributedCallbackError;
-use crate::text_editor::notify::NotifyRequest;
+use crate::text_editor::notify::server_fn::NotifyRequest;
 
 /// Dispatches the Notify request either locally or through the gRPC tunnel
 pub fn notify_dispatch(request: HybridRequestStream) -> Result<HybridResponseStream, NotifyError> {

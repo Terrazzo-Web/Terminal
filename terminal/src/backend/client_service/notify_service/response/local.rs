@@ -12,9 +12,9 @@ use super::HybridResponseStreamProj;
 use crate::backend::protos::terrazzo::notify::NotifyResponse as NotifyResponseProto;
 use crate::backend::protos::terrazzo::notify::notify_response;
 use crate::backend::protos::terrazzo::notify::notify_response::FileEventKind as FileEventKindProto;
-use crate::text_editor::notify::EventKind;
-use crate::text_editor::notify::FileEventKind;
-use crate::text_editor::notify::NotifyResponse;
+use crate::text_editor::notify::server_fn::EventKind;
+use crate::text_editor::notify::server_fn::FileEventKind;
+use crate::text_editor::notify::server_fn::NotifyResponse;
 
 #[pin_project(project = LocalResponseStreamProj)]
 pub struct LocalResponseStream(#[pin] pub HybridResponseStream);
