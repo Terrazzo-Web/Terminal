@@ -48,6 +48,9 @@ fn install_icons() {
         install_icon(super::icons::loading());
         install_icon(super::icons::slash());
         install_icon(super::icons::text_editor());
+
+        #[cfg(feature = "text-editor-search")]
+        install_icon(super::icons::search());
     }
 
     #[cfg(feature = "converter")]

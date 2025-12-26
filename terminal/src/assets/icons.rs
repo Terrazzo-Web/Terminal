@@ -46,6 +46,7 @@ declare_icon!(menu, "/icons/signpost-split.svg");
 declare_icon!(port_forward_loading,"/icons/port-forward-loading.svg"; feature = "port-forward");
 declare_icon!(port_forward_pending,"/icons/port-forward-pending.svg"; feature = "port-forward");
 declare_icon!(port_forward_synchronized,"/icons/port-forward-synchronized.svg"; feature = "port-forward");
+declare_icon!(search, "/icons/search.svg"; feature = "text-editor-search");
 declare_icon!(slash, "/icons/slash.svg"; feature = "text-editor");
 declare_icon!(terminal, "/icons/terminal-dash.svg"; feature = "terminal");
 declare_icon!(text_editor, "/icons/layout-text-sidebar-reverse.svg"; feature = "text-editor");
