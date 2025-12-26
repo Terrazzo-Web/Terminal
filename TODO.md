@@ -1,12 +1,13 @@
 # TODO
-- `#116`. Keep current remote in memory
 - `#·95`. File explorer: search tool
 - `#115`. Add some caching in the UI around folder I/O, so loading stuff is faster
 - `#·94`. File explorer: all files
+- `#117`. File explorer: tree view with collapsing subfolders
 - `#·92`. File explorer: show files with git changes
 - `#··7`. Text editor: integration with Language Server
 - `#·98`. Text editor: highlight git changes
 - `#·99`. Text editor: status bar: last change, pointer position, branch name
+- `#118`. Text editor: show terminals
 - `#·91`. Configuration tool: show current auth token
 - `#·91`. Configuration tool: password reset
 - `#·91`. Configuration tool: info page (version, metrics, etc.)
@@ -15,7 +16,7 @@
 - `#·32`. Announce open source terrazzo client
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
 - `#·52`. Drag n Drop to create tiles
-- `#··8`. Resizeable component
+- `#··8`. Resizeable component --> refactor to common widgets
 - `#107`. (b) Ticks should be aligned with round time;
 - `#108`. Introduce shortcuts for unwrap(). Makes it easy to scan where unwrap() is used.
 - `#113`. Add a dropdown on hover showing the list of pending operations on the ok/pending icon
@@ -25,7 +26,7 @@
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
 
-Next: `#117`.
+Next: `#119`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -129,3 +130,4 @@ Next: `#117`.
 - `#110`. Add a wrapper around `cargo check` that returns a list of errors or warnings
 - `#·89`. Anything parser: x509, base64, pem, yaml, json, toml, etc.
 - `#·91`. Port forwarding tool
+- `#116`. Keep current remote in memory
