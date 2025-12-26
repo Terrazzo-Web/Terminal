@@ -209,9 +209,7 @@ text-editor-server = [
     "server",
     "text-editor",
 ]
-text-editor-search = [
-    #"dep:tantivy"
-]
+text-editor-search = ["dep:tantivy"]
 
 converter = []
 converter-client = [

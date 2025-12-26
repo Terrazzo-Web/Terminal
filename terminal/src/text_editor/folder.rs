@@ -11,7 +11,7 @@ use web_sys::MouseEvent;
 
 use self::diagnostics::debug;
 use super::fsio::FileMetadata;
-use super::manager::EditorState;
+use super::manager::EditorDataState;
 use super::manager::TextEditorManager;
 use super::notify::EventKind;
 use super::notify::FileEventKind;
@@ -28,7 +28,7 @@ stylance::import_style!(style, "folder.scss");
 #[template(tag = div)]
 pub fn folder(
     manager: Ptr<TextEditorManager>,
-    editor_state: EditorState,
+    editor_state: EditorDataState,
     list: Arc<Vec<FileMetadata>>,
 ) -> XElement {
     let path = &editor_state.path;

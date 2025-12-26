@@ -22,7 +22,7 @@ use super::code_mirror::CodeMirrorJs;
 use super::file_path::FilePath;
 use super::fsio;
 use super::fsio::ui::store_file;
-use super::manager::EditorState;
+use super::manager::EditorDataState;
 use super::manager::TextEditorManager;
 use super::notify::EventKind;
 use super::notify::FileEventKind;
@@ -41,10 +41,10 @@ use crate::utils::more_path::MorePath as _;
 })]
 pub fn editor(
     manager: Ptr<TextEditorManager>,
-    editor_state: EditorState,
+    editor_state: EditorDataState,
     content: Arc<str>,
 ) -> XElement {
-    let EditorState { path, .. } = editor_state;
+    let EditorDataState { path, .. } = editor_state;
 
     // Set to true when there are edits waiting (debounced) to be committed.
     // This is used to ignored notifications about file changes that would anyway be overwritten.
