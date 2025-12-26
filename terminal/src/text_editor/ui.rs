@@ -23,7 +23,7 @@ use super::manager::EditorDataState;
 use super::manager::EditorState;
 use super::manager::TextEditorManager;
 use super::notify::ui::NotifyService;
-use super::search::ui::SearchState;
+use super::search::state::SearchState;
 use super::side::SideViewList;
 use super::side::ui::show_side_view;
 use super::state;
@@ -33,6 +33,7 @@ use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
+use crate::text_editor::search::state::EditorSearchState;
 
 pub(super) const STORE_FILE_DEBOUNCE_DELAY: Duration = if cfg!(debug_assertions) {
     Duration::from_millis(1500)
@@ -110,11 +111,11 @@ fn editor_container(
             let body = match &*editor_state.data {
                 fsio::File::TextFile { content, .. } => {
                     let content = content.clone();
-                    editor(manager.clone(), editor_state, content)
+                    editor(manager, editor_state, content)
                 }
                 fsio::File::Folder(list) => {
                     let list = list.clone();
-                    folder(manager.clone(), editor_state, list)
+                    folder(manager, Some(editor_state), list)
                 }
                 fsio::File::Error(error) => {
                     warn!("Failed to load file: {error}");
@@ -124,7 +125,10 @@ fn editor_container(
 
             tag(class = super::style::editor_container, body)
         }
-        EditorState::Search(_search_state) => todo!(),
+        EditorState::Search(EditorSearchState { results, .. }) => {
+            let results = results.clone();
+            folder(manager, None, results)
+        }
         EditorState::Empty => tag(class = super::style::editor_container),
     }
 }
