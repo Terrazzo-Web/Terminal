@@ -20,7 +20,7 @@ use super::server_fn::autocomplete_path;
 use crate::frontend::element_capture::ElementCapture;
 use crate::frontend::menu::before_menu;
 use crate::text_editor::manager::TextEditorManager;
-use crate::text_editor::path_selector::PathSelector;
+use crate::text_editor::path_selector::schema::PathSelector;
 use crate::text_editor::style;
 
 #[autoclone]

@@ -9,7 +9,7 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 use web_sys::HtmlInputElement;
 
-use super::PathSelector;
+use super::schema::PathSelector;
 use crate::assets::icons;
 use crate::frontend::element_capture::ElementCapture;
 use crate::text_editor::autocomplete::server_fn::AutocompleteItem;

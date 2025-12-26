@@ -20,7 +20,7 @@ use crate::backend::client_service::grpc_error::IsGrpcError;
 use crate::text_editor::autocomplete::server_fn::AutocompleteItem;
 use crate::text_editor::fsio::canonical::canonicalize;
 use crate::text_editor::fsio::canonical::concat_base_file_path;
-use crate::text_editor::path_selector::PathSelector;
+use crate::text_editor::path_selector::schema::PathSelector;
 use crate::utils::more_path::MorePath as _;
 
 const ROOT: &str = "/";

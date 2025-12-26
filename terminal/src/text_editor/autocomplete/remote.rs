@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use super::server_fn::AutocompleteItem;
 use crate::backend::client_service::remote_fn_service;
-use crate::text_editor::path_selector::PathSelector;
+use crate::text_editor::path_selector::schema::PathSelector;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AutoCompletePathRequest {

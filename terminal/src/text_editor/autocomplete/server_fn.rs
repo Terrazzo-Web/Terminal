@@ -8,7 +8,7 @@ use terrazzo::server;
 
 use super::remote;
 use crate::api::client_address::ClientAddress;
-use crate::text_editor::path_selector::PathSelector;
+use crate::text_editor::path_selector::schema::PathSelector;
 
 #[server(protocol = Http<Json, Json>)]
 #[nameth]
