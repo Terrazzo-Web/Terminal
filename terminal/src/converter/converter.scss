@@ -54,7 +54,7 @@
         border: none;
         outline: none;
         resize: none;
-        box-shadow: none;
+        @include trz-no-outline;
         border-right: 1px solid var(--color);
     }
 

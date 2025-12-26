@@ -33,6 +33,7 @@ div.text_editor {
                     border: 0;
                     width: 100%;
                     @include trz-font;
+                    @include trz-no-outline;
                 }
 
                 span.path-selector-field {
