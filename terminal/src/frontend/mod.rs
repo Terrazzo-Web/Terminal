@@ -14,8 +14,8 @@ pub mod menu;
 pub mod mousemove;
 pub mod remotes;
 pub mod remotes_ui;
+pub mod sleep;
 pub mod timestamp;
-pub mod utils;
 
 #[wasm_bindgen]
 pub fn start() {

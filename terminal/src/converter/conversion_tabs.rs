@@ -23,8 +23,8 @@ use super::api::Conversion;
 use super::api::Conversions;
 use crate::assets::icons;
 use crate::converter::api::Language;
-use crate::frontend::utils::SleepError;
-use crate::frontend::utils::sleep;
+use crate::frontend::sleep::SleepError;
+use crate::frontend::sleep::sleep;
 
 stylance::import_style!(style, "conversion_tabs.scss");
 
