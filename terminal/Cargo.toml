@@ -56,6 +56,7 @@ sha2 = { workspace = true, optional = true }
 simple_asn1 = { workspace = true, optional = true }
 static_assertions = { workspace = true, optional = true }
 stylance = { workspace = true, optional = true }
+tantivy = { workspace = true, optional = true }
 terrazzo = { workspace = true, optional = true }
 terrazzo-pty = { workspace = true, optional = true }
 thiserror = { workspace = true }
@@ -104,6 +105,7 @@ server-all = [
     "text-editor-server",
     "converter-server",
     "port-forward-server",
+    "text-editor-search",
 ]
 client-all = [
     "terminal-client",
@@ -206,6 +208,9 @@ text-editor-server = [
     "dep:tokio-stream",
     "server",
     "text-editor",
+]
+text-editor-search = [
+    #"dep:tantivy"
 ]
 
 converter = []
