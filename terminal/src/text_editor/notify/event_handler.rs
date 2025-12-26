@@ -1,12 +1,12 @@
 #![cfg(feature = "server")]
 
+use server_fn::ServerFnError;
 use tokio::sync::mpsc;
 use tracing::warn;
 
-use super::EventKind;
-use super::NotifyResponse;
-use super::ServerFnError;
-use crate::text_editor::notify::FileEventKind;
+use super::server_fn::EventKind;
+use super::server_fn::FileEventKind;
+use super::server_fn::NotifyResponse;
 use crate::utils::more_path::MorePath as _;
 
 pub fn make_event_handler(

@@ -4,12 +4,14 @@ use std::collections::HashMap;
 use std::collections::hash_map;
 use std::future::ready;
 use std::path::Path;
+use std::sync::Arc;
 use std::sync::Mutex;
 
 use futures::SinkExt;
 use futures::StreamExt as _;
 use futures::channel::mpsc;
 use scopeguard::defer;
+use server_fn::ServerFnError;
 use terrazzo::autoclone;
 use terrazzo::prelude::Ptr;
 use terrazzo::prelude::diagnostics;
@@ -20,12 +22,10 @@ use self::diagnostics::debug;
 use self::diagnostics::debug_span;
 use self::diagnostics::trace;
 use self::diagnostics::warn;
+use super::server_fn::NotifyRequest;
+use super::server_fn::NotifyResponse;
 use crate::frontend::remotes::Remote;
 use crate::text_editor::file_path::FilePath;
-use crate::text_editor::notify::Arc;
-use crate::text_editor::notify::NotifyRequest;
-use crate::text_editor::notify::NotifyResponse;
-use crate::text_editor::notify::ServerFnError;
 
 pub(in crate::text_editor) struct NotifyService {
     remote: Remote,
@@ -149,7 +149,7 @@ impl NotifyServiceImpl {
             autoclone!(inner, handlers);
             debug!("Start");
             defer!(debug!("End"));
-            let Ok(mut response) = super::notify(request.into())
+            let Ok(mut response) = super::server_fn::notify(request.into())
                 .await
                 .inspect_err(|error| warn!("Notify stream failed: {error}"))
             else {
