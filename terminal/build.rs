@@ -23,6 +23,7 @@ enum Feature {
     TextEditor,
     TextEditorClient,
     TextEditorServer,
+    TextEditorSearch,
 
     Converter,
     ConverterClient,
@@ -108,6 +109,9 @@ fn build_client() {
     }
     if Feature::TextEditor.is_set() {
         Feature::TextEditorClient.add(&mut wasm_pack_options);
+    }
+    if Feature::TextEditorSearch.is_set() {
+        Feature::TextEditorSearch.add(&mut wasm_pack_options);
     }
     if Feature::Converter.is_set() {
         Feature::ConverterClient.add(&mut wasm_pack_options);

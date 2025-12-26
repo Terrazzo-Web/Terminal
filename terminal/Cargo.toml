@@ -101,17 +101,16 @@ fluent-asserter = { workspace = true }
 default = ["prod"]
 prod = ["max-level-info", "server-all"]
 server-all = [
-    "terminal-server",
-    "text-editor-server",
     "converter-server",
     "port-forward-server",
-    "text-editor-search",
+    "terminal-server",
+    "text-editor-server",
 ]
 client-all = [
-    "terminal-client",
-    "text-editor-client",
     "converter-client",
     "port-forward-client",
+    "terminal-client",
+    "text-editor-client",
 ]
 
 client = [
@@ -205,11 +204,11 @@ text-editor-client = [
 text-editor-server = [
     "dep:libc",
     "dep:notify",
+    "dep:tantivy",
     "dep:tokio-stream",
     "server",
     "text-editor",
 ]
-text-editor-search = ["dep:tantivy"]
 
 converter = []
 converter-client = [

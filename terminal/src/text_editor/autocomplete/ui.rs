@@ -70,7 +70,6 @@ pub fn show_autocomplete(
     tag(class = style::path_selector_autocomplete, items..)
 }
 
-#[autoclone]
 pub fn start_autocomplete(
     manager: Ptr<TextEditorManager>,
     kind: PathSelector,
@@ -79,11 +78,11 @@ pub fn start_autocomplete(
     autocomplete: XSignal<Option<Vec<AutocompleteItem>>>,
 ) -> impl Fn(FocusEvent) {
     move |_| {
-        *before_menu() = Some(Box::new(move || {
-            autoclone!(input);
+        let input_element_blur = scopeguard::guard(input.clone(), |input| {
             let input_element = input.get().or_throw("Input element not set");
-            input_element.blur().or_throw("Can't blur() input element")
-        }));
+            input_element.blur().or_throw("Can't blur() input element");
+        });
+        *before_menu() = Some(Box::new(move || drop(input_element_blur)));
         autocomplete.set(Some(Default::default()));
         do_autocomplete_impl(
             manager.clone(),
