@@ -1,7 +1,6 @@
 #![cfg(feature = "client")]
 
 use std::sync::Arc;
-use std::sync::OnceLock;
 use std::time::Duration;
 
 use terrazzo::autoclone;
@@ -18,6 +17,7 @@ use self::diagnostics::Instrument as _;
 use self::diagnostics::info;
 use super::AutocompleteItem;
 use super::autocomplete_path;
+use crate::frontend::element_capture::ElementCapture;
 use crate::frontend::menu::before_menu;
 use crate::text_editor::manager::TextEditorManager;
 use crate::text_editor::path_selector::PathSelector;
@@ -30,7 +30,7 @@ pub fn show_autocomplete(
     manager: Ptr<TextEditorManager>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
-    input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
+    input: ElementCapture<HtmlInputElement>,
     autocomplete_sig: XSignal<Option<Vec<AutocompleteItem>>>,
     #[signal] autocomplete: Option<Vec<AutocompleteItem>>,
     path: XSignal<Arc<str>>,
@@ -53,8 +53,7 @@ pub fn show_autocomplete(
                 ev.prevent_default();
                 ev.stop_propagation();
                 {
-                    let input_element = input.get().or_throw("Input element not set");
-                    input_element.set_value(&item.path);
+                    input.get().set_value(&item.path);
                     path.set(item.path.as_str());
                 }
                 do_autocomplete_impl(
@@ -74,13 +73,12 @@ pub fn start_autocomplete(
     manager: Ptr<TextEditorManager>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
-    input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
+    input: ElementCapture<HtmlInputElement>,
     autocomplete: XSignal<Option<Vec<AutocompleteItem>>>,
 ) -> impl Fn(FocusEvent) {
     move |_| {
         let input_element_blur = scopeguard::guard(input.clone(), |input| {
-            let input_element = input.get().or_throw("Input element not set");
-            input_element.blur().or_throw("Can't blur() input element");
+            input.get().blur().or_throw("Can't blur() input element")
         });
         *before_menu() = Some(Box::new(move || drop(input_element_blur)));
         autocomplete.set(Some(Default::default()));
@@ -96,12 +94,11 @@ pub fn start_autocomplete(
 
 pub fn stop_autocomplete(
     path: XSignal<Arc<str>>,
-    input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
+    input: ElementCapture<HtmlInputElement>,
     autocomplete: XSignal<Option<Vec<AutocompleteItem>>>,
 ) -> impl Fn(FocusEvent) {
     move |_| {
-        let input_element = input.get().or_throw("Input element not set");
-        let value = input_element.value();
+        let value = input.get().value();
         info!("Update path to {value}");
         path.set(value);
         autocomplete.set(None);
@@ -110,7 +107,7 @@ pub fn stop_autocomplete(
 
 pub fn do_autocomplete(
     manager: Ptr<TextEditorManager>,
-    input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
+    input: ElementCapture<HtmlInputElement>,
     autocomplete: XSignal<Option<Vec<AutocompleteItem>>>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
@@ -131,11 +128,10 @@ fn do_autocomplete_impl(
     manager: Ptr<TextEditorManager>,
     kind: PathSelector,
     prefix: Option<XSignal<Arc<str>>>,
-    input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>>,
+    input: ElementCapture<HtmlInputElement>,
     autocomplete: XSignal<Option<Vec<AutocompleteItem>>>,
 ) {
-    let input_element = input.get().or_throw("Input element not set");
-    let value = input_element.value();
+    let value = input.get().value();
     let do_autocomplete_async = async move {
         autoclone!(autocomplete);
         let autocompletes = autocomplete_path(
