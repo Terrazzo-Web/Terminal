@@ -12,7 +12,7 @@ use web_sys::HtmlInputElement;
 use super::PathSelector;
 use crate::assets::icons;
 use crate::frontend::element_capture::ElementCapture;
-use crate::text_editor::autocomplete::AutocompleteItem;
+use crate::text_editor::autocomplete::server_fn::AutocompleteItem;
 use crate::text_editor::autocomplete::ui::do_autocomplete;
 use crate::text_editor::autocomplete::ui::show_autocomplete;
 use crate::text_editor::autocomplete::ui::start_autocomplete;

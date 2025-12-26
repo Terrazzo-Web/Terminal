@@ -17,7 +17,7 @@ use tracing::debug_span;
 
 use crate::backend::client_service::grpc_error::GrpcError;
 use crate::backend::client_service::grpc_error::IsGrpcError;
-use crate::text_editor::autocomplete::AutocompleteItem;
+use crate::text_editor::autocomplete::server_fn::AutocompleteItem;
 use crate::text_editor::fsio::canonical::canonicalize;
 use crate::text_editor::fsio::canonical::concat_base_file_path;
 use crate::text_editor::path_selector::PathSelector;

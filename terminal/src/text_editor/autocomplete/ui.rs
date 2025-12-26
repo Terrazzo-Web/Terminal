@@ -15,8 +15,8 @@ use web_sys::MouseEvent;
 
 use self::diagnostics::Instrument as _;
 use self::diagnostics::info;
-use super::AutocompleteItem;
-use super::autocomplete_path;
+use super::server_fn::AutocompleteItem;
+use super::server_fn::autocomplete_path;
 use crate::frontend::element_capture::ElementCapture;
 use crate::frontend::menu::before_menu;
 use crate::text_editor::manager::TextEditorManager;
