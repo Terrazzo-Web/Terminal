@@ -53,7 +53,7 @@ pub fn show_autocomplete(
                 ev.prevent_default();
                 ev.stop_propagation();
                 {
-                    input.get().set_value(&item.path);
+                    input.set_value(&item.path);
                     path.set(item.path.as_str());
                 }
                 do_autocomplete_impl(
@@ -78,7 +78,7 @@ pub fn start_autocomplete(
 ) -> impl Fn(FocusEvent) {
     move |_| {
         let input_element_blur = scopeguard::guard(input.clone(), |input| {
-            input.get().blur().or_throw("Can't blur() input element")
+            input.blur().or_throw("Can't blur() input element")
         });
         *before_menu() = Some(Box::new(move || drop(input_element_blur)));
         autocomplete.set(Some(Default::default()));
@@ -98,7 +98,7 @@ pub fn stop_autocomplete(
     autocomplete: XSignal<Option<Vec<AutocompleteItem>>>,
 ) -> impl Fn(FocusEvent) {
     move |_| {
-        let value = input.get().value();
+        let value = input.value();
         info!("Update path to {value}");
         path.set(value);
         autocomplete.set(None);
@@ -131,7 +131,7 @@ fn do_autocomplete_impl(
     input: ElementCapture<HtmlInputElement>,
     autocomplete: XSignal<Option<Vec<AutocompleteItem>>>,
 ) {
-    let value = input.get().value();
+    let value = input.value();
     let do_autocomplete_async = async move {
         autoclone!(autocomplete);
         let autocompletes = autocomplete_path(

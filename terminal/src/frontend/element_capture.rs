@@ -24,13 +24,23 @@ impl<T: AsRef<JsValue> + JsCast + 'static> ElementCapture<T> {
             this.0.set(element).or_throw("Element already set");
         }
     }
+}
 
+impl<T: AsRef<JsValue>> ElementCapture<T> {
     pub fn try_get(&self) -> Option<&T> {
         self.0.get().map(|e| &**e)
     }
 
     pub fn get(&self) -> &T {
         self.try_get().or_throw("Element was not set")
+    }
+}
+
+impl<T: AsRef<JsValue>> std::ops::Deref for ElementCapture<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.get()
     }
 }
 
