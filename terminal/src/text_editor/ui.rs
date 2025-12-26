@@ -63,6 +63,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
         side_view,
         notify_service: Ptr::new(NotifyService::new(remote)),
+        search: XSignal::new("search", Arc::default()),
     });
 
     let consumers = Arc::default();
@@ -76,6 +77,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
             menu(),
             manager.base_path_selector(),
             manager.file_path_selector(),
+            manager.search_selector(),
             show_synchronized_state(manager.synchronized_state.clone()),
             show_remote(remote_signal),
         ),
@@ -140,6 +142,7 @@ impl TextEditorManager {
                     .append(this.save_on_change(this.path.base.clone(), state::base_path::set))
                     .append(this.save_on_change(this.path.file.clone(), state::file_path::set))
                     .append(this.save_on_change(this.side_view.clone(), state::side_view::set))
+                    .append(this.save_on_change(this.search.clone(), state::search::set))
                     .append(this.path.base.add_subscriber(move |_base_path| {
                         autoclone!(this);
                         this.side_view.force(Arc::default());
@@ -147,10 +150,11 @@ impl TextEditorManager {
                     }))
             });
             let remote: Remote = this.remote.clone();
-            let (get_side_view, get_base_path, get_file_path) = futures::future::join3(
+            let (get_side_view, get_base_path, get_file_path, get_search) = futures::future::join4(
                 state::side_view::get(remote.clone()),
                 state::base_path::get(remote.clone()),
                 state::file_path::get(remote.clone()),
+                state::search::get(remote.clone()),
             )
             .await;
             let batch = Batch::use_batch(Self::RESTORE_PATHS);
@@ -168,6 +172,9 @@ impl TextEditorManager {
                 this.path.base.get_value_untracked().is_empty()
                     || this.path.file.get_value_untracked().is_empty(),
             );
+            if let Ok(p) = get_search {
+                this.search.force(p);
+            }
 
             drop(batch);
             drop(registrations);

@@ -25,6 +25,7 @@ pub(super) struct TextEditorManager {
     pub synchronized_state: XSignal<SynchronizedState>,
     pub side_view: XSignal<Arc<SideViewList>>,
     pub notify_service: Ptr<NotifyService>,
+    pub search: XSignal<Arc<str>>,
 }
 
 #[derive(Clone)]
