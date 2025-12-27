@@ -9,6 +9,7 @@ use terrazzo::prelude::*;
 use terrazzo::template;
 use web_sys::HtmlInputElement;
 
+use self::diagnostics::debug;
 use super::schema::PathSelector;
 use crate::assets::icons;
 use crate::frontend::element_capture::ElementCapture;
@@ -84,9 +85,9 @@ fn path_selector_input(
     let input_capture = input.capture();
     let onchange = path.add_subscriber(move |new| {
         autoclone!(input);
-        if let Some(input) = input.try_get() {
-            input.set_value(&new);
-        }
+        let () = input
+            .try_with(|i| i.set_value(&new))
+            .unwrap_or_else(|| debug!("input was not set"));
     });
     div(
         class = style::path_selector_widget,
