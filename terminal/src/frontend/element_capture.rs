@@ -38,6 +38,14 @@ impl<T: AsRef<JsValue>> ElementCapture<T> {
         self.try_with(f).or_throw("Element was not set")
     }
 
+    pub fn get(&self) -> T
+    where
+        T: Clone,
+    {
+        self.try_with(|element| element.clone())
+            .or_throw("Element was not set")
+    }
+
     fn try_set(&self, element: T) -> Result<(), ()> {
         let mut lock = self.lock();
         if lock.is_some() {

@@ -78,9 +78,7 @@ pub fn start_autocomplete(
 ) -> impl Fn(FocusEvent) {
     move |_| {
         let input_element_blur = scopeguard::guard(input.clone(), |input| {
-            input
-                .with(|i| i.blur())
-                .or_throw("Can't blur() input element")
+            let () = input.get().blur().or_throw("Can't blur() input element");
         });
         *before_menu() = Some(Box::new(move || drop(input_element_blur)));
         autocomplete.set(Some(Default::default()));

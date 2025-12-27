@@ -21,7 +21,7 @@ stylance::import_style!(style, "menu.scss");
 
 pub fn before_menu() -> MutexGuard<'static, Option<Box<dyn FnOnce() + Send>>> {
     static BEFORE_MENU: Mutex<Option<Box<dyn FnOnce() + Send>>> = Mutex::new(None);
-    BEFORE_MENU.lock().unwrap()
+    BEFORE_MENU.lock().or_throw("lock BEFORE_MENU")
 }
 
 #[autoclone]
