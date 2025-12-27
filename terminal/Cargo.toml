@@ -204,7 +204,7 @@ text-editor-client = [
 text-editor-server = [
     "dep:libc",
     "dep:notify",
-    "dep:tantivy",
+    #"dep:tantivy",
     "dep:tokio-stream",
     "server",
     "text-editor",
