@@ -96,12 +96,12 @@ fn search_selector_input(
 }
 
 fn start_search(editor_state: &XSignal<EditorState>, do_search: &Ptr<impl Fn()>) {
-    editor_state.update(|old| {
-        if let EditorState::Search { .. } = old {
+    editor_state.update(|editor_state| {
+        if let EditorState::Search { .. } = editor_state {
             return None;
         }
         Some(EditorState::Search(EditorSearchState {
-            prev: Box::new(old.clone()),
+            prev: Box::new(editor_state.clone()),
             results: Default::default(),
         }))
     });
