@@ -17,8 +17,12 @@ impl DateTime {
 
     pub fn from_utc(utc: Duration) -> Self {
         let t = Date::new_0();
-        t.set_time(utc.as_millis() as f64);
+        t.set_time(utc.as_secs_f64() * 1000.);
         Self(t)
+    }
+
+    pub fn utc(&self) -> Duration {
+        Duration::from_secs_f64(self.epoch_millis() / 1000.)
     }
 
     pub fn to_start_of_day(&self) -> DateTime {

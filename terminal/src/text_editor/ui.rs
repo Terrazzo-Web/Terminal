@@ -19,9 +19,11 @@ use super::editor::editor;
 use super::file_path::FilePath;
 use super::folder::folder;
 use super::fsio;
+use super::manager::EditorDataState;
 use super::manager::EditorState;
 use super::manager::TextEditorManager;
 use super::notify::ui::NotifyService;
+use super::search::state::SearchState;
 use super::side::SideViewList;
 use super::side::ui::show_side_view;
 use super::state;
@@ -31,6 +33,7 @@ use super::synchronized_state::show_synchronized_state;
 use crate::frontend::menu::menu;
 use crate::frontend::remotes::Remote;
 use crate::frontend::remotes_ui::show_remote;
+use crate::text_editor::search::state::EditorSearchState;
 
 pub(super) const STORE_FILE_DEBOUNCE_DELAY: Duration = if cfg!(debug_assertions) {
     Duration::from_millis(1500)
@@ -59,10 +62,11 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
             file: XSignal::new("file-path", Arc::default()),
         },
         force_edit_path: XSignal::new("force-edit-path", false),
-        editor_state: XSignal::new("editor-state", None),
+        editor_state: XSignal::new("editor-state", EditorState::default()),
         synchronized_state: XSignal::new("synchronized-state", SynchronizedState::Sync),
         side_view,
         notify_service: Ptr::new(NotifyService::new(remote)),
+        search: SearchState::new(),
     });
 
     let consumers = Arc::default();
@@ -76,6 +80,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
             menu(),
             manager.base_path_selector(),
             manager.file_path_selector(),
+            manager.search_selector(),
             show_synchronized_state(manager.synchronized_state.clone()),
             show_remote(remote_signal),
         ),
@@ -87,10 +92,7 @@ fn text_editor_impl(#[signal] remote: Remote, remote_signal: XSignal<Remote>) ->
 }
 
 #[html]
-fn editor_body(
-    manager: Ptr<TextEditorManager>,
-    editor_state: XSignal<Option<EditorState>>,
-) -> XElement {
+fn editor_body(manager: Ptr<TextEditorManager>, editor_state: XSignal<EditorState>) -> XElement {
     div(
         class = super::style::body,
         show_side_view(manager.clone(), manager.side_view.clone()),
@@ -98,31 +100,33 @@ fn editor_body(
     )
 }
 
-#[template(tag = div)]
 #[html]
+#[template(tag = div)]
 fn editor_container(
     manager: Ptr<TextEditorManager>,
-    #[signal] editor_state: Option<EditorState>,
+    #[signal] editor_state: EditorState,
 ) -> XElement {
-    let Some(editor_state) = editor_state else {
-        return tag(class = super::style::editor_container);
+    let body = match editor_state {
+        EditorState::Data(editor_state) => match &*editor_state.data {
+            fsio::File::TextFile { content, .. } => {
+                let content = content.clone();
+                editor(manager, editor_state, content)
+            }
+            fsio::File::Folder(list) => {
+                let list = list.clone();
+                folder(manager, Some(editor_state), list)
+            }
+            fsio::File::Error(error) => {
+                warn!("Failed to load file: {error}");
+                return tag(class = super::style::editor_container);
+            }
+        },
+        EditorState::Search(EditorSearchState { results, .. }) => {
+            let results = results.clone();
+            folder(manager, None, results)
+        }
+        EditorState::Empty => return tag(class = super::style::editor_container),
     };
-
-    let body = match &*editor_state.data {
-        fsio::File::TextFile { content, .. } => {
-            let content = content.clone();
-            editor(manager.clone(), editor_state, content)
-        }
-        fsio::File::Folder(list) => {
-            let list = list.clone();
-            folder(manager.clone(), editor_state, list)
-        }
-        fsio::File::Error(error) => {
-            warn!("Failed to load file: {error}");
-            return tag(class = super::style::editor_container);
-        }
-    };
-
     tag(class = super::style::editor_container, body)
 }
 
@@ -140,6 +144,7 @@ impl TextEditorManager {
                     .append(this.save_on_change(this.path.base.clone(), state::base_path::set))
                     .append(this.save_on_change(this.path.file.clone(), state::file_path::set))
                     .append(this.save_on_change(this.side_view.clone(), state::side_view::set))
+                    .append(this.save_on_change(this.search.query.clone(), state::search::set))
                     .append(this.path.base.add_subscriber(move |_base_path| {
                         autoclone!(this);
                         this.side_view.force(Arc::default());
@@ -147,10 +152,11 @@ impl TextEditorManager {
                     }))
             });
             let remote: Remote = this.remote.clone();
-            let (get_side_view, get_base_path, get_file_path) = futures::future::join3(
+            let (get_side_view, get_base_path, get_file_path, get_search) = futures::future::join4(
                 state::side_view::get(remote.clone()),
                 state::base_path::get(remote.clone()),
                 state::file_path::get(remote.clone()),
+                state::search::get(remote.clone()),
             )
             .await;
             let batch = Batch::use_batch(Self::RESTORE_PATHS);
@@ -168,6 +174,9 @@ impl TextEditorManager {
                 this.path.base.get_value_untracked().is_empty()
                     || this.path.file.get_value_untracked().is_empty(),
             );
+            if let Ok(p) = get_search {
+                this.search.query.force(p);
+            }
 
             drop(batch);
             drop(registrations);
@@ -196,9 +205,10 @@ impl TextEditorManager {
                 }
 
                 if let Some(data) = data {
-                    this.editor_state.force(EditorState { path, data })
+                    this.editor_state
+                        .force(EditorState::Data(EditorDataState { path, data }))
                 } else {
-                    this.editor_state.force(None);
+                    this.editor_state.force(EditorState::default());
                 }
                 drop(loading);
             };

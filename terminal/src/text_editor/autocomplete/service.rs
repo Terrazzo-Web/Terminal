@@ -17,10 +17,10 @@ use tracing::debug_span;
 
 use crate::backend::client_service::grpc_error::GrpcError;
 use crate::backend::client_service::grpc_error::IsGrpcError;
-use crate::text_editor::autocomplete::AutocompleteItem;
+use crate::text_editor::autocomplete::server_fn::AutocompleteItem;
 use crate::text_editor::fsio::canonical::canonicalize;
 use crate::text_editor::fsio::canonical::concat_base_file_path;
-use crate::text_editor::path_selector::PathSelector;
+use crate::text_editor::path_selector::schema::PathSelector;
 use crate::utils::more_path::MorePath as _;
 
 const ROOT: &str = "/";
@@ -327,9 +327,8 @@ mod tests {
         let autocomplete = call_autocomplete(&root, format!("{root}/src/text_editor"));
         assert_that!(&autocomplete).contains(&"ROOT/src".into());
         assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/autocomplete".into());
-        assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/autocomplete.rs".into());
+        assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/manager.rs".into());
         assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/path_selector".into());
-        assert_that!(&autocomplete).contains(&"ROOT/src/text_editor/path_selector.rs".into());
         assert_that!(&autocomplete).does_not_contain_any(&[&"ROOT/xyz".into()]);
     }
 
@@ -368,6 +367,7 @@ mod tests {
                 "ROOT/src/text",
                 "ROOT/src/text_editor/autocomplete",
                 "ROOT/src/text_editor/path_selector",
+                "ROOT/src/text_editor/search",
                 "ROOT/src/text_editor/side",
             ]
             .map(Into::into)
@@ -381,14 +381,9 @@ mod tests {
         let root = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         let autocomplete = call_autocomplete_files(&root, format!("{root}/src/text/u"));
         assert_that!(&autocomplete).is_equal_to(
-            &[
-                "text",
-                "text_editor/autocomplete.rs",
-                "text_editor/rust_lang.rs",
-                "text_editor/ui.rs",
-            ]
-            .map(Into::into)
-            .into(),
+            &["text", "text_editor/rust_lang.rs", "text_editor/ui.rs"]
+                .map(Into::into)
+                .into(),
         );
     }
 

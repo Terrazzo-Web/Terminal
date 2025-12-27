@@ -1,19 +1,19 @@
 #![cfg(feature = "client")]
 
 use std::sync::Arc;
-use std::sync::OnceLock;
 
 use nameth::NamedEnumValues as _;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
-use wasm_bindgen::JsCast as _;
 use web_sys::HtmlInputElement;
 
-use super::PathSelector;
+use self::diagnostics::debug;
+use super::schema::PathSelector;
 use crate::assets::icons;
-use crate::text_editor::autocomplete::AutocompleteItem;
+use crate::frontend::element_capture::ElementCapture;
+use crate::text_editor::autocomplete::server_fn::AutocompleteItem;
 use crate::text_editor::autocomplete::ui::do_autocomplete;
 use crate::text_editor::autocomplete::ui::show_autocomplete;
 use crate::text_editor::autocomplete::ui::start_autocomplete;
@@ -74,7 +74,7 @@ fn path_selector_input(
     path: XSignal<Arc<str>>,
 ) -> XElement {
     let autocomplete: XSignal<Option<Vec<AutocompleteItem>>> = XSignal::new(kind.name(), None);
-    let input: Arc<OnceLock<UiThreadSafe<HtmlInputElement>>> = OnceLock::new().into();
+    let input: ElementCapture<HtmlInputElement> = ElementCapture::default();
     let do_autocomplete = Ptr::new(do_autocomplete(
         manager.clone(),
         input.clone(),
@@ -82,26 +82,20 @@ fn path_selector_input(
         kind,
         prefix.clone(),
     ));
+    let input_capture = input.capture();
     let onchange = path.add_subscriber(move |new| {
         autoclone!(input);
-        if let Some(input) = input.get() {
-            input.set_value(&new);
-        }
+        let () = input
+            .try_with(|i| i.set_value(&new))
+            .unwrap_or_else(|| debug!("input was not set"));
     });
     div(
         class = style::path_selector_widget,
         key = "input",
         input(
             before_render = move |element| {
-                autoclone!(input, path);
                 let _ = &onchange;
-                let element = element
-                    .dyn_into::<HtmlInputElement>()
-                    .or_throw("Not an HtmlInputElement");
-                element.set_value(&path.get_value_untracked());
-                input
-                    .set(element.into())
-                    .or_throw("Input element already set");
+                input_capture(element);
             },
             r#type = "text",
             class = style::path_selector_field,

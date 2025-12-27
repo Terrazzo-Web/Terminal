@@ -142,11 +142,7 @@
                 margin-right: 0;
                 color: inherit;
                 background: none;
-                box-shadow: none;
-                outline: none;
-                appearance: none;
-                -webkit-appearance: none;
-                -moz-appearance: none;
+                @include trz-no-outline;
                 font: inherit;
             }
         }
@@ -164,11 +160,7 @@
                 margin-right: 0;
                 color: inherit;
                 background: none;
-                box-shadow: none;
-                outline: none;
-                appearance: none;
-                -webkit-appearance: none;
-                -moz-appearance: none;
+                @include trz-no-outline;
                 font: inherit;
             }
         }

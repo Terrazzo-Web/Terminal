@@ -16,9 +16,9 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::Instrument as _;
 use tracing::debug;
 
-use super::NotifyRequest;
-use super::NotifyResponse;
 use super::event_handler::make_event_handler;
+use super::server_fn::NotifyRequest;
+use super::server_fn::NotifyResponse;
 use super::watcher::ExtendedWatcher;
 
 pub fn notify(

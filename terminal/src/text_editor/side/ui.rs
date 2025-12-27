@@ -103,7 +103,7 @@ fn show_side_view_node(
 }
 
 #[template]
-pub fn selected_item(#[signal] file_path: Arc<str>, path: Arc<Path>) -> XAttributeValue {
+fn selected_item(#[signal] file_path: Arc<str>, path: Arc<Path>) -> XAttributeValue {
     let file_path: &Path = (*file_path).as_ref();
     if file_path == path.as_ref() {
         style::selected_label

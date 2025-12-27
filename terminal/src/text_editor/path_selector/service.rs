@@ -2,7 +2,7 @@
 
 use std::fs::Metadata;
 
-use super::PathSelector;
+use super::schema::PathSelector;
 
 impl PathSelector {
     pub fn accept(self, metadata: &Metadata) -> bool {

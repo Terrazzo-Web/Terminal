@@ -5,7 +5,7 @@ cargo run --locked \
     --bin terrazzo-terminal \
     --no-default-features \
     --features debug,diagnostics \
-    --features max-level-info \
-    --features server-all \
+    --features max-level-debug \
+    --features text-editor-server \
     -- \
     $@

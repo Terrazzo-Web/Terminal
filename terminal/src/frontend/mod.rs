@@ -9,13 +9,14 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use self::login::login;
 use self::remotes::Remote;
 
+pub mod element_capture;
 pub mod login;
 pub mod menu;
 pub mod mousemove;
 pub mod remotes;
 pub mod remotes_ui;
+pub mod sleep;
 pub mod timestamp;
-pub mod utils;
 
 #[wasm_bindgen]
 pub fn start() {

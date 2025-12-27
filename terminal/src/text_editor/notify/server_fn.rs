@@ -7,18 +7,13 @@ use server_fn::Websocket;
 use server_fn::codec::JsonEncoding;
 use terrazzo::server;
 
-use super::file_path::FilePath;
-use super::rust_lang::synthetic::SyntheticDiagnostic;
 use crate::api::client_address::ClientAddress;
-
-mod event_handler;
-pub mod service;
-pub mod ui;
-mod watcher;
+use crate::text_editor::file_path::FilePath;
+use crate::text_editor::rust_lang::synthetic::SyntheticDiagnostic;
 
 #[server(protocol = Websocket<JsonEncoding, JsonEncoding>)]
 #[nameth]
-pub async fn notify(
+pub(super) async fn notify(
     request: BoxedStream<NotifyRequest, ServerFnError>,
 ) -> Result<BoxedStream<NotifyResponse, ServerFnError>, ServerFnError> {
     use crate::backend::client_service::notify_service::dispatch::notify_dispatch;

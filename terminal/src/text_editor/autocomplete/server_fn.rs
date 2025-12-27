@@ -6,16 +6,12 @@ use server_fn::ServerFnError;
 use server_fn::codec::Json;
 use terrazzo::server;
 
-use super::path_selector::PathSelector;
 use crate::api::client_address::ClientAddress;
-
-mod remote;
-mod service;
-pub mod ui;
+use crate::text_editor::path_selector::schema::PathSelector;
 
 #[server(protocol = Http<Json, Json>)]
 #[nameth]
-async fn autocomplete_path(
+pub(super) async fn autocomplete_path(
     remote: Option<ClientAddress>,
     kind: PathSelector,
     prefix: Arc<str>,
@@ -28,12 +24,12 @@ async fn autocomplete_path(
     async move {
         debug!("Start");
         defer!(debug!("End"));
-        let request = remote::AutoCompletePathRequest {
+        let request = super::remote::AutoCompletePathRequest {
             kind,
             prefix,
             input,
         };
-        return Ok(remote::AUTOCOMPLETE_PATH_REMOTE_FN
+        return Ok(super::remote::AUTOCOMPLETE_PATH_REMOTE_FN
             .call(remote.unwrap_or_default(), request)
             .await?);
     }

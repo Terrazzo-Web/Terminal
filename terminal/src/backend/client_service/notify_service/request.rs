@@ -4,7 +4,7 @@ use server_fn::ServerFnError;
 use tonic::Streaming;
 
 use crate::backend::protos::terrazzo::notify::NotifyRequest as NotifyRequestProto;
-use crate::text_editor::notify::NotifyRequest;
+use crate::text_editor::notify::server_fn::NotifyRequest;
 
 pub mod local;
 pub mod remote;

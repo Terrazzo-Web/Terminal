@@ -10,6 +10,7 @@ mod manager;
 pub mod notify;
 mod path_selector;
 mod rust_lang;
+mod search;
 mod side;
 mod state;
 mod synchronized_state;

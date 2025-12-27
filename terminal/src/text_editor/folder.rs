@@ -11,10 +11,11 @@ use web_sys::MouseEvent;
 
 use self::diagnostics::debug;
 use super::fsio::FileMetadata;
-use super::manager::EditorState;
+use super::manager::EditorDataState;
 use super::manager::TextEditorManager;
-use super::notify::EventKind;
-use super::notify::FileEventKind;
+use super::notify::server_fn::EventKind;
+use super::notify::server_fn::FileEventKind;
+use super::notify::ui::NotifyRegistration;
 use crate::frontend::menu::before_menu;
 use crate::frontend::timestamp;
 use crate::frontend::timestamp::datetime::DateTime;
@@ -28,65 +29,15 @@ stylance::import_style!(style, "folder.scss");
 #[template(tag = div)]
 pub fn folder(
     manager: Ptr<TextEditorManager>,
-    editor_state: EditorState,
+    editor_state: Option<EditorDataState>,
     list: Arc<Vec<FileMetadata>>,
 ) -> XElement {
-    let path = &editor_state.path;
-    let file_path = &path.file;
-
+    let FolderState {
+        parent,
+        notify_registration,
+        file_path,
+    } = process_folder_state(&manager, editor_state);
     let mut rows = vec![];
-    let parent_path = Path::new(file_path.as_ref()).parent();
-    let parent = parent_path.map(|_| FileMetadata {
-        name: "..".into(),
-        is_dir: true,
-        ..FileMetadata::default()
-    });
-
-    let notify_registration =
-        manager
-            .notify_service
-            .watch_folder(&editor_state.path, move |event| {
-                autoclone!(path, manager);
-                debug!("Folder view notification: {event:?}");
-                let EventKind::File(kind) = event.kind else {
-                    return;
-                };
-                match (Path::new(&event.path) == path.as_deref().full_path(), kind) {
-                    (
-                        false,
-                        FileEventKind::Create | FileEventKind::Modify | FileEventKind::Delete,
-                    ) => {
-                        debug!("File inside the folder was added/removed ==> refresh the view");
-                    }
-                    (true, FileEventKind::Create) => {
-                        debug!("The folder was created !?!");
-                        return;
-                    }
-                    (true, FileEventKind::Modify) => {
-                        debug!("The folder was modified");
-                    }
-                    (true, FileEventKind::Delete) => {
-                        debug!("The folder was deleted");
-                        manager.path.file.update(|file_path| {
-                            let file_path = Path::new(file_path.as_ref());
-                            let parent = file_path.parent().unwrap_or_else(|| "/".as_ref());
-                            Some(parent.to_owned_string().into())
-                        });
-                        return;
-                    }
-                    (true | false, FileEventKind::Error) => {
-                        debug!("Error polling notifications");
-                        return;
-                    }
-                }
-
-                debug!("Force reload folder view");
-                manager
-                    .path
-                    .file
-                    .force(manager.path.file.get_value_untracked());
-            });
-
     for file in parent.iter().chain(list.iter()) {
         let name = &file.name;
         let is_dir = file.is_dir;
@@ -163,6 +114,83 @@ pub fn folder(
     )
 }
 
+#[derive(Default)]
+struct FolderState {
+    parent: Option<FileMetadata>,
+    notify_registration: Option<Ptr<NotifyRegistration>>,
+    file_path: Arc<str>,
+}
+
+#[autoclone]
+fn process_folder_state(
+    manager: &Ptr<TextEditorManager>,
+    editor_state: Option<EditorDataState>,
+) -> FolderState {
+    let Some(editor_state) = editor_state else {
+        return FolderState::default();
+    };
+
+    let path = &editor_state.path;
+    let file_path = &path.file;
+
+    let parent_path = Path::new(file_path.as_ref()).parent();
+    let parent = parent_path.map(|_| FileMetadata {
+        name: "..".into(),
+        is_dir: true,
+        ..FileMetadata::default()
+    });
+
+    let notify_registration =
+        manager
+            .notify_service
+            .watch_folder(&editor_state.path, move |event| {
+                autoclone!(path, manager);
+                debug!("Folder view notification: {event:?}");
+                let EventKind::File(kind) = event.kind else {
+                    return;
+                };
+                match (Path::new(&event.path) == path.as_deref().full_path(), kind) {
+                    (
+                        false,
+                        FileEventKind::Create | FileEventKind::Modify | FileEventKind::Delete,
+                    ) => {
+                        debug!("File inside the folder was added/removed ==> refresh the view");
+                    }
+                    (true, FileEventKind::Create) => {
+                        debug!("The folder was created !?!");
+                        return;
+                    }
+                    (true, FileEventKind::Modify) => {
+                        debug!("The folder was modified");
+                    }
+                    (true, FileEventKind::Delete) => {
+                        debug!("The folder was deleted");
+                        manager.path.file.update(|file_path| {
+                            let file_path = Path::new(file_path.as_ref());
+                            let parent = file_path.parent().unwrap_or_else(|| "/".as_ref());
+                            Some(parent.to_owned_string().into())
+                        });
+                        return;
+                    }
+                    (true | false, FileEventKind::Error) => {
+                        debug!("Error polling notifications");
+                        return;
+                    }
+                }
+
+                debug!("Force reload folder view");
+                manager
+                    .path
+                    .file
+                    .force(manager.path.file.get_value_untracked());
+            });
+    FolderState {
+        parent,
+        notify_registration: Some(notify_registration),
+        file_path: file_path.clone(),
+    }
+}
+
 #[html]
 #[template(tag = span)]
 fn timestamp(#[signal] mut t: Box<timestamp::Timestamp>) -> XElement {
@@ -214,15 +242,16 @@ mod tests {
     #[test]
     fn print_size() {
         assert_eq!(
-            "[123b, 120.24Kb, 117.42Mb, 114.67Gb, 111.98Tb, 109.36Pb]",
+            "[123b, 120.24Kb, 117.42Mb, 114.67Gb, 111.98Tb, 109.36Pb, 10935.53Pb]",
             format!(
-                "[{}, {}, {}, {}, {}, {}]",
+                "[{}, {}, {}, {}, {}, {}, {}]",
                 super::print_size(123),
                 super::print_size(123123),
                 super::print_size(123123123),
                 super::print_size(123123123123),
                 super::print_size(123123123123123),
-                super::print_size(123123123123123123)
+                super::print_size(123123123123123123),
+                super::print_size(12312312312312312312)
             )
         )
     }

@@ -13,12 +13,20 @@ div.text_editor {
         div.path-selector {
             display: flex;
             flex-direction: row;
+            align-items: center;
             width: 100%;
 
             img.path-selector-icon {
                 @include trz-icon;
                 margin-left: var(--padding);
                 margin-right: var(--padding);
+                padding: 3px;
+
+                &.search-icon:hover {
+                    filter: invert(0);
+                    background-color: var(--link-color);
+                    cursor: pointer;
+                }
             }
 
             div.path-selector-widget {
@@ -33,6 +41,7 @@ div.text_editor {
                     border: 0;
                     width: 100%;
                     @include trz-font;
+                    @include trz-no-outline;
                 }
 
                 span.path-selector-field {

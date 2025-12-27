@@ -8,9 +8,11 @@ use terrazzo::prelude::*;
 use super::file_path::FilePath;
 use super::fsio;
 use super::fsio::FileMetadata;
-use super::notify::EventKind;
-use super::notify::FileEventKind;
+use super::notify::server_fn::EventKind;
+use super::notify::server_fn::FileEventKind;
 use super::notify::ui::NotifyService;
+use super::search::state::EditorSearchState;
+use super::search::state::SearchState;
 use super::side;
 use super::side::SideViewList;
 use super::synchronized_state::SynchronizedState;
@@ -21,14 +23,23 @@ pub(super) struct TextEditorManager {
     pub remote: Remote,
     pub path: FilePath<XSignal<Arc<str>>>,
     pub force_edit_path: XSignal<bool>,
-    pub editor_state: XSignal<Option<EditorState>>,
+    pub editor_state: XSignal<EditorState>,
     pub synchronized_state: XSignal<SynchronizedState>,
     pub side_view: XSignal<Arc<SideViewList>>,
     pub notify_service: Ptr<NotifyService>,
+    pub search: Ptr<SearchState>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(super) enum EditorState {
+    Data(EditorDataState),
+    Search(EditorSearchState),
+    #[default]
+    Empty,
 }
 
 #[derive(Clone)]
-pub(super) struct EditorState {
+pub(super) struct EditorDataState {
     pub path: FilePath<Arc<str>>,
     pub data: Arc<fsio::File>,
 }
@@ -86,7 +97,7 @@ impl TextEditorManager {
     }
 }
 
-impl std::fmt::Debug for EditorState {
+impl std::fmt::Debug for EditorDataState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Editor")
             .field("path", &self.path)

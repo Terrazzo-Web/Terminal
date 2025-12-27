@@ -18,10 +18,10 @@ use tracing::Span;
 use tracing::debug;
 use tracing::warn;
 
+use super::server_fn::EventKind;
+use super::server_fn::NotifyResponse;
 use crate::backend::client_service::grpc_error::GrpcError;
 use crate::text_editor::file_path::FilePath;
-use crate::text_editor::notify::EventKind;
-use crate::text_editor::notify::NotifyResponse;
 use crate::text_editor::rust_lang::service::CargoCheckError;
 use crate::text_editor::rust_lang::service::cargo_check;
 use crate::text_editor::rust_lang::synthetic::SyntheticDiagnostic;
