@@ -1,5 +1,6 @@
 #![cfg(feature = "client")]
 
+use std::ops::Not;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -13,6 +14,7 @@ use web_sys::FocusEvent;
 use web_sys::HtmlInputElement;
 use web_sys::KeyboardEvent;
 
+use super::state::EditorSearchState;
 use crate::assets::icons;
 use crate::frontend::element_capture::ElementCapture;
 use crate::frontend::timestamp::datetime::DateTime;
@@ -21,27 +23,53 @@ use crate::text_editor::manager::EditorState;
 use crate::text_editor::manager::TextEditorManager;
 use crate::text_editor::style;
 
-use super::state::EditorSearchState;
-
 impl TextEditorManager {
+    #[autoclone]
     #[html]
     pub fn search_selector(self: &Ptr<Self>) -> XElement {
-        div(
+        let is_active = XSignal::new("is-search-active", false);
+        let input: ElementCapture<HtmlInputElement> = ElementCapture::default();
+
+        return div(
             class = style::path_selector,
-            search_selector_input(self.clone(), self.path.base.clone()),
-            img(class = style::path_selector_icon, src = icons::search()),
-        )
+            style::flex_basis %= move |t| {
+                autoclone!(is_active);
+                flex_basis(t, is_active.clone())
+            },
+            img(
+                class = style::path_selector_icon,
+                src = icons::search(),
+                click = move |_| {
+                    autoclone!(is_active, input);
+                    is_active.set(true);
+                    let () = input.with(|i| i.focus()).or_throw("focus");
+                },
+            ),
+            search_selector_input(self.clone(), input, self.path.base.clone(), is_active),
+        );
+
+        #[template]
+        pub fn flex_basis(#[signal] is_active: bool) -> XAttributeValue {
+            is_active.not().then_some("0")
+        }
     }
 }
 
 #[autoclone]
 #[html]
 #[template(tag = div)]
-fn search_selector_input(manager: Ptr<TextEditorManager>, #[signal] base: Arc<str>) -> XElement {
-    let input = ElementCapture::default();
+fn search_selector_input(
+    manager: Ptr<TextEditorManager>,
+    input: ElementCapture<HtmlInputElement>,
+    #[signal] base: Arc<str>,
+    #[signal] mut is_active: bool,
+) -> XElement {
+    if !is_active {
+        return tag(style::display = "none", style::visibility = "hidden");
+    }
     let do_search = Ptr::new(do_search(manager.clone(), base, input.clone()));
     let editor_state = manager.editor_state.clone();
-    div(
+    tag(
         class = style::path_selector_widget,
         key = "search",
         input(
@@ -49,31 +77,47 @@ fn search_selector_input(manager: Ptr<TextEditorManager>, #[signal] base: Arc<st
             r#type = "text",
             class = style::path_selector_field,
             keydown = move |event: KeyboardEvent| {
-                autoclone!(editor_state);
+                autoclone!(editor_state, is_active_mut, input, do_search);
                 if event.key() == "Escape" {
-                    editor_state.update(|old| {
-                        let EditorState::Search(EditorSearchState { prev, .. }) = old else {
-                            return None;
-                        };
-                        Some(prev.as_ref().clone())
-                    });
+                    event.prevent_default();
+                    close_search(&editor_state, &is_active_mut);
+                    let () = input.with(|i| i.blur()).or_throw("blur");
                     return;
                 }
                 do_search()
             },
-            focus = move |_: FocusEvent| {
-                editor_state.update(|old| {
-                    if let EditorState::Search { .. } = old {
-                        return None;
-                    }
-                    Some(EditorState::Search(EditorSearchState {
-                        prev: Box::new(old.clone()),
-                        results: Default::default(),
-                    }))
-                })
+            blur = move |_: FocusEvent| {
+                autoclone!(editor_state);
+                close_search(&editor_state, &is_active_mut);
             },
+            focus = move |_: FocusEvent| start_search(&editor_state, &do_search),
         ),
     )
+}
+
+fn start_search(editor_state: &XSignal<EditorState>, do_search: &Ptr<impl Fn()>) {
+    editor_state.update(|old| {
+        if let EditorState::Search { .. } = old {
+            return None;
+        }
+        Some(EditorState::Search(EditorSearchState {
+            prev: Box::new(old.clone()),
+            results: Default::default(),
+        }))
+    });
+    do_search()
+}
+
+fn close_search(editor_state: &XSignal<EditorState>, is_active_mut: &MutableSignal<bool>) {
+    let batch = Batch::use_batch("close-search");
+    editor_state.update(|editor_state| {
+        let EditorState::Search(EditorSearchState { prev, .. }) = editor_state else {
+            return None;
+        };
+        Some(prev.as_ref().clone())
+    });
+    is_active_mut.set(false);
+    drop(batch);
 }
 
 fn do_search(
@@ -102,16 +146,16 @@ async fn do_search_impl(
 }
 
 async fn run_query(base: Arc<str>, input: ElementCapture<HtmlInputElement>) -> Vec<FileMetadata> {
-    let query = input.get().value();
+    let query = input.with(|i| i.value());
     vec![
         FileMetadata {
             name: format!("{base}/{query}-1").into(),
-            created: Some(DateTime::now().utc()),
+            modified: Some(DateTime::now().utc()),
             ..Default::default()
         },
         FileMetadata {
             name: format!("{base}/{query}-2").into(),
-            created: Some(DateTime::now().utc()),
+            modified: Some(DateTime::now().utc()),
             ..Default::default()
         },
         FileMetadata {

@@ -100,37 +100,34 @@ fn editor_body(manager: Ptr<TextEditorManager>, editor_state: XSignal<EditorStat
     )
 }
 
-#[template(tag = div)]
 #[html]
+#[template(tag = div)]
 fn editor_container(
     manager: Ptr<TextEditorManager>,
     #[signal] editor_state: EditorState,
 ) -> XElement {
-    match editor_state {
-        EditorState::Data(editor_state) => {
-            let body = match &*editor_state.data {
-                fsio::File::TextFile { content, .. } => {
-                    let content = content.clone();
-                    editor(manager, editor_state, content)
-                }
-                fsio::File::Folder(list) => {
-                    let list = list.clone();
-                    folder(manager, Some(editor_state), list)
-                }
-                fsio::File::Error(error) => {
-                    warn!("Failed to load file: {error}");
-                    return tag(class = super::style::editor_container);
-                }
-            };
-
-            tag(class = super::style::editor_container, body)
-        }
+    let body = match editor_state {
+        EditorState::Data(editor_state) => match &*editor_state.data {
+            fsio::File::TextFile { content, .. } => {
+                let content = content.clone();
+                editor(manager, editor_state, content)
+            }
+            fsio::File::Folder(list) => {
+                let list = list.clone();
+                folder(manager, Some(editor_state), list)
+            }
+            fsio::File::Error(error) => {
+                warn!("Failed to load file: {error}");
+                return tag(class = super::style::editor_container);
+            }
+        },
         EditorState::Search(EditorSearchState { results, .. }) => {
             let results = results.clone();
             folder(manager, None, results)
         }
-        EditorState::Empty => tag(class = super::style::editor_container),
-    }
+        EditorState::Empty => return tag(class = super::style::editor_container),
+    };
+    tag(class = super::style::editor_container, body)
 }
 
 impl TextEditorManager {
