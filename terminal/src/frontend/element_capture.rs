@@ -1,3 +1,5 @@
+#![cfg(feature = "text-editor")]
+
 use std::any::type_name;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -31,7 +33,7 @@ impl<T: AsRef<JsValue> + JsCast + 'static> ElementCapture<T> {
 
 impl<T: AsRef<JsValue>> ElementCapture<T> {
     pub fn try_with<R>(&self, f: impl FnOnce(&T) -> R) -> Option<R> {
-        self.lock().as_ref().map(|value| f(&*value))
+        self.lock().as_ref().map(|value| f(value))
     }
 
     pub fn with<R>(&self, f: impl FnOnce(&T) -> R) -> R {
