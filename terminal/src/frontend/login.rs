@@ -35,8 +35,8 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus, remote: XSignal<Remote>) -
             img(class = style::key_icon, src = icons::key_icon()),
             input(
                 r#type = "password",
-                after_render = |password: Element| {
-                    let password: HtmlElement = password.dyn_into().or_throw("password");
+                after_render = |password: &Element| {
+                    let password: &HtmlElement = password.dyn_ref().or_throw("password");
                     let () = password.focus().or_throw("password focus");
                 },
                 change = move |ev: web_sys::Event| {

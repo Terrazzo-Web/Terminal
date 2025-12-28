@@ -30,7 +30,7 @@ pub fn start() {
     let main = document
         .get_element_by_id("main")
         .or_throw("#main not found");
-    let main = XTemplate::new(Ptr::new(Mutex::new(main)));
+    let main = XTemplate::new(Ptr::new(Mutex::new(LiveElement::new(main))));
     let () = ui(main);
 }
 

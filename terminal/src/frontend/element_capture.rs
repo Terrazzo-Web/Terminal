@@ -1,4 +1,4 @@
-#![cfg(feature = "text-editor")]
+#![cfg(any(feature = "converter", feature = "text-editor"))]
 
 use std::any::type_name;
 use std::sync::Arc;
@@ -13,9 +13,9 @@ use web_sys::Element;
 
 pub struct ElementCapture<T: AsRef<JsValue>>(Arc<Mutex<Option<UiThreadSafe<T>>>>);
 
-impl<T: AsRef<JsValue> + JsCast + 'static> ElementCapture<T> {
+impl<T: AsRef<JsValue> + Clone + JsCast + 'static> ElementCapture<T> {
     #[autoclone]
-    pub fn capture(&self) -> impl Fn(Element) + 'static {
+    pub fn capture(&self) -> impl Fn(&Element) + 'static {
         let this = self.clone();
         let on_drop = scopeguard::guard((), move |()| {
             autoclone!(this);
@@ -23,10 +23,11 @@ impl<T: AsRef<JsValue> + JsCast + 'static> ElementCapture<T> {
         });
         move |element| {
             let _ = &on_drop;
-            let element: T = element
-                .dyn_into::<T>()
-                .or_else_throw(|e| format!("'{}' is not an '{}'", e.to_string(), type_name::<T>()));
-            this.try_set(element).or_throw("Element already set");
+            let element: &T = element
+                .dyn_ref::<T>()
+                .or_else_throw(|()| format!("'{element:?}' is not an '{}'", type_name::<T>()));
+            this.try_set(element.clone())
+                .or_throw("Element already set");
         }
     }
 }
@@ -40,6 +41,7 @@ impl<T: AsRef<JsValue>> ElementCapture<T> {
         self.try_with(f).or_throw("Element was not set")
     }
 
+    #[allow(unused)]
     pub fn get(&self) -> T
     where
         T: Clone,

@@ -2,7 +2,6 @@
 
 use std::sync::Arc;
 use std::sync::LazyLock;
-use std::sync::OnceLock;
 use std::time::Duration;
 
 use terrazzo::autoclone;
@@ -12,7 +11,6 @@ use terrazzo::template;
 use terrazzo::widgets::debounce::DoDebounce;
 use terrazzo::widgets::tabs::TabsOptions;
 use terrazzo::widgets::tabs::tabs;
-use wasm_bindgen::JsCast as _;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlTextAreaElement;
 
@@ -21,6 +19,7 @@ use super::api::Conversions;
 use super::content_state;
 use crate::converter::api::Language;
 use crate::converter::conversion_tabs::ConversionsState;
+use crate::frontend::element_capture::ElementCapture;
 use crate::frontend::menu::menu;
 use crate::frontend::mousemove::MousemoveManager;
 use crate::frontend::mousemove::Position;
@@ -65,19 +64,13 @@ fn converter_impl(
 #[html]
 #[template(tag = textarea)]
 fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XElement {
-    let element: Arc<OnceLock<HtmlTextAreaElement>> = Default::default();
+    let element = ElementCapture::<HtmlTextAreaElement>::default();
     tag(
         style::flex %= |t| width(t, RESIZE_MANAGER.delta.clone()),
-        before_render = move |e| {
-            autoclone!(element);
-            element
-                .set(e.dyn_into().or_throw("Element not a textarea"))
-                .or_throw("Element was already set");
-        },
+        before_render = element.capture(),
         input = move |_: web_sys::InputEvent| {
             autoclone!(remote, element, conversions);
-            let element = element.get().or_throw("Element was not set");
-            let value: Arc<str> = element.value().into();
+            let value: Arc<str> = element.with(|e| e.value().into());
             spawn_local(async move {
                 autoclone!(remote, value);
                 let _set = content_state::set(remote.clone(), value.clone()).await;
@@ -86,14 +79,13 @@ fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XE
         },
         after_render = move |_| {
             autoclone!(remote, element, conversions);
-            let element = element.get().or_throw("Element was not set");
             spawn_local(async move {
                 autoclone!(remote, element, conversions);
                 let Ok(content) = content_state::get(remote.clone()).await else {
                     warn!("Failed to load converter content");
                     return;
                 };
-                element.set_value(&content);
+                element.with(|e| e.set_value(&content));
                 get_conversions(remote.clone(), content, conversions.clone());
             });
         },

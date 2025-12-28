@@ -452,7 +452,7 @@ fn show_remote_select(
             value = format!("{selected} (offline)"),
             "{selected} (offline)",
             after_render = |option| {
-                let option: HtmlOptionElement = option.dyn_into().or_throw("option");
+                let option: &HtmlOptionElement = option.dyn_ref().or_throw("option");
                 option.set_disabled(true);
             },
         ));
@@ -471,7 +471,7 @@ fn show_remote_select(
             }
         },
         after_render = move |select| {
-            let select: HtmlSelectElement = select.dyn_into().or_throw("select");
+            let select: &HtmlSelectElement = select.dyn_ref().or_throw("select");
             select.set_selected_index(selected_index as i32);
         },
         options..,

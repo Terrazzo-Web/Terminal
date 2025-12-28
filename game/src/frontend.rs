@@ -19,7 +19,7 @@ pub fn start() {
         .get_element_by_id("main")
         .or_throw("#main not found");
 
-    let template = XTemplate::new(Ptr::new(Mutex::new(main.clone())));
+    let template = XTemplate::new(Ptr::new(Mutex::new(LiveElement::new(main.clone()))));
     std::mem::forget(template.clone());
     let consumer = game::run(template, main);
     std::mem::forget(consumer);
