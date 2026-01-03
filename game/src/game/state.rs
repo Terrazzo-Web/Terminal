@@ -5,7 +5,7 @@ use terrazzo::prelude::*;
 use terrazzo::widgets::resize_event::ResizeEvent;
 use web_sys::Window;
 
-use super::cookie::Cookie;
+use super::cookie::CookiePtr;
 use super::size::Size;
 
 #[derive(Clone)]
@@ -30,7 +30,7 @@ impl Game {
 
 pub struct GameInner {
     pub window: Window,
-    pub cookies: XSignal<Vec<Cookie>>,
+    pub cookies: XSignal<Vec<CookiePtr>>,
     pub window_size: XSignal<Size>,
 }
 

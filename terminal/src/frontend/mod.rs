@@ -9,7 +9,6 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use self::login::login;
 use self::remotes::Remote;
 
-pub mod element_capture;
 pub mod login;
 pub mod menu;
 pub mod mousemove;
@@ -30,7 +29,7 @@ pub fn start() {
     let main = document
         .get_element_by_id("main")
         .or_throw("#main not found");
-    let main = XTemplate::new(Ptr::new(Mutex::new(main)));
+    let main = XTemplate::new(Ptr::new(Mutex::new(LiveElement::new(main))));
     let () = ui(main);
 }
 

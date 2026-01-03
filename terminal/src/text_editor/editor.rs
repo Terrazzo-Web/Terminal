@@ -88,7 +88,7 @@ pub fn editor(
             let _moved = &edits_notify_registration;
             let _moved = &diagnostics_notify_registration;
             *code_mirror.lock().unwrap() = Some(CodeMirrorJs::new(
-                element,
+                element.clone(),
                 content.as_ref().into(),
                 &on_change,
                 path.base.to_string(),

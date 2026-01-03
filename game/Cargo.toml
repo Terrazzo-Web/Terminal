@@ -40,8 +40,8 @@ client = ["dep:stylance", "dep:wasm-bindgen", "dep:web-sys", "terrazzo/client"]
 server = [
     "dep:tokio",
     "dep:tower-http",
-    "dep:tracing",
     "dep:tracing-subscriber",
+    "dep:tracing",
     "terrazzo/server",
 ]
 max-level-debug = [
@@ -56,7 +56,8 @@ max-level-info = [
     "concise-traces",
 ]
 concise-traces = ["terrazzo?/concise-traces"]
-diagnostics = ["terrazzo?/diagnostics"]
+debug = ["terrazzo/debug", "terrazzo?/diagnostics"]
+no_wasm_build = []
 
 [package.metadata.stylance]
 output_file = "./target/css/game.scss"

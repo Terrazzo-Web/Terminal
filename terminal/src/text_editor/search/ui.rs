@@ -9,6 +9,7 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::debounce::DoDebounce as _;
+use terrazzo::widgets::element_capture::ElementCapture;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::FocusEvent;
 use web_sys::HtmlInputElement;
@@ -16,7 +17,6 @@ use web_sys::KeyboardEvent;
 
 use super::state::EditorSearchState;
 use crate::assets::icons;
-use crate::frontend::element_capture::ElementCapture;
 use crate::frontend::timestamp::datetime::DateTime;
 use crate::text_editor::fsio::FileMetadata;
 use crate::text_editor::manager::EditorState;

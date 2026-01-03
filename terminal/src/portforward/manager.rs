@@ -1,16 +1,15 @@
 #![cfg(feature = "client")]
 
-use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::Mutex;
 
 use terrazzo::autoclone;
+use terrazzo::envelope;
 use terrazzo::prelude::XSignal;
 use terrazzo::prelude::diagnostics;
 use wasm_bindgen_futures::spawn_local;
 
 use self::diagnostics::warn;
-use self::inner::ManagerImpl;
 use super::schema::PortForward;
 use super::sync_state::Fields;
 use super::sync_state::SyncState;
@@ -18,44 +17,25 @@ use crate::api::client::remotes_api;
 use crate::api::client_address::ClientAddress;
 use crate::frontend::remotes::Remote;
 
-#[derive(Clone)]
-pub struct Manager(Arc<ManagerImpl>);
-
-mod inner {
-    use std::sync::Arc;
-    use std::sync::Mutex;
-
-    use terrazzo::prelude::XSignal;
-
-    use crate::api::client_address::ClientAddress;
-    use crate::frontend::remotes::Remote;
-    use crate::portforward::schema::PortForward;
-
-    pub struct ManagerImpl {
-        pub(super) port_forwards_signal: XSignal<Arc<Vec<PortForward>>>,
-        pub(super) port_forwards: Mutex<Arc<Vec<PortForward>>>,
-        pub(super) remote: XSignal<Remote>,
-        pub(super) remotes: XSignal<Vec<ClientAddress>>,
-    }
+#[envelope]
+pub struct ManagerImpl {
+    port_forwards_signal: XSignal<Arc<Vec<PortForward>>>,
+    port_forwards: Mutex<Arc<Vec<PortForward>>>,
+    remote: XSignal<Remote>,
+    remotes: XSignal<Vec<ClientAddress>>,
 }
 
-impl Deref for Manager {
-    type Target = ManagerImpl;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+pub use ManagerImplPtr as Manager;
 
 impl Manager {
     #[autoclone]
     pub fn new(remote: XSignal<Remote>) -> Self {
-        let manager = Self(Arc::new(ManagerImpl {
+        let manager = Self::from(ManagerImpl {
             port_forwards_signal: XSignal::new("port-forwards", Default::default()),
             port_forwards: Mutex::default(),
             remote,
             remotes: XSignal::new("remotes", vec![]),
-        }));
+        });
 
         // TODO: Show the remotes accessible from the selected remote.
         spawn_local(async move {

@@ -7,12 +7,12 @@ use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
+use terrazzo::widgets::element_capture::ElementCapture;
 use web_sys::HtmlInputElement;
 
 use self::diagnostics::debug;
 use super::schema::PathSelector;
 use crate::assets::icons;
-use crate::frontend::element_capture::ElementCapture;
 use crate::text_editor::autocomplete::server_fn::AutocompleteItem;
 use crate::text_editor::autocomplete::ui::do_autocomplete;
 use crate::text_editor::autocomplete::ui::show_autocomplete;

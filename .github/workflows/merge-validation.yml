@@ -15,16 +15,29 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           cache-level: "lenient"
       - uses: ./.github/actions/check
+
   test:
     runs-on: ubuntu-latest
     name: Unit tests
     steps:
-      - uses: actions/checkout@v6.0.1
-      - uses: ./.github/actions/setup
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           cache-level: "lenient"
-      - uses: ./.github/actions/test
+
+      - name: Test client
+        uses: ./.github/actions/test-client
+
+      - name: Test server
+        uses: ./.github/actions/test-server
+
+      - name: Test client & server
+        uses: ./.github/actions/test-both
+
   build:
     runs-on: ubuntu-latest
     name: Compilation check
