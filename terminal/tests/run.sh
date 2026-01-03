@@ -6,6 +6,6 @@ cargo run --locked \
     --no-default-features \
     --features debug,diagnostics \
     --features max-level-debug \
-    --features text-editor-server \
+    --features server-all \
     -- \
     $@
