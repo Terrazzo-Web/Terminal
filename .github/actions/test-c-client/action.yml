@@ -1,0 +1,8 @@
+name: Test client
+runs:
+  using: "composite"
+  steps:
+    - name: Test client
+      run: |
+        cargo test --locked --no-default-features --features diagnostics,client-all
+      shell: bash

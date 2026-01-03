@@ -24,7 +24,11 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           cache-level: "lenient"
-      - uses: ./.github/actions/test
+      - uses: ./.github/actions/test-a-compile-game
+      - uses: ./.github/actions/test-b-compile-terminal
+      - uses: ./.github/actions/test-c-client
+      - uses: ./.github/actions/test-d-server
+      - uses: ./.github/actions/test-e-both
   build:
     runs-on: ubuntu-latest
     name: Compilation check

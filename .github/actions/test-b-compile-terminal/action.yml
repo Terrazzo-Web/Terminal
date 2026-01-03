@@ -1,0 +1,8 @@
+name: Compile Terminal
+runs:
+  using: "composite"
+  steps:
+    - name: Compile Terminal
+      run: |
+        cargo build --locked --bin terrazzo-terminal --no-default-features --features server-all,max-level-debug,diagnostics
+      shell: bash
