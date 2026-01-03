@@ -158,7 +158,9 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "autoclone"
-version = "0.1.20"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "310880d69781b18067b8f0d24c112874f215acd8e54280b3e9157681138dea32"
 dependencies = [
  "darling 0.23.0",
  "prettyplease",
@@ -1129,7 +1131,7 @@ dependencies = [
  "scopeguard",
  "stylance",
  "terrazzo",
- "terrazzo-build 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "terrazzo-build",
  "tokio",
  "tower-http",
  "tracing",
@@ -2151,14 +2153,18 @@ checksum = "2195bf6aa996a481483b29d62a7663eed3fe39600c460e323f8ff41e90bdd89b"
 
 [[package]]
 name = "nameth"
-version = "0.1.20"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffa0fd12fbcc369621da2d871bc58547908e3f4a9d0189641d04b2417917a814"
 dependencies = [
  "nameth-macro",
 ]
 
 [[package]]
 name = "nameth-macro"
-version = "0.1.20"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4419896e19de8c1c0d8b4ac1d526f150aef7bc265fbba3723a64fe1ac764719"
 dependencies = [
  "darling 0.23.0",
  "proc-macro2",
@@ -3876,7 +3882,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo"
-version = "0.1.20"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dea1a3ef11b351c34f188f3bd588fc6e739b97f51d37a39a47c94216812f9d2d"
 dependencies = [
  "autoclone",
  "axum",
@@ -3890,7 +3898,7 @@ dependencies = [
  "rsass-macros",
  "scopeguard",
  "stylance",
- "terrazzo-build 0.1.20",
+ "terrazzo-build",
  "terrazzo-client",
  "terrazzo-macro",
  "thiserror 2.0.17",
@@ -3902,17 +3910,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-build"
-version = "0.1.20"
-dependencies = [
- "nameth",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "terrazzo-build"
-version = "0.1.20"
+version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74f1b0e868f39c81c82d50acce764809f6adf99e140f8f8fcafb543cdbeeb544"
+checksum = "6ca89154d8893354d7ad1d347b7370b0f3f7deee3c17231cd3526f663f622d2e"
 dependencies = [
  "nameth",
  "thiserror 2.0.17",
@@ -3920,7 +3920,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-client"
-version = "0.1.20"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f3631e9d60fe22afcb298a5a86d950bd1c1ea4abe092589a67d8aa4e05831a6"
 dependencies = [
  "autoclone",
  "nameth",
@@ -3935,7 +3937,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-macro"
-version = "0.1.20"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09258e55eb83ef586575ae3c2da642b58849a4899708c87e0e9d884b9d53eaed"
 dependencies = [
  "deluxe",
  "prettyplease",
@@ -4007,7 +4011,7 @@ dependencies = [
  "stylance",
  "tantivy",
  "terrazzo",
- "terrazzo-build 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "terrazzo-build",
  "terrazzo-pty",
  "thiserror 2.0.17",
  "tls-parser",
@@ -4564,7 +4568,9 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "trz-gateway-client"
-version = "0.1.20"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98947197b636baba5eef8b0b2862b44a87bf4d577eb62f946b003773e40ef2bd"
 dependencies = [
  "futures",
  "hostname",
@@ -4592,7 +4598,9 @@ dependencies = [
 
 [[package]]
 name = "trz-gateway-common"
-version = "0.1.20"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "302157a050f89dcd23c26b370b5e275e02807fd25172917f5d54ddc8eb418746"
 dependencies = [
  "axum",
  "bytes",
@@ -4621,7 +4629,9 @@ dependencies = [
 
 [[package]]
 name = "trz-gateway-server"
-version = "0.1.20"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1f2203ebaba3984c65a52d4e61970756d823c19a4c485d6bfc368a1dffdaaf6"
 dependencies = [
  "autoclone",
  "axum",

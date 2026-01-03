@@ -27,7 +27,7 @@ incremental = true       # Incremental compilation.
 terrazzo-pty = { version = "0.1.22", path = "pty" }
 
 async-trait = { version = "0.1.89" }
-autoclone = { version = "0.1.20" }
+autoclone = { version = "0.1.21" }
 axum = { version = "0.8.8" }
 axum-extra = { version = "0.12.5" }
 base64 = { version = "0.22.1" }
@@ -56,7 +56,7 @@ jsonwebtoken = { version = "10.2.0", features = ["aws_lc_rs"] }
 libc = { version = "0.2.179" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
-nameth = { version = "0.1.20" }
+nameth = { version = "0.1.21" }
 nix = { version = "0.30.1" }
 notify = { version = "8.2.0" }
 oid-registry = { version = "0.8.1" }
@@ -87,8 +87,8 @@ static_assertions = { version = "1.1.0" }
 stylance = { version = "0.7.4" }
 syn = { version = "2.0.112" }
 tantivy = { version = "0.25.0" }
-terrazzo = { version = "0.1.20", default-features = false }
-terrazzo-build = { version = "0.1.20" }
+terrazzo = { version = "0.1.21", default-features = false }
+terrazzo-build = { version = "0.1.21" }
 thiserror = { version = "2.0.17" }
 tls-parser = { version = "0.12.2" }
 tokio = { version = "1.49.0" }
@@ -105,9 +105,9 @@ tracing = { version = "0.1.43" }
 tracing-futures = { version = "0.2.5" }
 tracing-subscriber = { version = "0.3.22" }
 tracing-subscriber-wasm = { version = "0.1.0" }
-trz-gateway-client = { version = "0.1.19" }
-trz-gateway-common = { version = "0.1.20" }
-trz-gateway-server = { version = "0.1.20" }
+trz-gateway-client = { version = "0.1.21" }
+trz-gateway-common = { version = "0.1.21" }
+trz-gateway-server = { version = "0.1.21" }
 unescaper = { version = "0.1.6" }
 url = { version = "2.5.7" }
 uuid = { version = "1.18.1" }
@@ -128,12 +128,3 @@ enum_variant_names = "allow"
 needless_return = "allow"
 too_many_arguments = "allow"
 type_complexity = "allow"
-
-# <TODO>: remove
-[patch.crates-io]
-nameth = { path = "../Terrazzo/utils/nameth/nameth" }
-terrazzo = { path = "../Terrazzo/framework/terrazzo" }
-trz-gateway-client = { path = "../Terrazzo/remote/client" }
-trz-gateway-common = { path = "../Terrazzo/remote/common" }
-trz-gateway-server = { path = "../Terrazzo/remote/server" }
-# </TODO>
