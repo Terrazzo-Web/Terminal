@@ -1,8 +1,0 @@
-name: Compile game
-runs:
-  using: "composite"
-  steps:
-    - name: Compile game
-      run: |
-        cargo build --locked --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
-      shell: bash
