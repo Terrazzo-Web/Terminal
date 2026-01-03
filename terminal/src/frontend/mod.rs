@@ -9,7 +9,6 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use self::login::login;
 use self::remotes::Remote;
 
-pub mod element_capture;
 pub mod login;
 pub mod menu;
 pub mod mousemove;
