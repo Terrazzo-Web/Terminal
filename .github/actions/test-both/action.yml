@@ -2,7 +2,7 @@ name: Test client & server
 runs:
   using: "composite"
   steps:
-    - name: Test client
+    - name: Test client & server
       run: |
         cargo test --locked --no-default-features --features diagnostics,server-all,client-all
       shell: bash
