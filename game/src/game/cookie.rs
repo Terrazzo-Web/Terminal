@@ -2,10 +2,10 @@
 
 use std::cell::Cell;
 use std::iter::once;
-use std::ops::Deref;
 use std::rc::Rc;
 
 use terrazzo::autoclone;
+use terrazzo::envelope;
 use terrazzo::html;
 use terrazzo::owned_closure::XOwnedClosure;
 use terrazzo::prelude::*;
@@ -21,7 +21,7 @@ stylance::import_style!(style, "cookie.scss");
 #[autoclone]
 #[template(tag = img, key = c.id.to_string())]
 #[html]
-pub fn cookie(c: Cookie) -> XElement {
+pub fn cookie(c: CookiePtr) -> XElement {
     tag(
         class = style::cookie,
         style::top %= move |t| {
@@ -72,27 +72,16 @@ mod cookie_style {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Cookie {
-    inner: Rc<CookieInner>,
-}
-
+#[envelope(ptr = std::rc::Rc)]
 #[derive(Debug)]
-pub struct CookieInner {
+pub struct Cookie {
     id: usize,
     position: XSignal<Position>,
     size: XSignal<Size>,
     speed: f64,
 }
 
-impl Deref for Cookie {
-    type Target = CookieInner;
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl Cookie {
+impl CookiePtr {
     pub fn new(game: &Game) -> Self {
         use std::sync::atomic::AtomicUsize;
         use std::sync::atomic::Ordering::SeqCst;
@@ -102,29 +91,27 @@ impl Cookie {
 
         let window_size = game.window_size.get_value_untracked();
         let size_f = 1. / rand_f64(15., 35.);
-        let c = Self {
-            inner: Rc::new(CookieInner {
-                id,
-                position: XSignal::new(
-                    "position",
-                    Position {
-                        top: random() * (window_size.y - (window_size * size_f).y) as f64,
-                        left: window_size.x as f64,
-                    },
-                ),
-                size: game
-                    .window_size
-                    .view("cookie_size", move |window_size| *window_size * size_f),
-                speed: rand_f64(10., 100.),
-            }),
-        };
+        let c = Self::from(Cookie {
+            id,
+            position: XSignal::new(
+                "position",
+                Position {
+                    top: random() * (window_size.y - (window_size * size_f).y) as f64,
+                    left: window_size.x as f64,
+                },
+            ),
+            size: game
+                .window_size
+                .view("cookie_size", move |window_size| *window_size * size_f),
+            speed: rand_f64(10., 100.),
+        });
         make_cookie_move(game.clone(), c.clone());
         return c;
     }
 }
 
 #[autoclone]
-fn make_cookie_move(game: Game, c: Cookie) {
+fn make_cookie_move(game: Game, c: CookiePtr) {
     let handle = Rc::new(Cell::new(None));
     let closure = XOwnedClosure::new(|self_drop| {
         move || {
@@ -147,7 +134,7 @@ fn make_cookie_move(game: Game, c: Cookie) {
                             .iter()
                             .filter(|cc| cc.id != c.id)
                             .cloned()
-                            .chain(once(Cookie::new(&game)))
+                            .chain(once(CookiePtr::new(&game)))
                             .collect(),
                     )
                 });

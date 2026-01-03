@@ -7,7 +7,7 @@ use terrazzo::template;
 use terrazzo::widgets::resize_event::ResizeEvent;
 use web_sys::window;
 
-use self::cookie::Cookie;
+use self::cookie::CookiePtr;
 use self::cookies::show_cookies;
 use self::diagnostics::info;
 use self::state::Game;
@@ -37,7 +37,7 @@ pub fn run(main: Element) -> XElement {
                 info!("Loading the game");
                 ResizeEvent::signal().force(());
                 game.cookies
-                    .update(|_| Some((0..20).map(|_| Cookie::new(&game)).collect()));
+                    .update(|_| Some((0..20).map(|_| CookiePtr::new(&game)).collect()));
             },
         ),
         show_cookies(game.cookies.clone()),
