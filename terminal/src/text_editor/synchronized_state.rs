@@ -38,11 +38,11 @@ impl std::fmt::Debug for SynchronizedState {
 pub fn show_synchronized_state(synchronized_state: XSignal<SynchronizedState>) -> XElement {
     tag(
         class = style::sync_status,
-        src %= move |t| icon_src(t, synchronized_state.clone()),
+        src %= icon_src(synchronized_state.clone()),
     )
 }
 
-#[template]
+#[template(wrap = true)]
 fn icon_src(#[signal] synchronized_state: SynchronizedState) -> XAttributeValue {
     match synchronized_state {
         SynchronizedState::Sync => icons::done(),

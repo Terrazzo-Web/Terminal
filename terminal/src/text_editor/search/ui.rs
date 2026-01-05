@@ -32,10 +32,7 @@ impl TextEditorManager {
 
         return div(
             class = style::path_selector,
-            style::flex_basis %= move |t| {
-                autoclone!(is_active);
-                flex_basis(t, is_active.clone())
-            },
+            style::flex_basis %= flex_basis(is_active.clone()),
             img(
                 class = format!("{} {}", style::path_selector_icon, style::search_icon),
                 src = icons::search(),
@@ -48,7 +45,7 @@ impl TextEditorManager {
             search_selector_input(self.clone(), input, self.path.base.clone(), is_active),
         );
 
-        #[template]
+        #[template(wrap = true)]
         pub fn flex_basis(#[signal] is_active: bool) -> XAttributeValue {
             is_active.not().then_some("0")
         }

@@ -18,28 +18,15 @@ use super::state::Game;
 
 stylance::import_style!(style, "cookie.scss");
 
-#[autoclone]
 #[template(tag = img, key = c.id.to_string())]
 #[html]
 pub fn cookie(c: CookiePtr) -> XElement {
     tag(
         class = style::cookie,
-        style::top %= move |t| {
-            autoclone!(c);
-            cookie_style::top(t, c.position.clone())
-        },
-        style::left %= move |t| {
-            autoclone!(c);
-            cookie_style::left(t, c.position.clone())
-        },
-        style::width %= move |t| {
-            autoclone!(c);
-            cookie_style::width(t, c.size.clone())
-        },
-        style::height %= move |t| {
-            autoclone!(c);
-            cookie_style::height(t, c.size.clone())
-        },
+        style::top %= cookie_style::top(c.position.clone()),
+        style::left %= cookie_style::left(c.position.clone()),
+        style::width %= cookie_style::width(c.size.clone()),
+        style::height %= cookie_style::height(c.size.clone()),
         src = "/static/game/cookie.jpg",
     )
 }
@@ -51,22 +38,22 @@ mod cookie_style {
     use crate::game::position::Position;
     use crate::game::size::Size;
 
-    #[template]
+    #[template(wrap = true)]
     pub fn top(#[signal] mut position: Position) -> XAttributeValue {
         format!("{}px", position.top)
     }
 
-    #[template]
+    #[template(wrap = true)]
     pub fn left(#[signal] mut position: Position) -> XAttributeValue {
         format!("{}px", position.left)
     }
 
-    #[template]
+    #[template(wrap = true)]
     pub fn width(#[signal] mut size: Size) -> XAttributeValue {
         format!("{}px", size.x)
     }
 
-    #[template]
+    #[template(wrap = true)]
     pub fn height(#[signal] mut size: Size) -> XAttributeValue {
         format!("{}px", size.y)
     }

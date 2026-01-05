@@ -10,7 +10,7 @@ use crate::frontend::remotes::Remotes;
 use crate::terminal::TerminalsState;
 use crate::terminal::terminal_tab::TerminalTab;
 
-#[template]
+#[template(wrap = true)]
 pub fn active(#[signal] remotes: Remotes) -> XAttributeValue {
     if let Remotes::Some { .. } = remotes {
         Some(super::style::active)
