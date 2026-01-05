@@ -8,11 +8,11 @@ use regex::Regex;
 use super::AddConversionFn;
 use crate::converter::api::Language;
 
-pub fn add_time(input: &str, add: &mut impl AddConversionFn) -> bool {
+pub fn add_timestamps(input: &str, add: &mut impl AddConversionFn) -> bool {
     static NUMBER: LazyLock<Regex> = LazyLock::new(|| Regex::new("\\d+").unwrap());
     let mut has_time = false;
     let timestamp = NUMBER.replace_all(input, |captures: &Captures<'_>| {
-        if let Some(time) = process_time(&captures[0]) {
+        if let Some(time) = process_timestamp(&captures[0]) {
             has_time = true;
             return time;
         } else {
@@ -25,7 +25,7 @@ pub fn add_time(input: &str, add: &mut impl AddConversionFn) -> bool {
     return true;
 }
 
-fn process_time(input: &str) -> Option<String> {
+fn process_timestamp(input: &str) -> Option<String> {
     let time = input.parse().ok()?;
     let (time, unit) = match time {
         0..=9_999_999_999 => (Duration::from_secs(time), "seconds"),
