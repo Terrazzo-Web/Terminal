@@ -51,6 +51,8 @@ mod tests {
         let conversion = r#"
             January 4, 2026 at 12:12 PM UTC is 1767528720
             January 4, 2026 at 12:12 +30s +512 millis PM UTC is 1767528750512
+            January 4, 2026 at 12:12 PM UTC is 1767528720000000
+            January 4, 2026 at 12:12 PM UTC is 1767528720000000000
             "#
         .get_conversion("Timestamp")
         .await;
@@ -58,6 +60,8 @@ mod tests {
             r#"
             January 4, 2026 at 12:12 PM UTC is 2026-01-04T12:12:00Z (as 1767528720 seconds)
             January 4, 2026 at 12:12 +30s +512 millis PM UTC is 2026-01-04T12:12:30.512000000Z (as 1767528750512 millis)
+            January 4, 2026 at 12:12 PM UTC is 2026-01-04T12:12:00Z (as 1767528720000000 micros)
+            January 4, 2026 at 12:12 PM UTC is 2026-01-04T12:12:00Z (as 1767528720000000000 nanos)
             "#.trim(),
             conversion.trim()
         );
