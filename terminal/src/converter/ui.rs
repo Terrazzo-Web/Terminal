@@ -66,7 +66,7 @@ fn converter_impl(
 fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XElement {
     let element = ElementCapture::<HtmlTextAreaElement>::default();
     tag(
-        style::flex %= |t| width(t, RESIZE_MANAGER.delta.clone()),
+        style::flex %= width(RESIZE_MANAGER.delta.clone()),
         before_render = element.capture(),
         input = move |_: web_sys::InputEvent| {
             autoclone!(remote, element, conversions);
@@ -92,7 +92,7 @@ fn show_input(#[signal] remote: Remote, conversions: XSignal<Conversions>) -> XE
     )
 }
 
-#[template]
+#[template(wrap = true)]
 fn width(#[signal] mut position: Option<Position>) -> XAttributeValue {
     position.map(|position| format!("0 0 calc(50% + {}px)", position.x))
 }

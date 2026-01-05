@@ -52,10 +52,7 @@ impl TabsDescriptor for TerminalTabs {
             class = style::add_tab_icon,
             key = "add-tab-icon",
             div(
-                class %= move |t| {
-                    autoclone!(remotes_state);
-                    add_tab::active(t, remotes_state.remotes.clone())
-                },
+                class %= add_tab::active(remotes_state.remotes.clone()),
                 img(src = icons::add_tab()),
                 click = move |_| {
                     autoclone!(state);

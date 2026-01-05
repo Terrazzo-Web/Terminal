@@ -58,10 +58,7 @@ fn show_side_view_node(
                     class = style::folder,
                     img(src = icons::folder(), class = style::icon),
                     div(
-                        class %= move |t| {
-                            autoclone!(manager, path);
-                            selected_item(t, manager.path.file.clone(), path.clone())
-                        },
+                        class %= selected_item(manager.path.file.clone(), path.clone()),
                         span(
                             "{name}",
                             click = move |_| {
@@ -86,10 +83,7 @@ fn show_side_view_node(
                 class = style::file,
                 img(src = icons::file(), class = style::icon),
                 div(
-                    class %= move |t| {
-                        autoclone!(manager, path);
-                        selected_item(t, manager.path.file.clone(), path.clone())
-                    },
+                    class %= selected_item(manager.path.file.clone(), path.clone()),
                     span("{name}"),
                     click = move |_| {
                         autoclone!(path);
@@ -102,7 +96,7 @@ fn show_side_view_node(
     })
 }
 
-#[template]
+#[template(wrap = true)]
 fn selected_item(#[signal] file_path: Arc<str>, path: Arc<Path>) -> XAttributeValue {
     let file_path: &Path = (*file_path).as_ref();
     if file_path == path.as_ref() {
