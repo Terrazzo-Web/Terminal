@@ -18,6 +18,7 @@ mod dns;
 mod json;
 mod jwt;
 mod pkcs7;
+mod timestamps;
 mod tls_info;
 mod unescaped;
 mod x509;
@@ -52,6 +53,7 @@ async fn add_conversions(input: &str, add: &mut impl AddConversionFn) {
         return;
     }
     self::dns::add_dns(input, add).await;
+    self::timestamps::add_timestamps(input, add);
 }
 
 declare_trait_aliias!(AddConversionFn, FnMut(Language, String));
