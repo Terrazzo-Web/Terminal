@@ -28,7 +28,7 @@ fn get_jwt_impl(input: &str) -> Option<String> {
         return None;
     };
 
-    for time_claim in ["iat", "nbf", "exp"] {
+    for time_claim in ["iat", "issuedat", "nbf", "notbefore", "exp", "expiration"] {
         try_convert_time_claim(time_claim, &mut message);
     }
 
