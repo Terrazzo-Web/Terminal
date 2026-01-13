@@ -65,8 +65,8 @@ pbkdf2 = { version = "0.12.2" }
 pin-project = { version = "1.1.10" }
 prettyplease = { version = "0.2.37" }
 proc-macro2 = { version = "1.0.104" }
-prost = { version = "0.14.1" }
-prost-types = { version = "0.14.1" }
+prost = { version = "0.14.3" }
+prost-types = { version = "0.14.3" }
 quote = { version = "1.0.42" }
 regex = { version = "1.12.2" }
 reqwest-wasm = { version = "0.11.16" }
@@ -95,11 +95,11 @@ tokio = { version = "1.49.0" }
 tokio-rustls = { version = "0.26.4" }
 tokio-stream = { version = "0.1.18" }
 tokio-util = { version = "0.7.18" }
-toml = { version = "0.9.10" }
+toml = { version = "0.9.11" }
 tonic = { version = "0.14.2" }
 tonic-prost = { version = "0.14.2" }
 tonic-prost-build = { version = "0.14.2" }
-tower = { version = "0.5.2" }
+tower = { version = "0.5.3" }
 tower-http = { version = "0.6.8" }
 tracing = { version = "0.1.43" }
 tracing-futures = { version = "0.2.5" }
@@ -109,7 +109,7 @@ trz-gateway-client = { version = "0.1.22" }
 trz-gateway-common = { version = "0.1.22" }
 trz-gateway-server = { version = "0.1.22" }
 unescaper = { version = "0.1.6" }
-url = { version = "2.5.7" }
+url = { version = "2.5.8" }
 uuid = { version = "1.18.1" }
 wasm-bindgen = { version = "0.2.105" }
 wasm-bindgen-futures = { version = "0.4.55" }
