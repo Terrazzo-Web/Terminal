@@ -89,7 +89,7 @@ syn = { version = "2.0.113" }
 tantivy = { version = "0.25.0" }
 terrazzo = { version = "0.1.22", default-features = false }
 terrazzo-build = { version = "0.1.22" }
-thiserror = { version = "2.0.17" }
+thiserror = { version = "2.0.18" }
 tls-parser = { version = "0.12.2" }
 tokio = { version = "1.49.0" }
 tokio-rustls = { version = "0.26.4" }
@@ -112,7 +112,7 @@ unescaper = { version = "0.1.6" }
 url = { version = "2.5.8" }
 uuid = { version = "1.18.1" }
 wasm-bindgen = { version = "0.2.105" }
-wasm-bindgen-futures = { version = "0.4.55" }
+wasm-bindgen-futures = { version = "0.4.58" }
 wasm-bindgen-test = { version = "0.3.50" }
 wasm-streams = { version = "0.4.2" }
 web-sys = { version = "0.3.80" }
