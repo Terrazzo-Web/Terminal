@@ -57,7 +57,7 @@ libc = { version = "0.2.179" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.22" }
-nix = { version = "0.30.1" }
+nix = { version = "0.31.1" }
 notify = { version = "8.2.0" }
 oid-registry = { version = "0.8.1" }
 openssl = { version = "0.10.75" }
