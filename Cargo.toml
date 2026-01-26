@@ -67,7 +67,7 @@ prettyplease = { version = "0.2.37" }
 proc-macro2 = { version = "1.0.104" }
 prost = { version = "0.14.3" }
 prost-types = { version = "0.14.3" }
-quote = { version = "1.0.42" }
+quote = { version = "1.0.44" }
 regex = { version = "1.12.2" }
 reqwest-wasm = { version = "0.11.16" }
 rpassword = { version = "7.4.0" }
@@ -110,7 +110,7 @@ trz-gateway-common = { version = "0.1.22" }
 trz-gateway-server = { version = "0.1.22" }
 unescaper = { version = "0.1.6" }
 url = { version = "2.5.8" }
-uuid = { version = "1.18.1" }
+uuid = { version = "1.20.0" }
 wasm-bindgen = { version = "0.2.105" }
 wasm-bindgen-futures = { version = "0.4.58" }
 wasm-bindgen-test = { version = "0.3.50" }
