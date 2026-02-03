@@ -52,7 +52,7 @@ http = { version = "1.4.0" }
 humantime = { version = "2.3.0" }
 include_directory = { version = "0.1.1" }
 inventory = { version = "0.3.21" }
-jsonwebtoken = { version = "10.2.0", features = ["aws_lc_rs"] }
+jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 libc = { version = "0.2.179" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
