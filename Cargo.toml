@@ -31,7 +31,7 @@ autoclone = { version = "0.1.22" }
 axum = { version = "0.8.8" }
 axum-extra = { version = "0.12.5" }
 base64 = { version = "0.22.1" }
-bitflags = { version = "2.10.0" }
+bitflags = { version = "2.11.0" }
 bytes = { version = "1.11.0" }
 chrono = { version = "0.4.42", default-features = false, features = [
     "now",
@@ -110,9 +110,9 @@ trz-gateway-common = { version = "0.1.22" }
 trz-gateway-server = { version = "0.1.22" }
 unescaper = { version = "0.1.6" }
 url = { version = "2.5.8" }
-uuid = { version = "1.20.0" }
+uuid = { version = "1.21.0" }
 wasm-bindgen = { version = "0.2.105" }
-wasm-bindgen-futures = { version = "0.4.58" }
+wasm-bindgen-futures = { version = "0.4.59" }
 wasm-bindgen-test = { version = "0.3.50" }
 wasm-streams = { version = "0.5.0" }
 web-sys = { version = "0.3.80" }
