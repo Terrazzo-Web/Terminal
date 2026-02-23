@@ -112,7 +112,7 @@ unescaper = { version = "0.1.6" }
 url = { version = "2.5.8" }
 uuid = { version = "1.21.0" }
 wasm-bindgen = { version = "0.2.105" }
-wasm-bindgen-futures = { version = "0.4.59" }
+wasm-bindgen-futures = { version = "0.4.61" }
 wasm-bindgen-test = { version = "0.3.50" }
 wasm-streams = { version = "0.5.0" }
 web-sys = { version = "0.3.80" }
