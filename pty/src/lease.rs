@@ -15,7 +15,6 @@ use nameth::nameth;
 use scopeguard::defer;
 use tracing::debug;
 use tracing::debug_span;
-use tracing::error;
 use tracing::info;
 use tracing::trace;
 
