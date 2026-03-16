@@ -3,7 +3,6 @@ use terrazzo_pty::ProcessIO;
 use terrazzo_pty::lease::LeaseProcessOutputError;
 use terrazzo_pty::lease::ProcessIoEntry;
 use terrazzo_pty::lease::ProcessOutputLease;
-use tracing::error;
 use tracing::info;
 use trz_gateway_server::server::Server;
 
