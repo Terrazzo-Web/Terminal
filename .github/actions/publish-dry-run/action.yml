@@ -1,4 +1,5 @@
 name: Publish (dry-run)
+description: "Perform a dry-run of publishing crates to crates.io to check for potential issues before actual publication."
 runs:
   using: "composite"
   steps:

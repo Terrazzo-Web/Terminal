@@ -1,4 +1,5 @@
 name: Set up
+description: "Set up the Rust environment for the project, including caching and necessary tools."
 inputs:
   github-token:
     description: "GitHub token for authentication"

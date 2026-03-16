@@ -1,4 +1,5 @@
 name: Build
+description: "Check everything builds"
 runs:
   using: "composite"
   steps:
