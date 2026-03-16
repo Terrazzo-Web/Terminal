@@ -1,4 +1,5 @@
 name: Check
+description: "Run cargo checks"
 runs:
   using: "composite"
 

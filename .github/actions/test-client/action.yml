@@ -1,4 +1,5 @@
 name: Test client
+description: "Run tests for client components."
 runs:
   using: "composite"
   steps:

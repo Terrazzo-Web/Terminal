@@ -7,7 +7,6 @@ use terrazzo_pty::ProcessInput;
 use terrazzo_pty::pty::PtyError;
 use terrazzo_pty::size::Size;
 use tracing::debug;
-use tracing::error;
 use trz_gateway_common::http_error::IsHttpError;
 
 use super::get_processes;

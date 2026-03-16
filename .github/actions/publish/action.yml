@@ -1,4 +1,5 @@
 name: Publish
+description: "Publish crates to crates.io"
 runs:
   using: "composite"
   steps:
