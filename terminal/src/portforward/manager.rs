@@ -17,10 +17,17 @@ use crate::api::client::remotes_api;
 use crate::api::client_address::ClientAddress;
 use crate::frontend::remotes::Remote;
 
+/// The manager for the port forward feature.
 #[envelope]
 pub struct ManagerImpl {
+    /// The port forwards as displayed in the UI.
+    ///
+    /// It is updated after the state is updated in the backend.
     port_forwards_signal: XSignal<Arc<Vec<PortForward>>>,
+
+    /// The port forwards state. It is set after the backend has processed the update.
     port_forwards: Mutex<Arc<Vec<PortForward>>>,
+
     remote: XSignal<Remote>,
     remotes: XSignal<Vec<ClientAddress>>,
 }
@@ -54,13 +61,14 @@ impl Manager {
     pub fn remotes(&self) -> XSignal<Vec<ClientAddress>> {
         self.remotes.clone()
     }
-    pub fn port_forwards(&self) -> XSignal<Arc<Vec<PortForward>>> {
-        self.port_forwards_signal.clone()
+    pub fn port_forwards(&self) -> &XSignal<Arc<Vec<PortForward>>> {
+        &self.port_forwards_signal
     }
     pub fn port_forwards_lock(&self) -> std::sync::MutexGuard<'_, Arc<Vec<PortForward>>> {
         self.port_forwards.lock().expect("port_forwards lock")
     }
 
+    /// Loads the port forwards from the backend server into the UI state.
     pub fn load_port_forwards(&self, remote: Remote) {
         let manager = self.clone();
         spawn_local(async move {
@@ -69,16 +77,24 @@ impl Manager {
             };
             let port_forwards: Arc<Vec<PortForward>> = Arc::from(port_forwards);
             *manager.port_forwards_lock() = port_forwards.clone();
-            manager.port_forwards_signal.set(port_forwards);
+            manager.port_forwards().set(port_forwards);
         });
     }
 
+    /// Updates a field of a given port forward.
+    ///
+    /// * `remote` - The terrazzo server for which to update port forwards.
+    /// * `sync_state` - The synchronization state for the [PortForward].
+    /// * `id` - The ID of the port forward to update.
+    /// * `field` - The field to update.
+    /// * `update_fn` - The function that takes the current port forward and returns the updated port forward.
+    ///   If it returns `None`, the port forward is removed.
     pub fn set(
         &self,
         remote: &Remote,
         sync_state: XSignal<SyncState>,
-        field: Fields,
         id: i32,
+        field: Fields,
         update_fn: impl FnOnce(&PortForward) -> Option<PortForward>,
     ) {
         let mut update_fn = Some(update_fn);
@@ -98,6 +114,9 @@ impl Manager {
         });
     }
 
+    /// Runs the update routine for a port forward update.
+    ///
+    /// Keeps the UI state up to date as the state is updated in the backend.
     #[autoclone]
     pub fn update(
         &self,
@@ -128,7 +147,7 @@ impl Manager {
                     new
                 }
             };
-            this.port_forwards_signal.set(new);
+            this.port_forwards().set(new);
             drop(loading);
         })
     }

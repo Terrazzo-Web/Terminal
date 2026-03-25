@@ -114,12 +114,14 @@ mod remote_fn_errors_to_status {
 
 macro_rules! declare_remote_fn {
     (
+        $(#[$meta:meta])*
         $remote_fn:ident,
         $remote_fn_name:expr,
         $input:ty,
         $output:ty,
         $implem:expr
     ) => {
+        $(#[$meta])*
         pub static $remote_fn: remote_fn_service::remote_fn::RemoteFn<$input, $output> = {
             fn callback(
                 server: &std::sync::Arc<trz_gateway_server::server::Server>,
