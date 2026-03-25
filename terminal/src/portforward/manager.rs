@@ -88,7 +88,7 @@ impl Manager {
     /// * `id` - The ID of the port forward to update.
     /// * `field` - The field to update.
     /// * `update_fn` - The function that takes the current port forward and returns the updated port forward.
-    ///                 If it returns `None`, the port forward is removed.
+    ///   If it returns `None`, the port forward is removed.
     pub fn set(
         &self,
         remote: &Remote,
