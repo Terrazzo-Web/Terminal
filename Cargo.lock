@@ -4069,6 +4069,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-futures",
+ "tracing-subscriber",
  "trz-gateway-client",
  "trz-gateway-common",
  "trz-gateway-server",

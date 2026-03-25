@@ -76,6 +76,7 @@ tracing = { workspace = true, optional = true }
 tracing-futures = { workspace = true, features = [
     "futures-03",
 ], optional = true }
+tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
 trz-gateway-client = { workspace = true, optional = true }
 trz-gateway-common = { workspace = true, optional = true }
 trz-gateway-server = { workspace = true, optional = true, features = ["acme"] }
@@ -147,6 +148,7 @@ server = [
     "dep:tower-http",
     "dep:tower",
     "dep:tracing",
+    "dep:tracing-subscriber",
     "dep:trz-gateway-client",
     "dep:trz-gateway-common",
     "dep:trz-gateway-server",

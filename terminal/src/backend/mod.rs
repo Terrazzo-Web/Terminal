@@ -74,6 +74,7 @@ mod cli;
 pub mod client_service;
 pub mod config;
 mod daemonize;
+pub mod log_stream;
 pub mod protos;
 mod root_ca_config;
 mod server_config;
@@ -129,6 +130,7 @@ pub fn run_server() -> Result<(), RunServerError> {
 
 #[tokio::main]
 async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError> {
+    self::log_stream::init_tracing()?;
     #[cfg(debug_assertions)]
     {
         println!("server_fn paths:");
@@ -264,6 +266,9 @@ pub enum RunServerError {
 
     #[error("[{n}] {0}", n = self.name())]
     RunClient(#[from] RunClientError),
+
+    #[error("[{n}] {0}", n = self.name())]
+    EnableTracing(#[from] self::log_stream::EnableTracingError),
 }
 
 #[autoclone]
