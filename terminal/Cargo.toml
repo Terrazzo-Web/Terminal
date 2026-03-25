@@ -99,6 +99,8 @@ fluent-asserter = { workspace = true }
 
 [features]
 default = ["prod"]
+rustdoc = []
+
 prod = ["max-level-info", "server-all"]
 server-all = [
     "converter-server",
@@ -262,6 +264,9 @@ port-forward-server = ["port-forward", "server"]
 output_file = "./target/css/terrazzo-terminal.scss"
 folders = ["./src/"]
 extensions = [".scss", ".css"]
+
+[package.metadata.docs.rs]
+features = ["rustdoc"]
 
 [lints]
 workspace = true

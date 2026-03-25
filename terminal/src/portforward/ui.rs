@@ -40,7 +40,7 @@ pub fn port_forward(remote: XSignal<Remote>) -> XElement {
 #[html]
 fn port_forward_impl(manager: Manager) -> XElement {
     let remote = manager.remote();
-    let port_forwards = manager.port_forwards();
+    let port_forwards = manager.port_forwards().clone();
     div(
         class = style::inner,
         key = "port-forward",
@@ -187,8 +187,8 @@ fn show_active_checkbox(params: ShowHostPortDefinition, port_forward: &PortForwa
         manager.set(
             &remote,
             sync_state.clone(),
-            Fields::ACTIVE,
             id,
+            Fields::ACTIVE,
             |port_forward| {
                 Some(PortForward {
                     checked,
@@ -314,8 +314,8 @@ fn show_host_port_definition(
         manager.set(
             &remote,
             sync_state.clone(),
-            Fields::REMOTE,
             id,
+            Fields::REMOTE,
             move |port_forward| {
                 autoclone!(host, set);
                 let new = HostPortDefinition::new(forwarded_remote, host.clone(), port);
@@ -332,8 +332,8 @@ fn show_host_port_definition(
         manager.set(
             &remote,
             sync_state.clone(),
-            Fields::HOST,
             id,
+            Fields::HOST,
             |port_forward| {
                 autoclone!(forwarded_remote, set);
                 let new = HostPortDefinition::new(
@@ -359,8 +359,8 @@ fn show_host_port_definition(
         manager.set(
             &remote,
             sync_state.clone(),
-            Fields::PORT,
             id,
+            Fields::PORT,
             |port_forward| {
                 autoclone!(forwarded_remote, host, set);
                 let new = HostPortDefinition::new(forwarded_remote, host, port);

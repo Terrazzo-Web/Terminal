@@ -8,6 +8,7 @@ use terrazzo::server;
 use crate::api::client_address::ClientAddress;
 use crate::portforward::schema::PortForward;
 
+/// Stores the [PortForward]s on the designated remote terrazzo server.
 #[server(protocol = Http<Json, Json>)]
 #[cfg_attr(feature = "server", nameth::nameth)]
 pub async fn store_port_forwards(
@@ -21,6 +22,7 @@ pub async fn store_port_forwards(
         .await?)
 }
 
+/// Loads the [PortForward]s from the designated remote terrazzo server.
 #[server(protocol = Http<Json, Json>)]
 #[cfg_attr(feature = "server", nameth::nameth)]
 pub async fn load_port_forwards(
@@ -45,6 +47,13 @@ mod backend {
     static STATE: Mutex<Option<Box<[RunningPortForward]>>> = Mutex::new(None);
 
     remote_fn_service::declare_remote_fn!(
+        /// Stores the port forwards on the designated remote terrazzo server.
+        ///
+        /// As a side effect, it runs the port forward engine as necessary to activate the new
+        /// port forwards configuration.
+        ///
+        /// - First, port forwards that are deleted or changed are stopped.
+        /// - Then, new and changed port forwards are started.
         STORE_PORT_FORWARDS_FN,
         super::STORE_PORT_FORWARDS,
         Arc<Vec<PortForward>>,
@@ -75,6 +84,7 @@ mod backend {
     );
 
     remote_fn_service::declare_remote_fn!(
+        /// Loads the port forwards from the designated remote terrazzo server.
         LOAD_PORT_FORWARDS_FN,
         super::LOAD_PORT_FORWARDS,
         (),
