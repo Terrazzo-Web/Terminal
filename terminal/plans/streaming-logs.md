@@ -37,13 +37,25 @@ Logs should come from backend `tracing::info!`, `tracing::warn!`, and `tracing::
 - Use HTTP streaming, not websocket transport.
 - Prefer `#[server(protocol = Http<Json, StreamingText>)]` and return `TextStream<ServerFnError>`.
 - Stream newline-delimited JSON log records so the client can decode entries incrementally.
-- On subscription, send a small retained backlog first, then continue with live events.
+- On subscription, send a small retained backlog first, then continue with live events from a per-subscriber async channel.
 
 ### 4. Hook backend tracing into the stream
 
 - Add a server-only log broadcast module under `terminal/src/backend/`.
 - Capture `tracing` events from `info`, `warn`, and `error` levels.
 - Ignore lower-severity events such as `debug` and `trace`.
+- Store the retained backlog in `Arc<Mutex<VecDeque<UiLogEvent>>>`.
+- Use that `VecDeque` only for retained replay, not as the live stream transport.
+- Treat that `VecDeque` as a fixed-size ring buffer with logical capacity 20:
+  - append new events with `push_back`
+  - if the length becomes 21, remove one item with `pop_front`
+- Keep live subscribers in a separate shared map, for example `Arc<Mutex<HashMap<u64, mpsc::Sender<UiLogEvent>>>>`, so backlog retention and live fan-out stay independent.
+- For each new subscriber:
+  - clone the current backlog while holding the mutex briefly
+  - create a per-subscriber `mpsc` channel
+  - register that sender in the subscriber map
+  - build the returned stream as backlog replay chained with a receiver-backed live stream
+- The live portion of the stream should wait asynchronously for the next message by reading from the subscriber receiver, e.g. via `tokio_stream::wrappers::ReceiverStream` or equivalent.
 - Install a tracing layer during server startup that forwards captured events into:
   - a small in-memory backlog
   - active live stream subscribers
@@ -61,6 +73,9 @@ Logs should come from backend `tracing::info!`, `tracing::warn!`, and `tracing::
 
 - Maintain a small in-memory backlog on the server for new subscribers.
 - Default backlog size: 20 most recent log events.
+- Use `VecDeque` so insertion order is preserved and dropping the oldest entry stays O(1).
+- When a client subscribes, clone the current `VecDeque` contents in order and replay them before attaching the client to the live stream.
+- After replay finishes, continue streaming by awaiting new events from that subscriber's channel rather than polling the backlog.
 - Replay the backlog immediately when a client subscribes, before live streaming begins.
 
 ### 7. Styling and rendering details
