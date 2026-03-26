@@ -66,13 +66,13 @@ mod tests {
             .await
             .expect("backlog item")
             .expect("backlog data");
-        assert!(backlog.contains("\"message\":\"backlog\""));
+        assert!(backlog.contains("\"m\":\"backlog\""));
 
         guard.with_test_subscriber(|| {
             tracing::info!("live");
         });
 
         let live = stream.next().await.expect("live item").expect("live data");
-        assert!(live.contains("\"message\":\"live\""));
+        assert!(live.contains("\"m\":\"live\""));
     }
 }
