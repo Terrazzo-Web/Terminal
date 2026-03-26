@@ -72,6 +72,6 @@ mod tests {
         });
 
         let live = stream.next().await.expect("live item").expect("live data");
-        assert!(live.contains("\"m\":\"live\""));
+        assert!(live.contains("\"message\":\"live\""));
     }
 }
