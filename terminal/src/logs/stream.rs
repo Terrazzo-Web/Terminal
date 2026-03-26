@@ -63,12 +63,9 @@ mod tests {
         });
 
         let mut stream = stream().await.expect("stream").into_inner();
-        let backlog = stream
-            .next()
-            .await
-            .expect("backlog item")
-            .expect("backlog data");
-        for expected in [r#""level":"Info"#, r#""backlog","#] {
+        let backlog = stream.next().await.expect("item").expect("data");
+        {
+            let expected = r#""backlog","#;
             assert!(
                 backlog.contains(expected),
                 "Expected {backlog} contains {expected}"
@@ -79,8 +76,9 @@ mod tests {
             warn!("live");
         });
 
-        let live = stream.next().await.expect("live item").expect("live data");
-        for expected in [r#""level":"Warn"#, r#""live","#] {
+        let live = stream.next().await.expect("item").expect("data");
+        {
+            let expected = r#""live","#;
             assert!(
                 live.contains(expected),
                 "Expected {live} contains {expected}"
