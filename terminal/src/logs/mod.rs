@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 mod event;
-mod logs;
 mod state;
+mod stream;
 mod subscription;
 mod tests;
 mod tracing;

@@ -6,8 +6,8 @@ use server_fn::codec::TextStream;
 use terrazzo::server;
 
 #[server(protocol = Http<Json, StreamingText>)]
-pub async fn stream_logs() -> Result<TextStream<ServerFnError>, ServerFnError> {
-    imp::stream_logs().await
+pub async fn stream() -> Result<TextStream<ServerFnError>, ServerFnError> {
+    imp::stream_impl().await
 }
 
 #[cfg(feature = "server")]
@@ -19,7 +19,7 @@ mod imp {
     use crate::logs::event::LogEvent;
     use crate::logs::state::LogState;
 
-    pub(super) async fn stream_logs() -> Result<TextStream<ServerFnError>, ServerFnError> {
+    pub(super) async fn stream_impl() -> Result<TextStream<ServerFnError>, ServerFnError> {
         let subscription = LogState::get().subscribe();
         let stream = futures::stream::unfold(subscription, |mut subscription| async move {
             let next = if let Some(event) = subscription.backlog.pop_front() {
@@ -49,7 +49,7 @@ mod imp {
 mod tests {
     use futures::StreamExt as _;
 
-    use crate::logs::logs::stream_logs;
+    use crate::logs::stream::stream;
     use crate::logs::tests::TestGuard;
 
     #[tokio::test]
@@ -59,7 +59,7 @@ mod tests {
             tracing::info!("backlog");
         });
 
-        let mut stream = stream_logs().await.expect("stream").into_inner();
+        let mut stream = stream().await.expect("stream").into_inner();
         let backlog = stream
             .next()
             .await
