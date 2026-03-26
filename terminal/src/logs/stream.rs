@@ -49,6 +49,8 @@ mod imp {
 #[cfg(feature = "server")]
 mod tests {
     use futures::StreamExt as _;
+    use tracing::info;
+    use tracing::warn;
 
     use crate::logs::stream::stream;
     use crate::logs::tests::TestGuard;
@@ -57,7 +59,7 @@ mod tests {
     async fn stream_logs_replays_backlog_and_then_live_events() {
         let guard = TestGuard::get();
         guard.with_test_subscriber(|| {
-            tracing::info!("backlog");
+            info!("backlog");
         });
 
         let mut stream = stream().await.expect("stream").into_inner();
@@ -66,13 +68,23 @@ mod tests {
             .await
             .expect("backlog item")
             .expect("backlog data");
-        assert!(backlog.contains("\"m\":\"backlog\""));
+        for expected in [r#""level":"Info"#, r#""backlog","#] {
+            assert!(
+                backlog.contains(expected),
+                "Expected {backlog} contains {expected}"
+            );
+        }
 
         guard.with_test_subscriber(|| {
-            tracing::info!("live");
+            warn!("live");
         });
 
         let live = stream.next().await.expect("live item").expect("live data");
-        assert!(live.contains("\"m\":\"live\""));
+        for expected in [r#""level":"Warn"#, r#""live","#] {
+            assert!(
+                live.contains(expected),
+                "Expected {live} contains {expected}"
+            );
+        }
     }
 }
