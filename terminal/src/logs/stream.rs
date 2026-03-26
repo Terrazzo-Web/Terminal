@@ -46,6 +46,7 @@ mod imp {
 }
 
 #[cfg(test)]
+#[cfg(feature = "server")]
 mod tests {
     use futures::StreamExt as _;
 
