@@ -28,7 +28,7 @@ pub struct LogState {
 impl LogState {
     pub fn get() -> &'static Self {
         static INSTANCE: OnceLock<LogState> = OnceLock::new();
-        INSTANCE.get_or_init(|| LogState::default())
+        INSTANCE.get_or_init(LogState::default)
     }
 }
 
