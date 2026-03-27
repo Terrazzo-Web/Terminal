@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::sync::OnceLock;
 
 use terrazzo::autoclone;
@@ -16,6 +17,8 @@ use self::diagnostics::warn;
 use crate::assets::icons;
 use crate::frontend::menu::app;
 use crate::frontend::remotes::Remote;
+use crate::logs::ClientLogEvent;
+use crate::logs::LogsEngine;
 use crate::state::app::App;
 
 stylance::import_style!(style, "login.scss");
@@ -94,17 +97,51 @@ pub enum LoggedInStatus {
 #[html]
 #[template]
 fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
-    match app {
-        #[cfg(feature = "terminal")]
-        App::Terminal => {
-            drop(remote);
-            div(|t| crate::terminal::terminals(t))
-        }
-        #[cfg(feature = "text-editor")]
-        App::TextEditor => div(move |t| crate::text_editor::ui::text_editor(t, remote.clone())),
-        #[cfg(feature = "converter")]
-        App::Converter => div(move |t| crate::converter::ui::converter(t, remote.clone())),
-        #[cfg(feature = "port-forward")]
-        App::PortForward => div(move |t| crate::portforward::ui::port_forward(t, remote.clone())),
-    }
+    let content = div(
+        class = style::app_content,
+        match app {
+            #[cfg(feature = "terminal")]
+            App::Terminal => {
+                drop(remote);
+                div(|t| crate::terminal::terminals(t))
+            }
+            #[cfg(feature = "text-editor")]
+            App::TextEditor => div(move |t| crate::text_editor::ui::text_editor(t, remote.clone())),
+            #[cfg(feature = "converter")]
+            App::Converter => div(move |t| crate::converter::ui::converter(t, remote.clone())),
+            #[cfg(feature = "port-forward")]
+            App::PortForward => {
+                div(move |t| crate::portforward::ui::port_forward(t, remote.clone()))
+            }
+        },
+    );
+    let logs_engine = LogsEngine::new();
+    div(
+        class = style::app_shell,
+        content,
+        div(move |t| show_logs(t, logs_engine.logs())),
+    )
+}
+
+#[html]
+#[template]
+fn show_logs(#[signal] logs: Arc<Vec<ClientLogEvent>>) -> XElement {
+    div(
+        class = style::logs_panel,
+        ol(
+            class = style::logs_list,
+            logs.iter()
+                .map(|log| {
+                    let level = log.level.to_string();
+                    let message = log.message.clone();
+                    li(
+                        key = log.id.to_string(),
+                        class = style::log_item,
+                        span(class = style::log_level, "{level}"),
+                        span(class = style::log_message, "{message}"),
+                    )
+                })
+                .collect::<Vec<_>>()..,
+        ),
+    )
 }
