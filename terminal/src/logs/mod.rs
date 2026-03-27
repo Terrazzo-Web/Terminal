@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 
 mod client;
 mod event;
@@ -15,7 +14,4 @@ pub use self::tracing::init_tracing;
 pub use self::tracing::EnableTracingError;
 
 #[cfg(feature = "client")]
-pub use self::client::engine::LogsEngine;
-
-#[cfg(feature = "client")]
-pub use self::client::engine::ClientLogEvent;
+pub use self::client::panel::panel;

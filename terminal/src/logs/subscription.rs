@@ -8,8 +8,6 @@ use crate::logs::state::LogState;
 
 use super::event::LogEvent;
 
-const BACKLOG_CAPACITY: usize = 20;
-
 pub struct LogSubscription {
     pub backlog: VecDeque<Arc<LogEvent>>,
     pub receiver: mpsc::UnboundedReceiver<Arc<LogEvent>>,

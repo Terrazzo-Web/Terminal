@@ -1,5 +1,3 @@
-use std::sync::Arc;
-use std::sync::LazyLock;
 use std::sync::OnceLock;
 
 use terrazzo::autoclone;
@@ -17,11 +15,8 @@ use self::diagnostics::info;
 use self::diagnostics::warn;
 use crate::assets::icons;
 use crate::frontend::menu::app;
-use crate::frontend::mousemove::MousemoveManager;
-use crate::frontend::mousemove::Position;
 use crate::frontend::remotes::Remote;
-use crate::logs::ClientLogEvent;
-use crate::logs::LogsEngine;
+use crate::logs;
 use crate::state::app::App;
 
 stylance::import_style!(style, "login.scss");
@@ -118,57 +113,5 @@ fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
             }
         },
     );
-    let logs_engine = LogsEngine::new();
-    let logs = logs_engine.logs();
-    div(
-        before_render = move |_| {
-            let _ = &logs_engine;
-        },
-        class = style::app_shell,
-        content,
-        show_logs_resize_bar(),
-        div(move |t| show_logs(t, logs.clone())),
-    )
+    div(class = style::app_shell, content, logs::panel())
 }
-
-#[html]
-#[template]
-fn show_logs(#[signal] logs: Arc<Vec<ClientLogEvent>>) -> XElement {
-    div(
-        class = style::logs_panel,
-        style::height %= logs_panel_height(LOGS_RESIZE_MANAGER.delta.clone()),
-        style::max_height %= logs_panel_height(LOGS_RESIZE_MANAGER.delta.clone()),
-        ol(
-            class = style::logs_list,
-            logs.iter()
-                .map(|log| {
-                    let level = log.level.to_string();
-                    let message = log.message.clone();
-                    li(
-                        key = log.id.to_string(),
-                        class = style::log_item,
-                        span(class = style::log_level, "{level}"),
-                        span(class = style::log_message, "{message}"),
-                    )
-                })
-                .collect::<Vec<_>>()..,
-        ),
-    )
-}
-
-#[template(wrap = true)]
-fn logs_panel_height(#[signal] position: Option<Position>) -> XAttributeValue {
-    position.map(|position| format!("max(3rem, calc(14rem - {}px))", position.y))
-}
-
-#[html]
-fn show_logs_resize_bar() -> XElement {
-    div(
-        class = style::logs_resize_bar,
-        mousedown = LOGS_RESIZE_MANAGER.mousedown(),
-        dblclick = |_| LOGS_RESIZE_MANAGER.delta.set(None),
-        div(div()),
-    )
-}
-
-static LOGS_RESIZE_MANAGER: LazyLock<MousemoveManager> = LazyLock::new(MousemoveManager::new);
