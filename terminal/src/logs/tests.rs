@@ -13,9 +13,8 @@ use tracing::warn;
 use tracing_subscriber::Registry;
 use tracing_subscriber::layer::SubscriberExt as _;
 
-use crate::logs::state::LogState;
-
 use super::tracing::LogStreamLayer;
+use crate::logs::state::LogState;
 
 pub struct TestGuard<'t>(std::sync::MutexGuard<'t, ()>);
 

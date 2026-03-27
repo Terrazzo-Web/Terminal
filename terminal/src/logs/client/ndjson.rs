@@ -24,10 +24,9 @@ impl NdjsonBuffer {
 
 #[cfg(test)]
 mod tests {
+    use super::NdjsonBuffer;
     use crate::logs::event::LogEvent;
     use crate::logs::event::LogLevel;
-
-    use super::NdjsonBuffer;
 
     #[test]
     fn splits_lines_and_parses_ndjson_chunks() {

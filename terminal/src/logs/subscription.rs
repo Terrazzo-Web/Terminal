@@ -2,11 +2,11 @@
 
 use std::collections::VecDeque;
 use std::sync::Arc;
+
 use tokio::sync::mpsc;
 
-use crate::logs::state::LogState;
-
 use super::event::LogEvent;
+use crate::logs::state::LogState;
 
 pub struct LogSubscription {
     pub backlog: VecDeque<Arc<LogEvent>>,
