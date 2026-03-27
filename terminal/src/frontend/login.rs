@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::sync::OnceLock;
 
 use terrazzo::autoclone;
@@ -16,6 +17,8 @@ use self::diagnostics::info;
 use self::diagnostics::warn;
 use crate::assets::icons;
 use crate::frontend::menu::app;
+use crate::frontend::mousemove::MousemoveManager;
+use crate::frontend::mousemove::Position;
 use crate::frontend::remotes::Remote;
 use crate::logs::ClientLogEvent;
 use crate::logs::LogsEngine;
@@ -123,6 +126,7 @@ fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
         },
         class = style::app_shell,
         content,
+        show_logs_resize_bar(),
         div(move |t| show_logs(t, logs.clone())),
     )
 }
@@ -132,6 +136,8 @@ fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
 fn show_logs(#[signal] logs: Arc<Vec<ClientLogEvent>>) -> XElement {
     div(
         class = style::logs_panel,
+        style::height %= logs_panel_height(LOGS_RESIZE_MANAGER.delta.clone()),
+        style::max_height %= logs_panel_height(LOGS_RESIZE_MANAGER.delta.clone()),
         ol(
             class = style::logs_list,
             logs.iter()
@@ -149,3 +155,20 @@ fn show_logs(#[signal] logs: Arc<Vec<ClientLogEvent>>) -> XElement {
         ),
     )
 }
+
+#[template(wrap = true)]
+fn logs_panel_height(#[signal] position: Option<Position>) -> XAttributeValue {
+    position.map(|position| format!("max(3rem, calc(14rem - {}px))", position.y))
+}
+
+#[html]
+fn show_logs_resize_bar() -> XElement {
+    div(
+        class = style::logs_resize_bar,
+        mousedown = LOGS_RESIZE_MANAGER.mousedown(),
+        dblclick = |_| LOGS_RESIZE_MANAGER.delta.set(None),
+        div(div()),
+    )
+}
+
+static LOGS_RESIZE_MANAGER: LazyLock<MousemoveManager> = LazyLock::new(MousemoveManager::new);

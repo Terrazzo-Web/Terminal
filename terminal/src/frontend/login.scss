@@ -32,6 +32,39 @@ div.app-content {
     min-height: 0;
 }
 
+div.logs-resize-bar {
+    position: relative;
+    width: 100%;
+    height: 0;
+    z-index: 100;
+
+    >div {
+        --padding: 3px;
+        --width: 5px;
+        position: absolute;
+        top: calc(-1 * var(--padding));
+        width: 100%;
+        padding-top: var(--padding);
+        padding-bottom: var(--padding);
+        cursor: row-resize;
+
+        >div {
+            position: absolute;
+            width: 100%;
+            height: 0;
+            top: 50%;
+            transform: translateY(-50%) scaleY(1);
+            transform-origin: center;
+            transition-duration: 0.2s;
+        }
+
+        &:hover>div {
+            height: var(--width);
+            background-color: var(--color);
+        }
+    }
+}
+
 div.logs-panel {
     flex: 0 0 auto;
     max-height: 14rem;
