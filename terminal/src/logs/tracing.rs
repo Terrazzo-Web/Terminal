@@ -3,9 +3,6 @@
 use std::fmt;
 use std::panic::Location;
 
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::EnvFilter;
-
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use tracing::Event;
@@ -13,8 +10,10 @@ use tracing::Id;
 use tracing::Subscriber;
 use tracing::field::Field;
 use tracing::field::Visit;
+use tracing::level_filters::LevelFilter;
 use tracing::span::Attributes;
 use tracing::warn;
+use tracing_subscriber::EnvFilter;
 use tracing_subscriber::Layer;
 use tracing_subscriber::layer::SubscriberExt as _;
 use tracing_subscriber::util::SubscriberInitExt as _;
