@@ -116,10 +116,14 @@ fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
         },
     );
     let logs_engine = LogsEngine::new();
+    let logs = logs_engine.logs();
     div(
+        before_render = move |_| {
+            let _ = &logs_engine;
+        },
         class = style::app_shell,
         content,
-        div(move |t| show_logs(t, logs_engine.logs())),
+        div(move |t| show_logs(t, logs.clone())),
     )
 }
 

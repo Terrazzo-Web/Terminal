@@ -3,12 +3,14 @@ use std::sync::Arc;
 use futures::StreamExt as _;
 use futures::future::AbortHandle;
 use futures::future::Abortable;
+use scopeguard::defer;
 use server_fn::ServerFnError;
 use server_fn::codec::TextStream;
 use terrazzo::prelude::XSignal;
 use terrazzo::prelude::diagnostics;
 use wasm_bindgen_futures::spawn_local;
 
+use self::diagnostics::debug;
 use self::diagnostics::warn;
 use super::ndjson::NdjsonBuffer;
 use crate::logs::event::LogEvent;
@@ -36,7 +38,10 @@ impl LogsEngine {
             }
         };
         spawn_local(async move {
-            let _ = Abortable::new(consume_stream, abort_registration).await;
+            match Abortable::new(consume_stream, abort_registration).await {
+                Ok(()) => debug!("Logs stream finished"),
+                Err(_) => debug!("Logs stream aborted"),
+            }
         });
 
         Self { logs, abort_handle }
@@ -49,6 +54,7 @@ impl LogsEngine {
 
 impl Drop for LogsEngine {
     fn drop(&mut self) {
+        debug!("Dropping LogsEngine, aborting log stream");
         self.abort_handle.abort();
     }
 }
@@ -57,6 +63,8 @@ async fn consume_stream(
     logs: XSignal<Arc<Vec<ClientLogEvent>>>,
     stream: TextStream<ServerFnError>,
 ) {
+    debug!("Start");
+    defer!(debug!("End"));
     let mut parser = NdjsonBuffer::default();
     let mut stream = stream.into_inner();
     while let Some(chunk) = stream.next().await {
