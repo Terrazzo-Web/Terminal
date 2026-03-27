@@ -1,3 +1,5 @@
+use prost_types::Option;
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct LogEvent {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "i"))]
@@ -8,6 +10,8 @@ pub struct LogEvent {
     pub message: String,
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "t"))]
     pub timestamp_ms: u64,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "f"))]
+    pub file: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -18,6 +22,8 @@ pub enum LogLevel {
     Warn,
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "E"))]
     Error,
+    #[cfg_attr(not(feature = "diagnostics"), serde(rename = "D"))]
+    Debug,
 }
 
 impl std::fmt::Display for LogLevel {
@@ -26,6 +32,7 @@ impl std::fmt::Display for LogLevel {
             Self::Info => "INFO",
             Self::Warn => "WARN",
             Self::Error => "ERROR",
+            Self::Debug => "DEBUG",
         }
         .fmt(f)
     }

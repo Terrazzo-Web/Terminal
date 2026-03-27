@@ -64,25 +64,16 @@ mod tests {
 
         let mut stream = stream().await.expect("stream").into_inner();
         let backlog = stream.next().await.expect("item").expect("data");
-        {
-            let expected = r#""backlog","#;
-            assert!(
-                backlog.contains(expected),
-                "Expected {backlog} contains {expected}"
-            );
-        }
+        assert!(
+            backlog.contains("backlog"),
+            "Expected {backlog} contains backlog"
+        );
 
         guard.with_test_subscriber(|| {
             warn!("live");
         });
 
         let live = stream.next().await.expect("item").expect("data");
-        {
-            let expected = r#""live","#;
-            assert!(
-                live.contains(expected),
-                "Expected {live} contains {expected}"
-            );
-        }
+        assert!(live.contains("live"), "Expected {live} contains live");
     }
 }
