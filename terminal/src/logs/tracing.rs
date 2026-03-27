@@ -92,7 +92,7 @@ where
 
         let mut visitor = LogEventVisitor::default();
         event.record(&mut visitor);
-        let message = visitor.finish(  ctx.event_scope(event));
+        let message = visitor.finish(ctx.event_scope(event));
 
         let file = metadata.file().map(|file| match metadata.line() {
             Some(line) => format!("{file}:{line}"),
@@ -118,10 +118,7 @@ impl LogEventVisitor {
         }
     }
 
-    fn finish<S>(
-        mut self,
-        scope: Option<tracing_subscriber::registry::Scope<'_, S>>,
-    ) -> String
+    fn finish<S>(mut self, scope: Option<tracing_subscriber::registry::Scope<'_, S>>) -> String
     where
         S: Subscriber + for<'lookup> tracing_subscriber::registry::LookupSpan<'lookup>,
     {

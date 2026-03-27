@@ -40,7 +40,7 @@ struct LogStateInner {
 }
 
 impl LogState {
-    pub fn publish(&self, level: LogLevel, message: String,file:Option<String>) {
+    pub fn publish(&self, level: LogLevel, message: String, file: Option<String>) {
         let event = Arc::new(LogEvent {
             id: self.next_event_id.fetch_add(1, Ordering::Relaxed) + 1,
             level,
@@ -49,7 +49,7 @@ impl LogState {
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_millis() as u64,
-            file 
+            file,
         });
 
         let mut inner = self.lock();
