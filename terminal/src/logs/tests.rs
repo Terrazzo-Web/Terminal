@@ -17,7 +17,7 @@ use tracing_subscriber::layer::SubscriberExt as _;
 use super::tracing::LogStreamLayer;
 use crate::logs::state::LogState;
 
-pub struct TestGuard<'t>(std::sync::MutexGuard<'t, ()>);
+pub struct TestGuard<'t>(#[allow(dead_code)] std::sync::MutexGuard<'t, ()>);
 
 impl TestGuard<'_> {
     pub fn get() -> Self {
@@ -59,17 +59,17 @@ fn captures_debug_info_warn_and_error() {
 fn includes_span_context_and_source_location() {
     let guard = TestGuard::get();
     guard.with_test_subscriber(|| {
-        let span = info_span!("Polling config file", config_file_path = "/tmp/config.toml");
+        let span = info_span!("The span", config_file_path = "/tmp/config.toml");
         let _entered = span.enter();
-        debug!("Polling config file");
+        debug!("The message");
     });
 
     let subscription = LogState::get().subscribe();
     let message = &subscription.backlog.front().expect("log").message;
-    assert!(message.contains("Polling config file: "));
-    assert!(message.contains("terminal/src/logs/tests.rs:"));
-    assert!(message.contains("Polling config file"));
-    assert!(message.contains("config_file_path=\"/tmp/config.toml\""));
+    assert_eq!(
+        message,
+        r#"The span: The message config_file_path="/tmp/config.toml""#
+    );
 }
 
 #[test]
@@ -84,9 +84,9 @@ fn keeps_only_the_newest_twenty_logs() {
     let subscription = LogState::get().subscribe();
     assert_eq!(subscription.backlog.len(), 20);
     let first = subscription.backlog.front().expect("first");
-    assert!(first.message.ends_with(": event 6"), "{first:?}");
+    assert!(first.message == "event 6", "{first:?}");
     let last = subscription.backlog.back().expect("last");
-    assert!(last.message.ends_with(": event 25"), "{last:?}");
+    assert!(last.message == "event 25", "{last:?}");
 }
 
 #[tokio::test]
@@ -98,14 +98,9 @@ async fn replays_backlog_before_live_events() {
 
     let mut subscription = LogState::get().subscribe();
     assert_eq!(subscription.backlog.len(), 1);
-    assert!(
-        subscription
-            .backlog
-            .front()
-            .expect("backlog")
-            .message
-            .ends_with(": before subscribe")
-    );
+
+    let first = subscription.backlog.front().expect("first");
+    assert!(first.message == "before subscribe", "Got {first:?}");
 
     guard.with_test_subscriber(|| {
         info!("after subscribe");
@@ -114,5 +109,5 @@ async fn replays_backlog_before_live_events() {
     let live = tokio::time::timeout(Duration::from_secs(1), subscription.receiver.recv())
         .map(|result| result.expect("timeout").expect("event"))
         .await;
-    assert!(live.message.ends_with(": after subscribe"));
+    assert!(live.message == "after subscribe", "Got {live:?}");
 }
