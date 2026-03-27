@@ -76,7 +76,9 @@ tracing = { workspace = true, optional = true }
 tracing-futures = { workspace = true, features = [
     "futures-03",
 ], optional = true }
-tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
+tracing-subscriber = { workspace = true, optional = true, features = [
+    "env-filter",
+] }
 trz-gateway-client = { workspace = true, optional = true }
 trz-gateway-common = { workspace = true, optional = true }
 trz-gateway-server = { workspace = true, optional = true, features = ["acme"] }
@@ -117,6 +119,7 @@ client-all = [
 ]
 
 client = [
+    "dep:futures",
     "dep:stylance",
     "dep:wasm-bindgen-futures",
     "dep:wasm-bindgen",

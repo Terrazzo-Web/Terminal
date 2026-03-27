@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+mod client;
 mod event;
 mod state;
 mod stream;
