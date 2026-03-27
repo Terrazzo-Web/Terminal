@@ -35,6 +35,7 @@ mod tests {
             level: LogLevel::Info,
             message: "first".to_owned(),
             timestamp_ms: 11,
+            file: None,
         })
         .expect("event1");
         let event2 = serde_json::to_string(&LogEvent {
@@ -42,6 +43,7 @@ mod tests {
             level: LogLevel::Warn,
             message: "second".to_owned(),
             timestamp_ms: 22,
+            file: None,
         })
         .expect("event2");
 

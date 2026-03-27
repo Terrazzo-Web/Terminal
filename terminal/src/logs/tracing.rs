@@ -81,7 +81,8 @@ where
     }
 
     fn on_event(&self, event: &Event<'_>, ctx: tracing_subscriber::layer::Context<'_, S>) {
-        let level = match *event.metadata().level() {
+        let metadata = event.metadata();
+        let level = match *metadata.level() {
             tracing::Level::INFO => LogLevel::Info,
             tracing::Level::WARN => LogLevel::Warn,
             tracing::Level::ERROR => LogLevel::Error,
@@ -91,8 +92,14 @@ where
 
         let mut visitor = LogEventVisitor::default();
         event.record(&mut visitor);
-        let message = visitor.finish(event.metadata(), ctx.event_scope(event));
-        LogState::get().publish(level, message);
+        let message = visitor.finish(  ctx.event_scope(event));
+
+        let file = metadata.file().map(|file| match metadata.line() {
+            Some(line) => format!("{file}:{line}"),
+            None => file.to_owned(),
+        });
+
+        LogState::get().publish(level, message, file);
     }
 }
 
@@ -113,7 +120,6 @@ impl LogEventVisitor {
 
     fn finish<S>(
         mut self,
-        metadata: &tracing::Metadata<'_>,
         scope: Option<tracing_subscriber::registry::Scope<'_, S>>,
     ) -> String
     where
@@ -128,13 +134,6 @@ impl LogEventVisitor {
                 }
             }
         }
-        if let Some(file) = metadata.file() {
-            match metadata.line() {
-                Some(line) => prefixes.push(format!("{file}:{line}")),
-                None => prefixes.push(file.to_owned()),
-            }
-        }
-
         let body = match (self.message, self.fields.is_empty()) {
             (Some(message), true) => message,
             (Some(message), false) => format!("{message} {}", self.fields.join(" ")),

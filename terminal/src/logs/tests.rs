@@ -49,10 +49,10 @@ fn captures_debug_info_warn_and_error() {
         .map(|log| log.message.clone())
         .collect();
     assert_eq!(messages.len(), 4);
-    assert!(messages[0].ends_with(": debug"));
-    assert!(messages[1].ends_with(": info"));
-    assert!(messages[2].ends_with(": warn"));
-    assert!(messages[3].ends_with(": error"));
+    assert!(messages[0] == "debug", "Got {:?}", messages[0]);
+    assert!(messages[1] == "info", "Got {:?}", messages[1]);
+    assert!(messages[2] == "warn", "Got {:?}", messages[2]);
+    assert!(messages[3] == "error", "Got {:?}", messages[3]);
 }
 
 #[test]
@@ -83,22 +83,10 @@ fn keeps_only_the_newest_twenty_logs() {
 
     let subscription = LogState::get().subscribe();
     assert_eq!(subscription.backlog.len(), 20);
-    assert!(
-        subscription
-            .backlog
-            .front()
-            .expect("first")
-            .message
-            .ends_with(": event 6")
-    );
-    assert!(
-        subscription
-            .backlog
-            .back()
-            .expect("last")
-            .message
-            .ends_with(": event 25")
-    );
+    let first = subscription.backlog.front().expect("first");
+    assert!(first.message.ends_with(": event 6"), "{first:?}");
+    let last = subscription.backlog.back().expect("last");
+    assert!(last.message.ends_with(": event 25"), "{last:?}");
 }
 
 #[tokio::test]

@@ -96,21 +96,23 @@ async fn consume_stream(
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClientLogEvent {
-    pub id: u64,
-    pub level: crate::logs::event::LogLevel,
-    pub message: String,
-    pub timestamp_ms: u64,
+    event: LogEvent,
     pub received_at_ms: u64,
 }
 
 impl ClientLogEvent {
     pub(super) fn new(event: LogEvent) -> Self {
         Self {
-            id: event.id,
-            level: event.level,
-            message: event.message,
-            timestamp_ms: event.timestamp_ms,
+            event,
             received_at_ms: web_sys::js_sys::Date::now() as u64,
         }
+    }
+}
+
+impl std::ops::Deref for ClientLogEvent {
+    type Target = LogEvent;
+
+    fn deref(&self) -> &Self::Target {
+        &self.event
     }
 }

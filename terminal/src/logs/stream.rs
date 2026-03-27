@@ -39,6 +39,7 @@ mod imp {
                 level: event.level,
                 message: format!("Failed to serialize log event: {error}"),
                 timestamp_ms: event.timestamp_ms,
+                file: None,
             })
             .expect("serialize fallback log event")
         }) + "\n"

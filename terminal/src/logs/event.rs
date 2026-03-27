@@ -1,5 +1,3 @@
-use prost_types::Option;
-
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct LogEvent {
     #[cfg_attr(not(feature = "diagnostics"), serde(rename = "i"))]
