@@ -17,7 +17,7 @@ use super::event::LogEvent;
 use super::event::LogLevel;
 use super::subscription::LogSubscription;
 
-const BACKLOG_CAPACITY: usize = 20;
+const BACKLOG_CAPACITY: usize = if cfg!(debug_assertions) { 1000 } else { 20 };
 
 #[derive(Default)]
 pub struct LogState {

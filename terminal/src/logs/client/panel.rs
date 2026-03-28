@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
@@ -48,21 +49,19 @@ fn show_logs(#[signal] show_logs_panel: bool) -> XElement {
 
 #[html]
 #[template(tag = ol)]
-fn show_logs_list(#[signal] logs: Arc<Vec<ClientLogEvent>>) -> XElement {
+fn show_logs_list(#[signal] logs: Arc<VecDeque<ClientLogEvent>>) -> XElement {
     tag(
         class = style::logs_list,
-        logs.iter()
-            .map(|log| {
-                let level = &log.level;
-                let message = &log.message;
-                li(
-                    key = log.id.to_string(),
-                    class = style::log_item,
-                    div(class = style::log_level, "{level}"),
-                    div(class = style::log_message, "{message}"),
-                )
-            })
-            .collect::<Vec<_>>()..,
+        logs.iter().map(|log| {
+            let level = &log.level;
+            let message = &log.message;
+            li(
+                key = log.id.to_string(),
+                class = style::log_item,
+                div(class = style::log_level, "{level}"),
+                div(class = style::log_message, "{message}"),
+            )
+        })..,
     )
 }
 

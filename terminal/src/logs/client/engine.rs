@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::sync::Arc;
 
 use futures::StreamExt as _;
@@ -16,8 +17,9 @@ use super::ndjson::NdjsonBuffer;
 use crate::logs::event::LogEvent;
 
 const MAX_LOGS: usize = if cfg!(debug_assertions) { 1000 } else { 25 };
+
 pub struct LogsEngine {
-    logs: XSignal<Arc<Vec<ClientLogEvent>>>,
+    logs: XSignal<Arc<VecDeque<ClientLogEvent>>>,
     abort_handle: AbortHandle,
 }
 
@@ -48,7 +50,7 @@ impl LogsEngine {
         Self { logs, abort_handle }
     }
 
-    pub fn logs(&self) -> XSignal<Arc<Vec<ClientLogEvent>>> {
+    pub fn logs(&self) -> XSignal<Arc<VecDeque<ClientLogEvent>>> {
         self.logs.clone()
     }
 }
@@ -61,7 +63,7 @@ impl Drop for LogsEngine {
 }
 
 async fn consume_stream(
-    logs: XSignal<Arc<Vec<ClientLogEvent>>>,
+    logs: XSignal<Arc<VecDeque<ClientLogEvent>>>,
     stream: TextStream<ServerFnError>,
 ) {
     debug!("Start");
@@ -86,7 +88,7 @@ async fn consume_stream(
                     current.extend(new_logs);
                     if current.len() > MAX_LOGS {
                         let start = current.len().saturating_sub(20);
-                        current = current[start..].to_vec();
+                        current.drain(..start);
                     }
                     Some(Arc::new(current))
                 });
