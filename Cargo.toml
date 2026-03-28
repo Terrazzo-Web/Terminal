@@ -3,7 +3,7 @@ members = ["game", "pty", "terminal"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.23"
+version = "0.1.24"
 authors = ["Lamparo <LamparoS@Pavy.one>"]
 edition = "2024"
 repository = "https://github.com/Terrazzo-Web/Terminal"
@@ -24,10 +24,10 @@ panic = "abort"          # The panic strategy.
 incremental = true       # Incremental compilation.
 
 [workspace.dependencies]
-terrazzo-pty = { version = "0.1.23", path = "pty" }
+terrazzo-pty = { version = "0.1.24", path = "pty" }
 
 async-trait = { version = "0.1.89" }
-autoclone = { version = "0.1.23" }
+autoclone = { version = "0.1.24" }
 axum = { version = "0.8.8" }
 axum-extra = { version = "0.12.5" }
 base64 = { version = "0.22.1" }
@@ -56,7 +56,7 @@ jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 libc = { version = "0.2.183" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
-nameth = { version = "0.1.23" }
+nameth = { version = "0.1.24" }
 nix = { version = "0.31.2" }
 notify = { version = "8.2.0" }
 oid-registry = { version = "0.8.1" }
@@ -87,8 +87,8 @@ static_assertions = { version = "1.1.0" }
 stylance = { version = "0.7.4" }
 syn = { version = "2.0.117" }
 tantivy = { version = "0.25.0" }
-terrazzo = { version = "0.1.23", default-features = false }
-terrazzo-build = { version = "0.1.23" }
+terrazzo = { version = "0.1.24", default-features = false }
+terrazzo-build = { version = "0.1.24" }
 thiserror = { version = "2.0.18" }
 tls-parser = { version = "0.12.2" }
 tokio = { version = "1.50.0" }
@@ -105,9 +105,9 @@ tracing = { version = "0.1.44" }
 tracing-futures = { version = "0.2.5" }
 tracing-subscriber = { version = "0.3.22" }
 tracing-subscriber-wasm = { version = "0.1.0" }
-trz-gateway-client = { version = "0.1.23" }
-trz-gateway-common = { version = "0.1.23" }
-trz-gateway-server = { version = "0.1.23" }
+trz-gateway-client = { version = "0.1.24" }
+trz-gateway-common = { version = "0.1.24" }
+trz-gateway-server = { version = "0.1.24" }
 unescaper = { version = "0.1.8" }
 url = { version = "2.5.8" }
 uuid = { version = "1.23.0" }
@@ -128,3 +128,13 @@ enum_variant_names = "allow"
 needless_return = "allow"
 too_many_arguments = "allow"
 type_complexity = "allow"
+
+# <TODO>: remove
+[patch.crates-io]
+nameth = { path = "../Terrazzo/utils/nameth/nameth" }
+terrazzo = { path = "../Terrazzo/framework/terrazzo" }
+terrazzo-build = { path = "../Terrazzo/framework/build" }
+trz-gateway-client = { path = "../Terrazzo/remote/client" }
+trz-gateway-common = { path = "../Terrazzo/remote/common" }
+trz-gateway-server = { path = "../Terrazzo/remote/server" }
+# </TODO>

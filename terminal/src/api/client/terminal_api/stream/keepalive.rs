@@ -5,6 +5,7 @@ use futures::channel::oneshot;
 use nameth::NamedEnumValues as _;
 use nameth::nameth;
 use terrazzo::prelude::diagnostics;
+use terrazzo::widgets::sleep::sleep;
 use wasm_bindgen_futures::spawn_local;
 
 use self::diagnostics::Instrument as _;
@@ -17,7 +18,6 @@ use crate::api::client::request::send_request;
 use crate::api::client::request::set_correlation_id;
 use crate::api::client::request::set_headers;
 use crate::api::client::terminal_api::BASE_TERMINAL_URL;
-use crate::frontend::sleep::sleep;
 
 #[nameth]
 pub fn keepalive(
