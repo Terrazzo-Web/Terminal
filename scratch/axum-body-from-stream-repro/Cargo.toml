@@ -1,0 +1,12 @@
+[package]
+name = "axum-body-from-stream-repro"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+axum = "0.8.8"
+futures = "0.3.32"
+tokio = { version = "1.50.0", features = ["full"] }
