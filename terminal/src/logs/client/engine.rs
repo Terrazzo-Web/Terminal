@@ -15,6 +15,7 @@ use self::diagnostics::warn;
 use super::ndjson::NdjsonBuffer;
 use crate::logs::event::LogEvent;
 
+const MAX_LOGS: usize = if cfg!(debug_assertions) { 1000 } else { 25 };
 pub struct LogsEngine {
     logs: XSignal<Arc<Vec<ClientLogEvent>>>,
     abort_handle: AbortHandle,
@@ -83,6 +84,10 @@ async fn consume_stream(
                 logs.update(|current| {
                     let mut current = current.as_ref().clone();
                     current.extend(new_logs);
+                    if current.len() > MAX_LOGS {
+                        let start = current.len().saturating_sub(20);
+                        current = current[start..].to_vec();
+                    }
                     Some(Arc::new(current))
                 });
             }
