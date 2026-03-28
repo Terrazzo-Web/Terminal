@@ -81,7 +81,7 @@ serde_urlencoded = { version = "0.7.1" }
 serde_yaml_ng = { version = "0.10.0" }
 serde-wasm-bindgen = { version = "0.6.5" }
 server_fn = { version = "0.8.11" }
-sha2 = { version = "0.11.0" }
+sha2 = { version = "0.10.9" }
 simple_asn1 = { version = "0.6.4" }
 static_assertions = { version = "1.1.0" }
 stylance = { version = "0.7.4" }
