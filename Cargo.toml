@@ -81,7 +81,7 @@ serde_urlencoded = { version = "0.7.1" }
 serde_yaml_ng = { version = "0.10.0" }
 serde-wasm-bindgen = { version = "0.6.5" }
 server_fn = { version = "0.8.11" }
-sha2 = { version = "0.10.9" }
+sha2 = { version = "0.11.0" }
 simple_asn1 = { version = "0.6.4" }
 static_assertions = { version = "1.1.0" }
 stylance = { version = "0.7.4" }
@@ -110,12 +110,12 @@ trz-gateway-common = { version = "0.1.23" }
 trz-gateway-server = { version = "0.1.23" }
 unescaper = { version = "0.1.8" }
 url = { version = "2.5.8" }
-uuid = { version = "1.22.0" }
-wasm-bindgen = { version = "0.2.114" }
-wasm-bindgen-futures = { version = "0.4.64" }
+uuid = { version = "1.23.0" }
+wasm-bindgen = { version = "0.2.115" }
+wasm-bindgen-futures = { version = "0.4.65" }
 wasm-bindgen-test = { version = "0.3.64" }
 wasm-streams = { version = "0.5.0" }
-web-sys = { version = "0.3.91" }
+web-sys = { version = "0.3.92" }
 x509-parser = { version = "0.18.1" }
 
 [workspace.lints.rust]
