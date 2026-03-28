@@ -42,8 +42,8 @@ fn show_logs(#[signal] logs: Arc<Vec<ClientLogEvent>>) -> XElement {
                     li(
                         key = log.id.to_string(),
                         class = style::log_item,
-                        span(class = style::log_level, "{level}"),
-                        span(class = style::log_message, "{message}"),
+                        div(class = style::log_level, "{level}"),
+                        div(class = style::log_message, "{message}"),
                     )
                 })
                 .collect::<Vec<_>>()..,

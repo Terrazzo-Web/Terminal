@@ -43,22 +43,33 @@ div.logs-panel {
 ol.logs-list {
     margin: 0;
     padding-left: calc(var(--padding) * 2);
-}
 
-li.log-item {
-    margin: 0;
-    padding: calc(var(--padding) / 8) 0;
-    font-family: "Iosevka Term", "Fira Mono", monospace;
-    font-size: 0.875rem;
-}
+    li.log-item {
+        margin: 0;
+        padding: calc(var(--padding) / 8) 0;
 
-span.log-level {
-    display: inline-block;
-    min-width: 4rem;
-    font-weight: 700;
-}
+        display: flex;
+        flex-direction: row;
 
-span.log-message {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
+        .log-level {
+            display: inline-block;
+            min-width: 4rem;
+            font-weight: 700;
+        }
+
+        .log-message {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+
+    li.log-item:hover {
+        .log-message {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: unset;
+        }
+    }
 }
