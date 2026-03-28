@@ -4,7 +4,6 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use self::diagnostics::warn;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
@@ -13,6 +12,7 @@ use terrazzo::widgets::element_capture::ElementCapture;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlDivElement;
 
+use self::diagnostics::warn;
 use super::engine::ClientLogEvent;
 use super::engine::LogsEngine;
 use crate::frontend::mousemove::MousemoveManager;
