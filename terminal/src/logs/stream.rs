@@ -13,13 +13,17 @@ pub async fn stream() -> Result<TextStream<ServerFnError>, ServerFnError> {
 #[cfg(feature = "server")]
 mod imp {
     use futures::StreamExt as _;
+    use scopeguard::guard;
     use server_fn::ServerFnError;
     use server_fn::codec::TextStream;
+    use tracing::info;
 
     use crate::logs::event::LogEvent;
     use crate::logs::state::LogState;
 
     pub(super) async fn stream_impl() -> Result<TextStream<ServerFnError>, ServerFnError> {
+        info!("Starting log stream");
+        let end = guard((), |_| info!("Ending log stream"));
         let subscription = LogState::get().subscribe();
         let stream = futures::stream::unfold(subscription, |mut subscription| async move {
             let next = if let Some(event) = subscription.backlog.pop_front() {
@@ -28,6 +32,9 @@ mod imp {
                 subscription.receiver.recv().await
             }?;
             Some((serialize_log_event(&next), subscription))
+        });
+        let stream = stream.inspect(move |_| {
+            let _ = &end;
         });
         Ok(TextStream::new(stream.map(Ok)))
     }

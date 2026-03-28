@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use self::diagnostics::warn;
+use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
@@ -11,57 +12,58 @@ use super::engine::LogsEngine;
 use crate::frontend::mousemove::MousemoveManager;
 use crate::frontend::mousemove::Position;
 use wasm_bindgen::JsCast;
-use web_sys::MouseEvent;
 
 stylance::import_style!(style, "panel.scss");
 
 #[html]
 #[template(tag = div)]
 pub fn panel() -> XElement {
-    let logs_engine = LogsEngine::new();
-    let logs = logs_engine.logs();
     let show_logs_panel = XSignal::new("show-logs-panel", false);
     tag(
-        before_render = move |_| {
-            let _ = &logs_engine;
-        },
         show_resize_bar(show_logs_panel.clone()),
-        show_logs(logs, show_logs_panel.clone()),
+        show_logs(show_logs_panel.clone()),
     )
 }
 
 #[html]
 #[template(tag = div)]
-fn show_logs(
-    #[signal] logs: Arc<Vec<ClientLogEvent>>,
-    #[signal] mut show_logs_panel: bool,
-) -> XElement {
+fn show_logs(#[signal] show_logs_panel: bool) -> XElement {
     if show_logs_panel {
+        let logs_engine = LogsEngine::new();
+        let logs = logs_engine.logs();
         tag(
             class = style::logs_panel,
+            before_render = move |_| {
+                let _ = &logs_engine;
+            },
             after_render = after_logs_render,
             style::height %= logs_panel_height(RESIZE_MANAGER.delta.clone()),
             style::max_height %= logs_panel_height(RESIZE_MANAGER.delta.clone()),
-            ol(
-                class = style::logs_list,
-                logs.iter()
-                    .map(|log| {
-                        let level = &log.level;
-                        let message = &log.message;
-                        li(
-                            key = log.id.to_string(),
-                            class = style::log_item,
-                            div(class = style::log_level, "{level}"),
-                            div(class = style::log_message, "{message}"),
-                        )
-                    })
-                    .collect::<Vec<_>>()..,
-            ),
-            mouseleave = move |_: MouseEvent| show_logs_panel_mut.set(false),
+            show_logs_list(logs),
         )
     } else {
         tag(style::display = "none")
     }
+}
+
+#[html]
+#[template(tag = ol)]
+fn show_logs_list(#[signal] logs: Arc<Vec<ClientLogEvent>>) -> XElement {
+    tag(
+        class = style::logs_list,
+        logs.iter()
+            .map(|log| {
+                let level = &log.level;
+                let message = &log.message;
+                li(
+                    key = log.id.to_string(),
+                    class = style::log_item,
+                    div(class = style::log_level, "{level}"),
+                    div(class = style::log_message, "{message}"),
+                )
+            })
+            .collect::<Vec<_>>()..,
+    )
 }
 
 fn after_logs_render(element: &web_sys::Element) {
@@ -94,13 +96,17 @@ fn logs_panel_height(#[signal] position: Option<Position>) -> XAttributeValue {
     position.map(|position| format!("max(3rem, calc(14rem - {}px))", position.y))
 }
 
+#[autoclone]
 #[html]
 fn show_resize_bar(show_logs_panel: XSignal<bool>) -> XElement {
     div(
         class = style::logs_resize_bar,
-        mouseover = move |_: MouseEvent| show_logs_panel.set(true),
+        mouseover = move |_| {
+            autoclone!(show_logs_panel);
+            show_logs_panel.set(true)
+        },
         mousedown = RESIZE_MANAGER.mousedown(),
-        dblclick = |_| RESIZE_MANAGER.delta.set(None),
+        dblclick = move |_| show_logs_panel.set(false),
         div(div()),
     )
 }
