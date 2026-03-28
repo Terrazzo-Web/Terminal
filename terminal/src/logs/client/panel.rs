@@ -160,7 +160,7 @@ pub fn resize_icon_src(#[signal] mut show_logs_panel: bool) -> XAttributeValue {
 
 #[template(wrap = true)]
 pub fn resize_bar_visibility(#[signal] mut show_logs_panel: bool) -> XAttributeValue {
-    show_logs_panel.then_some(style::resize_bar_hidden)
+    (!show_logs_panel).then_some(style::resize_bar_hidden)
 }
 
 static RESIZE_MANAGER: LazyLock<MousemoveManager> = LazyLock::new(MousemoveManager::new);
