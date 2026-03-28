@@ -2,14 +2,12 @@ use std::cell::Cell;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::LazyLock;
-use std::time::Duration;
 
 use self::diagnostics::warn;
 use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
-use terrazzo::widgets::debounce::DoDebounce as _;
 use terrazzo::widgets::element_capture::ElementCapture;
 use web_sys::HtmlDivElement;
 
@@ -53,7 +51,6 @@ fn show_logs(#[signal] show_logs_panel: bool) -> XElement {
     }
 }
 
-#[autoclone]
 #[html]
 #[template(tag = ol)]
 fn show_logs_list(
@@ -61,15 +58,9 @@ fn show_logs_list(
     first_render: Ptr<Cell<bool>>,
     #[signal] logs: Arc<VecDeque<ClientLogEvent>>,
 ) -> XElement {
-    let after_render = Duration::from_millis(10).debounce(move |_| {
-        panel.with(move |panel| {
-            autoclone!(first_render);
-            after_logs_render(&first_render, panel)
-        })
-    });
     tag(
         class = style::logs_list,
-        after_render = move |e| after_render(e.clone()),
+        after_render = move |_| panel.with(|panel| after_logs_render(&first_render, panel)),
         logs.iter().map(|log| {
             let level = &log.level;
             let message = &log.message;
