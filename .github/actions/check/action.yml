@@ -18,6 +18,7 @@ runs:
         cargo check --locked --bin terrazzo-terminal --no-default-features --features server-all --features max-level-debug,diagnostics
         cargo check --locked --bin terrazzo-terminal --no-default-features --features server-all --features max-level-info
         cargo check --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features terminal-server
+        cargo check --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features terminal-server,logs-panel-server
         cargo check --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features text-editor-server
         cargo check --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features converter-server
         cargo check --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features port-forward-server
@@ -31,6 +32,7 @@ runs:
         cargo clippy --locked --bin terrazzo-terminal --no-default-features --features server-all --features max-level-debug,diagnostics
         cargo clippy --locked --bin terrazzo-terminal --no-default-features --features server-all --features max-level-info
         cargo clippy --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features terminal-server
+        cargo clippy --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features terminal-server,logs-panel-server
         cargo clippy --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features text-editor-server
         cargo clippy --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features converter-server
         cargo clippy --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features port-forward-server
