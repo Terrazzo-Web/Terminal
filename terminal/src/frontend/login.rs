@@ -28,7 +28,11 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus, remote: XSignal<Remote>) -
     match logged_in {
         LoggedInStatus::Login => div(
             key = "app",
-            div(move |t| show_app(t, app(), remote.clone())),
+            div(
+                class = style::app_shell,
+                show_app(app(), remote.clone()),
+                logs::panel(),
+            ),
         ),
         LoggedInStatus::Logout => div(
             key = "login",
@@ -93,9 +97,9 @@ pub enum LoggedInStatus {
 }
 
 #[html]
-#[template]
+#[template(tag = div)]
 fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
-    let content = div(
+    tag(
         class = style::app_content,
         match app {
             #[cfg(feature = "terminal")]
@@ -112,6 +116,5 @@ fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
                 div(move |t| crate::portforward::ui::port_forward(t, remote.clone()))
             }
         },
-    );
-    div(class = style::app_shell, content, logs::panel())
+    )
 }
