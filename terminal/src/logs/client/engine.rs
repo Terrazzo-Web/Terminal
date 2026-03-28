@@ -16,7 +16,7 @@ use self::diagnostics::warn;
 use super::ndjson::NdjsonBuffer;
 use crate::logs::event::LogEvent;
 
-const MAX_LOGS: usize = if cfg!(debug_assertions) { 1000 } else { 25 };
+const MAX_LOGS: usize = if cfg!(debug_assertions) { 25 } else { 1000 };
 
 pub struct LogsEngine {
     logs: XSignal<Arc<VecDeque<ClientLogEvent>>>,
