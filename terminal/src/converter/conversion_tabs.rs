@@ -8,6 +8,8 @@ use terrazzo::autoclone;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
+use terrazzo::widgets::sleep::SleepError;
+use terrazzo::widgets::sleep::sleep;
 use terrazzo::widgets::tabs::TabDescriptor;
 use terrazzo::widgets::tabs::TabsDescriptor;
 use terrazzo::widgets::tabs::TabsState;
@@ -23,8 +25,6 @@ use super::api::Conversion;
 use super::api::Conversions;
 use crate::assets::icons;
 use crate::converter::api::Language;
-use crate::frontend::sleep::SleepError;
-use crate::frontend::sleep::sleep;
 
 stylance::import_style!(style, "conversion_tabs.scss");
 

@@ -9,6 +9,7 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::element_capture::ElementCapture;
+use terrazzo::widgets::sleep::sleep;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlDivElement;
 
@@ -17,7 +18,6 @@ use super::engine::ClientLogEvent;
 use super::engine::LogsEngine;
 use crate::frontend::mousemove::MousemoveManager;
 use crate::frontend::mousemove::Position;
-use crate::frontend::sleep::sleep;
 
 stylance::import_style!(style, "panel.scss");
 

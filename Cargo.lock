@@ -158,9 +158,9 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "autoclone"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "205cf105445ae0a3d3f388dd8e7a83d4ac51ae267003a874ee4771b130535028"
+checksum = "a91c975157dfaa2e109a1b438b3a6ad30dd527e1120143142cb6bb845376b623"
 dependencies = [
  "darling",
  "prettyplease",
@@ -223,7 +223,7 @@ dependencies = [
  "sha1",
  "sync_wrapper",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.28.0",
  "tower",
  "tower-layer",
  "tower-service",
@@ -1110,7 +1110,7 @@ dependencies = [
 
 [[package]]
 name = "game"
-version = "0.1.23"
+version = "0.1.24"
 dependencies = [
  "scopeguard",
  "stylance",
@@ -1859,9 +1859,9 @@ dependencies = [
 
 [[package]]
 name = "inventory"
-version = "0.3.22"
+version = "0.3.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "009ae045c87e7082cb72dab0ccd01ae075dd00141ddc108f43a0ea150a9e7227"
+checksum = "8062b737e5389949f477d4760a2ebbff0c366f97798f2419b8d8f366363d3342"
 dependencies = [
  "rustversion",
 ]
@@ -2188,18 +2188,18 @@ checksum = "2195bf6aa996a481483b29d62a7663eed3fe39600c460e323f8ff41e90bdd89b"
 
 [[package]]
 name = "nameth"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29f15ef4e815c543c8fb7ffbb87f9e2e2b8393b3b5fec833337c75eadf92724b"
+checksum = "2b8bbe31f5505a57ff3129033af22d54d598cf6cb3f56c22b9bddee669e3d10c"
 dependencies = [
  "nameth-macro",
 ]
 
 [[package]]
 name = "nameth-macro"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b28cd6418c2544daee8fbc902ab9b7d2d2aa1541b336bc19154a258bf1e6f987"
+checksum = "d83927e8a2a570ae17216fa4d8f3cbc3997e01d915f03b38895f36cdd248519e"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -3949,9 +3949,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7320b78441659ca7bc217d6005f1d36f7378cb2af4c9a72513924cd521c26370"
+checksum = "1247d0785ad93be6049643c9433011385d5627de7b1da216433d728a3fe4b975"
 dependencies = [
  "autoclone",
  "axum",
@@ -3977,9 +3977,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-build"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91eb57b252147bf7c8b4425cc0565805cf1ab6417910717e03f3c063b4e7382a"
+checksum = "3354bf56b698638bd2231570d3341770f62e8158d5e6088e00f867d4530a65b2"
 dependencies = [
  "nameth",
  "thiserror 2.0.18",
@@ -3987,9 +3987,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-client"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9078768a9adf9c413b11e8b02b976bb9d326ece5ea6bd695c2cb04db05149809"
+checksum = "33734deba7b1b775463d7723911c1347cdc5a3c9b5f422c97639c572d188392b"
 dependencies = [
  "autoclone",
  "nameth",
@@ -4004,9 +4004,9 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-macro"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56101535444af93ac4dcb8f21cbac8babed3b6843b8cc20188ff3206116f67e1"
+checksum = "002b12fed424b52240a3329b37840f109b29b739f88ed3e33c241cf8df4f72cd"
 dependencies = [
  "deluxe",
  "prettyplease",
@@ -4018,7 +4018,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-pty"
-version = "0.1.23"
+version = "0.1.24"
 dependencies = [
  "bytes",
  "futures",
@@ -4037,7 +4037,7 @@ dependencies = [
 
 [[package]]
 name = "terrazzo-terminal"
-version = "0.1.23"
+version = "0.1.24"
 dependencies = [
  "axum-extra",
  "base64",
@@ -4292,12 +4292,24 @@ checksum = "d25a406cddcc431a75d3d9afc6a7c0f7428d4891dd973e4d54c56b46127bf857"
 dependencies = [
  "futures-util",
  "log",
+ "tokio",
+ "tungstenite 0.28.0",
+]
+
+[[package]]
+name = "tokio-tungstenite"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f72a05e828585856dacd553fba484c242c46e391fb0e58917c942ee9202915c"
+dependencies = [
+ "futures-util",
+ "log",
  "rustls",
  "rustls-native-certs",
  "rustls-pki-types",
  "tokio",
  "tokio-rustls",
- "tungstenite",
+ "tungstenite 0.29.0",
 ]
 
 [[package]]
@@ -4636,9 +4648,9 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "trz-gateway-client"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7793f481520d8300f1416b5ce501500869f49253c12f49a7f18c898be5c5aced"
+checksum = "1ac5aaa20abf2e5ad9e674cd45fe5aa2a3d5af59dfec1c0dd3d90640dc90d1da"
 dependencies = [
  "futures",
  "hostname",
@@ -4656,7 +4668,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-rustls",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.29.0",
  "tonic",
  "tracing",
  "tracing-futures",
@@ -4666,9 +4678,9 @@ dependencies = [
 
 [[package]]
 name = "trz-gateway-common"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "959ee3ed345a4198f593a949bc8b7978d8e27ab1a3c4794ea3411007e2a8e514"
+checksum = "4c8e68586b120cbf256a1a23219730ed8342e0332d68057c5541a3c50a32f5fa"
 dependencies = [
  "axum",
  "bytes",
@@ -4697,9 +4709,9 @@ dependencies = [
 
 [[package]]
 name = "trz-gateway-server"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c94adcfad922b24c3488b30495a9658c0befc6f962f661acd9f9dd428b82c0d5"
+checksum = "076d8e4d34018197660735b0b25f9aec4baa3179f2c56b076457cae9662cb6ce"
 dependencies = [
  "autoclone",
  "axum",
@@ -4741,11 +4753,27 @@ dependencies = [
  "httparse",
  "log",
  "rand 0.9.2",
+ "sha1",
+ "thiserror 2.0.18",
+ "utf-8",
+]
+
+[[package]]
+name = "tungstenite"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c01152af293afb9c7c2a57e4b559c5620b421f6d133261c60dd2d0cdb38e6b8"
+dependencies = [
+ "bytes",
+ "data-encoding",
+ "http 1.4.0",
+ "httparse",
+ "log",
+ "rand 0.9.2",
  "rustls",
  "rustls-pki-types",
  "sha1",
  "thiserror 2.0.18",
- "utf-8",
 ]
 
 [[package]]
