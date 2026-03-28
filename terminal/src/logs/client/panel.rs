@@ -2,6 +2,7 @@ use std::cell::Cell;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 use self::diagnostics::warn;
 use terrazzo::autoclone;
@@ -9,12 +10,14 @@ use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
 use terrazzo::widgets::element_capture::ElementCapture;
+use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlDivElement;
 
 use super::engine::ClientLogEvent;
 use super::engine::LogsEngine;
 use crate::frontend::mousemove::MousemoveManager;
 use crate::frontend::mousemove::Position;
+use crate::frontend::sleep::sleep;
 
 stylance::import_style!(style, "panel.scss");
 
@@ -60,7 +63,7 @@ fn show_logs_list(
 ) -> XElement {
     tag(
         class = style::logs_list,
-        after_render = move |_| panel.with(|panel| after_logs_render(&first_render, panel)),
+        after_render = move |_| after_logs_render(&first_render, logs.is_empty(), panel.clone()),
         logs.iter().map(|log| {
             let level = &log.level;
             let message = &log.message;
@@ -74,36 +77,40 @@ fn show_logs_list(
     )
 }
 
-fn after_logs_render(first_render: &Cell<bool>, panel: &web_sys::HtmlDivElement) {
+fn after_logs_render(
+    first_render: &Cell<bool>,
+    logs_is_empty: bool,
+    panel: ElementCapture<HtmlDivElement>,
+) {
+    let panel = panel.get();
+    if first_render.replace(logs_is_empty) {
+        spawn_local(async move {
+            let () = sleep(Duration::from_millis(0))
+                .await
+                .expect("Failed to sleep");
+            let client_height = panel.client_height();
+            let scroll_height = panel.scroll_height();
+            panel.set_scroll_top(scroll_height - client_height);
+        });
+        return;
+    }
+
     const DEFAULT_LINE_HEIGHT: i32 = 20;
     let scroll_top = panel.scroll_top();
     let client_height = panel.client_height();
     let scroll_height = panel.scroll_height();
-
-    if first_render.replace(false) {
-        warn!(
-            "[after_logs_render] FIRST RENDER panel.set_scroll_top({scroll_height} - {client_height})"
-        );
-        panel.set_scroll_top(scroll_height - client_height);
-        return;
-    }
 
     let gap = scroll_height - client_height - scroll_top;
 
     // Keep live-tail behavior only when user is near bottom (1-2 lines). If user has scrolled up, preserve position.
     let li = panel.query_selector("ol > li").ok().flatten();
     let line_height = li.map(|li| li.client_height()).unwrap_or_else(|| {
-        warn!("[after_logs_render] Failed to get log item height, defaulting to {DEFAULT_LINE_HEIGHT}px");
+        warn!("Failed to get log item height, defaulting to {DEFAULT_LINE_HEIGHT}px");
         DEFAULT_LINE_HEIGHT
     });
 
-    warn!("[after_logs_render] line height: {line_height}px");
-
     if gap <= line_height * 2 {
         panel.set_scroll_top(scroll_height - client_height);
-        warn!(
-            "[after_logs_render] DUE TO gap:{gap} <= {line_height} * 2 WE DO panel.set_scroll_top({scroll_height} - {client_height})"
-        );
     }
 }
 
