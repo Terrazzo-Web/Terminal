@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+use self::diagnostics::warn;
 use terrazzo::html;
 use terrazzo::prelude::*;
 use terrazzo::template;
@@ -9,6 +10,7 @@ use super::engine::ClientLogEvent;
 use super::engine::LogsEngine;
 use crate::frontend::mousemove::MousemoveManager;
 use crate::frontend::mousemove::Position;
+use wasm_bindgen::JsCast;
 
 stylance::import_style!(style, "panel.scss");
 
@@ -31,6 +33,7 @@ pub fn panel() -> XElement {
 fn show_logs(#[signal] logs: Arc<Vec<ClientLogEvent>>) -> XElement {
     tag(
         class = style::logs_panel,
+        after_render = after_logs_render,
         style::height %= logs_panel_height(RESIZE_MANAGER.delta.clone()),
         style::max_height %= logs_panel_height(RESIZE_MANAGER.delta.clone()),
         ol(
@@ -49,6 +52,31 @@ fn show_logs(#[signal] logs: Arc<Vec<ClientLogEvent>>) -> XElement {
                 .collect::<Vec<_>>()..,
         ),
     )
+}
+
+fn after_logs_render(element: &web_sys::Element) {
+    const DEFAULT_LINE_HEIGHT: i32 = 20;
+    let element: &web_sys::HtmlElement = element.dyn_ref().or_throw("logs panel");
+    let scroll_top = element.scroll_top();
+    let client_height = element.client_height();
+    let scroll_height = element.scroll_height();
+    let gap = scroll_height - (scroll_top + client_height);
+
+    // Keep live-tail behavior only when user is near bottom (1-2 lines). If user has scrolled up, preserve position.
+    let li = element.query_selector("li.log-item").ok().flatten();
+    let line_height = li
+        .and_then(|li| {
+            li.dyn_ref::<web_sys::HtmlElement>()
+                .map(|li| li.client_height())
+        })
+        .unwrap_or_else(|| {
+            warn!("Failed to get log item height, defaulting to {DEFAULT_LINE_HEIGHT}px");
+            DEFAULT_LINE_HEIGHT
+        });
+
+    if gap <= line_height * 2 {
+        element.set_scroll_top(element.scroll_height());
+    }
 }
 
 #[template(wrap = true)]
