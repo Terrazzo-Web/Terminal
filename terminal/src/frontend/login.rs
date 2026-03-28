@@ -16,6 +16,7 @@ use self::diagnostics::warn;
 use crate::assets::icons;
 use crate::frontend::menu::app;
 use crate::frontend::remotes::Remote;
+use crate::logs;
 use crate::state::app::App;
 
 stylance::import_style!(style, "login.scss");
@@ -27,7 +28,11 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus, remote: XSignal<Remote>) -
     match logged_in {
         LoggedInStatus::Login => div(
             key = "app",
-            div(move |t| show_app(t, app(), remote.clone())),
+            div(
+                class = style::app_shell,
+                show_app(app(), remote.clone()),
+                logs::panel(),
+            ),
         ),
         LoggedInStatus::Logout => div(
             key = "login",
@@ -92,19 +97,24 @@ pub enum LoggedInStatus {
 }
 
 #[html]
-#[template]
+#[template(tag = div)]
 fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
-    match app {
-        #[cfg(feature = "terminal")]
-        App::Terminal => {
-            drop(remote);
-            div(|t| crate::terminal::terminals(t))
-        }
-        #[cfg(feature = "text-editor")]
-        App::TextEditor => div(move |t| crate::text_editor::ui::text_editor(t, remote.clone())),
-        #[cfg(feature = "converter")]
-        App::Converter => div(move |t| crate::converter::ui::converter(t, remote.clone())),
-        #[cfg(feature = "port-forward")]
-        App::PortForward => div(move |t| crate::portforward::ui::port_forward(t, remote.clone())),
-    }
+    tag(
+        class = style::app_content,
+        match app {
+            #[cfg(feature = "terminal")]
+            App::Terminal => {
+                drop(remote);
+                div(|t| crate::terminal::terminals(t))
+            }
+            #[cfg(feature = "text-editor")]
+            App::TextEditor => div(move |t| crate::text_editor::ui::text_editor(t, remote.clone())),
+            #[cfg(feature = "converter")]
+            App::Converter => div(move |t| crate::converter::ui::converter(t, remote.clone())),
+            #[cfg(feature = "port-forward")]
+            App::PortForward => {
+                div(move |t| crate::portforward::ui::port_forward(t, remote.clone()))
+            }
+        },
+    )
 }

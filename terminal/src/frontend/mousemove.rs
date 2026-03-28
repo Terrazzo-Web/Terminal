@@ -1,4 +1,4 @@
-#![cfg(feature = "converter")]
+#![cfg(feature = "client")]
 
 use std::sync::Arc;
 use std::sync::Mutex;

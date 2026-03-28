@@ -1,4 +1,4 @@
-# AGENTS.md
+# Project Guidelines
 
 ## Read this first
 
@@ -9,9 +9,12 @@ Prefer targeted file reads over broad exploration.
 
 ## Project overview
 
-- `game/`: small game-focused crate.
+- `game/`: small game crate.
 - `pty/`: PTY emulator and process plumbing.
 - `terminal/`: main web terminal app built with Terrazzo.
+- Server code in `terminal/src/backend/` + `terminal/src/server.rs`.
+- Client code in `terminal/src/frontend/` and feature folders.
+- Feature slices: `converter`, `portforward`, `terminal`, `text_editor`.
 
 ## Terrazzo guide
 
@@ -30,7 +33,15 @@ Prefer targeted file reads over broad exploration.
 - Keep styling in nearby `.scss` files and import it with `stylance::import_style!`.
 - Use the shared API or server-function layer for client/server communication rather than duplicating fetch logic inline.
 
-## Working agreements
-
-- Always run `./all.sh` from repo root after touching Rust source files.
+## Notes for AI Agents
+- Use `#[cfg(feature = "server")]` for server-only logic.
+- Define RPC-style `#[server(...)]` functions near feature module; backend module contains implementation.
+- Prefer shared API/server-function layer over raw fetch logic.
+- Ask before adding production dependencies.
+- Target minimal, concise change in agent work; avoid monolithic refactors unless requested.
+- Do not scan the whole repository unless necessary; start at entry points and follow references.
+- Use targeted reads and avoid broad exploration.
+- Link to docs rather than duplicating (e.g., `README.md`, `terminal/AGENTS.md`).
 - Ask for confirmation before adding new production dependencies.
+- `./all.sh` must be run after touching Rust sources.
+

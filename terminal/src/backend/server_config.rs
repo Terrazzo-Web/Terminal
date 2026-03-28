@@ -81,7 +81,7 @@ impl GatewayConfig for TerminalBackendServer {
     }
 
     fn enable_tracing(&self) -> bool {
-        true
+        false
     }
 
     fn host(&self) -> String {

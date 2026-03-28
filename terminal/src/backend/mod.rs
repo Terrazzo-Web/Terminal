@@ -66,6 +66,7 @@ use self::tls_config::make_tls_config;
 use crate::assets;
 use crate::backend::client_service::remote_fn_service;
 use crate::backend::config::mesh::DynamicMeshConfig;
+use crate::logs::EnableTracingError;
 use crate::utils::more_path::MorePath as _;
 
 mod agent;
@@ -129,6 +130,7 @@ pub fn run_server() -> Result<(), RunServerError> {
 
 #[tokio::main]
 async fn run_server_async(cli: Cli, config: Config) -> Result<(), RunServerError> {
+    crate::logs::init_tracing()?;
     #[cfg(debug_assertions)]
     {
         println!("server_fn paths:");
@@ -264,6 +266,9 @@ pub enum RunServerError {
 
     #[error("[{n}] {0}", n = self.name())]
     RunClient(#[from] RunClientError),
+
+    #[error("[{n}] {0}", n = self.name())]
+    EnableTracing(#[from] EnableTracingError),
 }
 
 #[autoclone]
