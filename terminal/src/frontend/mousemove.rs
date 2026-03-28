@@ -1,4 +1,4 @@
-#![cfg(feature = "client")]
+#![cfg(any(feature = "converter", feature = "logs-panel"))]
 
 use std::sync::Arc;
 use std::sync::Mutex;

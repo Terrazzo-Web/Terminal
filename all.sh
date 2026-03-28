@@ -9,6 +9,7 @@ cargo check --locked --bin terrazzo-terminal --no-default-features --features ma
 cargo check --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features text-editor-server
 cargo check --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features converter-server
 cargo check --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features port-forward-server
+cargo check --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features logs-panel-server
 cargo check --locked --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
 cargo check --locked --bin game --no-default-features --features server,max-level-info --release
 
@@ -19,6 +20,7 @@ cargo clippy --locked --bin terrazzo-terminal --no-default-features --features m
 cargo clippy --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features text-editor-server
 cargo clippy --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features converter-server
 cargo clippy --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features port-forward-server
+cargo clippy --locked --bin terrazzo-terminal --no-default-features --features max-level-debug,debug,diagnostics --features logs-panel-server
 cargo clippy --locked --bin game --no-default-features --features server,max-level-debug,debug,diagnostics
 cargo clippy --locked --bin game --no-default-features --features server,max-level-info --release
 

@@ -107,25 +107,25 @@ rustdoc = []
 prod = ["max-level-info", "server-all"]
 server-all = [
     "converter-server",
+    "logs-panel-server",
     "port-forward-server",
     "terminal-server",
     "text-editor-server",
 ]
 client-all = [
     "converter-client",
+    "logs-panel-client",
     "port-forward-client",
     "terminal-client",
     "text-editor-client",
 ]
 
 client = [
-    "dep:futures",
     "dep:stylance",
     "dep:wasm-bindgen-futures",
     "dep:wasm-bindgen",
     "server_fn/browser",
     "terrazzo/client",
-    "web-sys/HtmlDivElement",
 ]
 server = [
     "dep:axum-extra",
@@ -152,7 +152,6 @@ server = [
     "dep:tower-http",
     "dep:tower",
     "dep:tracing",
-    "dep:tracing-subscriber",
     "dep:trz-gateway-client",
     "dep:trz-gateway-common",
     "dep:trz-gateway-server",
@@ -265,6 +264,15 @@ port-forward-client = [
     "web-sys/KeyboardEvent",
 ]
 port-forward-server = ["port-forward", "server"]
+
+logs-panel = []
+logs-panel-client = [
+    "client",
+    "dep:futures",
+    "logs-panel",
+    "web-sys/HtmlDivElement",
+]
+logs-panel-server = ["dep:tracing-subscriber", "logs-panel", "server"]
 
 [package.metadata.stylance]
 output_file = "./target/css/terrazzo-terminal.scss"

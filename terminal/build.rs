@@ -32,6 +32,10 @@ enum Feature {
     PortForward,
     PortForwardClient,
     PortForwardServer,
+
+    LogsPanel,
+    LogsPanelClient,
+    LogsPanelServer,
 }
 
 impl Feature {
@@ -88,6 +92,7 @@ fn build_client() {
         Feature::TextEditorServer.disable(),
         Feature::ConverterServer.disable(),
         Feature::PortForwardServer.disable(),
+        Feature::LogsPanelServer.disable(),
     );
 
     if Feature::Client.is_set() {
@@ -118,6 +123,9 @@ fn build_client() {
     }
     if Feature::PortForward.is_set() {
         Feature::PortForwardClient.add(&mut wasm_pack_options);
+    }
+    if Feature::LogsPanel.is_set() {
+        Feature::LogsPanelClient.add(&mut wasm_pack_options);
     }
     let wasm_pack_options = wasm_pack_options
         .iter()
