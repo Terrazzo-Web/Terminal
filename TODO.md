@@ -1,7 +1,13 @@
 # TODO
-- `#119`. Fix bug that client certificate doesn't refresh
+- `#120`. Logs panel should show the logs of the current remote
+- `#126`. Add a search box to filter logs based on regex
+- `#121`. Migrate to Bazel
+- `#122`. Use a file watcher instead of polling for config file updates
+- `#123`. Add tests for the tunnel
+- `#124`. Port-forward should try to re-create the connection to the parent node when a new connection arrives
+- `#·91`. Create ann info page that shows: version, metrics, etc.
+- `#125`. The converter tool should stream results instead of returning everything in one go. Leverage ndjson.
 - `#·95`. File explorer: search tool
-- `#115`. Add some caching in the UI around folder I/O, so loading stuff is faster
 - `#·94`. File explorer: all files
 - `#117`. File explorer: tree view with collapsing subfolders
 - `#·92`. File explorer: show files with git changes
@@ -9,25 +15,15 @@
 - `#·98`. Text editor: highlight git changes
 - `#·99`. Text editor: status bar: last change, pointer position, branch name
 - `#118`. Text editor: show terminals
-- `#·91`. Configuration tool: show current auth token
-- `#·91`. Configuration tool: password reset
-- `#·91`. Configuration tool: info page (version, metrics, etc.)
+- `#·52`. Drag n Drop to create tiles
+
+# Nice to have
 - `#·81`. Announce open source autoclone.
 - `#·79`. Announce open source named.
 - `#·32`. Announce open source terrazzo client
-- `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
-- `#·52`. Drag n Drop to create tiles
-- `#··8`. Resizeable component --> refactor to common widgets
-- `#107`. (b) Ticks should be aligned with round time;
-- `#108`. Introduce shortcuts for unwrap(). Makes it easy to scan where unwrap() is used.
 - `#113`. Add a dropdown on hover showing the list of pending operations on the ok/pending icon
 
-# Nice to have
-- `#·45`. Lazily load tab
-- `#·33`. Simplify syntax for text nodes.
-- `#·25`. Child nodes can be built out of any expression.
-
-Next: `#120`.
+Next: `#127`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
@@ -132,3 +128,14 @@ Next: `#120`.
 - `#·89`. Anything parser: x509, base64, pem, yaml, json, toml, etc.
 - `#·91`. Port forwarding tool
 - `#116`. Keep current remote in memory
+- `#··8`. Resizeable component --> refactor to common widgets
+- `#119`. Fix bug that client certificate doesn't refresh
+- `#115`. Add some caching in the UI around folder I/O, so loading stuff is faster
+- `#·91`. Configuration tool: show current auth token
+- `#·91`. Configuration tool: password reset
+- `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
+- `#107`. (b) Ticks should be aligned with round time;
+- `#108`. Introduce shortcuts for unwrap(). Makes it easy to scan where unwrap() is used.
+- `#·45`. Lazily load tab
+- `#·33`. Simplify syntax for text nodes.
+- `#·25`. Child nodes can be built out of any expression.
