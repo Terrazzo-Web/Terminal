@@ -29,7 +29,7 @@ pub fn new_id(
     server: &Arc<Server>,
     client_address: &[impl AsRef<str>],
 ) -> impl Future<Output = Result<i32, NewIdError>> {
-    async {
+    async move {
         debug!("Start");
         defer!(debug!("Done"));
         Ok(NewIdCallback::process(server, client_address, ()).await?)
@@ -45,7 +45,7 @@ impl DistributedCallback for NewIdCallback {
     type LocalError = Impossible;
     type RemoteError = Status;
 
-    fn local(_: &Arc<Server>, (): ()) -> impl Future<Output = Result<i32, Impossible>> {
+    fn local(_: Option<&Arc<Server>>, (): ()) -> impl Future<Output = Result<i32, Impossible>> {
         ready(Ok(next_terminal_id()))
     }
 

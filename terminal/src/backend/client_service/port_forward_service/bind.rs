@@ -146,7 +146,7 @@ impl<S: Stream<Item = PortForwardEndpoint> + Send + Unpin + 'static> Distributed
 
     #[autoclone]
     async fn local(
-        _server: &Arc<Server>,
+        _server: Option<&Arc<Server>>,
         (endpoint, requests): (PortForwardEndpoint, S),
     ) -> Result<BindStream, BindLocalError> {
         let mut requests = futures::stream::once(ready(endpoint)).chain(requests);

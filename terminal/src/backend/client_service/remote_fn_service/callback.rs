@@ -24,10 +24,11 @@ impl DistributedCallback for DistributedFn {
     type RemoteError = tonic::Status;
 
     async fn local(
-        server: &Arc<Server>,
+        server: Option<&Arc<Server>>,
         request: RemoteFnRequest,
     ) -> Result<String, RemoteFnError> {
         debug!("Calling local {request:?}");
+        let server = server.ok_or(RemoteFnError::ServerNotSet)?;
         let Some(remote_server_fns) = REMOTE_FNS.get() else {
             return Err(RemoteFnError::RemoteFnsNotSet);
         };

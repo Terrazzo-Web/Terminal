@@ -31,7 +31,7 @@ pub fn set_title(
     client_address: &[impl AsRef<str>],
     request: SetTitleRequest,
 ) -> impl Future<Output = Result<(), SetTitleError>> {
-    async {
+    async move {
         debug!("Start");
         defer!(debug!("Done"));
         Ok(SetTitleCallback::process(server, client_address, request).await?)
@@ -47,7 +47,10 @@ impl DistributedCallback for SetTitleCallback {
     type LocalError = SetTitleErrorImpl;
     type RemoteError = Status;
 
-    async fn local(_: &Arc<Server>, request: SetTitleRequest) -> Result<(), SetTitleErrorImpl> {
+    async fn local(
+        _: Option<&Arc<Server>>,
+        request: SetTitleRequest,
+    ) -> Result<(), SetTitleErrorImpl> {
         let terminal_id = request.address.unwrap_or_default().terminal_id.into();
         processes::set_title::set_title(
             &terminal_id,

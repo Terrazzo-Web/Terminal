@@ -31,7 +31,7 @@ pub fn close(
     client_address: &[impl AsRef<str>],
     terminal_id: TerminalId,
 ) -> impl Future<Output = Result<(), CloseError>> {
-    async {
+    async move {
         info!("Start");
         defer!(info!("Done"));
         Ok(CloseCallback::process(server, client_address, terminal_id).await?)
@@ -47,7 +47,10 @@ impl DistributedCallback for CloseCallback {
     type LocalError = CloseProcessError;
     type RemoteError = Status;
 
-    async fn local(_: &Arc<Server>, terminal_id: TerminalId) -> Result<(), CloseProcessError> {
+    async fn local(
+        _: Option<&Arc<Server>>,
+        terminal_id: TerminalId,
+    ) -> Result<(), CloseProcessError> {
         processes::close::close(&terminal_id)
     }
 

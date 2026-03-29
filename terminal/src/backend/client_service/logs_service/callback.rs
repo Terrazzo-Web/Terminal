@@ -31,7 +31,7 @@ impl DistributedCallback for LogsCallback {
     type RemoteError = Status;
 
     async fn local(
-        _server: &Arc<Server>,
+        _server: Option<&Arc<Server>>,
         _request: LogsRequest,
     ) -> Result<HybridResponseStream, LogsLocalError> {
         local_logs_stream()

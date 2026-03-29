@@ -31,7 +31,7 @@ impl DistributedCallback for NotifyCallback {
     type RemoteError = Status;
 
     async fn local(
-        _server: &Arc<Server>,
+        _server: Option<&Arc<Server>>,
         request: HybridRequestStream,
     ) -> Result<HybridResponseStream, NotifyLocalError> {
         notify_local(request.into())

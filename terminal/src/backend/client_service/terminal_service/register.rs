@@ -59,9 +59,10 @@ impl DistributedCallback for RegisterCallback {
     type RemoteError = Status;
 
     async fn local(
-        server: &Arc<Server>,
+        server: Option<&Arc<Server>>,
         (my_client_name, request): (Option<ClientName>, RegisterTerminalRequest),
     ) -> Result<HybridReader, RegisterStreamError> {
+        let server = server.ok_or_else(|| RegisterStreamError::Grpc(Status::internal("server")))?;
         let mode = request.mode().try_into()?;
         let def = request.def.ok_or_else(|| Status::invalid_argument("def"))?;
         let def = TerminalDef::from(def);
