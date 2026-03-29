@@ -1,5 +1,4 @@
 # TODO
-- `#120`. Logs panel should show the logs of the current remote
 - `#126`. Add a search box to filter logs based on regex
 - `#121`. Migrate to Bazel
 - `#122`. Use a file watcher instead of polling for config file updates
@@ -139,3 +138,4 @@ Next: `#127`.
 - `#·45`. Lazily load tab
 - `#·33`. Simplify syntax for text nodes.
 - `#·25`. Child nodes can be built out of any expression.
+- `#120`. Logs panel should show the logs of the current remote
