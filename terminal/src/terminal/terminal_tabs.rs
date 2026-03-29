@@ -89,6 +89,10 @@ impl TerminalTabs {
         terminal_tabs.retain(|tab| tab.address.id != *id);
         self
     }
+
+    pub fn lookup_tab(&self, id: &TerminalId) -> Option<&TerminalTab> {
+        self.terminal_tabs.iter().find(|tab| tab.address.id == *id)
+    }
 }
 
 impl TabsState for TerminalsState {
