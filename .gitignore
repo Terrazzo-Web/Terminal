@@ -15,3 +15,5 @@ node_modules/
 ._.DS_Store
 **/assets/**/*.br
 **/assets/**/*.css.map
+
+.codex

@@ -17,7 +17,7 @@ pub fn remote_fn_dispatch(
     client_address: &[impl AsRef<str>],
     request: RemoteFnRequest,
 ) -> impl Future<Output = Result<String, RemoteFnError>> {
-    async {
+    async move {
         debug!("Start");
         defer!(debug!("Done"));
         DistributedFn::process(server, client_address, request)

@@ -29,7 +29,7 @@ pub fn write(
     client_address: &[impl AsRef<str>],
     request: WriteRequest,
 ) -> impl Future<Output = Result<(), WriteError>> {
-    async {
+    async move {
         debug!("Start");
         defer!(debug!("Done"));
         Ok(WriteCallback::process(server, client_address, request).await?)
@@ -45,7 +45,7 @@ impl DistributedCallback for WriteCallback {
     type LocalError = WriteErrorImpl;
     type RemoteError = tonic::Status;
 
-    async fn local(_: &Arc<Server>, request: WriteRequest) -> Result<(), WriteErrorImpl> {
+    async fn local(_: Option<&Arc<Server>>, request: WriteRequest) -> Result<(), WriteErrorImpl> {
         let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
         processes::write::write(&terminal_id, request.data.as_bytes()).await
     }

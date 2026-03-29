@@ -16,6 +16,7 @@ use self::diagnostics::info;
 use self::diagnostics::warn;
 use self::terminal_tabs::TerminalTabs;
 use crate::api::client::terminal_api;
+use crate::frontend::remotes::Remote;
 use crate::terminal_id::TerminalId;
 
 stylance::import_style!(style, "terminal.scss");
@@ -31,16 +32,24 @@ pub struct TerminalsState {
     pub terminal_tabs: XSignal<TerminalTabs>,
 }
 
-pub fn terminals(template: XTemplate) -> Consumers {
+pub fn terminals(template: XTemplate, remote: XSignal<Remote>) -> Consumers {
     let terminal_id = TerminalId::from("Terminal");
     let selected_tab = XSignal::new("selected-tab", terminal_id.clone());
     let terminal_tabs = XSignal::new("terminal-tabs", TerminalTabs::from(Ptr::new(vec![])));
     refresh_terminal_tabs(selected_tab.clone(), terminal_tabs.clone());
     let state = TerminalsState {
-        selected_tab,
+        selected_tab: selected_tab.clone(),
         terminal_tabs: terminal_tabs.clone(),
     };
-    render_terminals(template, state, terminal_tabs)
+    render_terminals(template, state, terminal_tabs.clone()).append(selected_tab.add_subscriber(
+        move |terminal_id| {
+            let terminal_tabs = terminal_tabs.get_value_untracked();
+            let Some(current) = terminal_tabs.lookup_tab(&terminal_id) else {
+                return;
+            };
+            remote.set(current.address.via.clone());
+        },
+    ))
 }
 
 #[html]

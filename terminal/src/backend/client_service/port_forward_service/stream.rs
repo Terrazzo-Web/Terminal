@@ -186,7 +186,7 @@ where
     }
 
     async fn local(
-        _server: &Arc<Server>,
+        _server: Option<&Arc<Server>>,
         (endpoint, upload_stream): (PortForwardEndpoint, S),
     ) -> Result<GrpcStream, F::Error> {
         async move {

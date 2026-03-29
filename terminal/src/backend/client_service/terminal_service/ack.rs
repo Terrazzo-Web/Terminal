@@ -36,7 +36,7 @@ pub fn ack(
         .map(|t| t.terminal_id.as_str())
         .unwrap_or_default();
     let span = info_span!("Ack", %terminal_id);
-    async {
+    async move {
         debug!("Start");
         defer!(debug!("Done"));
         Ok(AckCallback::process(server, client_address, request).await?)
@@ -52,7 +52,7 @@ impl DistributedCallback for AckCallback {
     type LocalError = Impossible;
     type RemoteError = Status;
 
-    async fn local(_: &Arc<Server>, request: AckRequest) -> Result<(), Impossible> {
+    async fn local(_: Option<&Arc<Server>>, request: AckRequest) -> Result<(), Impossible> {
         let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
         throttling_stream::ack(&terminal_id, request.ack as usize);
         Ok(())

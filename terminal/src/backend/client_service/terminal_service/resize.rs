@@ -36,7 +36,7 @@ pub fn resize(
         .map(|t| t.terminal_id.as_str())
         .unwrap_or_default();
     let span = debug_span!("Resize", %terminal_id);
-    async {
+    async move {
         debug!("Start");
         defer!(debug!("Done"));
         Ok(ResizeCallback::process(server, client_address, request).await?)
@@ -52,7 +52,7 @@ impl DistributedCallback for ResizeCallback {
     type LocalError = ResizeErrorImpl;
     type RemoteError = Status;
 
-    async fn local(_: &Arc<Server>, request: ResizeRequest) -> Result<(), ResizeErrorImpl> {
+    async fn local(_: Option<&Arc<Server>>, request: ResizeRequest) -> Result<(), ResizeErrorImpl> {
         let terminal_id = request.terminal.unwrap_or_default().terminal_id.into();
         let size = request.size.unwrap_or_default();
         processes::resize::resize(&terminal_id, size.rows, size.cols, request.force).await

@@ -31,7 +31,7 @@ pub fn notify_dispatch(request: HybridRequestStream) -> Result<HybridResponseStr
     let response_stream = async {
         debug!("Start");
         defer!(debug!("Done"));
-        let server = remote_fn_server()?;
+        let server = remote_fn_server().ok();
         let mut request = LocalRequestStream(request);
         if let Some(next) = request.next().await {
             let next = match next {
@@ -51,9 +51,9 @@ pub fn notify_dispatch(request: HybridRequestStream) -> Result<HybridResponseStr
                             .chain(request)
                             .into(),
                         );
-                        NotifyCallback::process(&server, &remote, request)
+                        NotifyCallback::process(server.as_ref(), &remote, request)
                     } else {
-                        NotifyCallback::process(&server, &remote, request.0)
+                        NotifyCallback::process(server.as_ref(), &remote, request.0)
                     };
                     return response.await.map_err(NotifyError::Error);
                 }
@@ -116,6 +116,7 @@ impl From<NotifyError> for Status {
                 return std::mem::replace(error, Status::ok(""));
             }
             NotifyError::Error(DistributedCallbackError::LocalError { .. })
+            | NotifyError::Error(DistributedCallbackError::ServerNotSet)
             | NotifyError::RemoteFnError { .. } => Code::Internal,
             NotifyError::Error(DistributedCallbackError::RemoteClientNotFound { .. })
             | NotifyError::InvalidStart { .. }

@@ -5,38 +5,44 @@ use server_fn::codec::StreamingText;
 use server_fn::codec::TextStream;
 use terrazzo::server;
 
+use crate::api::client_address::ClientAddress;
+
 #[server(protocol = Http<Json, StreamingText>)]
-pub async fn stream() -> Result<TextStream<ServerFnError>, ServerFnError> {
-    imp::stream_impl().await
+pub async fn stream(
+    remote: Option<ClientAddress>,
+) -> Result<TextStream<ServerFnError>, ServerFnError> {
+    imp::stream_impl(remote).await
 }
 
 #[cfg(feature = "server")]
 mod imp {
-    use futures::StreamExt as _;
-    use scopeguard::guard;
+    use std::pin::Pin;
+
+    use futures::Stream;
+    use futures::TryStreamExt as _;
+    use server_fn::BoxedStream;
     use server_fn::ServerFnError;
     use server_fn::codec::TextStream;
-    use tracing::info;
 
+    use crate::api::client_address::ClientAddress;
+    use crate::backend::client_service::logs_service::dispatch::logs_dispatch;
+    use crate::backend::protos::terrazzo::logs::LogsRequest;
+    use crate::backend::protos::terrazzo::shared::ClientAddress as ClientAddressProto;
     use crate::logs::event::LogEvent;
-    use crate::logs::state::LogState;
 
-    pub(super) async fn stream_impl() -> Result<TextStream<ServerFnError>, ServerFnError> {
-        info!("Starting log stream");
-        let end = guard((), |_| info!("Ending log stream"));
-        let subscription = LogState::get().subscribe();
-        let stream = futures::stream::unfold(subscription, |mut subscription| async move {
-            let next = if let Some(event) = subscription.backlog.pop_front() {
-                Some(event)
-            } else {
-                subscription.receiver.recv().await
-            }?;
-            Some((serialize_log_event(&next), subscription))
-        });
-        let stream = stream.inspect(move |_| {
-            let _ = &end;
-        });
-        Ok(TextStream::new(stream.map(Ok)))
+    pub(super) async fn stream_impl(
+        remote: Option<ClientAddress>,
+    ) -> Result<TextStream<ServerFnError>, ServerFnError> {
+        let request = LogsRequest {
+            address: remote.map(|remote| ClientAddressProto::of(&remote)),
+        };
+        let stream = logs_dispatch(request)
+            .await
+            .map(BoxedStream::from)
+            .map_err(ServerFnError::new)?;
+        let stream: Pin<Box<dyn Stream<Item = _> + Send>> = stream.into();
+        let stream = stream.map_ok(|event| serialize_log_event(&event));
+        Ok(TextStream::new(stream))
     }
 
     fn serialize_log_event(event: &LogEvent) -> String {
@@ -70,7 +76,7 @@ mod tests {
             info!("backlog");
         });
 
-        let mut stream = stream().await.expect("stream").into_inner();
+        let mut stream = stream(None).await.expect("stream").into_inner();
         let backlog = stream.next().await.expect("item").expect("data");
         assert!(
             backlog.contains("backlog"),

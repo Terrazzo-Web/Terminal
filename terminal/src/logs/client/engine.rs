@@ -14,6 +14,7 @@ use wasm_bindgen_futures::spawn_local;
 use self::diagnostics::debug;
 use self::diagnostics::warn;
 use super::ndjson::NdjsonBuffer;
+use crate::frontend::remotes::Remote;
 use crate::logs::event::LogEvent;
 
 const MAX_LOGS: usize = if cfg!(debug_assertions) { 25 } else { 1000 };
@@ -24,14 +25,14 @@ pub struct LogsEngine {
 }
 
 impl LogsEngine {
-    pub fn new() -> Self {
+    pub fn new(remote: Remote) -> Self {
         let logs = XSignal::new("log-events", Arc::default());
         let (abort_handle, abort_registration) = AbortHandle::new_pair();
 
         let consume_stream = {
             let logs = logs.clone();
             async move {
-                let Ok(stream) = crate::logs::stream::stream()
+                let Ok(stream) = crate::logs::stream::stream(remote)
                     .await
                     .inspect_err(|error| warn!("Failed to start log stream: {error}"))
                 else {

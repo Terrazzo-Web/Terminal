@@ -21,8 +21,8 @@ pub trait DistributedCallback {
     type LocalError: std::error::Error;
     type RemoteError: std::error::Error;
 
-    fn process(
-        server: &Arc<Server>,
+    fn process<'a>(
+        server: impl Into<Option<&'a Arc<Server>>>,
         client_address: &[impl AsRef<str>],
         request: Self::Request,
     ) -> impl Future<
@@ -31,9 +31,11 @@ pub trait DistributedCallback {
             DistributedCallbackError<Self::LocalError, Self::RemoteError>,
         >,
     > {
+        let server = server.into();
         async move {
             match client_address {
                 [rest @ .., client_address_leaf] => {
+                    let server = server.ok_or(DistributedCallbackError::ServerNotSet)?;
                     let client_address_leaf = ClientName::from(client_address_leaf.as_ref());
                     let channel = server
                         .connections()
@@ -54,7 +56,7 @@ pub trait DistributedCallback {
     }
 
     fn local(
-        server: &Arc<Server>,
+        server: Option<&Arc<Server>>,
         request: Self::Request,
     ) -> impl Future<Output = Result<Self::Response, Self::LocalError>>;
 
@@ -81,6 +83,9 @@ pub enum DistributedCallbackError<L: std::error::Error, R: std::error::Error> {
 
     #[error("[{n}] Client not found: {0}", n = self.name())]
     RemoteClientNotFound(ClientName),
+
+    #[error("[{n}] Server was not set", n = self.name())]
+    ServerNotSet,
 }
 
 impl<L: IsHttpError, R: IsHttpError> IsHttpError for DistributedCallbackError<L, R> {
@@ -89,6 +94,7 @@ impl<L: IsHttpError, R: IsHttpError> IsHttpError for DistributedCallbackError<L,
             Self::RemoteError(error) => error.status_code(),
             Self::LocalError(error) => error.status_code(),
             Self::RemoteClientNotFound { .. } => StatusCode::NOT_FOUND,
+            Self::ServerNotSet => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -103,6 +109,7 @@ impl<L: std::error::Error + Into<Status>, R: std::error::Error + Into<Status>>
             error @ DistributedCallbackError::RemoteClientNotFound { .. } => {
                 Status::not_found(error.to_string())
             }
+            error @ DistributedCallbackError::ServerNotSet => Status::internal(error.to_string()),
         }
     }
 }
@@ -118,6 +125,7 @@ impl<L: std::error::Error, R: std::error::Error> DistributedCallbackError<L, R> 
             Self::RemoteClientNotFound(client_name) => {
                 DistributedCallbackError::RemoteClientNotFound(client_name)
             }
+            Self::ServerNotSet => DistributedCallbackError::ServerNotSet,
         }
     }
 
@@ -131,6 +139,7 @@ impl<L: std::error::Error, R: std::error::Error> DistributedCallbackError<L, R> 
             Self::RemoteClientNotFound(client_name) => {
                 DistributedCallbackError::RemoteClientNotFound(client_name)
             }
+            Self::ServerNotSet => DistributedCallbackError::ServerNotSet,
         }
     }
 }

@@ -18,24 +18,25 @@ use super::engine::LogsEngine;
 use crate::assets::icons;
 use crate::frontend::mousemove::MousemoveManager;
 use crate::frontend::mousemove::Position;
+use crate::frontend::remotes::Remote;
 
 stylance::import_style!(style, "panel.scss");
 
 #[html]
 #[template(tag = div)]
-pub fn panel() -> XElement {
+pub fn panel(remote: XSignal<Remote>) -> XElement {
     let show_logs_panel = XSignal::new("show-logs-panel", false);
     tag(
         resize_bar(show_logs_panel.clone()),
-        logs_panel(show_logs_panel.clone()),
+        logs_panel(show_logs_panel.clone(), remote),
     )
 }
 
 #[html]
 #[template(tag = div)]
-fn logs_panel(#[signal] show_logs_panel: bool) -> XElement {
+fn logs_panel(#[signal] show_logs_panel: bool, #[signal] remote: Remote) -> XElement {
     if show_logs_panel {
-        let logs_engine = LogsEngine::new();
+        let logs_engine = LogsEngine::new(remote);
         let logs = logs_engine.logs();
         let logs_panel = ElementCapture::<HtmlDivElement>::default();
         let first_render = Cell::new(true).into();

@@ -25,13 +25,13 @@ stylance::import_style!(style, "login.scss");
 #[template]
 pub fn login(#[signal] mut logged_in: LoggedInStatus, remote: XSignal<Remote>) -> XElement {
     #[cfg(feature = "logs-panel")]
-    fn maybe_logs_panel() -> XElement {
-        crate::logs::panel()
+    fn maybe_logs_panel(remote: XSignal<Remote>) -> XElement {
+        crate::logs::panel(remote)
     }
 
     #[cfg(not(feature = "logs-panel"))]
     #[html]
-    fn maybe_logs_panel() -> XElement {
+    fn maybe_logs_panel(_remote: XSignal<Remote>) -> XElement {
         div(style::display = "none")
     }
 
@@ -41,7 +41,7 @@ pub fn login(#[signal] mut logged_in: LoggedInStatus, remote: XSignal<Remote>) -
             div(
                 class = style::app_shell,
                 show_app(app(), remote.clone()),
-                maybe_logs_panel(),
+                maybe_logs_panel(remote),
             ),
         ),
         LoggedInStatus::Logout => div(
@@ -114,8 +114,7 @@ fn show_app(#[signal] app: App, remote: XSignal<Remote>) -> XElement {
         match app {
             #[cfg(feature = "terminal")]
             App::Terminal => {
-                drop(remote);
-                div(|t| crate::terminal::terminals(t))
+                div(move |t| crate::terminal::terminals(t, remote.clone()))
             }
             #[cfg(feature = "text-editor")]
             App::TextEditor => div(move |t| crate::text_editor::ui::text_editor(t, remote.clone())),
