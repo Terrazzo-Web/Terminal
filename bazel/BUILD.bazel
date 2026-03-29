@@ -1,0 +1,11 @@
+alias(
+    name = "stylance",
+    actual = "@tool_crates//:stylance-cli__stylance",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "wasm_pack",
+    actual = "@tool_crates//:wasm-pack__wasm-pack",
+    visibility = ["//visibility:public"],
+)

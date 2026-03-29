@@ -5,6 +5,8 @@ set -euo pipefail
 IMAGE_NAME="${UBUNTU_IMAGE_NAME:-ubuntu-bazelisk}"
 CONTAINERFILE_PATH="${UBUNTU_CONTAINERFILE:-$(dirname "$0")/Dockerfile}"
 WORKSPACE_DIR="$(pwd)"
+WORKSPACE_CACHE_DIR="${UBUNTU_WORKSPACE_CACHE_DIR:-$WORKSPACE_DIR/.cache}"
+WORKSPACE_HOME_DIR="${UBUNTU_WORKSPACE_HOME_DIR:-$WORKSPACE_DIR/.ubuntu-home}"
 
 usage() {
   cat <<'EOF'
@@ -36,9 +38,14 @@ if ! podman image exists "$IMAGE_NAME"; then
   podman build -t "$IMAGE_NAME" -f "$CONTAINERFILE_PATH" "$(dirname "$CONTAINERFILE_PATH")"
 fi
 
+mkdir -p "$WORKSPACE_CACHE_DIR" "$WORKSPACE_HOME_DIR"
+
 exec podman run --rm \
   --userns keep-id \
   -v "$WORKSPACE_DIR:/workspace:Z" \
+  -e "HOME=/workspace/.ubuntu-home" \
+  -e "XDG_CACHE_HOME=/workspace/.cache" \
+  -e "BAZELISK_HOME=/workspace/.cache/bazelisk" \
   -w /workspace \
   "$IMAGE_NAME" \
   "$@"

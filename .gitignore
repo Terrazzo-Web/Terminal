@@ -17,3 +17,7 @@ node_modules/
 **/assets/**/*.css.map
 
 .codex
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-workspace

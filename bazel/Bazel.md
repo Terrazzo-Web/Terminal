@@ -66,6 +66,29 @@ In practice, the first Bazel bring-up should decide and document:
 
 Without `MODULE.bazel` plus `rules_rust`, the rest of this plan cannot be wired up.
 
+This repo now has a first-pass module setup:
+
+- `MODULE.bazel`
+- `//bazel:stylance`
+- `//bazel:wasm_pack`
+
+Those tool targets are built from crates.io sources using `rules_rust` crate-universe with exact crate versions:
+
+- `stylance-cli = 0.7.4`
+- `wasm-pack = 0.14.0`
+
+## Tooling note for `wasm-pack`
+
+Even when `wasm-pack` itself is built by Bazel, the tool still drives Cargo/Rust underneath when it executes.
+
+So the host toolchain still needs the wasm target installed:
+
+```bash
+rustup target add wasm32-unknown-unknown
+```
+
+That matches the existing `rust-toolchain.toml`, which already lists `wasm32-unknown-unknown` as a required target.
+
 ### 1. Disable the Cargo-side wasm build for Bazel
 
 Build the server crate with the `no_wasm_build` feature enabled, in addition to `server`.
