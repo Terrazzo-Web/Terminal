@@ -44,7 +44,6 @@ fi
 mkdir -p "$HOST_CACHE_DIR" "$HOST_HOME_DIR"
 
 exec podman run --rm \
-  --userns keep-id \
   -v "$WORKSPACE_DIR:/workspace:Z" \
   -v "$HOST_CACHE_DIR:/cache:Z" \
   -v "$HOST_HOME_DIR:/home/ubuntu:Z" \
