@@ -5,6 +5,7 @@
 - `#123`. Add tests for the tunnel
 - `#124`. Port-forward should try to re-create the connection to the parent node when a new connection arrives
 - `#·91`. Create ann info page that shows: version, metrics, etc.
+- `#125`. The converter tool should stream results instead of returning everything in one go. Leverage ndjson.
 - `#·95`. File explorer: search tool
 - `#·94`. File explorer: all files
 - `#117`. File explorer: tree view with collapsing subfolders
@@ -21,7 +22,7 @@
 - `#·32`. Announce open source terrazzo client
 - `#113`. Add a dropdown on hover showing the list of pending operations on the ok/pending icon
 
-Next: `#122`.
+Next: `#126`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
