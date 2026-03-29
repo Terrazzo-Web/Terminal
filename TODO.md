@@ -17,7 +17,6 @@
 - `#·32`. Announce open source terrazzo client
 - `#·72`. Create a derive macro for `struct MyStruct { ... }` → `struct MyStruct { inner: Rc<MyStructInner> }` + `struct MyStructInner { ... }`
 - `#·52`. Drag n Drop to create tiles
-- `#··8`. Resizeable component --> refactor to common widgets
 - `#107`. (b) Ticks should be aligned with round time;
 - `#108`. Introduce shortcuts for unwrap(). Makes it easy to scan where unwrap() is used.
 - `#113`. Add a dropdown on hover showing the list of pending operations on the ok/pending icon
@@ -132,3 +131,4 @@ Next: `#120`.
 - `#·89`. Anything parser: x509, base64, pem, yaml, json, toml, etc.
 - `#·91`. Port forwarding tool
 - `#116`. Keep current remote in memory
+- `#··8`. Resizeable component --> refactor to common widgets
