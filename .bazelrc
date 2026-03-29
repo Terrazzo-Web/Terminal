@@ -1,0 +1,3 @@
+build --@rules_rust//rust/settings:toolchain_linker_preference=cc
+build --linkopt=-fuse-ld=bfd
+build --host_linkopt=-fuse-ld=bfd
