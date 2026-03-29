@@ -14,14 +14,13 @@ use tonic::transport::Body;
 use tracing::info;
 use trz_gateway_server::server::Server;
 
+use super::response::HybridResponseStream;
 use crate::backend::client_service::routing::DistributedCallback;
 use crate::backend::protos::terrazzo::logs::LogsRequest;
 use crate::backend::protos::terrazzo::logs::logs_service_client::LogsServiceClient;
 use crate::backend::protos::terrazzo::shared::ClientAddress as ClientAddressProto;
 use crate::logs::event::LogEvent;
 use crate::logs::state::LogState;
-
-use super::response::HybridResponseStream;
 
 pub struct LogsCallback;
 

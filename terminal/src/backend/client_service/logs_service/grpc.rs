@@ -19,7 +19,9 @@ impl LogsService for ClientServiceImpl {
         &self,
         request: Request<LogsRequest>,
     ) -> Result<Response<Self::StreamLogsStream>, Status> {
-        let response = logs_dispatch(request.into_inner()).await.map_err(Status::from)?;
+        let response = logs_dispatch(request.into_inner())
+            .await
+            .map_err(Status::from)?;
         Ok(Response::new(RemoteResponseStream(response)))
     }
 }
