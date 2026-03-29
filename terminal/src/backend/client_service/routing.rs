@@ -35,9 +35,7 @@ pub trait DistributedCallback {
         async move {
             match client_address {
                 [rest @ .., client_address_leaf] => {
-                    let Some(server) = server else {
-                        return Err(DistributedCallbackError::ServerNotSet);
-                    };
+                    let server = server.ok_or(DistributedCallbackError::ServerNotSet)?;
                     let client_address_leaf = ClientName::from(client_address_leaf.as_ref());
                     let channel = server
                         .connections()
