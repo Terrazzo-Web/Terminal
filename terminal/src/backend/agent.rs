@@ -126,6 +126,11 @@ impl TunnelConfig for AgentTunnelConfig {
                 use crate::backend::protos::terrazzo::notify::notify_service_server::NotifyServiceServer;
                 server.add_service(NotifyServiceServer::new(client_service.clone()))
             };
+            #[cfg(feature = "logs-panel")]
+            let server = {
+                use crate::backend::protos::terrazzo::logs::logs_service_server::LogsServiceServer;
+                server.add_service(LogsServiceServer::new(client_service.clone()))
+            };
             #[cfg(feature = "port-forward")]
             let server = {
                 use crate::backend::protos::terrazzo::portforward::port_forward_service_server::PortForwardServiceServer;
