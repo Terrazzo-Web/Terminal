@@ -69,6 +69,12 @@ fn install_icons() {
         install_icon(super::icons::port_forward_synchronized());
         install_icon(super::icons::trash());
     }
+
+    #[cfg(feature = "logs-panel")]
+    {
+        install_icon(super::icons::chevron_bar_up());
+        install_icon(super::icons::chevron_bar_down());
+    }
 }
 
 fn install_xterm() {

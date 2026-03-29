@@ -1,3 +1,5 @@
+#![cfg(feature = "logs-panel")]
+
 mod client;
 mod event;
 mod state;

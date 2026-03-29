@@ -81,7 +81,7 @@ impl GatewayConfig for TerminalBackendServer {
     }
 
     fn enable_tracing(&self) -> bool {
-        false
+        !cfg!(feature = "logs-panel")
     }
 
     fn host(&self) -> String {

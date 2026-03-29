@@ -16,7 +16,6 @@ use self::diagnostics::warn;
 use crate::assets::icons;
 use crate::frontend::menu::app;
 use crate::frontend::remotes::Remote;
-use crate::logs;
 use crate::state::app::App;
 
 stylance::import_style!(style, "login.scss");
@@ -25,13 +24,24 @@ stylance::import_style!(style, "login.scss");
 #[html]
 #[template]
 pub fn login(#[signal] mut logged_in: LoggedInStatus, remote: XSignal<Remote>) -> XElement {
+    #[cfg(feature = "logs-panel")]
+    fn maybe_logs_panel() -> XElement {
+        crate::logs::panel()
+    }
+
+    #[cfg(not(feature = "logs-panel"))]
+    #[html]
+    fn maybe_logs_panel() -> XElement {
+        div(style::display = "none")
+    }
+
     match logged_in {
         LoggedInStatus::Login => div(
             key = "app",
             div(
                 class = style::app_shell,
                 show_app(app(), remote.clone()),
-                logs::panel(),
+                maybe_logs_panel(),
             ),
         ),
         LoggedInStatus::Logout => div(
