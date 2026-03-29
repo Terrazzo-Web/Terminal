@@ -1,8 +1,8 @@
 #![cfg(feature = "logs-panel")]
 
 mod client;
-mod event;
-mod state;
+pub(crate) mod event;
+pub(crate) mod state;
 mod stream;
 mod subscription;
 mod tests;

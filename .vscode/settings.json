@@ -39,4 +39,5 @@
     "workbench.editor.showTabs": "single",
     "workbench.startupEditor": "none",
     "workbench.editor.enablePreview": false,
+    "protobuf.protoc.path": "/usr/bin/protoc",
 }
