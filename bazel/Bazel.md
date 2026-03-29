@@ -37,6 +37,35 @@ In other words, a Bazel `data = [...]` edge is not enough. The generated wasm an
 
 ## Recommended Bazel approach
 
+### 0. Add Bazel module setup first
+
+Before any build targets can exist, the repo needs Bazel module setup at the workspace root.
+
+At minimum:
+
+- a root `MODULE.bazel`
+- Bazel rules for Rust
+- Bazel rules or repository setup for any non-Rust tools invoked during the build
+
+For Rust, the expected starting point is:
+
+- [`rules_rust`](https://bazelbuild.github.io/rules_rust/)
+
+That is the ruleset that should own:
+
+- Rust library targets for `game`
+- the Rust binary target for `game/src/server.rs`
+- Cargo dependency translation / crate universe setup
+- Rust compile-time environment variables used to point at Bazel-generated assets
+
+In practice, the first Bazel bring-up should decide and document:
+
+- whether dependencies come from a Cargo lock import via `crate_universe`
+- how `wasm-pack` is provided to Bazel
+- how `stylance` is provided to Bazel
+
+Without `MODULE.bazel` plus `rules_rust`, the rest of this plan cannot be wired up.
+
 ### 1. Disable the Cargo-side wasm build for Bazel
 
 Build the server crate with the `no_wasm_build` feature enabled, in addition to `server`.
