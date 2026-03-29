@@ -5,8 +5,9 @@ set -euo pipefail
 IMAGE_NAME="${UBUNTU_IMAGE_NAME:-ubuntu-bazelisk}"
 CONTAINERFILE_PATH="${UBUNTU_CONTAINERFILE:-$(dirname "$0")/Dockerfile}"
 WORKSPACE_DIR="$(pwd)"
-WORKSPACE_CACHE_DIR="${UBUNTU_WORKSPACE_CACHE_DIR:-$WORKSPACE_DIR/.cache}"
-WORKSPACE_HOME_DIR="${UBUNTU_WORKSPACE_HOME_DIR:-$WORKSPACE_DIR/.ubuntu-home}"
+WORKSPACE_NAME="$(basename "$WORKSPACE_DIR")"
+HOST_CACHE_DIR="${UBUNTU_HOST_CACHE_DIR:-$HOME/.cache/ubuntu-sh/$WORKSPACE_NAME}/cache"
+HOST_HOME_DIR="${UBUNTU_HOST_HOME_DIR:-$HOME/.cache/ubuntu-sh/$WORKSPACE_NAME}/home"
 
 usage() {
   cat <<'EOF'
@@ -20,6 +21,8 @@ Runs the given command inside an ephemeral Ubuntu container with:
 Environment overrides:
 - UBUNTU_IMAGE_NAME: image tag to run (default: ubuntu-bazelisk)
 - UBUNTU_CONTAINERFILE: Containerfile/Dockerfile path to build from if image is missing
+- UBUNTU_HOST_CACHE_DIR: persistent host cache directory mounted at /cache
+- UBUNTU_HOST_HOME_DIR: persistent host home directory mounted at /home/ubuntu
 EOF
 }
 
@@ -38,14 +41,16 @@ if ! podman image exists "$IMAGE_NAME"; then
   podman build -t "$IMAGE_NAME" -f "$CONTAINERFILE_PATH" "$(dirname "$CONTAINERFILE_PATH")"
 fi
 
-mkdir -p "$WORKSPACE_CACHE_DIR" "$WORKSPACE_HOME_DIR"
+mkdir -p "$HOST_CACHE_DIR" "$HOST_HOME_DIR"
 
 exec podman run --rm \
   --userns keep-id \
   -v "$WORKSPACE_DIR:/workspace:Z" \
-  -e "HOME=/workspace/.ubuntu-home" \
-  -e "XDG_CACHE_HOME=/workspace/.cache" \
-  -e "BAZELISK_HOME=/workspace/.cache/bazelisk" \
+  -v "$HOST_CACHE_DIR:/cache:Z" \
+  -v "$HOST_HOME_DIR:/home/ubuntu:Z" \
+  -e "HOME=/home/ubuntu" \
+  -e "XDG_CACHE_HOME=/cache/xdg" \
+  -e "BAZELISK_HOME=/cache/bazelisk" \
   -w /workspace \
   "$IMAGE_NAME" \
   "$@"
