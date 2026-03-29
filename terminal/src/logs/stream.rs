@@ -5,9 +5,13 @@ use server_fn::codec::StreamingText;
 use server_fn::codec::TextStream;
 use terrazzo::server;
 
+use crate::api::client_address::ClientAddress;
+
 #[server(protocol = Http<Json, StreamingText>)]
-pub async fn stream() -> Result<TextStream<ServerFnError>, ServerFnError> {
-    imp::stream_impl().await
+pub async fn stream(
+    remote: Option<ClientAddress>,
+) -> Result<TextStream<ServerFnError>, ServerFnError> {
+    imp::stream_impl(remote).await
 }
 
 #[cfg(feature = "server")]
@@ -18,10 +22,13 @@ mod imp {
     use server_fn::codec::TextStream;
     use tracing::info;
 
+    use crate::api::client_address::ClientAddress;
     use crate::logs::event::LogEvent;
     use crate::logs::state::LogState;
 
-    pub(super) async fn stream_impl() -> Result<TextStream<ServerFnError>, ServerFnError> {
+    pub(super) async fn stream_impl(
+        remote: Option<ClientAddress>,
+    ) -> Result<TextStream<ServerFnError>, ServerFnError> {
         info!("Starting log stream");
         let end = guard((), |_| info!("Ending log stream"));
         let subscription = LogState::get().subscribe();
@@ -70,7 +77,7 @@ mod tests {
             info!("backlog");
         });
 
-        let mut stream = stream().await.expect("stream").into_inner();
+        let mut stream = stream(remote).await.expect("stream").into_inner();
         let backlog = stream.next().await.expect("item").expect("data");
         assert!(
             backlog.contains("backlog"),

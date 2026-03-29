@@ -25,14 +25,14 @@ pub struct LogsEngine {
 }
 
 impl LogsEngine {
-    pub fn new(_remote: Remote) -> Self {
+    pub fn new(remote: Remote) -> Self {
         let logs = XSignal::new("log-events", Arc::default());
         let (abort_handle, abort_registration) = AbortHandle::new_pair();
 
         let consume_stream = {
             let logs = logs.clone();
             async move {
-                let Ok(stream) = crate::logs::stream::stream()
+                let Ok(stream) = crate::logs::stream::stream(remote)
                     .await
                     .inspect_err(|error| warn!("Failed to start log stream: {error}"))
                 else {
