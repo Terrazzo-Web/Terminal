@@ -1,5 +1,6 @@
 # TODO
 - `#120`. Logs panel should show the logs of the current remote
+- `#126`. Add a search box to filter logs based on regex
 - `#121`. Migrate to Bazel
 - `#122`. Use a file watcher instead of polling for config file updates
 - `#123`. Add tests for the tunnel
@@ -22,7 +23,7 @@
 - `#·32`. Announce open source terrazzo client
 - `#113`. Add a dropdown on hover showing the list of pending operations on the ok/pending icon
 
-Next: `#126`.
+Next: `#127`.
 
 # DONE
 - `#··3`. `idx: { idx+=1; idx }` does not work. Fixed with `key: "{tab.key()}"`
