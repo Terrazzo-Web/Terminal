@@ -48,12 +48,19 @@ sed 's/members = \\["game", "pty", "terminal"\\]/members = ["game"]/g' \
   $(location //:Cargo.toml) > "$$workspace_dir/Cargo.toml"
 cp -L $(location //:Cargo.lock) "$$workspace_dir/Cargo.lock"
 cp -L $(location //:rust-toolchain.toml) "$$workspace_dir/rust-toolchain.toml"
+out_js="$$(realpath $(@D))/pkg/game.js"
+out_wasm="$$(realpath $(@D))/pkg/game_bg.wasm"
+mkdir -p "$$(dirname "$$out_js")"
 
 for src in $(locations :game_client_wasm_srcs); do
   dest="$$workspace_dir/$$src"
   mkdir -p "$$(dirname "$$dest")"
   cp -L "$$src" "$$dest"
 done
+
+export PATH="/usr/local/cargo/bin:$${PATH}"
+export CARGO="/usr/local/cargo/bin/cargo"
+export RUSTC="/usr/local/cargo/bin/rustc"
 
 cd "$$workspace_dir/game"
 "$$wasm_pack_bin" build \
@@ -66,7 +73,7 @@ cd "$$workspace_dir/game"
   --features client \
   --target-dir "$$target_dir"
 
-cp "$$pkg_dir/game.js" "$(@D)/pkg/game.js"
-cp "$$pkg_dir/game_bg.wasm" "$(@D)/pkg/game_bg.wasm"
+cp "$$pkg_dir/game.js" "$$out_js"
+cp "$$pkg_dir/game_bg.wasm" "$$out_wasm"
 """,
 )
