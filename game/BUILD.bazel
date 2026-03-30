@@ -1,0 +1,67 @@
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "game_client_wasm_srcs",
+    srcs = glob(
+        [
+            "assets/**",
+            "build.rs",
+            "src/**",
+        ],
+        exclude = ["target/**"],
+    ),
+)
+
+genrule(
+    name = "game_client_wasm",
+    srcs = [
+        ":game_client_wasm_srcs",
+        "//:Cargo.lock",
+        "//:Cargo.toml",
+        "//:rust-toolchain.toml",
+    ],
+    outs = [
+        "pkg/game.js",
+        "pkg/game_bg.wasm",
+    ],
+    tools = ["//bazel:wasm_pack"],
+    cmd = """
+set -euo pipefail
+
+tmp_dir="$$(mktemp -d)"
+cleanup() {
+  rm -rf "$$tmp_dir"
+}
+trap cleanup EXIT
+
+workspace_dir="$$tmp_dir/workspace"
+pkg_dir="$$tmp_dir/pkg"
+target_dir="$$tmp_dir/target"
+
+mkdir -p "$$workspace_dir/game" "$(@D)/pkg"
+
+sed 's/members = \\["game", "pty", "terminal"\\]/members = ["game"]/g' \
+  $(location //:Cargo.toml) > "$$workspace_dir/Cargo.toml"
+cp -L $(location //:Cargo.lock) "$$workspace_dir/Cargo.lock"
+cp -L $(location //:rust-toolchain.toml) "$$workspace_dir/rust-toolchain.toml"
+
+for src in $(locations :game_client_wasm_srcs); do
+  dest="$$workspace_dir/$$src"
+  mkdir -p "$$(dirname "$$dest")"
+  cp -L "$$src" "$$dest"
+done
+
+cd "$$workspace_dir/game"
+"$(location //bazel:wasm_pack)" build \
+  --locked \
+  --target web \
+  --no-default-features \
+  --features client \
+  --out-dir "$$pkg_dir" \
+  --out-name game \
+  --target-dir "$$target_dir"
+
+cp "$$pkg_dir/game.js" "$(@D)/pkg/game.js"
+cp "$$pkg_dir/game_bg.wasm" "$(@D)/pkg/game_bg.wasm"
+""",
+)
