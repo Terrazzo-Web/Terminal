@@ -87,9 +87,18 @@ if [[ "$(podman inspect -f '{{.State.Running}}' "$CONTAINER_NAME")" != "true" ]]
 fi
 
 exec_args=()
-if [[ -t 0 && -t 1 ]]; then
+in_foreground_tty=false
+if [[ -t 0 ]]; then
+  shell_pgid="$(ps -o pgid= -p $$ | tr -d ' ')"
+  tty_pgid="$(ps -o tpgid= -p $$ | tr -d ' ')"
+  if [[ -n "$shell_pgid" && "$shell_pgid" == "$tty_pgid" ]]; then
+    in_foreground_tty=true
+  fi
+fi
+
+if [[ "$in_foreground_tty" == "true" && -t 0 && -t 1 ]]; then
   exec_args+=(-it)
-elif [[ -t 0 ]]; then
+elif [[ "$in_foreground_tty" == "true" && -t 0 ]]; then
   exec_args+=(-i)
 fi
 
