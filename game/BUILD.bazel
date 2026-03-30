@@ -24,7 +24,11 @@ genrule(
         "pkg/game.js",
         "pkg/game_bg.wasm",
     ],
-    tools = ["//bazel:wasm_pack"],
+    tools = [
+        "//bazel:cargo",
+        "//bazel:rustc",
+        "//bazel:wasm_pack",
+    ],
     cmd = """
 set -euo pipefail
 
@@ -37,6 +41,9 @@ trap cleanup EXIT
 workspace_dir="$$tmp_dir/workspace"
 pkg_dir="$$tmp_dir/pkg"
 target_dir="$$tmp_dir/target"
+wasm_pack_bin="$$(realpath $(location //bazel:wasm_pack))"
+cargo_bin="$$(realpath $(location //bazel:cargo))"
+rustc_bin="$$(realpath $(location //bazel:rustc))"
 
 mkdir -p "$$workspace_dir/game" "$(@D)/pkg"
 
@@ -51,8 +58,12 @@ for src in $(locations :game_client_wasm_srcs); do
   cp -L "$$src" "$$dest"
 done
 
+export PATH="$$(dirname "$$cargo_bin"):$${PATH}"
+export CARGO="$$cargo_bin"
+export RUSTC="$$rustc_bin"
+
 cd "$$workspace_dir/game"
-"$(location //bazel:wasm_pack)" build \
+"$$wasm_pack_bin" build \
   --locked \
   --target web \
   --no-default-features \
