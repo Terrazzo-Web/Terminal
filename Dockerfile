@@ -17,4 +17,11 @@ RUN curl -fsSL https://github.com/bazelbuild/bazelisk/releases/latest/download/b
     -o /usr/local/bin/bazel \
  && chmod +x /usr/local/bin/bazel
 
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:${PATH}
+
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal --default-toolchain stable \
+ && rustup target add wasm32-unknown-unknown
+
 CMD ["tail", "-f", "/dev/null"]

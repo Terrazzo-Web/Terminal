@@ -12,14 +12,11 @@ rust.toolchain(
         "wasm32-unknown-unknown",
     ],
 )
-use_repo(rust, "rust_toolchains")
-register_toolchains("@rust_toolchains//:all")
-
-rust_host_tools = use_extension("@rules_rust//rust:extensions.bzl", "rust_host_tools")
-rust_host_tools.host_tools(
-    name = "terminal_rust_host_tools",
+use_repo(
+    rust, 
+    "rust_toolchains",
 )
-use_repo(rust_host_tools, "terminal_rust_host_tools")
+register_toolchains("@rust_toolchains//:all")
 
 crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 

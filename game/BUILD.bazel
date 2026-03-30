@@ -5,6 +5,7 @@ filegroup(
     srcs = glob(
         [
             "assets/**",
+            "Cargo.toml",
             "build.rs",
             "src/**",
         ],
@@ -25,8 +26,6 @@ genrule(
         "pkg/game_bg.wasm",
     ],
     tools = [
-        "//bazel:cargo",
-        "//bazel:rustc",
         "//bazel:wasm_pack",
     ],
     cmd = """
@@ -42,8 +41,6 @@ workspace_dir="$$tmp_dir/workspace"
 pkg_dir="$$tmp_dir/pkg"
 target_dir="$$tmp_dir/target"
 wasm_pack_bin="$$(realpath $(location //bazel:wasm_pack))"
-cargo_bin="$$(realpath $(location //bazel:cargo))"
-rustc_bin="$$(realpath $(location //bazel:rustc))"
 
 mkdir -p "$$workspace_dir/game" "$(@D)/pkg"
 
@@ -58,18 +55,15 @@ for src in $(locations :game_client_wasm_srcs); do
   cp -L "$$src" "$$dest"
 done
 
-export PATH="$$(dirname "$$cargo_bin"):$${PATH}"
-export CARGO="$$cargo_bin"
-export RUSTC="$$rustc_bin"
-
 cd "$$workspace_dir/game"
 "$$wasm_pack_bin" build \
-  --locked \
   --target web \
-  --no-default-features \
-  --features client \
   --out-dir "$$pkg_dir" \
   --out-name game \
+  -- \
+  --locked \
+  --no-default-features \
+  --features client \
   --target-dir "$$target_dir"
 
 cp "$$pkg_dir/game.js" "$(@D)/pkg/game.js"

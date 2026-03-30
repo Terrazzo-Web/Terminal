@@ -6,20 +6,6 @@ alias(
     visibility = ["//visibility:public"],
 )
 
-sh_binary(
-    name = "cargo",
-    srcs = ["cargo_runner.sh"],
-    data = ["@terminal_rust_host_tools//:cargo"],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "rustc",
-    srcs = ["rustc_runner.sh"],
-    data = ["@terminal_rust_host_tools//:rustc"],
-    visibility = ["//visibility:public"],
-)
-
 alias(
     name = "wasm_pack",
     actual = "@tool_crates//:wasm-pack__wasm-pack",
