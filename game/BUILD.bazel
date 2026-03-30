@@ -52,7 +52,6 @@ for src in $(locations :game_client_wasm_srcs); do
   dest="$$workspace_dir/$$src"
   mkdir -p "$$(dirname "$$dest")"
   cp -L "$$src" "$$dest"
-  # ln -sfn "$$(realpath "$$src")" "$$dest"
 done
 
 export PATH="/usr/local/cargo/bin:$${PATH}"
