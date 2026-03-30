@@ -9,6 +9,7 @@ WORKSPACE_NAME="$(basename "$WORKSPACE_DIR")"
 HOST_CACHE_DIR="${UBUNTU_HOST_CACHE_DIR:-$HOME/.cache/ubuntu-sh/$WORKSPACE_NAME}/cache"
 HOST_HOME_DIR="${UBUNTU_HOST_HOME_DIR:-$HOME/.cache/ubuntu-sh/$WORKSPACE_NAME}/home"
 CONTAINER_NAME="${UBUNTU_CONTAINER_NAME:-ubuntu-sh-$WORKSPACE_NAME}"
+SSH_PORT="${UBUNTU_SSH_PORT:-2222}"
 
 usage() {
   cat <<'EOF'
@@ -25,6 +26,7 @@ Environment overrides:
 - UBUNTU_HOST_CACHE_DIR: persistent host cache directory mounted at /cache
 - UBUNTU_HOST_HOME_DIR: persistent host home directory mounted at /home/ubuntu
 - UBUNTU_CONTAINER_NAME: container name to reuse
+- UBUNTU_SSH_PORT: localhost port forwarded to container sshd (default: 2222)
 EOF
 }
 
@@ -48,6 +50,7 @@ mkdir -p "$HOST_CACHE_DIR" "$HOST_HOME_DIR"
 if ! podman container exists "$CONTAINER_NAME"; then
   podman run -d \
     --name "$CONTAINER_NAME" \
+    -p "127.0.0.1:${SSH_PORT}:22" \
     -v "$WORKSPACE_DIR:/workspace:Z" \
     -v "$HOST_CACHE_DIR:/cache:Z" \
     -v "$HOST_HOME_DIR:/home/ubuntu:Z" \
@@ -61,6 +64,10 @@ fi
 
 if [[ "$(podman inspect -f '{{.State.Running}}' "$CONTAINER_NAME")" != "true" ]]; then
   podman start "$CONTAINER_NAME" >/dev/null
+  podman exec \
+    --workdir /workspace \
+    "$CONTAINER_NAME" \
+    bash -lc 'mkdir -p /home/ubuntu/.ssh /run/sshd && chmod 700 /home/ubuntu/.ssh && ssh-keygen -A >/dev/null 2>&1 && pgrep -x sshd >/dev/null || /usr/sbin/sshd' >/dev/null
 fi
 
 exec_args=()
