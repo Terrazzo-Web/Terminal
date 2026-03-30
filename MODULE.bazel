@@ -3,6 +3,7 @@ module(
 )
 
 bazel_dep(name = "rules_rust", version = "0.69.0")
+bazel_dep(name = "rules_shell", version = "0.6.1")
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
@@ -13,6 +14,12 @@ rust.toolchain(
 )
 use_repo(rust, "rust_toolchains")
 register_toolchains("@rust_toolchains//:all")
+
+rust_host_tools = use_extension("@rules_rust//rust:extensions.bzl", "rust_host_tools")
+rust_host_tools.host_tools(
+    name = "terminal_rust_host_tools",
+)
+use_repo(rust_host_tools, "terminal_rust_host_tools")
 
 crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 
