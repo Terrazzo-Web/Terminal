@@ -9,6 +9,7 @@ WORKSPACE_NAME="$(basename "$WORKSPACE_DIR")"
 HOST_CACHE_DIR="${UBUNTU_HOST_CACHE_DIR:-$HOME/.cache/ubuntu-sh/$WORKSPACE_NAME}/cache"
 HOST_HOME_DIR="${UBUNTU_HOST_HOME_DIR:-$HOME/.cache/ubuntu-sh/$WORKSPACE_NAME}/home"
 CONTAINER_NAME="${UBUNTU_CONTAINER_NAME:-ubuntu-sh-$WORKSPACE_NAME}"
+CONTAINER_IDLE_TIMEOUT_SECONDS="${UBUNTU_IDLE_TIMEOUT_SECONDS:-1200}"
 
 usage() {
   cat <<'EOF'
@@ -25,6 +26,7 @@ Environment overrides:
 - UBUNTU_HOST_CACHE_DIR: persistent host cache directory mounted at /cache
 - UBUNTU_HOST_HOME_DIR: persistent host home directory mounted at /home/ubuntu
 - UBUNTU_CONTAINER_NAME: container name to reuse
+- UBUNTU_IDLE_TIMEOUT_SECONDS: idle shutdown timeout in seconds (default: 1200, i.e. 20 minutes)
 EOF
 }
 
@@ -56,7 +58,28 @@ if ! podman container exists "$CONTAINER_NAME"; then
     -e "BAZELISK_HOME=/cache/bazelisk" \
     -w /workspace \
     "$IMAGE_NAME" \
-    tail -f /dev/null >/dev/null
+    bash -lc "
+      set -euo pipefail
+      idle_timeout='$CONTAINER_IDLE_TIMEOUT_SECONDS'
+
+      mkdir -p /tmp/ubuntu-sh/active
+      touch /tmp/ubuntu-sh/last-exec
+
+      while true; do
+        sleep 5
+
+        if find /tmp/ubuntu-sh/active -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
+          continue
+        fi
+
+        last_exec=\$(stat -c %Y /tmp/ubuntu-sh/last-exec 2>/dev/null || echo 0)
+        now=\$(date +%s)
+
+        if (( now - last_exec > idle_timeout )); then
+          exit 0
+        fi
+      done
+    " >/dev/null
 fi
 
 if [[ "$(podman inspect -f '{{.State.Running}}' "$CONTAINER_NAME")" != "true" ]]; then
@@ -73,4 +96,20 @@ fi
 exec podman exec "${exec_args[@]}" \
   --workdir /workspace \
   "$CONTAINER_NAME" \
-  "$@"
+  bash -lc "
+    set -euo pipefail
+
+    mkdir -p /tmp/ubuntu-sh/active
+    touch /tmp/ubuntu-sh/last-exec
+
+    marker_file=\$(mktemp /tmp/ubuntu-sh/active/exec.XXXXXX)
+
+    cleanup() {
+      rm -f \"\$marker_file\"
+      touch /tmp/ubuntu-sh/last-exec
+    }
+
+    trap cleanup EXIT
+
+    \"\$@\"
+  " bash "$@"
