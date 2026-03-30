@@ -20,6 +20,9 @@ Runs the given command inside a persistent Ubuntu container with:
 - the working directory set to /workspace
 - a long-lived container reused across invocations
 
+Useful example:
+- List active commands: ./ubuntu.sh sh -lc 'tail -v /tmp/ubuntu-sh/active/*'
+
 Environment overrides:
 - UBUNTU_IMAGE_NAME: image tag to run (default: ubuntu-bazelisk)
 - UBUNTU_CONTAINERFILE: Containerfile/Dockerfile path to build from if image is missing
@@ -112,6 +115,8 @@ exec podman exec "${exec_args[@]}" \
     touch /tmp/ubuntu-sh/last-exec
 
     marker_file=\$(mktemp /tmp/ubuntu-sh/active/exec.XXXXXX)
+    printf '%q ' \"\$@\" >\"\$marker_file\"
+    printf '\n' >>\"\$marker_file\"
 
     cleanup() {
       rm -f \"\$marker_file\"
