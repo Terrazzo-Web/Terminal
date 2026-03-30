@@ -1,29 +1,27 @@
+load("@crates//:defs.bzl", "crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_shared_library")
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+
 package(default_visibility = ["//visibility:public"])
 
 rust_shared_library(
     name = "game_client_wasm_lib",
-    srcs = glob(["src/**/*.rs", "src/*.rs"]),
-    compile_data = glob(
-        [
-            "src/**/*.scss",
-            "src/*.scss",
-        ],
-    ) + [
-        "Cargo.toml",
-    ],
+    srcs = glob(["src/**/*.rs"]),
+    compile_data = glob(["src/**/*.scss"]) + ["Cargo.toml"],
     crate_features = ["client"],
     crate_name = "game",
     crate_root = "src/lib.rs",
     edition = "2024",
-    deps = [
-        "@game_client_crates//:stylance",
-        "@game_client_crates//:terrazzo",
-        "@game_client_crates//:wasm-bindgen",
-        "@game_client_crates//:web-sys",
-    ],
     target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = crate_deps(
+        [
+            "stylance",
+            "terrazzo",
+            "wasm-bindgen",
+            "web-sys",
+        ],
+        package_name = "game",
+    ),
 )
 
 rust_wasm_bindgen(
@@ -35,9 +33,7 @@ rust_wasm_bindgen(
 
 genrule(
     name = "game_client_wasm",
-    srcs = [
-        ":game_client_wasm_bindgen",
-    ],
+    srcs = [":game_client_wasm_bindgen"],
     outs = [
         "pkg/game.js",
         "pkg/game_bg.wasm",

@@ -5,74 +5,44 @@ module(
 bazel_dep(name = "rules_rust", version = "0.69.0")
 bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.69.0")
 bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "buildifier_prebuilt", version = "8.5.1")
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
-    versions = ["1.92.0"],
     extra_target_triples = [
         "wasm32-unknown-unknown",
     ],
+    versions = ["1.92.0"],
 )
 use_repo(
     rust,
     "rust_toolchains",
 )
+
 register_toolchains("@rust_toolchains//:all")
+
 register_toolchains("//bazel:wasm_bindgen_toolchain")
 
-crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
-crate.from_cargo(
-    name = "workspace_crates",
+crates = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crates.from_cargo(
+    name = "crates",
     cargo_lockfile = "//:Cargo.lock",
     manifests = ["//:Cargo.toml"],
 )
-use_repo(crate, "workspace_crates")
-use_repo(
-    crate,
-    "workspace_crates__terrazzo-0.1.24",
-    "workspace_crates__wasm-bindgen-0.2.115",
-    "workspace_crates__web-sys-0.3.92",
+crates.annotation(
+    crate = "game",
+    crate_features = ["client"],
+    repositories = ["crates"],
 )
+use_repo(crates, "crates")
 
-crate.spec(
-    package = "stylance",
-    version = "=0.7.4",
-)
-
-crate.spec(
-    package = "terrazzo",
-    version = "=0.1.24",
-    default_features = False,
-    features = ["client"],
-)
-
-crate.spec(
-    package = "wasm-bindgen",
-    version = "=0.2.115",
-)
-
-crate.spec(
-    package = "web-sys",
-    version = "=0.3.92",
-)
-
-crate.from_specs(
-    name = "game_client_crates",
-)
-use_repo(crate, "game_client_crates")
-
-crate.spec(
-    package = "stylance-cli",
-    version = "=0.7.4",
-)
-
-crate.spec(
+tool_crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+tool_crate.spec(
     package = "wasm-bindgen-cli",
     version = "=0.2.115",
 )
-
-crate.from_specs(
+tool_crate.from_specs(
     name = "tool_crates",
     generate_binaries = True,
 )
-use_repo(crate, "tool_crates")
+use_repo(tool_crate, "tool_crates")
