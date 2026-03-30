@@ -920,7 +920,11 @@ dependencies = [
 name = "direct-cargo-bazel-deps"
 version = "0.0.1"
 dependencies = [
+ "stylance",
+ "terrazzo",
+ "wasm-bindgen",
  "wasm-bindgen-cli",
+ "web-sys",
 ]
 
 [[package]]

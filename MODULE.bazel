@@ -24,6 +24,26 @@ register_toolchains("@rust_toolchains//:all")
 register_toolchains("//bazel:wasm_bindgen_toolchain")
 
 crates = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crates.spec(
+    package = "stylance",
+    version = "=0.7.4",
+    repositories = ["crates"],
+)
+crates.spec(
+    package = "terrazzo",
+    version = "=0.1.24",
+    repositories = ["crates"],
+)
+crates.spec(
+    package = "wasm-bindgen",
+    version = "=0.2.115",
+    repositories = ["crates"],
+)
+crates.spec(
+    package = "web-sys",
+    version = "=0.3.92",
+    repositories = ["crates"],
+)
 crates.from_cargo(
     name = "crates",
     cargo_lockfile = "//:Cargo.lock",
