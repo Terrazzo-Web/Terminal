@@ -112,22 +112,36 @@ Optional passthrough features:
 
 ### 2. Have Bazel build the wasm bundle explicitly
 
-Create a Bazel rule that runs roughly:
+Create a Bazel target named `//game:game_client_wasm`.
+
+That target should run `//bazel:wasm_pack` from the `game/` directory and declare the wasm bundle files as explicit Bazel outputs.
+
+The action should run roughly:
 
 ```bash
 wasm-pack build \
   --target web \
   --no-default-features \
   --features client \
-  --target-dir target/wasm
+  --out-dir "$OUT/pkg" \
+  --out-name game \
+  --target-dir "$OUT/target"
 ```
 
-Expected outputs:
+Expected declared outputs:
 
 - `pkg/game.js`
 - `pkg/game_bg.wasm`
 
 These are the files imported by `game/assets/bootstrap.js`.
+
+The milestone for this step is a working Bazel command:
+
+```bash
+./ubuntu.sh bazel build //game:game_client_wasm
+```
+
+This repo should treat `./ubuntu.sh` as the Bazel entrypoint, not plain `bazel`, because Bazel must run inside that Ubuntu container wrapper.
 
 ### 3. Have Bazel build the Stylance CSS explicitly
 
@@ -240,7 +254,7 @@ Everything else can stay conceptually the same:
 
 The first implementation pass should be:
 
-1. Add Bazel wasm and CSS generation rules.
+1. Add a `//game:game_client_wasm` target so `./ubuntu.sh bazel build //game:game_client_wasm` produces the wasm bundle.
 2. Patch `game/src/assets.rs` to accept Bazel-provided asset paths.
 3. Build the server crate with `server,no_wasm_build`.
 4. Verify that the generated server still serves:
