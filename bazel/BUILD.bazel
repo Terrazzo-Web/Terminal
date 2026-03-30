@@ -1,4 +1,4 @@
-load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_toolchain")
 
 alias(
     name = "stylance",
@@ -6,8 +6,15 @@ alias(
     visibility = ["//visibility:public"],
 )
 
-alias(
-    name = "wasm_pack",
-    actual = "@tool_crates//:wasm-pack__wasm-pack",
+rust_wasm_bindgen_toolchain(
+    name = "wasm_bindgen_toolchain_impl",
+    visibility = ["//visibility:public"],
+    wasm_bindgen_cli = "@tool_crates//:wasm-bindgen-cli__wasm-bindgen",
+)
+
+toolchain(
+    name = "wasm_bindgen_toolchain",
+    toolchain = ":wasm_bindgen_toolchain_impl",
+    toolchain_type = "@rules_rust_wasm_bindgen//:toolchain_type",
     visibility = ["//visibility:public"],
 )

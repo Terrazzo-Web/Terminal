@@ -61,7 +61,7 @@ That is the ruleset that should own:
 In practice, the first Bazel bring-up should decide and document:
 
 - whether dependencies come from a Cargo lock import via `crate_universe`
-- how `wasm-pack` is provided to Bazel
+- how Bazel-native wasm binding generation is provided
 - how `stylance` is provided to Bazel
 
 Without `MODULE.bazel` plus `rules_rust`, the rest of this plan cannot be wired up.
@@ -70,24 +70,10 @@ This repo now has a first-pass module setup:
 
 - `MODULE.bazel`
 - `//bazel:stylance`
-- `//bazel:wasm_pack`
 
-Those tool targets are built from crates.io sources using `rules_rust` crate-universe with exact crate versions:
+The Stylance tool target is built from crates.io sources using `rules_rust` crate-universe with an exact crate version:
 
 - `stylance-cli = 0.7.4`
-- `wasm-pack = 0.14.0`
-
-## Tooling note for `wasm-pack`
-
-Even when `wasm-pack` itself is built by Bazel, the tool still drives Cargo/Rust underneath when it executes.
-
-So the host toolchain still needs the wasm target installed:
-
-```bash
-rustup target add wasm32-unknown-unknown
-```
-
-That matches the existing `rust-toolchain.toml`, which already lists `wasm32-unknown-unknown` as a required target.
 
 ### 1. Disable the Cargo-side wasm build for Bazel
 
@@ -114,19 +100,12 @@ Optional passthrough features:
 
 Create a Bazel target named `//game:game_client_wasm`.
 
-That target should run `//bazel:wasm_pack` from the `game/` directory and declare the wasm bundle files as explicit Bazel outputs.
+That target should be implemented with Bazel-native Rust rules:
 
-The action should run roughly:
-
-```bash
-wasm-pack build \
-  --target web \
-  --no-default-features \
-  --features client \
-  --out-dir "$OUT/pkg" \
-  --out-name game \
-  --target-dir "$OUT/target"
-```
+- `crate_universe` imported from the workspace `Cargo.toml` and `Cargo.lock`
+- a `rust_shared_library` for the `game` client crate with the `client` feature enabled
+- `rust_wasm_bindgen(target = "web")` to generate the JavaScript glue and final wasm binary
+- a tiny packaging step, if needed, to expose the exact declared outputs under `pkg/`
 
 Expected declared outputs:
 

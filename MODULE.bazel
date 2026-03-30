@@ -3,7 +3,8 @@ module(
 )
 
 bazel_dep(name = "rules_rust", version = "0.69.0")
-bazel_dep(name = "rules_shell", version = "0.6.1")
+bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.69.0")
+bazel_dep(name = "platforms", version = "1.0.0")
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
@@ -13,12 +14,52 @@ rust.toolchain(
     ],
 )
 use_repo(
-    rust, 
+    rust,
     "rust_toolchains",
 )
 register_toolchains("@rust_toolchains//:all")
+register_toolchains("//bazel:wasm_bindgen_toolchain")
 
 crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.from_cargo(
+    name = "workspace_crates",
+    cargo_lockfile = "//:Cargo.lock",
+    manifests = ["//:Cargo.toml"],
+)
+use_repo(crate, "workspace_crates")
+use_repo(
+    crate,
+    "workspace_crates__terrazzo-0.1.24",
+    "workspace_crates__wasm-bindgen-0.2.115",
+    "workspace_crates__web-sys-0.3.92",
+)
+
+crate.spec(
+    package = "stylance",
+    version = "=0.7.4",
+)
+
+crate.spec(
+    package = "terrazzo",
+    version = "=0.1.24",
+    default_features = False,
+    features = ["client"],
+)
+
+crate.spec(
+    package = "wasm-bindgen",
+    version = "=0.2.115",
+)
+
+crate.spec(
+    package = "web-sys",
+    version = "=0.3.92",
+)
+
+crate.from_specs(
+    name = "game_client_crates",
+)
+use_repo(crate, "game_client_crates")
 
 crate.spec(
     package = "stylance-cli",
@@ -26,13 +67,12 @@ crate.spec(
 )
 
 crate.spec(
-    package = "wasm-pack",
-    version = "=0.14.0",
+    package = "wasm-bindgen-cli",
+    version = "=0.2.115",
 )
 
 crate.from_specs(
     name = "tool_crates",
     generate_binaries = True,
 )
-
 use_repo(crate, "tool_crates")
