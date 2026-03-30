@@ -29,11 +29,6 @@ crates.from_cargo(
     cargo_lockfile = "//:Cargo.lock",
     manifests = ["//:Cargo.toml"],
 )
-crates.annotation(
-    crate = "game",
-    crate_features = ["client"],
-    repositories = ["crates"],
-)
 use_repo(crates, "crates")
 
 tool_crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
