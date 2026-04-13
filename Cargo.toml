@@ -53,14 +53,14 @@ humantime = { version = "2.3.0" }
 include_directory = { version = "0.1.1" }
 inventory = { version = "0.3.22" }
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
-libc = { version = "0.2.183" }
+libc = { version = "0.2.185" }
 mime = { version = "0.3.17" }
 mime_guess = { version = "2.0.5" }
 nameth = { version = "0.1.24" }
 nix = { version = "0.31.2" }
 notify = { version = "8.2.0" }
 oid-registry = { version = "0.8.1" }
-openssl = { version = "0.10.75" }
+openssl = { version = "0.10.77" }
 pbkdf2 = { version = "0.12.2" }
 pin-project = { version = "1.1.11" }
 prettyplease = { version = "0.2.37" }
@@ -91,7 +91,7 @@ terrazzo = { version = "0.1.24", default-features = false }
 terrazzo-build = { version = "0.1.24" }
 thiserror = { version = "2.0.18" }
 tls-parser = { version = "0.12.2" }
-tokio = { version = "1.51.0" }
+tokio = { version = "1.51.1" }
 tokio-rustls = { version = "0.26.4" }
 tokio-stream = { version = "0.1.18" }
 tokio-util = { version = "0.7.18" }
