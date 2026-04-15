@@ -1,9 +1,0 @@
-name: Test server
-description: "Run tests for server components."
-runs:
-  using: "composite"
-  steps:
-    - name: Test server
-      run: |
-        cargo test --locked --no-default-features --features diagnostics,server-all
-      shell: bash
