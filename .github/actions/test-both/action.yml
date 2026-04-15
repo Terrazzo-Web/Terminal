@@ -1,9 +1,0 @@
-name: Test client & server
-description: "Run tests for both client and server components."
-runs:
-  using: "composite"
-  steps:
-    - name: Test client & server
-      run: |
-        cargo test --locked --no-default-features --features diagnostics,server-all,client-all
-      shell: bash
